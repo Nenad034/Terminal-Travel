@@ -44,7 +44,10 @@ export class MockProviderAdapter implements ProviderAdapter {
     }
     if (this.failNextCalls > 0) {
       this.failNextCalls -= 1;
-      throw new ProviderError(this.failureCode, `Simulirana greška (mock adapter): ${this.failureCode}`);
+      throw new ProviderError(
+        this.failureCode,
+        `Simulirana greška (mock adapter): ${this.failureCode}`,
+      );
     }
   }
 
@@ -59,7 +62,10 @@ export class MockProviderAdapter implements ProviderAdapter {
     return this.content;
   }
 
-  async checkAvailabilityAndPrice(_externalId: string, _stay: StayParams): Promise<AvailabilityQuote> {
+  async checkAvailabilityAndPrice(
+    _externalId: string,
+    _stay: StayParams,
+  ): Promise<AvailabilityQuote> {
     await this.maybeFail();
     if (!this.availabilityQuote) throw new ProviderError('NO_AVAILABILITY', 'Nema dostupne ponude');
     return this.availabilityQuote;
@@ -69,7 +75,14 @@ export class MockProviderAdapter implements ProviderAdapter {
   async confirmBooking(_externalId: string, booking: BookingRequest): Promise<BookingConfirmation> {
     await this.maybeFail();
     if (this.confirmedIdempotencyKeys.has(booking.idempotencyKey)) {
-      return this.bookingConfirmation ?? { providerBookingReference: 'MOCK-DUP', status: 'CONFIRMED', confirmedPrice: null, confirmedAt: null };
+      return (
+        this.bookingConfirmation ?? {
+          providerBookingReference: 'MOCK-DUP',
+          status: 'CONFIRMED',
+          confirmedPrice: null,
+          confirmedAt: null,
+        }
+      );
     }
     this.confirmedIdempotencyKeys.add(booking.idempotencyKey);
     return (

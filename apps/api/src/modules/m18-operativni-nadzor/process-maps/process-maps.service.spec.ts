@@ -24,7 +24,13 @@ describe('ProcessMapsService', () => {
 
     const m1 = maps.find((m) => m.key === 'm1-security');
     expect(m1).toMatchObject({ module: 'M1' });
-    expect(m1?.nodes.map((n) => n.id)).toEqual(['login-success', 'login-failed', 'mfa-failed', 'account-locked', 'password-reset']);
+    expect(m1?.nodes.map((n) => n.id)).toEqual([
+      'login-success',
+      'login-failed',
+      'mfa-failed',
+      'account-locked',
+      'password-reset',
+    ]);
 
     const m5 = maps.find((m) => m.key === 'm5-booking-flow');
     expect(m5).toMatchObject({ module: 'M5' });
@@ -91,23 +97,40 @@ describe('ProcessMapsService', () => {
       lastAt: '2026-08-29T10:00:00.000Z',
     });
     const loginSuccessNode = result.nodes.find((n) => n.id === 'login-success');
-    expect(loginSuccessNode).toEqual({ id: 'login-success', label: 'Uspešna prijava', count: 0, lastAt: null });
+    expect(loginSuccessNode).toEqual({
+      id: 'login-success',
+      label: 'Uspešna prijava',
+      count: 0,
+      lastAt: null,
+    });
   });
 
   it('live() za "m5-booking-flow" čita iz modula M5, ne M1 (poglavlje 9a)', async () => {
     const { service, auditLog } = makeService();
-    (auditLog.find as jest.Mock).mockImplementation(({ module, actions }: { module: string; actions: string[] }) => {
-      if (module === 'M5' && actions.includes('booking.confirmed')) {
-        return Promise.resolve(stranica([{ timestamp: new Date('2026-08-29T12:00:00.000Z') }], 1));
-      }
-      return Promise.resolve(stranica([], 0));
-    });
+    (auditLog.find as jest.Mock).mockImplementation(
+      ({ module, actions }: { module: string; actions: string[] }) => {
+        if (module === 'M5' && actions.includes('booking.confirmed')) {
+          return Promise.resolve(
+            stranica([{ timestamp: new Date('2026-08-29T12:00:00.000Z') }], 1),
+          );
+        }
+        return Promise.resolve(stranica([], 0));
+      },
+    );
 
     const result = await service.live('m5-booking-flow');
 
-    expect(auditLog.find).toHaveBeenCalledWith(expect.objectContaining({ module: 'M5', actions: ['booking.confirmed'] }), { limit: 1 });
+    expect(auditLog.find).toHaveBeenCalledWith(
+      expect.objectContaining({ module: 'M5', actions: ['booking.confirmed'] }),
+      { limit: 1 },
+    );
     const created = result.nodes.find((n) => n.id === 'booking-created');
-    expect(created).toEqual({ id: 'booking-created', label: 'Rezervacija kreirana', count: 1, lastAt: '2026-08-29T12:00:00.000Z' });
+    expect(created).toEqual({
+      id: 'booking-created',
+      label: 'Rezervacija kreirana',
+      count: 1,
+      lastAt: '2026-08-29T12:00:00.000Z',
+    });
   });
 
   it('live() za "m10-money-flow" prosleđuje SVE matchActions čvora u jedan poziv (obaveza dobavljaču ima dva izvora, poglavlje 9a)', async () => {
@@ -117,7 +140,10 @@ describe('ProcessMapsService', () => {
     await service.live('m10-money-flow');
 
     expect(auditLog.find).toHaveBeenCalledWith(
-      expect.objectContaining({ module: 'M10', actions: ['supplier_obligation.created', 'supplier_obligation.auto_created'] }),
+      expect.objectContaining({
+        module: 'M10',
+        actions: ['supplier_obligation.created', 'supplier_obligation.auto_created'],
+      }),
       { limit: 1 },
     );
   });
@@ -129,7 +155,10 @@ describe('ProcessMapsService', () => {
     await service.live('m7-subagent-flow');
 
     expect(auditLog.find).toHaveBeenCalledWith(
-      expect.objectContaining({ module: 'M7', actions: ['subagent.registered', 'subagent.child_registered'] }),
+      expect.objectContaining({
+        module: 'M7',
+        actions: ['subagent.registered', 'subagent.child_registered'],
+      }),
       { limit: 1 },
     );
   });

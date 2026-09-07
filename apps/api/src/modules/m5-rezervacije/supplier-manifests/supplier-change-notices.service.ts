@@ -43,7 +43,15 @@ export class SupplierChangeNoticesService {
             booking: { select: { id: true, bookingNumber: true } },
             // `Product` nema polje `name` (nazivi žive u prevodima, M2 §2.2) — za ovaj ekran je
             // dovoljno ko je dobavljač i koje je mesto; naziv objekta se vidi u samoj rezervaciji.
-            product: { select: { type: true, destinationCity: true, sourceContract: { select: { supplier: { select: { id: true, name: true, contactEmail: true } } } } } },
+            product: {
+              select: {
+                type: true,
+                destinationCity: true,
+                sourceContract: {
+                  select: { supplier: { select: { id: true, name: true, contactEmail: true } } },
+                },
+              },
+            },
           },
         },
       },
@@ -61,7 +69,9 @@ export class SupplierChangeNoticesService {
     const notice = await this.findOne(id);
     // §8.4 (5.9.2026) — kao i kod operativne liste, PENDING_SEND se sme poslati ponovo.
     if (notice.status !== 'DRAFT' && notice.status !== 'PENDING_SEND') {
-      throw new NotFoundException(`SupplierChangeNotice ${id} nije u statusu DRAFT ni PENDING_SEND.`);
+      throw new NotFoundException(
+        `SupplierChangeNotice ${id} nije u statusu DRAFT ni PENDING_SEND.`,
+      );
     }
 
     const result = await this.mailbox.sendViaSharedMailbox({
@@ -89,7 +99,9 @@ export class SupplierChangeNoticesService {
       actorType: 'HUMAN',
       actorId,
       module: 'M5',
-      action: result.delivered ? 'supplier_change_notice.sent' : 'supplier_change_notice.send_pending',
+      action: result.delivered
+        ? 'supplier_change_notice.sent'
+        : 'supplier_change_notice.send_pending',
       resourceType: 'SupplierChangeNotice',
       resourceId: id,
       afterState: updated,
@@ -101,7 +113,8 @@ export class SupplierChangeNoticesService {
   // M5 spec §8.8 — potvrda dobavljača ISKLJUČIVO ljudskim klikom, nikad automatski.
   async confirmSupplier(id: string, actorId: string) {
     const notice = await this.findOne(id);
-    if (notice.status !== 'SENT') throw new NotFoundException(`SupplierChangeNotice ${id} nije poslat.`);
+    if (notice.status !== 'SENT')
+      throw new NotFoundException(`SupplierChangeNotice ${id} nije poslat.`);
 
     const updated = await this.prisma.supplierChangeNotice.update({
       where: { id },

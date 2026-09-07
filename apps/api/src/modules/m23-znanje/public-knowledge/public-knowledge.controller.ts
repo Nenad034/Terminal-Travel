@@ -19,7 +19,10 @@ export class PublicKnowledgeController {
   constructor(private readonly prisma: PrismaService) {}
 
   @Get(':shareToken')
-  async findByShareToken(@Param('shareToken') shareToken: string, @Query('lang') lang?: LanguageCode) {
+  async findByShareToken(
+    @Param('shareToken') shareToken: string,
+    @Query('lang') lang?: LanguageCode,
+  ) {
     const article = await this.prisma.article.findFirst({
       where: { shareToken, status: 'PUBLISHED' },
       include: { translations: true },
@@ -32,7 +35,10 @@ export class PublicKnowledgeController {
   }
 }
 
-function resolveTranslation<T extends { languageCode: LanguageCode }>(translations: T[], requestedLang: LanguageCode): T | null {
+function resolveTranslation<T extends { languageCode: LanguageCode }>(
+  translations: T[],
+  requestedLang: LanguageCode,
+): T | null {
   const byLang = (l: LanguageCode) => translations.find((t) => t.languageCode === l) ?? null;
   return byLang(requestedLang) ?? byLang('en') ?? byLang('sr') ?? null;
 }

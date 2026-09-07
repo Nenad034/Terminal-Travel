@@ -14,7 +14,10 @@
 //   npm run normalize:countries -- --dry-run   (samo prikaže šta bi promenio)
 //   npm run normalize:countries                (stvarno upiše)
 import { PrismaClient } from '@prisma/client';
-import { needsCountryNormalization, normalizeDestinationCountry } from '../../src/common/destination-country';
+import {
+  needsCountryNormalization,
+  normalizeDestinationCountry,
+} from '../../src/common/destination-country';
 
 const prisma = new PrismaClient();
 
@@ -31,37 +34,51 @@ async function main() {
   for (const p of products) {
     if (!needsCountryNormalization(p.destinationCountry)) continue;
     const next = normalizeDestinationCountry(p.destinationCountry);
-    console.log(`Product ${p.id} (${p.status}, ${p.destinationCity ?? '—'}): "${p.destinationCountry}" → "${next}"`);
+    console.log(
+      `Product ${p.id} (${p.status}, ${p.destinationCity ?? '—'}): "${p.destinationCountry}" → "${next}"`,
+    );
     changed++;
-    if (!dryRun) await prisma.product.update({ where: { id: p.id }, data: { destinationCountry: next } });
+    if (!dryRun)
+      await prisma.product.update({ where: { id: p.id }, data: { destinationCountry: next } });
   }
 
   // 2. Analitički redovi (M13 `FactBooking`) — prepisuju državu sa proizvoda u trenutku
   // sinhronizacije, pa nose isti nered i posle ispravke kataloga. Izveštaj koji istu državu
   // broji dvaput je pogrešan izveštaj, ne kozmetika.
-  const facts = await prisma.factBooking.findMany({ select: { id: true, destinationCountry: true } });
+  const facts = await prisma.factBooking.findMany({
+    select: { id: true, destinationCountry: true },
+  });
   for (const f of facts) {
     if (!needsCountryNormalization(f.destinationCountry)) continue;
     const next = normalizeDestinationCountry(f.destinationCountry);
     console.log(`FactBooking ${f.id}: "${f.destinationCountry}" → "${next}"`);
     changed++;
-    if (!dryRun) await prisma.factBooking.update({ where: { id: f.id }, data: { destinationCountry: next } });
+    if (!dryRun)
+      await prisma.factBooking.update({ where: { id: f.id }, data: { destinationCountry: next } });
   }
 
   // 3. Segmenti nacrta putovanja (M5 §3.0.2) — kopija naziva radi prikaza dok proizvod nije izabran.
-  const segments = await prisma.itinerarySegment.findMany({ select: { id: true, destinationCountry: true } });
+  const segments = await prisma.itinerarySegment.findMany({
+    select: { id: true, destinationCountry: true },
+  });
   for (const s of segments) {
     if (!needsCountryNormalization(s.destinationCountry)) continue;
     const next = normalizeDestinationCountry(s.destinationCountry);
     console.log(`ItinerarySegment ${s.id}: "${s.destinationCountry}" → "${next}"`);
     changed++;
-    if (!dryRun) await prisma.itinerarySegment.update({ where: { id: s.id }, data: { destinationCountry: next } });
+    if (!dryRun)
+      await prisma.itinerarySegment.update({
+        where: { id: s.id },
+        data: { destinationCountry: next },
+      });
   }
 
   // `Article` (M22, sadržaj sajta) NAMERNO nije ovde — njegove vrednosti su izmišljeni nazivi iz
   // automatskih testova („Testland-…"), ne prave države; nema šta da se svede na jedan oblik.
 
-  console.log(`\n${changed === 0 ? 'Nema šta da se menja.' : `${dryRun ? 'Za promenu' : 'Promenjeno'}: ${changed} zapisa.`}`);
+  console.log(
+    `\n${changed === 0 ? 'Nema šta da se menja.' : `${dryRun ? 'Za promenu' : 'Promenjeno'}: ${changed} zapisa.`}`,
+  );
 }
 
 if (require.main === module) {

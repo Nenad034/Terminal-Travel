@@ -13,9 +13,14 @@ export async function resolveApiContext(
   prisma: PrismaService,
   subagentBridge: SubagentBridgeService,
   userId: string,
-): Promise<{ context: M5CallerContext; ownClientAccountId: string | null; franchiseSubagentId: string | null }> {
+): Promise<{
+  context: M5CallerContext;
+  ownClientAccountId: string | null;
+  franchiseSubagentId: string | null;
+}> {
   const identity = await resolveCallerIdentity(prisma, userId);
-  if (identity.accountType === 'GUEST') return { context: 'B2C', ownClientAccountId: identity.ownProfileId, franchiseSubagentId: null };
+  if (identity.accountType === 'GUEST')
+    return { context: 'B2C', ownClientAccountId: identity.ownProfileId, franchiseSubagentId: null };
   if (identity.accountType === 'SUBAGENT_CONTACT') {
     const clientAccountId = identity.ownProfileId
       ? await subagentBridge.resolveClientAccountIdForSubagentContact(identity.ownProfileId)
@@ -25,7 +30,8 @@ export async function resolveApiContext(
   // M16 spec §2/§4 — MCP klijent (User.accountType=AI_AGENT) dobija isto B2C maskiranje kao
   // gost (sakriva supplier polja), ali sopstveni ClientAccount predstavlja CEO spoljnog
   // partnera, ne pojedinačnog putnika — User.linked_profile_id je već direktno ClientAccount.id.
-  if (identity.accountType === 'AI_AGENT') return { context: 'B2C', ownClientAccountId: identity.ownProfileId, franchiseSubagentId: null };
+  if (identity.accountType === 'AI_AGENT')
+    return { context: 'B2C', ownClientAccountId: identity.ownProfileId, franchiseSubagentId: null };
   // M1 spec §3.1a / M7 spec §2.0.7 (31.8.2026) — STAFF nalog vezan (linked_profile_id) za
   // Subagent sa privilegeLevel=FRANCHISE dobija pun INTERNAL_PANEL kontekst, uz dodatnu
   // franšiznu granicu vidljivosti (M5 spec §6.6) primenjenu u pozivaocu (BookingsService).

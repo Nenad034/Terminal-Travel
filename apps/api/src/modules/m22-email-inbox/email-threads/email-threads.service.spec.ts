@@ -5,7 +5,13 @@ describe('EmailThreadsService (M22 spec §2.2/§8)', () => {
   function makeService() {
     const prisma = {
       mailboxAccess: { findMany: jest.fn(), findUnique: jest.fn() },
-      emailThread: { findMany: jest.fn(), findUnique: jest.fn(), findFirst: jest.fn(), create: jest.fn(), update: jest.fn() },
+      emailThread: {
+        findMany: jest.fn(),
+        findUnique: jest.fn(),
+        findFirst: jest.fn(),
+        create: jest.fn(),
+        update: jest.fn(),
+      },
       emailMessage: { findUnique: jest.fn(), create: jest.fn(), update: jest.fn() },
       booking: { findUnique: jest.fn() },
       supplierManifest: { findUnique: jest.fn() },
@@ -26,7 +32,16 @@ describe('EmailThreadsService (M22 spec §2.2/§8)', () => {
       referenceMatcher as any,
       aiAssistant as any,
     );
-    return { service, prisma, auditLog, mailboxes, providerFactory, correspondentMatcher, referenceMatcher, aiAssistant };
+    return {
+      service,
+      prisma,
+      auditLog,
+      mailboxes,
+      providerFactory,
+      correspondentMatcher,
+      referenceMatcher,
+      aiAssistant,
+    };
   }
 
   describe('findMany — scoping (§2.2)', () => {
@@ -42,13 +57,18 @@ describe('EmailThreadsService (M22 spec §2.2/§8)', () => {
 
     it('filtrira SAMO na mailboxId za koje postoji MailboxAccess', async () => {
       const { service, prisma } = makeService();
-      prisma.mailboxAccess.findMany.mockResolvedValue([{ mailboxId: 'mb-1' }, { mailboxId: 'mb-2' }]);
+      prisma.mailboxAccess.findMany.mockResolvedValue([
+        { mailboxId: 'mb-1' },
+        { mailboxId: 'mb-2' },
+      ]);
       prisma.emailThread.findMany.mockResolvedValue([]);
 
       await service.findMany('user-1', {});
 
       expect(prisma.emailThread.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({ where: expect.objectContaining({ mailboxId: { in: ['mb-1', 'mb-2'] } }) }),
+        expect.objectContaining({
+          where: expect.objectContaining({ mailboxId: { in: ['mb-1', 'mb-2'] } }),
+        }),
       );
     });
 
@@ -68,15 +88,24 @@ describe('EmailThreadsService (M22 spec §2.2/§8)', () => {
       const { service, prisma } = makeService();
       prisma.mailboxAccess.findMany.mockResolvedValue([{ mailboxId: 'mb-1' }]);
       prisma.emailThread.findMany.mockResolvedValue([
-        { id: 't1', mailboxId: 'mb-1', mailbox: { address: 'rezervacije@tt.rs', displayName: 'Rezervacije' } },
+        {
+          id: 't1',
+          mailboxId: 'mb-1',
+          mailbox: { address: 'rezervacije@tt.rs', displayName: 'Rezervacije' },
+        },
       ]);
 
       const result = await service.findMany('user-1', {});
 
       expect(prisma.emailThread.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({ include: { mailbox: { select: { address: true, displayName: true } } } }),
+        expect.objectContaining({
+          include: { mailbox: { select: { address: true, displayName: true } } },
+        }),
       );
-      expect(result[0].mailbox).toEqual({ address: 'rezervacije@tt.rs', displayName: 'Rezervacije' });
+      expect(result[0].mailbox).toEqual({
+        address: 'rezervacije@tt.rs',
+        displayName: 'Rezervacije',
+      });
     });
   });
 
@@ -109,7 +138,11 @@ describe('EmailThreadsService (M22 spec §2.2/§8)', () => {
       const result = await service.findOne('t1', 'user-1');
 
       expect(prisma.emailThread.findUnique).toHaveBeenCalledWith(
-        expect.objectContaining({ include: expect.objectContaining({ mailbox: { select: { address: true, displayName: true } } }) }),
+        expect.objectContaining({
+          include: expect.objectContaining({
+            mailbox: { select: { address: true, displayName: true } },
+          }),
+        }),
       );
       expect(result.mailbox).toEqual({ address: 'gosti@tt.rs', displayName: 'Gosti' });
     });
@@ -118,10 +151,17 @@ describe('EmailThreadsService (M22 spec §2.2/§8)', () => {
   describe('createMessage — REPLY zahtev (§8)', () => {
     it('odbija sa VIEW nivoom pristupa (potreban REPLY)', async () => {
       const { service, prisma, mailboxes } = makeService();
-      prisma.emailThread.findUnique.mockResolvedValue({ id: 't1', mailboxId: 'mb-1', subject: 's', status: 'OPEN' });
+      prisma.emailThread.findUnique.mockResolvedValue({
+        id: 't1',
+        mailboxId: 'mb-1',
+        subject: 's',
+        status: 'OPEN',
+      });
       mailboxes.findAccess.mockResolvedValue({ accessLevel: 'VIEW' });
 
-      await expect(service.createMessage('t1', { body: 'odgovor' }, 'user-1')).rejects.toThrow(ForbiddenException);
+      await expect(service.createMessage('t1', { body: 'odgovor' }, 'user-1')).rejects.toThrow(
+        ForbiddenException,
+      );
     });
   });
 
@@ -133,9 +173,16 @@ describe('EmailThreadsService (M22 spec §2.2/§8)', () => {
       prisma.supplierManifest.findUnique.mockResolvedValue({ id: 'sm-1' });
       prisma.emailThread.update.mockResolvedValue({ id: 't1', relatedSupplierManifestId: 'sm-1' });
 
-      await service.linkSupplierAnnouncement('t1', { announcementType: 'SUPPLIER_MANIFEST', announcementId: 'sm-1' }, 'user-1');
+      await service.linkSupplierAnnouncement(
+        't1',
+        { announcementType: 'SUPPLIER_MANIFEST', announcementId: 'sm-1' },
+        'user-1',
+      );
 
-      expect(prisma.emailThread.update).toHaveBeenCalledWith({ where: { id: 't1' }, data: { relatedSupplierManifestId: 'sm-1' } });
+      expect(prisma.emailThread.update).toHaveBeenCalledWith({
+        where: { id: 't1' },
+        data: { relatedSupplierManifestId: 'sm-1' },
+      });
     });
   });
 
@@ -144,7 +191,11 @@ describe('EmailThreadsService (M22 spec §2.2/§8)', () => {
       const { service, prisma, mailboxes, correspondentMatcher, aiAssistant } = makeService();
       mailboxes.findOne.mockResolvedValue({ id: 'mb-1', isSupplierUnifiedInbox: false });
       prisma.emailThread.findFirst.mockResolvedValue(null);
-      correspondentMatcher.match.mockResolvedValue({ correspondentType: 'GUEST', correspondentClientAccountId: 'ca-1', correspondentSupplierId: null });
+      correspondentMatcher.match.mockResolvedValue({
+        correspondentType: 'GUEST',
+        correspondentClientAccountId: 'ca-1',
+        correspondentSupplierId: null,
+      });
       prisma.emailThread.create.mockResolvedValue({ id: 'new-thread' });
       prisma.emailMessage.create.mockResolvedValue({ id: 'msg-1' });
 
@@ -165,8 +216,16 @@ describe('EmailThreadsService (M22 spec §2.2/§8)', () => {
       const { service, prisma, mailboxes, referenceMatcher, correspondentMatcher } = makeService();
       mailboxes.findOne.mockResolvedValue({ id: 'mb-supplier', isSupplierUnifiedInbox: true });
       prisma.emailThread.findFirst.mockResolvedValue(null);
-      correspondentMatcher.match.mockResolvedValue({ correspondentType: 'OTHER', correspondentClientAccountId: null, correspondentSupplierId: null });
-      referenceMatcher.match.mockResolvedValue({ matchType: 'EXACT_REFERENCE', relatedSupplierManifestId: 'sm-1', relatedSupplierChangeNoticeId: null });
+      correspondentMatcher.match.mockResolvedValue({
+        correspondentType: 'OTHER',
+        correspondentClientAccountId: null,
+        correspondentSupplierId: null,
+      });
+      referenceMatcher.match.mockResolvedValue({
+        matchType: 'EXACT_REFERENCE',
+        relatedSupplierManifestId: 'sm-1',
+        relatedSupplierChangeNoticeId: null,
+      });
       prisma.emailThread.create.mockResolvedValue({ id: 'new-thread-2' });
       prisma.emailMessage.create.mockResolvedValue({ id: 'msg-2' });
 
@@ -181,7 +240,12 @@ describe('EmailThreadsService (M22 spec §2.2/§8)', () => {
 
       expect(referenceMatcher.match).toHaveBeenCalled();
       expect(prisma.emailThread.create).toHaveBeenCalledWith(
-        expect.objectContaining({ data: expect.objectContaining({ correspondentType: 'SUPPLIER', relatedSupplierManifestId: 'sm-1' }) }),
+        expect.objectContaining({
+          data: expect.objectContaining({
+            correspondentType: 'SUPPLIER',
+            relatedSupplierManifestId: 'sm-1',
+          }),
+        }),
       );
     });
   });

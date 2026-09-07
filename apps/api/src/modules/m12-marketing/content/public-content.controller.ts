@@ -19,7 +19,11 @@ export class PublicContentController {
   constructor(private readonly content: ContentService) {}
 
   @Get()
-  findOne(@Query('type') type: ContentPieceType, @Query('slug') slug: string, @Query('lang') lang?: LanguageCode) {
+  findOne(
+    @Query('type') type: ContentPieceType,
+    @Query('slug') slug: string,
+    @Query('lang') lang?: LanguageCode,
+  ) {
     return this.content.findPublishedBySlug(type, slug, lang);
   }
 }

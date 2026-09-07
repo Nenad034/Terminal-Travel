@@ -36,7 +36,12 @@ describe('RolesService', () => {
     it('kreira novu ulogu kao NE-sistemsku i upisuje audit log', async () => {
       const auditWrite = jest.fn();
       const { service, prisma } = makeService({}, auditWrite);
-      const created = { id: 'r3', name: 'MARKETING_MENADZER', description: 'opis', isSystemRole: false };
+      const created = {
+        id: 'r3',
+        name: 'MARKETING_MENADZER',
+        description: 'opis',
+        isSystemRole: false,
+      };
       prisma.role.create.mockResolvedValue(created);
 
       const result = await service.create('MARKETING_MENADZER', 'opis', 'actor-1');
@@ -45,7 +50,12 @@ describe('RolesService', () => {
         data: { name: 'MARKETING_MENADZER', description: 'opis', isSystemRole: false },
       });
       expect(auditWrite).toHaveBeenCalledWith(
-        expect.objectContaining({ module: 'M1', action: 'role.created', resourceId: 'r3', actorId: 'actor-1' }),
+        expect.objectContaining({
+          module: 'M1',
+          action: 'role.created',
+          resourceId: 'r3',
+          actorId: 'actor-1',
+        }),
       );
       expect(result).toBe(created);
     });

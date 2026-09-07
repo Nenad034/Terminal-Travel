@@ -38,60 +38,172 @@ export interface MockFlight {
 
 export const MOCK_FLIGHTS: MockFlight[] = [
   {
-    id: 'mock-f1', airline: 'Air Serbia', flightNumber: 'JU 322',
-    fromCity: 'Beograd', fromCode: 'BEG', toCity: 'Atina', toCode: 'ATH',
-    departTime: '07:15', arriveTime: '09:05', durationLabel: '1h 50min', durationMinutes: 110,
-    stops: 0, connectionAirport: null, layoverMinutes: null,
-    carryOnIncluded: true, checkedBagsIncluded: 1, cabinClass: 'ECONOMY', price: 18900, currency: 'EUR',
+    id: 'mock-f1',
+    airline: 'Air Serbia',
+    flightNumber: 'JU 322',
+    fromCity: 'Beograd',
+    fromCode: 'BEG',
+    toCity: 'Atina',
+    toCode: 'ATH',
+    departTime: '07:15',
+    arriveTime: '09:05',
+    durationLabel: '1h 50min',
+    durationMinutes: 110,
+    stops: 0,
+    connectionAirport: null,
+    layoverMinutes: null,
+    carryOnIncluded: true,
+    checkedBagsIncluded: 1,
+    cabinClass: 'ECONOMY',
+    price: 18900,
+    currency: 'EUR',
   },
   {
-    id: 'mock-f2', airline: 'Aegean Airlines', flightNumber: 'A3 812',
-    fromCity: 'Beograd', fromCode: 'BEG', toCity: 'Atina', toCode: 'ATH',
-    departTime: '13:40', arriveTime: '15:35', durationLabel: '1h 55min', durationMinutes: 115,
-    stops: 0, connectionAirport: null, layoverMinutes: null,
-    carryOnIncluded: true, checkedBagsIncluded: 1, cabinClass: 'ECONOMY', price: 16700, currency: 'EUR',
+    id: 'mock-f2',
+    airline: 'Aegean Airlines',
+    flightNumber: 'A3 812',
+    fromCity: 'Beograd',
+    fromCode: 'BEG',
+    toCity: 'Atina',
+    toCode: 'ATH',
+    departTime: '13:40',
+    arriveTime: '15:35',
+    durationLabel: '1h 55min',
+    durationMinutes: 115,
+    stops: 0,
+    connectionAirport: null,
+    layoverMinutes: null,
+    carryOnIncluded: true,
+    checkedBagsIncluded: 1,
+    cabinClass: 'ECONOMY',
+    price: 16700,
+    currency: 'EUR',
   },
   {
-    id: 'mock-f3', airline: 'Wizz Air', flightNumber: 'W6 4301',
-    fromCity: 'Beograd', fromCode: 'BEG', toCity: 'Atina', toCode: 'ATH',
-    departTime: '19:20', arriveTime: '23:10', durationLabel: '3h 50min', durationMinutes: 230,
-    stops: 1, connectionAirport: 'BUD', layoverMinutes: 65,
-    carryOnIncluded: true, checkedBagsIncluded: 0, cabinClass: 'ECONOMY', price: 9900, currency: 'EUR',
+    id: 'mock-f3',
+    airline: 'Wizz Air',
+    flightNumber: 'W6 4301',
+    fromCity: 'Beograd',
+    fromCode: 'BEG',
+    toCity: 'Atina',
+    toCode: 'ATH',
+    departTime: '19:20',
+    arriveTime: '23:10',
+    durationLabel: '3h 50min',
+    durationMinutes: 230,
+    stops: 1,
+    connectionAirport: 'BUD',
+    layoverMinutes: 65,
+    carryOnIncluded: true,
+    checkedBagsIncluded: 0,
+    cabinClass: 'ECONOMY',
+    price: 9900,
+    currency: 'EUR',
   },
   {
-    id: 'mock-f4', airline: 'Air Serbia', flightNumber: 'JU 322',
-    fromCity: 'Beograd', fromCode: 'BEG', toCity: 'Atina', toCode: 'ATH',
-    departTime: '07:15', arriveTime: '09:05', durationLabel: '1h 50min', durationMinutes: 110,
-    stops: 0, connectionAirport: null, layoverMinutes: null,
-    carryOnIncluded: true, checkedBagsIncluded: 2, cabinClass: 'BUSINESS', price: 42300, currency: 'EUR',
+    id: 'mock-f4',
+    airline: 'Air Serbia',
+    flightNumber: 'JU 322',
+    fromCity: 'Beograd',
+    fromCode: 'BEG',
+    toCity: 'Atina',
+    toCode: 'ATH',
+    departTime: '07:15',
+    arriveTime: '09:05',
+    durationLabel: '1h 50min',
+    durationMinutes: 110,
+    stops: 0,
+    connectionAirport: null,
+    layoverMinutes: null,
+    carryOnIncluded: true,
+    checkedBagsIncluded: 2,
+    cabinClass: 'BUSINESS',
+    price: 42300,
+    currency: 'EUR',
   },
   {
-    id: 'mock-f5', airline: 'Lufthansa', flightNumber: 'LH 1727',
-    fromCity: 'Beograd', fromCode: 'BEG', toCity: 'Atina', toCode: 'ATH',
-    departTime: '06:05', arriveTime: '12:40', durationLabel: '6h 35min', durationMinutes: 395,
-    stops: 1, connectionAirport: 'MUC', layoverMinutes: 195,
-    carryOnIncluded: true, checkedBagsIncluded: 1, cabinClass: 'ECONOMY', price: 21400, currency: 'EUR',
+    id: 'mock-f5',
+    airline: 'Lufthansa',
+    flightNumber: 'LH 1727',
+    fromCity: 'Beograd',
+    fromCode: 'BEG',
+    toCity: 'Atina',
+    toCode: 'ATH',
+    departTime: '06:05',
+    arriveTime: '12:40',
+    durationLabel: '6h 35min',
+    durationMinutes: 395,
+    stops: 1,
+    connectionAirport: 'MUC',
+    layoverMinutes: 195,
+    carryOnIncluded: true,
+    checkedBagsIncluded: 1,
+    cabinClass: 'ECONOMY',
+    price: 21400,
+    currency: 'EUR',
   },
   {
-    id: 'mock-f6', airline: 'Turkish Airlines', flightNumber: 'TK 1080',
-    fromCity: 'Beograd', fromCode: 'BEG', toCity: 'Atina', toCode: 'ATH',
-    departTime: '11:25', arriveTime: '18:15', durationLabel: '6h 50min', durationMinutes: 410,
-    stops: 1, connectionAirport: 'IST', layoverMinutes: 140,
-    carryOnIncluded: true, checkedBagsIncluded: 1, cabinClass: 'ECONOMY', price: 19600, currency: 'EUR',
+    id: 'mock-f6',
+    airline: 'Turkish Airlines',
+    flightNumber: 'TK 1080',
+    fromCity: 'Beograd',
+    fromCode: 'BEG',
+    toCity: 'Atina',
+    toCode: 'ATH',
+    departTime: '11:25',
+    arriveTime: '18:15',
+    durationLabel: '6h 50min',
+    durationMinutes: 410,
+    stops: 1,
+    connectionAirport: 'IST',
+    layoverMinutes: 140,
+    carryOnIncluded: true,
+    checkedBagsIncluded: 1,
+    cabinClass: 'ECONOMY',
+    price: 19600,
+    currency: 'EUR',
   },
   {
-    id: 'mock-f7', airline: 'Wizz Air', flightNumber: 'W6 4188',
-    fromCity: 'Beograd', fromCode: 'BEG', toCity: 'Atina', toCode: 'ATH',
-    departTime: '05:40', arriveTime: '14:55', durationLabel: '9h 15min', durationMinutes: 555,
-    stops: 2, connectionAirport: 'BUD', layoverMinutes: 310,
-    carryOnIncluded: true, checkedBagsIncluded: 0, cabinClass: 'ECONOMY', price: 8400, currency: 'EUR',
+    id: 'mock-f7',
+    airline: 'Wizz Air',
+    flightNumber: 'W6 4188',
+    fromCity: 'Beograd',
+    fromCode: 'BEG',
+    toCity: 'Atina',
+    toCode: 'ATH',
+    departTime: '05:40',
+    arriveTime: '14:55',
+    durationLabel: '9h 15min',
+    durationMinutes: 555,
+    stops: 2,
+    connectionAirport: 'BUD',
+    layoverMinutes: 310,
+    carryOnIncluded: true,
+    checkedBagsIncluded: 0,
+    cabinClass: 'ECONOMY',
+    price: 8400,
+    currency: 'EUR',
   },
   {
-    id: 'mock-f8', airline: 'Aegean Airlines', flightNumber: 'A3 856',
-    fromCity: 'Beograd', fromCode: 'BEG', toCity: 'Atina', toCode: 'ATH',
-    departTime: '21:50', arriveTime: '23:45', durationLabel: '1h 55min', durationMinutes: 115,
-    stops: 0, connectionAirport: null, layoverMinutes: null,
-    carryOnIncluded: true, checkedBagsIncluded: 0, cabinClass: 'PREMIUM_ECONOMY', price: 27300, currency: 'EUR',
+    id: 'mock-f8',
+    airline: 'Aegean Airlines',
+    flightNumber: 'A3 856',
+    fromCity: 'Beograd',
+    fromCode: 'BEG',
+    toCity: 'Atina',
+    toCode: 'ATH',
+    departTime: '21:50',
+    arriveTime: '23:45',
+    durationLabel: '1h 55min',
+    durationMinutes: 115,
+    stops: 0,
+    connectionAirport: null,
+    layoverMinutes: null,
+    carryOnIncluded: true,
+    checkedBagsIncluded: 0,
+    cabinClass: 'PREMIUM_ECONOMY',
+    price: 27300,
+    currency: 'EUR',
   },
 ];
 
@@ -102,11 +214,13 @@ export function minutesOfDay(hhmm: string): number {
 }
 
 /** Avio-kompanije koje se stvarno pojavljuju u rezultatima (§3.0c.2 tačka 3). */
-export const airlineOptions: string[] = Array.from(new Set(MOCK_FLIGHTS.map((f) => f.airline))).sort();
+export const airlineOptions: string[] = Array.from(
+  new Set(MOCK_FLIGHTS.map((f) => f.airline)),
+).sort();
 
 /** Aerodromi presedanja koji se stvarno pojavljuju u rezultatima. */
 export const connectionAirportOptions: string[] = Array.from(
-  new Set(MOCK_FLIGHTS.map((f) => f.connectionAirport).filter((a): a is string => Boolean(a)))
+  new Set(MOCK_FLIGHTS.map((f) => f.connectionAirport).filter((a): a is string => Boolean(a))),
 ).sort();
 
 /** Filteri letova iz M5 spec §3.0d.1 — svi klijentski, nad već dobijenim rezultatima. */
@@ -130,7 +244,7 @@ export interface FlightFilterValues {
 
 export function flightFiltersFromParams(
   get: (k: string) => string | null,
-  getAll: (k: string) => string[]
+  getAll: (k: string) => string[],
 ): FlightFilterValues {
   const num = (k: string) => {
     const v = get(k);
@@ -159,8 +273,18 @@ export function applyFlightFilters(flights: MockFlight[], f: FlightFilterValues)
     // Aerodrom presedanja se primenjuje SAMO na letove koji stvarno presedaju — direktan let
     // nije loš izbor zato što ne prolazi kroz izabrani aerodrom, on je bolji od svakog sa
     // presedanjem. Izbacivanje direktnih letova ovim filterom bilo bi protiv namere korisnika.
-    if (f.connectionAirports.length > 0 && x.connectionAirport && !f.connectionAirports.includes(x.connectionAirport)) return false;
-    if (f.maxLayoverMinutes != null && x.layoverMinutes != null && x.layoverMinutes > f.maxLayoverMinutes) return false;
+    if (
+      f.connectionAirports.length > 0 &&
+      x.connectionAirport &&
+      !f.connectionAirports.includes(x.connectionAirport)
+    )
+      return false;
+    if (
+      f.maxLayoverMinutes != null &&
+      x.layoverMinutes != null &&
+      x.layoverMinutes > f.maxLayoverMinutes
+    )
+      return false;
     if (f.maxDurationMinutes != null && x.durationMinutes > f.maxDurationMinutes) return false;
     if (f.departFrom && minutesOfDay(x.departTime) < minutesOfDay(f.departFrom)) return false;
     if (f.departTo && minutesOfDay(x.departTime) > minutesOfDay(f.departTo)) return false;

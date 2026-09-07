@@ -13,7 +13,12 @@ export default function HelpTabs({
   showSuggestions: boolean;
   showQuestions: boolean;
 }) {
-  const tabs: { id: 'clanci' | 'predlozi' | 'pitanja'; label: string; href: string; visible: boolean }[] = [
+  const tabs: {
+    id: 'clanci' | 'predlozi' | 'pitanja';
+    label: string;
+    href: string;
+    visible: boolean;
+  }[] = [
     { id: 'clanci', label: 'članci', href: '/pomoc', visible: true },
     { id: 'predlozi', label: 'predlozi', href: '/pomoc/predlozi', visible: showSuggestions },
     { id: 'pitanja', label: 'pitanja', href: '/pomoc/pitanja', visible: showQuestions },
@@ -28,7 +33,9 @@ export default function HelpTabs({
             key={t.id}
             href={t.href}
             className={`-mb-px border-b-2 px-3 py-2 font-medium ${
-              active === t.id ? 'border-accent text-ink' : 'border-transparent text-ink-faint hover:text-ink'
+              active === t.id
+                ? 'border-accent text-ink'
+                : 'border-transparent text-ink-faint hover:text-ink'
             }`}
           >
             {t.label}

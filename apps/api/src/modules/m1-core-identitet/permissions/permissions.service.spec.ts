@@ -13,7 +13,9 @@ describe('PermissionsService.hasPermission (M1 spec §3.6)', () => {
   }) {
     return {
       permission: {
-        findUnique: jest.fn().mockResolvedValue('permission' in overrides ? overrides.permission : PERMISSION),
+        findUnique: jest
+          .fn()
+          .mockResolvedValue('permission' in overrides ? overrides.permission : PERMISSION),
       },
       userPermissionOverride: {
         findFirst: jest
@@ -91,11 +93,17 @@ describe('PermissionsService.hasPermission (M1 spec §3.6)', () => {
 
     const denyCallArgs = prisma.userPermissionOverride.findFirst.mock.calls[0][0];
     expect(denyCallArgs.where.effect).toBe('DENY');
-    expect(denyCallArgs.where.OR).toEqual([{ expiresAt: null }, { expiresAt: { gt: expect.any(Date) } }]);
+    expect(denyCallArgs.where.OR).toEqual([
+      { expiresAt: null },
+      { expiresAt: { gt: expect.any(Date) } },
+    ]);
 
     const allowCallArgs = prisma.userPermissionOverride.findFirst.mock.calls[1][0];
     expect(allowCallArgs.where.effect).toBe('ALLOW');
-    expect(allowCallArgs.where.OR).toEqual([{ expiresAt: null }, { expiresAt: { gt: expect.any(Date) } }]);
+    expect(allowCallArgs.where.OR).toEqual([
+      { expiresAt: null },
+      { expiresAt: { gt: expect.any(Date) } },
+    ]);
   });
 
   it('provera se radi uvek uživo nad bazom — svaki poziv gađa Prisma iznova (§3.6 "nikad iz JWT tokena")', async () => {
@@ -120,7 +128,12 @@ describe('PermissionsService.hasPermission (M1 spec §3.6)', () => {
       expect(upsert).toHaveBeenCalledWith({
         where: { module_resource_action: { module: 'M2', resource: 'product', action: 'PUBLISH' } },
         update: { description: 'Objava proizvoda' },
-        create: { module: 'M2', resource: 'product', action: 'PUBLISH', description: 'Objava proizvoda' },
+        create: {
+          module: 'M2',
+          resource: 'product',
+          action: 'PUBLISH',
+          description: 'Objava proizvoda',
+        },
       });
     });
   });

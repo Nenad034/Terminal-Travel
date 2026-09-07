@@ -21,7 +21,9 @@ export interface SavedGroupSearch {
 }
 
 function newViewId(): string {
-  return typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `v${Date.now()}${Math.random()}`;
+  return typeof crypto !== 'undefined' && crypto.randomUUID
+    ? crypto.randomUUID()
+    : `v${Date.now()}${Math.random()}`;
 }
 
 // SKUPLJEN RED PRETRAGE (M5 spec §3.0g.2 / dizajn dok. §6d.1). Čim rezultati stignu, forma se
@@ -72,8 +74,11 @@ export default function SearchCriteriaChip({
   // pokazivalo naziv "Grupni paketi" (isti types: ['PACKAGE']).
   const icon = findIconByTypes(types, sp.get('hasExpertGuide') === 'true');
   const label = icon?.label ?? types.join(', ');
-  const destination = [sp.get('destinationCity'), sp.get('destinationCountry')].filter(Boolean).join(', ');
-  const dates = sp.get('stayFrom') && sp.get('stayTo') ? `${sp.get('stayFrom')} – ${sp.get('stayTo')}` : null;
+  const destination = [sp.get('destinationCity'), sp.get('destinationCountry')]
+    .filter(Boolean)
+    .join(', ');
+  const dates =
+    sp.get('stayFrom') && sp.get('stayTo') ? `${sp.get('stayFrom')} – ${sp.get('stayTo')}` : null;
   // Sobe se prikazuju sa uzrastima kad postoje (§3.2a) — „2 sobe · 4 odr. + 1 dete (7)";
   // starije pretrage bez `rooms` ostaju na zbirnim brojevima, isti tekst kao ranije.
   const occupancy = sp.get('rooms')
@@ -101,7 +106,9 @@ export default function SearchCriteriaChip({
       const data = res.ok ? await res.json() : {};
       const existing: SavedView[] = Array.isArray(data[PREFERENCE_KEY]) ? data[PREFERENCE_KEY] : [];
       if (existing.length >= MAX_SAVED_SEARCHES) {
-        setSaveError(`Najviše ${MAX_SAVED_SEARCHES} sačuvanih pretraga — obriši neku u levom panelu pre čuvanja nove.`);
+        setSaveError(
+          `Najviše ${MAX_SAVED_SEARCHES} sačuvanih pretraga — obriši neku u levom panelu pre čuvanja nove.`,
+        );
         return;
       }
       const next = [...existing, { id: newViewId(), name: autoName, filters }];
@@ -137,13 +144,24 @@ export default function SearchCriteriaChip({
     try {
       const res = await fetch('/api/preferences', { cache: 'no-store' });
       const data = res.ok ? await res.json() : {};
-      const existing: SavedGroupSearch[] = Array.isArray(data[GROUP_PREFERENCE_KEY]) ? data[GROUP_PREFERENCE_KEY] : [];
+      const existing: SavedGroupSearch[] = Array.isArray(data[GROUP_PREFERENCE_KEY])
+        ? data[GROUP_PREFERENCE_KEY]
+        : [];
       if (existing.length >= MAX_SAVED_GROUPS) {
-        setGroupError(`Najviše ${MAX_SAVED_GROUPS} sačuvanih grupa — obriši neku u levom panelu pre čuvanja nove.`);
+        setGroupError(
+          `Najviše ${MAX_SAVED_GROUPS} sačuvanih grupa — obriši neku u levom panelu pre čuvanja nove.`,
+        );
         return;
       }
       const groupName = staged.map((s) => s.label.split(' · ')[0]).join(' + ');
-      const next = [...existing, { id: newViewId(), name: groupName, searches: staged.map((s) => ({ label: s.label, filters: s.filters })) }];
+      const next = [
+        ...existing,
+        {
+          id: newViewId(),
+          name: groupName,
+          searches: staged.map((s) => ({ label: s.label, filters: s.filters })),
+        },
+      ];
       await fetch(`/api/preferences/${GROUP_PREFERENCE_KEY}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -179,55 +197,60 @@ export default function SearchCriteriaChip({
         </div>
 
         <div className="ml-auto flex flex-wrap items-center gap-2">
-        <button
-          onClick={onExpand}
-          title="Otvori formu pretrage"
-          className="flex items-center gap-1 rounded border border-accent px-1.5 text-accent-strong hover:bg-accent hover:text-accent-ink"
-        >
-          <Icon name="add" />
-        </button>
-        <button onClick={onReset} title="Briše kriterijume i rezultate SAMO ove vrste proizvoda" className="flex items-center gap-1 text-ink-dim hover:text-danger">
-          <Icon name="clear-all" /> poništi pretragu
-        </button>
-        <button
-          onClick={onRefresh}
-          disabled={refreshing}
-          title="Ponavlja isti upit i prijavljuje šta se promenilo (M5 §3.0g.3)"
-          className="flex items-center gap-1 text-accent-strong hover:underline disabled:opacity-50"
-        >
-          <Icon name="refresh" /> {refreshing ? 'osvežavam…' : 'osveži podatke'}
-        </button>
-        <div className="relative">
           <button
-            onClick={saveSearch}
-            disabled={saving}
-            title={`Sačuva se kao "${autoName}"`}
+            onClick={onExpand}
+            title="Otvori formu pretrage"
+            className="flex items-center gap-1 rounded border border-accent px-1.5 text-accent-strong hover:bg-accent hover:text-accent-ink"
+          >
+            <Icon name="add" />
+          </button>
+          <button
+            onClick={onReset}
+            title="Briše kriterijume i rezultate SAMO ove vrste proizvoda"
+            className="flex items-center gap-1 text-ink-dim hover:text-danger"
+          >
+            <Icon name="clear-all" /> poništi pretragu
+          </button>
+          <button
+            onClick={onRefresh}
+            disabled={refreshing}
+            title="Ponavlja isti upit i prijavljuje šta se promenilo (M5 §3.0g.3)"
             className="flex items-center gap-1 text-accent-strong hover:underline disabled:opacity-50"
           >
-            <Icon name={justSaved ? 'check' : 'bookmark'} /> {justSaved ? 'sačuvano' : saving ? '…' : 'sačuvaj'}
+            <Icon name="refresh" /> {refreshing ? 'osvežavam…' : 'osveži podatke'}
           </button>
-          {/* Poruka se poravnava po DESNOJ ivici dugmeta (dopuna 3.9.2026) — otkako radnje stoje
+          <div className="relative">
+            <button
+              onClick={saveSearch}
+              disabled={saving}
+              title={`Sačuva se kao "${autoName}"`}
+              className="flex items-center gap-1 text-accent-strong hover:underline disabled:opacity-50"
+            >
+              <Icon name={justSaved ? 'check' : 'bookmark'} />{' '}
+              {justSaved ? 'sačuvano' : saving ? '…' : 'sačuvaj'}
+            </button>
+            {/* Poruka se poravnava po DESNOJ ivici dugmeta (dopuna 3.9.2026) — otkako radnje stoje
               uz desnu ivicu panela, `left-0` bi je gurnuo van vidljivog dela. */}
-          {saveError && (
-            <div className="absolute right-0 top-full z-20 mt-1 w-64 rounded-lg border border-danger bg-panel p-2 text-[11px] text-danger shadow-lg">
-              {saveError}
-            </div>
-          )}
-        </div>
-        <div className="relative">
-          <button
-            onClick={stageCurrent}
-            title="Dodaj ovu pretragu u grupnu pretragu (npr. let + hotel + transfer za isto putovanje)"
-            className="flex items-center gap-1 text-accent-strong hover:underline"
-          >
-            <Icon name="layers" /> dodaj u grupu
-          </button>
-          {groupError && (
-            <div className="absolute right-0 top-full z-20 mt-1 w-64 rounded-lg border border-danger bg-panel p-2 text-[11px] text-danger shadow-lg">
-              {groupError}
-            </div>
-          )}
-        </div>
+            {saveError && (
+              <div className="absolute right-0 top-full z-20 mt-1 w-64 rounded-lg border border-danger bg-panel p-2 text-[11px] text-danger shadow-lg">
+                {saveError}
+              </div>
+            )}
+          </div>
+          <div className="relative">
+            <button
+              onClick={stageCurrent}
+              title="Dodaj ovu pretragu u grupnu pretragu (npr. let + hotel + transfer za isto putovanje)"
+              className="flex items-center gap-1 text-accent-strong hover:underline"
+            >
+              <Icon name="layers" /> dodaj u grupu
+            </button>
+            {groupError && (
+              <div className="absolute right-0 top-full z-20 mt-1 w-64 rounded-lg border border-danger bg-panel p-2 text-[11px] text-danger shadow-lg">
+                {groupError}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -235,9 +258,16 @@ export default function SearchCriteriaChip({
         <div className="mb-4 flex flex-wrap items-center gap-2 rounded-lg border border-border bg-panel p-2 text-xs text-ink-dim">
           <span className="font-medium text-ink-faint">Grupna pretraga u izgradnji:</span>
           {staged.map((s) => (
-            <span key={s.id} className="flex items-center gap-1 rounded-full bg-panel2 px-2 py-1 text-[11px]">
+            <span
+              key={s.id}
+              className="flex items-center gap-1 rounded-full bg-panel2 px-2 py-1 text-[11px]"
+            >
               {s.label.split(' · ')[0]}
-              <button onClick={() => unstage(s.id)} title="Ukloni iz grupe" className="text-ink-faint hover:text-danger">
+              <button
+                onClick={() => unstage(s.id)}
+                title="Ukloni iz grupe"
+                className="text-ink-faint hover:text-danger"
+              >
                 <Icon name="close" />
               </button>
             </span>
@@ -249,7 +279,9 @@ export default function SearchCriteriaChip({
             <button
               onClick={saveGroup}
               disabled={savingGroup || staged.length < 2}
-              title={staged.length < 2 ? 'Dodaj bar dve pretrage pre čuvanja grupe' : 'Sačuvaj grupu'}
+              title={
+                staged.length < 2 ? 'Dodaj bar dve pretrage pre čuvanja grupe' : 'Sačuvaj grupu'
+              }
               className="flex items-center gap-1 rounded bg-accent px-2 py-1 font-semibold text-accent-ink hover:bg-accent-strong disabled:opacity-50"
             >
               <Icon name="bookmark" /> {savingGroup ? '…' : `sačuvaj grupu (${staged.length})`}

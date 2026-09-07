@@ -12,6 +12,10 @@ describe('EventBusService (Master dokument poglavlje 6 — Event Bus preko Postg
     // da je JSON payload prosleđen kao bind vrednost, ne ulepljen u SQL tekst.
     const values: unknown[] = (executeRaw.mock.calls[0] as unknown[]).slice(1);
     const jsonValue = values.find((v) => typeof v === 'string' && v.startsWith('{')) as string;
-    expect(JSON.parse(jsonValue)).toEqual({ module: 'M2', event: 'product.published', payload: { productId: 'p1' } });
+    expect(JSON.parse(jsonValue)).toEqual({
+      module: 'M2',
+      event: 'product.published',
+      payload: { productId: 'p1' },
+    });
   });
 });

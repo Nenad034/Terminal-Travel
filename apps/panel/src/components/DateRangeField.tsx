@@ -2,7 +2,14 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Icon from './Icon';
-import { MONTH_NAMES, WEEKDAY_LETTERS, onlyDigits, digitsToDisplay, digitsToIso, isoToDigits } from './DateField';
+import {
+  MONTH_NAMES,
+  WEEKDAY_LETTERS,
+  onlyDigits,
+  digitsToDisplay,
+  digitsToIso,
+  isoToDigits,
+} from './DateField';
 
 // M5 spec §3.0c.2/§3.0g.6 — polje "od/do" (5.9.2026, vlasnikov zahtev: "umesto dva polja jedno,
 // kalendar sa dva meseca jedan do drugog, +3/+5/+7 dana, broj noćenja, i ukucavanje početnog
@@ -254,8 +261,20 @@ function DateRangePopover({
       </div>
 
       <div className="grid grid-cols-2 gap-4">
-        <MonthGrid year={viewYear} month={viewMonth} fromValue={fromValue} toValue={toValue} onSelectDay={onSelectDay} />
-        <MonthGrid year={rightYear} month={rightMonth} fromValue={fromValue} toValue={toValue} onSelectDay={onSelectDay} />
+        <MonthGrid
+          year={viewYear}
+          month={viewMonth}
+          fromValue={fromValue}
+          toValue={toValue}
+          onSelectDay={onSelectDay}
+        />
+        <MonthGrid
+          year={rightYear}
+          month={rightMonth}
+          fromValue={fromValue}
+          toValue={toValue}
+          onSelectDay={onSelectDay}
+        />
       </div>
 
       <div className="mt-3 flex flex-col gap-2 border-t border-border pt-3">
@@ -294,7 +313,9 @@ function DateRangePopover({
                 }}
                 className="input w-16 !py-1 text-center text-ink"
               />
-              {nights != null && nights > 0 && <span className="ml-auto font-medium text-ink">{nightsLabel(nights)}</span>}
+              {nights != null && nights > 0 && (
+                <span className="ml-auto font-medium text-ink">{nightsLabel(nights)}</span>
+              )}
             </div>
             <div className="flex gap-1.5">
               {[3, 5, 7].map((n) => (
@@ -393,7 +414,10 @@ function MonthGrid({
           // opsega deli istu blagu akcentnu podlogu bez zaobljenja — isti "povezan" utisak kao
           // svaki poznat opsežni kalendar, umesto niza nepovezanih pojedinačnih izbora.
           return (
-            <div key={day} className={`flex items-center justify-center ${inRange ? 'bg-accent-soft' : ''}`}>
+            <div
+              key={day}
+              className={`flex items-center justify-center ${inRange ? 'bg-accent-soft' : ''}`}
+            >
               <button
                 type="button"
                 onClick={() => onSelectDay(dayIso)}

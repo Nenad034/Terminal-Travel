@@ -136,7 +136,10 @@ export default function AiDockBottom({
       </div>
       {/* Slot ostaje u DOM-u i kad je sklopljen (visina 0) — `AiChatBox` se ne sme ukloniti,
           inače nestaje istorija razgovora, isti razlog kao u desnom panelu. */}
-      <div ref={slotRef} className={collapsed ? 'h-0 overflow-hidden' : 'min-h-0 flex-1 overflow-hidden'} />
+      <div
+        ref={slotRef}
+        className={collapsed ? 'h-0 overflow-hidden' : 'min-h-0 flex-1 overflow-hidden'}
+      />
     </div>
   );
 }

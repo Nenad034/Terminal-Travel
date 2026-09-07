@@ -4,7 +4,6 @@ import RegisterTab from '@/components/RegisterTab';
 import Icon from '@/components/Icon';
 import { Badge } from '@/components/ui/badge';
 
-
 interface ProviderConfigRow {
   providerCode: string;
   displayName: string;
@@ -54,7 +53,9 @@ export default async function IntegracijePage() {
   } else {
     try {
       const [configs, health] = await Promise.all([
-        canViewConfig ? apiFetch<ProviderConfigRow[]>('/integrations/providers') : Promise.resolve<ProviderConfigRow[]>([]),
+        canViewConfig
+          ? apiFetch<ProviderConfigRow[]>('/integrations/providers')
+          : Promise.resolve<ProviderConfigRow[]>([]),
         apiFetch<ProviderHealthRow[]>('/ops/provider-health'),
       ]);
       const healthByCode = new Map(health.map((h) => [h.providerCode, h]));
@@ -100,10 +101,15 @@ export default async function IntegracijePage() {
       {!error && (
         <div className="overflow-hidden rounded-lg border border-border">
           {connections.length === 0 && (
-            <p className="p-4 text-center text-xs text-ink-faint">Nema konfigurisanih provajdera.</p>
+            <p className="p-4 text-center text-xs text-ink-faint">
+              Nema konfigurisanih provajdera.
+            </p>
           )}
           {connections.map((c) => (
-            <div key={c.providerCode} className="flex items-center justify-between gap-3 border-b border-border bg-panel px-4 py-3 text-sm last:border-b-0">
+            <div
+              key={c.providerCode}
+              className="flex items-center justify-between gap-3 border-b border-border bg-panel px-4 py-3 text-sm last:border-b-0"
+            >
               <div className="min-w-0">
                 <div className="flex items-center gap-2 font-medium text-ink">
                   <Icon name="pulse" className="text-accent" />
@@ -119,11 +125,14 @@ export default async function IntegracijePage() {
                   {c.health && (
                     <>
                       {' '}
-                      · latencija {c.health.latencyMsAvg}ms · uptime {Number(c.health.uptimePercentage).toFixed(1)}% · {c.health.errorCountLastHour} grešaka
-                      (poslednji sat)
+                      · latencija {c.health.latencyMsAvg}ms · uptime{' '}
+                      {Number(c.health.uptimePercentage).toFixed(1)}% ·{' '}
+                      {c.health.errorCountLastHour} grešaka (poslednji sat)
                     </>
                   )}
-                  {!c.health && <> · nema health-check podatka u poslednjih 15 min (nema poziva u prozoru)</>}
+                  {!c.health && (
+                    <> · nema health-check podatka u poslednjih 15 min (nema poziva u prozoru)</>
+                  )}
                 </div>
               </div>
               <div className="flex flex-shrink-0 items-center gap-2">
@@ -140,7 +149,12 @@ export default async function IntegracijePage() {
 }
 
 function ConfigStatusBadge({ status }: { status: Connection['configStatus'] }) {
-  if (status === 'ACTIVE') return <Badge variant="ok" title="Konfiguracioni status (M4)">{status}</Badge>;
+  if (status === 'ACTIVE')
+    return (
+      <Badge variant="ok" title="Konfiguracioni status (M4)">
+        {status}
+      </Badge>
+    );
   return (
     <Badge variant="secondary" className="text-ink-faint" title="Konfiguracioni status (M4)">
       {status}
@@ -158,11 +172,12 @@ function CircuitBadge({ state }: { state: Connection['circuitState'] }) {
 }
 
 function HealthBadge({ status }: { status: ProviderHealthRow['status'] | null }) {
-  if (!status) return (
-    <Badge variant="secondary" className="text-ink-faint">
-      NEMA PODATKA
-    </Badge>
-  );
+  if (!status)
+    return (
+      <Badge variant="secondary" className="text-ink-faint">
+        NEMA PODATKA
+      </Badge>
+    );
   const variant = status === 'ONLINE' ? 'ok' : status === 'OFFLINE' ? 'danger' : 'warn';
   return (
     <Badge variant={variant} title="Health-check status (M18 §2.3, ažurira se na 15 min)">

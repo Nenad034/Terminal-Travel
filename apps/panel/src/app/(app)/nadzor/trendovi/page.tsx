@@ -5,7 +5,6 @@ import NadzorSubnav from '../NadzorSubnav';
 import TrendSuggestionActions from './TrendSuggestionActions';
 import { Badge } from '@/components/ui/badge';
 
-
 interface TrendSuggestion {
   id: string;
   category: string;
@@ -31,7 +30,9 @@ export default async function NadzorTrendoviPage() {
     error = 'Nemate dozvolu za uvid u predloge trendova (M18/trend-suggestion/VIEW).';
   }
 
-  const sorted = [...suggestions].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  const sorted = [...suggestions].sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+  );
 
   return (
     <div className="p-6">
@@ -46,7 +47,11 @@ export default async function NadzorTrendoviPage() {
 
       {!error && (
         <div className="flex flex-col gap-2">
-          {sorted.length === 0 && <p className="rounded-lg border border-border bg-panel p-4 text-center text-xs text-ink-faint">Nema predloga.</p>}
+          {sorted.length === 0 && (
+            <p className="rounded-lg border border-border bg-panel p-4 text-center text-xs text-ink-faint">
+              Nema predloga.
+            </p>
+          )}
           {sorted.map((s) => (
             <div key={s.id} className="rounded-lg border border-border bg-panel p-3 text-sm">
               <div className="mb-1 flex items-center justify-between">

@@ -4,7 +4,6 @@ import RegisterTab from '@/components/RegisterTab';
 import TabLink from '@/components/TabLink';
 import { Badge } from '@/components/ui/badge';
 
-
 interface PostTripSurvey {
   id: string;
   bookingId: string;
@@ -21,7 +20,9 @@ const STATUSES = ['', 'PENDING', 'SENT', 'COMPLETED'];
 
 // M6 spec §4.3, §9 — GET /post-trip-surveys, filtrirano po statusu (bookingId filter nije
 // koristan na ovom pregledu, koristi se samo za /crm/[id] kompoziciju ako zatreba kasnije).
-export default async function PostTripSurveysPage(props: { searchParams: Promise<{ status?: string }> }) {
+export default async function PostTripSurveysPage(props: {
+  searchParams: Promise<{ status?: string }>;
+}) {
   const searchParams = await props.searchParams;
   let surveys: PostTripSurvey[] = [];
   let error: string | null = null;
@@ -57,15 +58,28 @@ export default async function PostTripSurveysPage(props: { searchParams: Promise
 
       {!error && (
         <div className="overflow-hidden rounded-lg border border-border">
-          {surveys.length === 0 && <p className="p-4 text-center text-xs text-ink-faint">Nema anketa.</p>}
+          {surveys.length === 0 && (
+            <p className="p-4 text-center text-xs text-ink-faint">Nema anketa.</p>
+          )}
           {surveys.map((s) => (
-            <div key={s.id} className="flex items-center justify-between border-b border-border bg-panel px-4 py-3 text-sm last:border-b-0">
+            <div
+              key={s.id}
+              className="flex items-center justify-between border-b border-border bg-panel px-4 py-3 text-sm last:border-b-0"
+            >
               <div>
                 <div className="font-medium text-ink">
-                  <TabLink href={`/rezervacije/${s.bookingId}`} label={`rezervacija ${s.bookingId.slice(0, 8)}…`} className="hover:underline">
+                  <TabLink
+                    href={`/rezervacije/${s.bookingId}`}
+                    label={`rezervacija ${s.bookingId.slice(0, 8)}…`}
+                    className="hover:underline"
+                  >
                     rezervacija {s.bookingId.slice(0, 8)}…
                   </TabLink>{' '}
-                  <TabLink href={`/crm/${s.clientAccountId}`} label={`nalogodavac ${s.clientAccountId.slice(0, 8)}…`} className="text-accent hover:underline">
+                  <TabLink
+                    href={`/crm/${s.clientAccountId}`}
+                    label={`nalogodavac ${s.clientAccountId.slice(0, 8)}…`}
+                    className="text-accent hover:underline"
+                  >
                     nalogodavac {s.clientAccountId.slice(0, 8)}…
                   </TabLink>
                 </div>
@@ -86,10 +100,11 @@ export default async function PostTripSurveysPage(props: { searchParams: Promise
 
 function StatusBadge({ status }: { status: string }) {
   if (status === 'COMPLETED') return <Badge variant="ok">{status}</Badge>;
-  if (status === 'PENDING') return (
-    <Badge variant="secondary" className="text-ink-faint">
-      {status}
-    </Badge>
-  );
+  if (status === 'PENDING')
+    return (
+      <Badge variant="secondary" className="text-ink-faint">
+        {status}
+      </Badge>
+    );
   return <Badge variant="warn">{status}</Badge>;
 }

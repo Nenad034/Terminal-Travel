@@ -2,7 +2,6 @@ import { getTranslations } from 'next-intl/server';
 import { apiFetch } from '@/lib/api-client';
 import type { Booking } from '@/lib/types';
 
-
 export default async function ConfirmationPage({
   params,
   searchParams,
@@ -15,7 +14,9 @@ export default async function ConfirmationPage({
   const t = await getTranslations({ locale, namespace: 'booking.confirmation' });
 
   const booking = sp.bookingId
-    ? await apiFetch<Booking>(`/sales/bookings/${sp.bookingId}`, { requireAuth: true }).catch(() => null)
+    ? await apiFetch<Booking>(`/sales/bookings/${sp.bookingId}`, { requireAuth: true }).catch(
+        () => null,
+      )
     : null;
 
   return (
@@ -34,7 +35,9 @@ export default async function ConfirmationPage({
             <p className="mt-4 text-sm text-ink-faint">{t('voucherPending')}</p>
           )}
           {sp.nacin === 'bank' && (
-            <p className="mt-4 rounded-md bg-accent-soft p-3 text-sm">{/* uputstva za uplatu — poslato na email, M8 spec §3 korak 5 */}</p>
+            <p className="mt-4 rounded-md bg-accent-soft p-3 text-sm">
+              {/* uputstva za uplatu — poslato na email, M8 spec §3 korak 5 */}
+            </p>
           )}
         </>
       )}

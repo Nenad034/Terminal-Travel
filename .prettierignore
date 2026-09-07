@@ -1,0 +1,12 @@
+node_modules
+dist
+coverage
+.next
+out
+build
+package-lock.json
+*.log
+apps/panel/public/maplibre
+apps/api/prisma/migrations
+docs/00-PREGLED-DOKUMENTACIJE.html
+qa-snimci

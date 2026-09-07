@@ -12,11 +12,13 @@
 Lista detektovanih signala, filtrirana po modulu/tipu/ozbiljnosti. Zahteva `M18/health-signal/VIEW`.
 
 **Zahtev:**
+
 ```
 GET /api/v1/ops/health-signals?module=M4&severity=CRITICAL
 ```
 
 **Odgovor `200`:**
+
 ```json
 [
   {
@@ -41,9 +43,18 @@ Nema `POST` — signali nastaju isključivo iz detekcije (§2.1), nikad ručnim 
 Poslednji `ProviderHealthSnapshot` po provajderu (§2.3). Zahteva `M18/provider-health/VIEW`.
 
 **Odgovor `200`:**
+
 ```json
 [
-  { "id": "...", "providerCode": "travelgate", "latencyMsAvg": 420, "uptimePercentage": 98.5, "errorCountLastHour": 1, "status": "ONLINE", "computedAt": "2026-08-15T10:15:00.000Z" }
+  {
+    "id": "...",
+    "providerCode": "travelgate",
+    "latencyMsAvg": 420,
+    "uptimePercentage": 98.5,
+    "errorCountLastHour": 1,
+    "status": "ONLINE",
+    "computedAt": "2026-08-15T10:15:00.000Z"
+  }
 ]
 ```
 
@@ -54,9 +65,16 @@ Poslednji `ProviderHealthSnapshot` po provajderu (§2.3). Zahteva `M18/provider-
 Zahteva `M18/notification-channel/VIEW`. `configEncrypted` se nikad ne vraća.
 
 **Odgovor `200`:**
+
 ```json
 [
-  { "id": "...", "channelType": "TELEGRAM", "recipientRole": "VLASNIK", "status": "ACTIVE", "createdAt": "2026-08-01T09:00:00.000Z" }
+  {
+    "id": "...",
+    "channelType": "TELEGRAM",
+    "recipientRole": "VLASNIK",
+    "status": "ACTIVE",
+    "createdAt": "2026-08-01T09:00:00.000Z"
+  }
 ]
 ```
 
@@ -65,9 +83,11 @@ Zahteva `M18/notification-channel/VIEW`. `configEncrypted` se nikad ne vraća.
 Zahteva `M18/notification-channel/EDIT`.
 
 **Zahtev:**
+
 ```json
 { "channelType": "TELEGRAM", "config": { "chatId": "123456789" }, "recipientRole": "VLASNIK" }
 ```
+
 Za `EMAIL`: `"config": { "email": "vlasnik@primer.rs" }`.
 
 ## PATCH /notification-channels/:id
@@ -75,6 +95,7 @@ Za `EMAIL`: `"config": { "email": "vlasnik@primer.rs" }`.
 Zahteva `M18/notification-channel/EDIT`.
 
 **Zahtev:**
+
 ```json
 { "status": "INACTIVE" }
 ```
@@ -86,6 +107,7 @@ Zahteva `M18/notification-channel/EDIT`.
 Zahteva `M18/weekly-review/VIEW`.
 
 **Odgovor `200`:**
+
 ```json
 [
   {
@@ -115,13 +137,27 @@ Zahteva `M18/trend-suggestion/VIEW`.
 ## POST /trend-suggestions
 
 **Zahtev:**
+
 ```json
-{ "category": "TEHNOLOGIJA", "summary": "Sabre najavio novi agentski API u avgustu 2026.", "suggestedAction": "Proceniti integraciju za Fazu 6 dopunu M4." }
+{
+  "category": "TEHNOLOGIJA",
+  "summary": "Sabre najavio novi agentski API u avgustu 2026.",
+  "suggestedAction": "Proceniti integraciju za Fazu 6 dopunu M4."
+}
 ```
 
 **Odgovor `201`:**
+
 ```json
-{ "id": "...", "category": "TEHNOLOGIJA", "summary": "...", "suggestedAction": "...", "status": "DRAFT", "approvedBy": null, "createdAt": "..." }
+{
+  "id": "...",
+  "category": "TEHNOLOGIJA",
+  "summary": "...",
+  "suggestedAction": "...",
+  "status": "DRAFT",
+  "approvedBy": null,
+  "createdAt": "..."
+}
 ```
 
 ## POST /trend-suggestions/:id/approve
@@ -129,6 +165,7 @@ Zahteva `M18/trend-suggestion/VIEW`.
 Zahteva `M18/trend-suggestion/APPROVE`. Samo za `DRAFT` (`400` inače).
 
 **Odgovor `201`:**
+
 ```json
 { "id": "...", "status": "APPROVED", "approvedBy": "3b8e...-vlasnik-user-id" }
 ```
@@ -144,11 +181,13 @@ Zahteva `M18/trend-suggestion/APPROVE`.
 Log poziva jezičkom modelu, filtriran po agentu. Zahteva `M18/agent-invocation-log/VIEW`.
 
 **Zahtev:**
+
 ```
 GET /api/v1/ops/agent-invocations?agentId=8d37...
 ```
 
 **Odgovor `200`:**
+
 ```json
 [
   {
@@ -173,6 +212,7 @@ GET /api/v1/ops/agent-invocations?agentId=8d37...
 Zahteva `M18/ai-provider-quota/VIEW`.
 
 **Odgovor `200`:**
+
 ```json
 [
   {
@@ -197,6 +237,7 @@ Zahteva `M18/ai-provider-quota/VIEW`.
 Kreira novi red za tekući period. `quotaLimit`/`budgetLimitEur` su opcioni — bez njih red samo prati potrošnju, bez alarma/degradacije (M18 spec §11).
 
 **Zahtev:**
+
 ```json
 { "providerName": "ANTHROPIC", "period": "DAILY", "budgetLimitEur": 2 }
 ```
@@ -204,6 +245,7 @@ Kreira novi red za tekući period. `quotaLimit`/`budgetLimitEur` su opcioni — 
 ## PATCH /ai-provider-quota/:id
 
 **Zahtev:**
+
 ```json
 { "budgetLimitEur": 5 }
 ```
@@ -213,6 +255,7 @@ Kreira novi red za tekući period. `quotaLimit`/`budgetLimitEur` su opcioni — 
 Ručan povratak iz `DEGRADED` u `NORMAL` pre isteka perioda. Zahteva `M18/ai-provider-quota/OVERRIDE`; upisuje `AuditLogEntry` (M1).
 
 **Odgovor `201`:**
+
 ```json
 { "id": "...", "enforcementState": "NORMAL", "degradedAt": null }
 ```
@@ -232,6 +275,7 @@ GET /api/v1/ops/ai-agent-budgets?agentId=8d37...
 Zahteva `M18/ai-agent-budget/EDIT`. Za razliku od `/ai-provider-quota`, `budgetLimitEur` je obavezan — red se pravi tek kad je budžet stvarno odlučen.
 
 **Zahtev:**
+
 ```json
 { "agentId": "8d37...", "period": "DAILY", "budgetLimitEur": 0.5 }
 ```
@@ -239,6 +283,7 @@ Zahteva `M18/ai-agent-budget/EDIT`. Za razliku od `/ai-provider-quota`, `budgetL
 ## PATCH /ai-agent-budgets/:id
 
 **Zahtev:**
+
 ```json
 { "budgetLimitEur": 1 }
 ```
@@ -250,6 +295,7 @@ Zahteva `M18/ai-agent-budget/EDIT`. Za razliku od `/ai-provider-quota`, `budgetL
 Katalog registrovanih "živih procesnih mapa" (M18 spec §9a, dopunjeno 29.8.2026) — definicija bez brojeva, za listu kartica u panelu. Zahteva `M18/process-map/VIEW`.
 
 **Odgovor `200`:**
+
 ```json
 [
   {
@@ -261,7 +307,11 @@ Katalog registrovanih "živih procesnih mapa" (M18 spec §9a, dopunjeno 29.8.202
       { "id": "login-failed", "label": "Pogrešna lozinka", "matchActions": ["auth.login_failed"] },
       { "id": "mfa-failed", "label": "Pogrešan MFA kod", "matchActions": ["auth.mfa_failed"] },
       { "id": "account-locked", "label": "Nalog zaključan", "matchActions": ["user.locked"] },
-      { "id": "password-reset", "label": "Lozinka resetovana", "matchActions": ["auth.password_reset"] }
+      {
+        "id": "password-reset",
+        "label": "Lozinka resetovana",
+        "matchActions": ["auth.password_reset"]
+      }
     ]
   },
   {
@@ -269,11 +319,31 @@ Katalog registrovanih "živih procesnih mapa" (M18 spec §9a, dopunjeno 29.8.202
     "label": "M5 — tok rezervacije",
     "module": "M5",
     "nodes": [
-      { "id": "booking-created", "label": "Rezervacija kreirana", "matchActions": ["booking.confirmed"] },
-      { "id": "booking-modified", "label": "Rezervacija izmenjena", "matchActions": ["booking.modified"] },
-      { "id": "payment-status-changed", "label": "Status plaćanja promenjen", "matchActions": ["booking.payment_status_changed"] },
-      { "id": "voucher-override", "label": "Vaučer bez pune uplate", "matchActions": ["booking.voucher_override_issued"] },
-      { "id": "booking-cancelled", "label": "Rezervacija otkazana", "matchActions": ["booking.cancelled"] }
+      {
+        "id": "booking-created",
+        "label": "Rezervacija kreirana",
+        "matchActions": ["booking.confirmed"]
+      },
+      {
+        "id": "booking-modified",
+        "label": "Rezervacija izmenjena",
+        "matchActions": ["booking.modified"]
+      },
+      {
+        "id": "payment-status-changed",
+        "label": "Status plaćanja promenjen",
+        "matchActions": ["booking.payment_status_changed"]
+      },
+      {
+        "id": "voucher-override",
+        "label": "Vaučer bez pune uplate",
+        "matchActions": ["booking.voucher_override_issued"]
+      },
+      {
+        "id": "booking-cancelled",
+        "label": "Rezervacija otkazana",
+        "matchActions": ["booking.cancelled"]
+      }
     ]
   },
   {
@@ -281,12 +351,36 @@ Katalog registrovanih "živih procesnih mapa" (M18 spec §9a, dopunjeno 29.8.202
     "label": "M10 — tok novca",
     "module": "M10",
     "nodes": [
-      { "id": "payment-recorded", "label": "Uplata gosta zabeležena", "matchActions": ["payment.recorded"] },
-      { "id": "invoice-created", "label": "Faktura kreirana", "matchActions": ["fiscal_document.draft_created"] },
-      { "id": "invoice-storno", "label": "Faktura stornirana", "matchActions": ["fiscal_document.storno"] },
-      { "id": "supplier-obligation-created", "label": "Obaveza dobavljaču kreirana", "matchActions": ["supplier_obligation.created", "supplier_obligation.auto_created"] },
-      { "id": "supplier-obligation-paid", "label": "Obaveza dobavljaču isplaćena", "matchActions": ["supplier_obligation.paid"] },
-      { "id": "refund-executed", "label": "Povraćaj gostu izvršen", "matchActions": ["refund_instruction.executed"] }
+      {
+        "id": "payment-recorded",
+        "label": "Uplata gosta zabeležena",
+        "matchActions": ["payment.recorded"]
+      },
+      {
+        "id": "invoice-created",
+        "label": "Faktura kreirana",
+        "matchActions": ["fiscal_document.draft_created"]
+      },
+      {
+        "id": "invoice-storno",
+        "label": "Faktura stornirana",
+        "matchActions": ["fiscal_document.storno"]
+      },
+      {
+        "id": "supplier-obligation-created",
+        "label": "Obaveza dobavljaču kreirana",
+        "matchActions": ["supplier_obligation.created", "supplier_obligation.auto_created"]
+      },
+      {
+        "id": "supplier-obligation-paid",
+        "label": "Obaveza dobavljaču isplaćena",
+        "matchActions": ["supplier_obligation.paid"]
+      },
+      {
+        "id": "refund-executed",
+        "label": "Povraćaj gostu izvršen",
+        "matchActions": ["refund_instruction.executed"]
+      }
     ]
   }
 ]
@@ -297,18 +391,30 @@ Katalog registrovanih "živih procesnih mapa" (M18 spec §9a, dopunjeno 29.8.202
 Broj i vreme poslednjeg zapisa po čvoru, u proteklih `windowMinutes` minuta (podrazumevano 1440). Čita direktno iz M1 audit loga — ne novi izvor podataka, samo prikaz nad postojećim. Zahteva `M18/process-map/VIEW`.
 
 **Zahtev:**
+
 ```
 GET /api/v1/ops/process-maps/m1-security/live?windowMinutes=60
 ```
 
 **Odgovor `200`:**
+
 ```json
 {
   "key": "m1-security",
   "label": "M1 — bezbednosni signali",
   "nodes": [
-    { "id": "login-success", "label": "Uspešna prijava", "count": 60, "lastAt": "2026-08-29T19:56:49.355Z" },
-    { "id": "login-failed", "label": "Pogrešna lozinka", "count": 2, "lastAt": "2026-08-29T20:01:18.000Z" },
+    {
+      "id": "login-success",
+      "label": "Uspešna prijava",
+      "count": 60,
+      "lastAt": "2026-08-29T19:56:49.355Z"
+    },
+    {
+      "id": "login-failed",
+      "label": "Pogrešna lozinka",
+      "count": 2,
+      "lastAt": "2026-08-29T20:01:18.000Z"
+    },
     { "id": "mfa-failed", "label": "Pogrešan MFA kod", "count": 0, "lastAt": null },
     { "id": "account-locked", "label": "Nalog zaključan", "count": 0, "lastAt": null },
     { "id": "password-reset", "label": "Lozinka resetovana", "count": 0, "lastAt": null }

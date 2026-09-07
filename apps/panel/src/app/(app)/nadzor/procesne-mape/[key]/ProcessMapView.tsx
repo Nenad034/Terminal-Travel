@@ -150,7 +150,11 @@ export default function ProcessMapView({
               type="button"
               onClick={() => selectNode(node, nodeLive)}
               className={`flex flex-col gap-1 rounded-lg border p-4 text-left transition-colors duration-300 hover:border-accent ${
-                isFlashing ? 'border-accent bg-accent-soft' : isSelected ? 'border-accent bg-panel' : 'border-border bg-panel'
+                isFlashing
+                  ? 'border-accent bg-accent-soft'
+                  : isSelected
+                    ? 'border-accent bg-panel'
+                    : 'border-border bg-panel'
               }`}
             >
               <span className="text-xs text-ink-faint">{node.label}</span>
@@ -160,7 +164,9 @@ export default function ProcessMapView({
                 {nodeLive ? nodeLive.count : '—'}
               </span>
               <span className="text-[11px] text-ink-faint">
-                {nodeLive?.lastAt ? `poslednji: ${new Date(nodeLive.lastAt).toLocaleString('sr-RS')}` : 'nema zapisa u prozoru'}
+                {nodeLive?.lastAt
+                  ? `poslednji: ${new Date(nodeLive.lastAt).toLocaleString('sr-RS')}`
+                  : 'nema zapisa u prozoru'}
               </span>
             </button>
           );

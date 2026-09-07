@@ -87,7 +87,12 @@ export class AssistantEngineService {
     if (candidates.length === 0) return EMPTY_ANSWER;
 
     const relevant = this.geminiEmbedding.isConfigured()
-      ? await this.selectByEmbedding(question, candidates, embeddingTable, !this.anthropic.isConfigured())
+      ? await this.selectByEmbedding(
+          question,
+          candidates,
+          embeddingTable,
+          !this.anthropic.isConfigured(),
+        )
       : this.selectByKeywords(question, candidates);
 
     if (relevant.length === 0) return EMPTY_ANSWER;
@@ -120,13 +125,19 @@ export class AssistantEngineService {
     };
   }
 
-  private selectByKeywords(question: string, candidates: AssistantCandidate[]): AssistantCandidate[] {
+  private selectByKeywords(
+    question: string,
+    candidates: AssistantCandidate[],
+  ): AssistantCandidate[] {
     return this.scoreCandidates(question, candidates)
       .filter((c) => c.score >= MIN_HEURISTIC_OVERLAP || c.isPriority)
       .slice(0, CANDIDATE_LIMIT);
   }
 
-  private scoreCandidates(question: string, candidates: AssistantCandidate[]): (AssistantCandidate & { score: number })[] {
+  private scoreCandidates(
+    question: string,
+    candidates: AssistantCandidate[],
+  ): (AssistantCandidate & { score: number })[] {
     const questionWords = significantWords(question);
     return candidates
       .map((c) => {
@@ -160,18 +171,27 @@ export class AssistantEngineService {
 
       const priority = candidates.filter((c) => c.isPriority);
       const semantic = ranked
-        .filter((r) => (!applyDistanceThreshold || r.distance <= MAX_EMBEDDING_DISTANCE) && !byId.get(r.id)?.isPriority)
+        .filter(
+          (r) =>
+            (!applyDistanceThreshold || r.distance <= MAX_EMBEDDING_DISTANCE) &&
+            !byId.get(r.id)?.isPriority,
+        )
         .map((r) => byId.get(r.id))
         .filter((c): c is AssistantCandidate => Boolean(c));
 
       return [...priority, ...semantic].slice(0, CANDIDATE_LIMIT);
     } catch (err) {
-      this.logger.warn(`Embedding pretraga nije uspela, prelazim na ključne reči: ${(err as Error).message}`);
+      this.logger.warn(
+        `Embedding pretraga nije uspela, prelazim na ključne reči: ${(err as Error).message}`,
+      );
       return this.selectByKeywords(question, candidates);
     }
   }
 
-  private async ensureEmbeddings(candidates: AssistantCandidate[], table: 'help_article_translations' | 'article_translations'): Promise<void> {
+  private async ensureEmbeddings(
+    candidates: AssistantCandidate[],
+    table: 'help_article_translations' | 'article_translations',
+  ): Promise<void> {
     const ids = candidates.map((c) => c.translationId);
     if (ids.length === 0) return;
     const missing = await this.prisma.$queryRaw<{ id: string }[]>(
@@ -199,7 +219,10 @@ export class AssistantEngineService {
     const client = this.anthropic.getClient();
 
     const articlesBlock = relevant
-      .map((c, i) => `[Članak ${i + 1}]${c.isPriority ? ' (kritičan primer)' : ''}\nNaslov: ${c.title}\nSadržaj:\n${c.body}`)
+      .map(
+        (c, i) =>
+          `[Članak ${i + 1}]${c.isPriority ? ' (kritičan primer)' : ''}\nNaslov: ${c.title}\nSadržaj:\n${c.body}`,
+      )
       .join('\n\n---\n\n');
     const userPrompt = `Članci na koje smeš da se osloniš:\n\n${articlesBlock}\n\nPitanje korisnika: ${question}`;
 
@@ -211,7 +234,8 @@ export class AssistantEngineService {
       messages: [{ role: 'user', content: userPrompt }],
     });
     const latencyMs = Date.now() - startedAt;
-    const textBlock = response.content.find((b: any) => b.type === 'text') as { text: string } | undefined;
+    const textBlock = response.content.find((b: any) => b.type === 'text') as
+      { text: string } | undefined;
     const rawText = textBlock?.text?.trim() ?? '';
 
     if (!rawText || rawText.includes(noAnswerMarker)) {
@@ -239,7 +263,9 @@ export class AssistantEngineService {
 }
 
 function significantWords(text: string): string[] {
-  return (text.toLowerCase().match(/[\p{L}\p{N}]{4,}/gu) ?? []).filter((w, i, arr) => arr.indexOf(w) === i);
+  return (text.toLowerCase().match(/[\p{L}\p{N}]{4,}/gu) ?? []).filter(
+    (w, i, arr) => arr.indexOf(w) === i,
+  );
 }
 
 // Ograničenje ulaza embedding modela (~8191 tokena) — konzervativno sečenje na karaktere umesto

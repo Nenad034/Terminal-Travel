@@ -4,7 +4,8 @@ import { Injectable, Logger } from '@nestjs/common';
 // PRIVREMENO rešenje (kao mock SEF/CIS pre potvrde zvaničnog ugovora): zamenjuje se zvaničnim
 // SOAP veb-servisom NBS ("Sistem veb-servisa Narodne banke Srbije") čim se registracija sredi —
 // vidi M10 spec §11. Format tabele potvrđen ručno avgust 2026, može se promeniti bez najave.
-const NBS_MIDDLE_RATE_URL = 'https://webappcenter.nbs.rs/ExchangeRateWebApp/ExchangeRate/CurrentMiddleRate';
+const NBS_MIDDLE_RATE_URL =
+  'https://webappcenter.nbs.rs/ExchangeRateWebApp/ExchangeRate/CurrentMiddleRate';
 
 // Ista aplikacija, stranica "претрага по датуму" (M10 spec §3.1a, dopuna 6.9.2026). Obična GET
 // forma — `Date` u obliku DD.MM.GGGG i `ExchangeRateListTypeID`, bez tokena i bez sesije.
@@ -68,9 +69,13 @@ export class NbsRateFetcherService {
   // ručno (avgust 2026): "ФОРМИРАНА НА ДАН 14.8.2026. ГОДИНЕ" i redovi
   // <td>EUR</td><td>978</td><td>...</td><td>1</td><td>117,3433</td>.
   parse(html: string): NbsRatePage {
-    const dateMatch = html.match(/(\d{1,2})\.(\d{1,2})\.(\d{4})\.\s*&#x413;&#x41E;&#x414;&#x418;&#x41D;&#x415;/);
+    const dateMatch = html.match(
+      /(\d{1,2})\.(\d{1,2})\.(\d{4})\.\s*&#x413;&#x41E;&#x414;&#x418;&#x41D;&#x415;/,
+    );
     if (!dateMatch) {
-      throw new Error('Datum kursne liste nije pronađen na NBS stranici (format stranice se promenio — M10 spec §11).');
+      throw new Error(
+        'Datum kursne liste nije pronađen na NBS stranici (format stranice se promenio — M10 spec §11).',
+      );
     }
     const [, day, month, year] = dateMatch;
     const rateDate = new Date(Date.UTC(Number(year), Number(month) - 1, Number(day)));
@@ -78,10 +83,14 @@ export class NbsRateFetcherService {
     const rows: NbsRateRow[] = [];
     for (const currency of TRACKED_CURRENCIES) {
       const rowMatch = html.match(
-        new RegExp(`<td>${currency}</td>\\s*<td>\\d+</td>\\s*<td>[^<]*</td>\\s*<td>(\\d+)</td>\\s*<td>([\\d.,]+)</td>`),
+        new RegExp(
+          `<td>${currency}</td>\\s*<td>\\d+</td>\\s*<td>[^<]*</td>\\s*<td>(\\d+)</td>\\s*<td>([\\d.,]+)</td>`,
+        ),
       );
       if (!rowMatch) {
-        this.logger.warn(`Valuta ${currency} nije pronađena na NBS stranici — preskačem, ostale valute se svejedno uvoze.`);
+        this.logger.warn(
+          `Valuta ${currency} nije pronađena na NBS stranici — preskačem, ostale valute se svejedno uvoze.`,
+        );
         continue;
       }
       const [, unitStr, rateStr] = rowMatch;
@@ -91,7 +100,9 @@ export class NbsRateFetcherService {
     }
 
     if (rows.length === 0) {
-      throw new Error('Nijedna praćena valuta (EUR/USD) nije pronađena na NBS stranici — format stranice se verovatno promenio.');
+      throw new Error(
+        'Nijedna praćena valuta (EUR/USD) nije pronađena na NBS stranici — format stranice se verovatno promenio.',
+      );
     }
 
     return { rateDate, rows };

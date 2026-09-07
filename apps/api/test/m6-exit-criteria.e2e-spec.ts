@@ -42,7 +42,9 @@ describe('M6 — izlazni kriterijum (e2e)', () => {
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
     app = moduleRef.createNestApplication();
     app.setGlobalPrefix('api/v1');
-    app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }));
+    app.useGlobalPipes(
+      new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }),
+    );
     app.useGlobalFilters(new PrismaExceptionFilter());
     await app.init();
     prisma = app.get(PrismaService);
@@ -59,25 +61,44 @@ describe('M6 — izlazni kriterijum (e2e)', () => {
     // može stići da kreira PostTripSurvey posle povratka iz testa; kratka pauza da se to slegne pre čišćenja.
     await new Promise((resolve) => setTimeout(resolve, 500));
     await prisma.postTripSurvey.deleteMany({
-      where: { OR: [{ bookingId: { in: createdBookingIds } }, { clientAccountId: { in: createdClientAccountIds } }] },
+      where: {
+        OR: [
+          { bookingId: { in: createdBookingIds } },
+          { clientAccountId: { in: createdClientAccountIds } },
+        ],
+      },
     });
     if (createdBookingIds.length) {
-      await prisma.bookingItemGuest.deleteMany({ where: { bookingItem: { bookingId: { in: createdBookingIds } } } });
+      await prisma.bookingItemGuest.deleteMany({
+        where: { bookingItem: { bookingId: { in: createdBookingIds } } },
+      });
       await prisma.bookingItem.deleteMany({ where: { bookingId: { in: createdBookingIds } } });
       await prisma.booking.deleteMany({ where: { id: { in: createdBookingIds } } });
     }
-    await prisma.communicationLog.deleteMany({ where: { clientAccountId: { in: createdClientAccountIds } } });
-    await prisma.clientLoyaltyStatus.deleteMany({ where: { clientAccountId: { in: createdClientAccountIds } } });
-    if (createdGuestProfileIds.length) await prisma.guestProfile.deleteMany({ where: { id: { in: createdGuestProfileIds } } });
-    if (createdClientAccountIds.length) await prisma.clientAccount.deleteMany({ where: { id: { in: createdClientAccountIds } } });
-    if (createdLoyaltyTierIds.length) await prisma.loyaltyTier.deleteMany({ where: { id: { in: createdLoyaltyTierIds } } });
+    await prisma.communicationLog.deleteMany({
+      where: { clientAccountId: { in: createdClientAccountIds } },
+    });
+    await prisma.clientLoyaltyStatus.deleteMany({
+      where: { clientAccountId: { in: createdClientAccountIds } },
+    });
+    if (createdGuestProfileIds.length)
+      await prisma.guestProfile.deleteMany({ where: { id: { in: createdGuestProfileIds } } });
+    if (createdClientAccountIds.length)
+      await prisma.clientAccount.deleteMany({ where: { id: { in: createdClientAccountIds } } });
+    if (createdLoyaltyTierIds.length)
+      await prisma.loyaltyTier.deleteMany({ where: { id: { in: createdLoyaltyTierIds } } });
     if (createdProductIds.length) {
-      await prisma.quote.deleteMany({ where: { items: { some: { productId: { in: createdProductIds } } } } });
+      await prisma.quote.deleteMany({
+        where: { items: { some: { productId: { in: createdProductIds } } } },
+      });
       await prisma.product.deleteMany({ where: { id: { in: createdProductIds } } });
     }
-    if (createdContractIds.length) await prisma.contract.deleteMany({ where: { id: { in: createdContractIds } } });
-    if (createdSupplierIds.length) await prisma.supplier.deleteMany({ where: { id: { in: createdSupplierIds } } });
-    if (createdMarkupRuleIds.length) await prisma.markupRule.deleteMany({ where: { id: { in: createdMarkupRuleIds } } });
+    if (createdContractIds.length)
+      await prisma.contract.deleteMany({ where: { id: { in: createdContractIds } } });
+    if (createdSupplierIds.length)
+      await prisma.supplier.deleteMany({ where: { id: { in: createdSupplierIds } } });
+    if (createdMarkupRuleIds.length)
+      await prisma.markupRule.deleteMany({ where: { id: { in: createdMarkupRuleIds } } });
     if (createdUserIds.length) {
       await prisma.userRole.deleteMany({ where: { userId: { in: createdUserIds } } });
       await prisma.user.deleteMany({ where: { id: { in: createdUserIds } } });
@@ -96,7 +117,9 @@ describe('M6 — izlazni kriterijum (e2e)', () => {
     });
     createdUserIds.push(user.id);
     const role = await prisma.role.findUniqueOrThrow({ where: { name: roleName } });
-    await prisma.userRole.create({ data: { userId: user.id, roleId: role.id, assignedBy: user.id } });
+    await prisma.userRole.create({
+      data: { userId: user.id, roleId: role.id, assignedBy: user.id },
+    });
     const accessToken = jwt.sign({ sub: user.id, sessionId: 'e2e-test-session' });
     return { user, accessToken };
   }
@@ -119,7 +142,15 @@ describe('M6 — izlazni kriterijum (e2e)', () => {
     return account;
   }
 
-  async function createBooking(clientAccountId: string, overrides: Partial<{ totalPrice: number; currency: string; status: string; confirmedAt: Date | null }> = {}) {
+  async function createBooking(
+    clientAccountId: string,
+    overrides: Partial<{
+      totalPrice: number;
+      currency: string;
+      status: string;
+      confirmedAt: Date | null;
+    }> = {},
+  ) {
     const booking = await prisma.booking.create({
       data: {
         bookingNumber: `TT-M6-E2E-${testRunId}-${Math.random().toString(36).slice(2)}`,
@@ -181,7 +212,14 @@ describe('M6 — izlazni kriterijum (e2e)', () => {
         status: 'ACTIVE',
         attributes: { stars: 4 },
         translations: {
-          create: [{ languageCode: 'sr', name: 'Hotel M6 Test', description: 'opis', slug: `hotel-m6-${testRunId}-${Math.random().toString(36).slice(2)}` }],
+          create: [
+            {
+              languageCode: 'sr',
+              name: 'Hotel M6 Test',
+              description: 'opis',
+              slug: `hotel-m6-${testRunId}-${Math.random().toString(36).slice(2)}`,
+            },
+          ],
         },
       },
     });
@@ -199,10 +237,18 @@ describe('M6 — izlazni kriterijum (e2e)', () => {
     });
 
     const rateLine = await prisma.rateLine.create({
-      data: { contractPeriodId: contractPeriod.id, boardType: 'HALF_BOARD', occupancy: '2+0', priceBasis: 'PER_ROOM_PER_NIGHT', price: 10000 },
+      data: {
+        contractPeriodId: contractPeriod.id,
+        boardType: 'HALF_BOARD',
+        occupancy: '2+0',
+        priceBasis: 'PER_ROOM_PER_NIGHT',
+        price: 10000,
+      },
     });
 
-    const markupRule = await prisma.markupRule.create({ data: { scopeType: 'M3_SUPPLIER', scopeId: supplier.id, percentage: 20 } });
+    const markupRule = await prisma.markupRule.create({
+      data: { scopeType: 'M3_SUPPLIER', scopeId: supplier.id, percentage: 20 },
+    });
     createdMarkupRuleIds.push(markupRule.id);
 
     return { product, rateLine, markupRule };
@@ -259,7 +305,9 @@ describe('M6 — izlazni kriterijum (e2e)', () => {
       const status = await loyaltyStatus.get(account.id);
       expect(status.effectiveTierId).toBe(tier.id); // override pobeđuje
 
-      const statusRow = await prisma.clientLoyaltyStatus.findUniqueOrThrow({ where: { clientAccountId: account.id } });
+      const statusRow = await prisma.clientLoyaltyStatus.findUniqueOrThrow({
+        where: { clientAccountId: account.id },
+      });
       const auditEntries = await prisma.auditLogEntry.findMany({
         where: { module: 'M6', action: 'loyalty_status.manual_override', resourceId: statusRow.id },
       });
@@ -353,7 +401,13 @@ describe('M6 — izlazni kriterijum (e2e)', () => {
       const created = await request(app.getHttpServer())
         .post('/api/v1/crm/communication-log')
         .set(authed(accessToken))
-        .send({ clientAccountId: account.id, channel: 'EMAIL', direction: 'OUTBOUND', summary: 'Cena: 500 EUR.', draftedByAi: true });
+        .send({
+          clientAccountId: account.id,
+          channel: 'EMAIL',
+          direction: 'OUTBOUND',
+          summary: 'Cena: 500 EUR.',
+          draftedByAi: true,
+        });
 
       const res = await request(app.getHttpServer())
         .post(`/api/v1/crm/communication-log/${created.body.id}/mark-sent`)
@@ -395,8 +449,12 @@ describe('M6 — izlazni kriterijum (e2e)', () => {
 
       await m6Triggers.checkBirthdays();
 
-      const consentLog = await prisma.communicationLog.findFirst({ where: { guestProfileId: guestConsent.id } });
-      const noConsentLog = await prisma.communicationLog.findFirst({ where: { guestProfileId: guestNoConsent.id } });
+      const consentLog = await prisma.communicationLog.findFirst({
+        where: { guestProfileId: guestConsent.id },
+      });
+      const noConsentLog = await prisma.communicationLog.findFirst({
+        where: { guestProfileId: guestNoConsent.id },
+      });
 
       expect(consentLog?.draftedByAi).toBe(true);
       expect(consentLog?.sentBy).toBe('SYSTEM_AUTO'); // marketing_consent=true → auto-poslat
@@ -464,8 +522,12 @@ describe('M6 — izlazni kriterijum (e2e)', () => {
 
       await postTripSurveys.sendDueSurveys();
 
-      const sentSurvey = await prisma.postTripSurvey.findUnique({ where: { bookingId: bookingConsent.id } });
-      const pendingSurvey = await prisma.postTripSurvey.findUnique({ where: { bookingId: bookingNoConsent.id } });
+      const sentSurvey = await prisma.postTripSurvey.findUnique({
+        where: { bookingId: bookingConsent.id },
+      });
+      const pendingSurvey = await prisma.postTripSurvey.findUnique({
+        where: { bookingId: bookingNoConsent.id },
+      });
       expect(sentSurvey!.status).toBe('SENT');
       expect(pendingSurvey!.status).toBe('PENDING');
     });
@@ -491,7 +553,9 @@ describe('M6 — izlazni kriterijum (e2e)', () => {
       expect(submitRes.body.wantsGoogleReview).toBe(true);
       expect(submitRes.body.status).toBe('COMPLETED');
 
-      const clickRes = await request(app.getHttpServer()).post(`/api/v1/crm/post-trip-surveys/${survey.accessToken}/google-review-click`);
+      const clickRes = await request(app.getHttpServer()).post(
+        `/api/v1/crm/post-trip-surveys/${survey.accessToken}/google-review-click`,
+      );
       expect(clickRes.status).toBe(201);
       expect(clickRes.body.googleReviewUrl).toEqual(expect.any(String));
 
@@ -558,7 +622,9 @@ describe('M6 — izlazni kriterijum (e2e)', () => {
       const sentFirstRun = await reminders.sendSupplierOptionDeadlineReminders();
       expect(sentFirstRun).toBeGreaterThanOrEqual(1);
 
-      const logs = await prisma.communicationLog.findMany({ where: { clientAccountId: account.id, category: 'TRANSAKCIONO' } });
+      const logs = await prisma.communicationLog.findMany({
+        where: { clientAccountId: account.id, category: 'TRANSAKCIONO' },
+      });
       expect(logs).toHaveLength(1);
       expect(logs[0].sentBy).toBe('SYSTEM_AUTO');
       expect(logs[0].channel).toBe('EMAIL');
@@ -568,7 +634,9 @@ describe('M6 — izlazni kriterijum (e2e)', () => {
 
       // Drugi poziv istog dana ne sme da duplira podsetnik (supplierOptionReminderSentAt već popunjeno).
       await reminders.sendSupplierOptionDeadlineReminders();
-      const logsAfterSecondRun = await prisma.communicationLog.findMany({ where: { clientAccountId: account.id, category: 'TRANSAKCIONO' } });
+      const logsAfterSecondRun = await prisma.communicationLog.findMany({
+        where: { clientAccountId: account.id, category: 'TRANSAKCIONO' },
+      });
       expect(logsAfterSecondRun).toHaveLength(1);
     });
 
@@ -596,7 +664,9 @@ describe('M6 — izlazni kriterijum (e2e)', () => {
       });
 
       await reminders.sendSupplierOptionDeadlineReminders();
-      const logs = await prisma.communicationLog.findMany({ where: { clientAccountId: account.id, category: 'TRANSAKCIONO' } });
+      const logs = await prisma.communicationLog.findMany({
+        where: { clientAccountId: account.id, category: 'TRANSAKCIONO' },
+      });
       expect(logs).toHaveLength(0);
     });
   });

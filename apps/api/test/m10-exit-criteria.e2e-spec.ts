@@ -34,7 +34,9 @@ describe('M10 — izlazni kriterijum (e2e)', () => {
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
     app = moduleRef.createNestApplication();
     app.setGlobalPrefix('api/v1');
-    app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }));
+    app.useGlobalPipes(
+      new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }),
+    );
     app.useGlobalFilters(new PrismaExceptionFilter());
     await app.init();
     prisma = app.get(PrismaService);
@@ -45,19 +47,29 @@ describe('M10 — izlazni kriterijum (e2e)', () => {
     if (createdBookingIds.length) {
       await prisma.fiscalDocument.deleteMany({ where: { bookingId: { in: createdBookingIds } } });
       await prisma.postTripSurvey.deleteMany({ where: { bookingId: { in: createdBookingIds } } });
-      await prisma.clientPaymentSchedule.deleteMany({ where: { bookingId: { in: createdBookingIds } } });
+      await prisma.clientPaymentSchedule.deleteMany({
+        where: { bookingId: { in: createdBookingIds } },
+      });
       await prisma.payment.deleteMany({ where: { bookingId: { in: createdBookingIds } } });
       await prisma.bookingItem.deleteMany({ where: { bookingId: { in: createdBookingIds } } });
       await prisma.booking.deleteMany({ where: { id: { in: createdBookingIds } } });
     }
-    if (createdBankIds.length) await prisma.bank.deleteMany({ where: { id: { in: createdBankIds } } });
+    if (createdBankIds.length)
+      await prisma.bank.deleteMany({ where: { id: { in: createdBankIds } } });
     if (createdSupplierIds.length) {
-      await prisma.supplierPaymentInstruction.deleteMany({ where: { supplierObligation: { supplierId: { in: createdSupplierIds } } } });
-      await prisma.supplierObligation.deleteMany({ where: { supplierId: { in: createdSupplierIds } } });
+      await prisma.supplierPaymentInstruction.deleteMany({
+        where: { supplierObligation: { supplierId: { in: createdSupplierIds } } },
+      });
+      await prisma.supplierObligation.deleteMany({
+        where: { supplierId: { in: createdSupplierIds } },
+      });
     }
-    if (createdProductIds.length) await prisma.product.deleteMany({ where: { id: { in: createdProductIds } } });
-    if (createdContractIds.length) await prisma.contract.deleteMany({ where: { id: { in: createdContractIds } } });
-    if (createdSupplierIds.length) await prisma.supplier.deleteMany({ where: { id: { in: createdSupplierIds } } });
+    if (createdProductIds.length)
+      await prisma.product.deleteMany({ where: { id: { in: createdProductIds } } });
+    if (createdContractIds.length)
+      await prisma.contract.deleteMany({ where: { id: { in: createdContractIds } } });
+    if (createdSupplierIds.length)
+      await prisma.supplier.deleteMany({ where: { id: { in: createdSupplierIds } } });
     if (createdUserIds.length) {
       await prisma.userRole.deleteMany({ where: { userId: { in: createdUserIds } } });
       await prisma.user.deleteMany({ where: { id: { in: createdUserIds } } });
@@ -76,7 +88,9 @@ describe('M10 — izlazni kriterijum (e2e)', () => {
     });
     createdUserIds.push(user.id);
     const role = await prisma.role.findUniqueOrThrow({ where: { name: roleName } });
-    await prisma.userRole.create({ data: { userId: user.id, roleId: role.id, assignedBy: user.id } });
+    await prisma.userRole.create({
+      data: { userId: user.id, roleId: role.id, assignedBy: user.id },
+    });
     const accessToken = jwt.sign({ sub: user.id, sessionId: 'e2e-test-session' });
     return { user, accessToken };
   }
@@ -87,7 +101,12 @@ describe('M10 — izlazni kriterijum (e2e)', () => {
 
   // Kreira Supplier + Contract (payment_terms_days=10) + Product (CONTRACTED) + potvrđen
   // Booking sa jednom CONTRACTED BookingItem stavkom, u valuti RSD (bez potrebe za kursom).
-  async function createConfirmedBookingFixture(overrides: { buyerType?: 'FIZICKO_LICE' | 'PRAVNO_LICE'; tipNastupanja?: 'ORGANIZATOR' | 'POSREDNIK' } = {}) {
+  async function createConfirmedBookingFixture(
+    overrides: {
+      buyerType?: 'FIZICKO_LICE' | 'PRAVNO_LICE';
+      tipNastupanja?: 'ORGANIZATOR' | 'POSREDNIK';
+    } = {},
+  ) {
     const supplier = await prisma.supplier.create({
       data: {
         name: `E2E Dobavljač ${testRunId}`,
@@ -177,7 +196,9 @@ describe('M10 — izlazni kriterijum (e2e)', () => {
 
   // §5.2 dopuna (2.9.2026) — BANK_TRANSFER/CARD_MANUAL sad zahtevaju bankId (RecordPaymentDto).
   async function ensureTestBank() {
-    const bank = await prisma.bank.create({ data: { name: `E2E Banka ${testRunId}-${Math.random().toString(36).slice(2)}` } });
+    const bank = await prisma.bank.create({
+      data: { name: `E2E Banka ${testRunId}-${Math.random().toString(36).slice(2)}` },
+    });
     createdBankIds.push(bank.id);
     return bank;
   }
@@ -185,7 +206,10 @@ describe('M10 — izlazni kriterijum (e2e)', () => {
   describe('§2/§4.4 — automatski izbor tipa dokumenta i PDV osnovice', () => {
     it('bira SEF_EFAKTURA/MARZA za pravno lice/organizatora i preračunava iznos ispravno (integer, ne decimal)', async () => {
       const { user, accessToken } = await createInternalUser(SYSTEM_ROLES.VLASNIK);
-      const { booking } = await createConfirmedBookingFixture({ buyerType: 'PRAVNO_LICE', tipNastupanja: 'ORGANIZATOR' });
+      const { booking } = await createConfirmedBookingFixture({
+        buyerType: 'PRAVNO_LICE',
+        tipNastupanja: 'ORGANIZATOR',
+      });
 
       const res = await request(app.getHttpServer())
         .post('/api/v1/finance/fiscal-documents/draft')
@@ -203,7 +227,10 @@ describe('M10 — izlazni kriterijum (e2e)', () => {
 
     it('bira ESIR_RACUN/PROVIZIJA za fizičko lice/posrednika', async () => {
       const { accessToken } = await createInternalUser(SYSTEM_ROLES.VLASNIK);
-      const { booking } = await createConfirmedBookingFixture({ buyerType: 'FIZICKO_LICE', tipNastupanja: 'POSREDNIK' });
+      const { booking } = await createConfirmedBookingFixture({
+        buyerType: 'FIZICKO_LICE',
+        tipNastupanja: 'POSREDNIK',
+      });
 
       const res = await request(app.getHttpServer())
         .post('/api/v1/finance/fiscal-documents/draft')
@@ -236,7 +263,10 @@ describe('M10 — izlazni kriterijum (e2e)', () => {
 
     it('šalje nacrt, postavlja SUBMITTED, external_reference i buyer_acceptance_deadline (15 dana) za SEF_EFAKTURA', async () => {
       const { accessToken } = await createInternalUser(SYSTEM_ROLES.RACUNOVODJA);
-      const { booking } = await createConfirmedBookingFixture({ buyerType: 'PRAVNO_LICE', tipNastupanja: 'ORGANIZATOR' });
+      const { booking } = await createConfirmedBookingFixture({
+        buyerType: 'PRAVNO_LICE',
+        tipNastupanja: 'ORGANIZATOR',
+      });
 
       const draftRes = await request(app.getHttpServer())
         .post('/api/v1/finance/fiscal-documents/draft')
@@ -273,7 +303,13 @@ describe('M10 — izlazni kriterijum (e2e)', () => {
       const res = await request(app.getHttpServer())
         .post('/api/v1/finance/payments')
         .set(authed(accessToken))
-        .send({ bookingId: booking.id, amount: 100000, currency: 'RSD', method: 'BANK_TRANSFER', bankId: bank.id });
+        .send({
+          bookingId: booking.id,
+          amount: 100000,
+          currency: 'RSD',
+          method: 'BANK_TRANSFER',
+          bankId: bank.id,
+        });
 
       expect(res.status).toBe(201);
 
@@ -318,7 +354,11 @@ describe('M10 — izlazni kriterijum (e2e)', () => {
       const res = await request(app.getHttpServer())
         .post('/api/v1/finance/supplier-payment-instructions')
         .set(authed(accessToken))
-        .send({ supplierObligationId: 'bilo-koji', method: 'BANK_TRANSFER', bankIban: 'RS35260005601001611379' });
+        .send({
+          supplierObligationId: 'bilo-koji',
+          method: 'BANK_TRANSFER',
+          bankIban: 'RS35260005601001611379',
+        });
 
       expect(res.status).toBe(403);
     });
@@ -340,7 +380,11 @@ describe('M10 — izlazni kriterijum (e2e)', () => {
       const res = await request(app.getHttpServer())
         .post('/api/v1/finance/supplier-payment-instructions')
         .set(authed(accessToken))
-        .send({ supplierObligationId: 'ne-postoji', method: 'BANK_TRANSFER', bankIban: 'RS35260005601001611379' });
+        .send({
+          supplierObligationId: 'ne-postoji',
+          method: 'BANK_TRANSFER',
+          bankIban: 'RS35260005601001611379',
+        });
 
       // Ne 403 — prolazi kroz proveru prava i pada tek na nepostojećoj obavezi.
       expect(res.status).not.toBe(403);
@@ -350,13 +394,20 @@ describe('M10 — izlazni kriterijum (e2e)', () => {
   describe('§8.1/§8.3 — obaveza prema dobavljaču', () => {
     it('ne dozvoljava APPROVED bez booking_item_id, i ispravno računa exchange_rate_difference pri plaćanju', async () => {
       const { accessToken } = await createInternalUser(SYSTEM_ROLES.RACUNOVODJA);
-      const { supplier, booking } = await createConfirmedBookingFixture({ buyerType: 'FIZICKO_LICE' });
+      const { supplier, booking } = await createConfirmedBookingFixture({
+        buyerType: 'FIZICKO_LICE',
+      });
 
       // bez bookingItemId — mora biti odbijeno
       const noItemRes = await request(app.getHttpServer())
         .post('/api/v1/finance/supplier-obligations')
         .set(authed(accessToken))
-        .send({ supplierId: supplier.id, amountOriginal: 50000, currencyOriginal: 'RSD', dueDate: '2026-10-01' });
+        .send({
+          supplierId: supplier.id,
+          amountOriginal: 50000,
+          currencyOriginal: 'RSD',
+          dueDate: '2026-10-01',
+        });
       expect(noItemRes.status).toBe(201);
 
       const approveNoItemRes = await request(app.getHttpServer())
@@ -369,7 +420,13 @@ describe('M10 — izlazni kriterijum (e2e)', () => {
       const withItemRes = await request(app.getHttpServer())
         .post('/api/v1/finance/supplier-obligations')
         .set(authed(accessToken))
-        .send({ supplierId: supplier.id, bookingItemId: item.id, amountOriginal: 60000, currencyOriginal: 'RSD', dueDate: '2026-10-01' });
+        .send({
+          supplierId: supplier.id,
+          bookingItemId: item.id,
+          amountOriginal: 60000,
+          currencyOriginal: 'RSD',
+          dueDate: '2026-10-01',
+        });
 
       const approveRes = await request(app.getHttpServer())
         .post(`/api/v1/finance/supplier-obligations/${withItemRes.body.id}/approve`)

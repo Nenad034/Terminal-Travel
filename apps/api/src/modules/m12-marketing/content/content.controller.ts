@@ -1,4 +1,19 @@
-import { BadRequestException, Body, Controller, Delete, Get, Param, Patch, Post, Put, Query, Res, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Put,
+  Query,
+  Res,
+  UploadedFile,
+  UseGuards,
+  UseInterceptors,
+} from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { diskStorage } from 'multer';
@@ -57,7 +72,11 @@ export class ContentController {
 
   @Patch(':id')
   @RequirePermission('M12', 'content', 'CREATE_DRAFT')
-  update(@Param('id') id: string, @Body() dto: UpdateContentDto, @CurrentUser() actor: { userId: string }) {
+  update(
+    @Param('id') id: string,
+    @Body() dto: UpdateContentDto,
+    @CurrentUser() actor: { userId: string },
+  ) {
     return this.content.update(id, dto, actor.userId);
   }
 
@@ -94,18 +113,28 @@ export class ContentController {
     FileInterceptor('file', {
       storage: diskStorage({
         destination: (req, _file, cb) => cb(null, ensureContentMediaUploadDir(req.params.id)),
-        filename: (_req, file, cb) => cb(null, `${randomUUID()}-${sanitizeContentMediaFileName(file.originalname)}`),
+        filename: (_req, file, cb) =>
+          cb(null, `${randomUUID()}-${sanitizeContentMediaFileName(file.originalname)}`),
       }),
       limits: { fileSize: MAX_CONTENT_MEDIA_BYTES },
       fileFilter: (_req, file, cb) => {
         if (!isAllowedContentMediaMimeType(file.mimetype)) {
-          return cb(new BadRequestException(`Tip fajla "${file.mimetype}" nije dozvoljen — samo slika/video.`), false);
+          return cb(
+            new BadRequestException(
+              `Tip fajla "${file.mimetype}" nije dozvoljen — samo slika/video.`,
+            ),
+            false,
+          );
         }
         cb(null, true);
       },
     }),
   )
-  addMedia(@Param('id') id: string, @UploadedFile() file: Express.Multer.File, @CurrentUser() actor: { userId: string }) {
+  addMedia(
+    @Param('id') id: string,
+    @UploadedFile() file: Express.Multer.File,
+    @CurrentUser() actor: { userId: string },
+  ) {
     return this.content.addMedia(id, file, actor.userId);
   }
 

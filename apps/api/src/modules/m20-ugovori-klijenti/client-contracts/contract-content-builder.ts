@@ -90,9 +90,13 @@ export function buildContentSnapshot(params: {
 }): Record<string, unknown> {
   const { booking, contractType, travelGuarantee, paymentSchedule, agency } = params;
 
-  const itineraryItems = booking.items.filter((i) => ['PACKAGE', 'EXCURSION'].includes(i.product.type));
+  const itineraryItems = booking.items.filter((i) =>
+    ['PACKAGE', 'EXCURSION'].includes(i.product.type),
+  );
   const accommodationItems = booking.items.filter((i) => i.product.type === 'ACCOMMODATION');
-  const transportItems = booking.items.filter((i) => ['TRANSPORT', 'TRANSFER', 'FLIGHT'].includes(i.product.type));
+  const transportItems = booking.items.filter((i) =>
+    ['TRANSPORT', 'TRANSFER', 'FLIGHT'].includes(i.product.type),
+  );
 
   return {
     agency: {
@@ -106,7 +110,10 @@ export function buildContentSnapshot(params: {
     // §2.3 — samo za PACKAGE/EXCURSION, koji jedini imaju attributes.itinerary (M2 §2.3);
     // izostaje kao neprimenjiv element za čist ACCOMMODATION bez paketa.
     itinerary: itineraryItems.length
-      ? itineraryItems.map((i) => ({ productName: productName(i.product), itinerary: i.product.attributes.itinerary ?? null }))
+      ? itineraryItems.map((i) => ({
+          productName: productName(i.product),
+          itinerary: i.product.attributes.itinerary ?? null,
+        }))
       : null,
     accommodation: accommodationItems.map((i) => ({
       productName: productName(i.product),
@@ -124,7 +131,9 @@ export function buildContentSnapshot(params: {
       bookingItemId: i.id,
       // CONTRACTED stavke: uživo iz M3 CancellationRule preko rate_line_id; API stavke: snimak
       // iz trenutka građenja stavke (M5 §4.2 dopuna v1.14) — nikad se ponovo ne poziva provajder.
-      rules: i.rateLine ? i.rateLine.contractPeriod.cancellationRules : i.cancellationPolicySnapshot,
+      rules: i.rateLine
+        ? i.rateLine.contractPeriod.cancellationRules
+        : i.cancellationPolicySnapshot,
     })),
     travelGuarantee:
       contractType === 'ORGANIZOVANO_PUTOVANJE' && travelGuarantee

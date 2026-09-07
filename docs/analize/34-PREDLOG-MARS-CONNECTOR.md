@@ -59,11 +59,11 @@ Ključna pravila:
 
 ### 4. Podaci koji se sinhronizuju (read)
 
-| Entitet | Frekvencija sync-a | Prioritet |
-|---|---|---|
-| Cene i dostupnost (price liste, inventar) | 15–30 min | Visok |
-| Rezervacije i statusi | 15–30 min | Visok |
-| Fakture / finansije | Dnevno (npr. noćni batch) | Srednji |
+| Entitet                                   | Frekvencija sync-a        | Prioritet |
+| ----------------------------------------- | ------------------------- | --------- |
+| Cene i dostupnost (price liste, inventar) | 15–30 min                 | Visok     |
+| Rezervacije i statusi                     | 15–30 min                 | Visok     |
+| Fakture / finansije                       | Dnevno (npr. noćni batch) | Srednji   |
 
 > **TODO:** Tačna lista MARS entiteta i njihovih GET endpoint-a treba da se popuni iz Stoplight dokumentacije. Ova tabela je placeholder na osnovu poznatih MARS ERP modula (booking, price lists, invoicing).
 
@@ -119,11 +119,11 @@ CREATE INDEX idx_reservations_status ON mars_cache.reservations(status);
 
 #### 5.2 Klasifikacija rizika po entitetu
 
-| Entitet | Nivo rizika | Human-in-the-loop? |
-|---|---|---|
-| Cene / dostupnost | Srednji | Ne (uz automatske granice — npr. upozorenje ako je promena >X%) |
-| Rezervacije (nova/izmena statusa) | Visok | Da, ako menja status koji utiče na klijenta (potvrda, otkazivanje) |
-| Finansije / fakture | Visok | Da, uvek — isti princip kao Miroco fiskalni flow |
+| Entitet                           | Nivo rizika | Human-in-the-loop?                                                 |
+| --------------------------------- | ----------- | ------------------------------------------------------------------ |
+| Cene / dostupnost                 | Srednji     | Ne (uz automatske granice — npr. upozorenje ako je promena >X%)    |
+| Rezervacije (nova/izmena statusa) | Visok       | Da, ako menja status koji utiče na klijenta (potvrda, otkazivanje) |
+| Finansije / fakture               | Visok       | Da, uvek — isti princip kao Miroco fiskalni flow                   |
 
 > Ovo su predložene default vrednosti — treba potvrditi sa poslovne strane pre implementacije.
 
@@ -150,16 +150,16 @@ CREATE TABLE mars_connector.audit_log (
 
 > Ovo su TTA-interni endpoint-i (frontend → TTA backend), NE MARS endpoint-i.
 
-| Endpoint | Metod | Svrha |
-|---|---|---|
-| `/api/mars/price-availability` | GET | Čita iz `mars_cache`, filtriran po entitetu |
-| `/api/mars/reservations` | GET | Čita iz `mars_cache` |
-| `/api/mars/invoices` | GET | Čita iz `mars_cache` |
-| `/api/mars/price-availability/:id` | PATCH | Pokreće write flow (5.1) za cene |
-| `/api/mars/reservations/:id` | PATCH | Pokreće write flow za rezervacije |
-| `/api/mars/reservations` | POST | Nova rezervacija — write flow sa approval korakom |
-| `/api/mars/sync/trigger` | POST | Ručno pokretanje sync-a (admin only) |
-| `/api/mars/audit-log` | GET | Pregled audit traga (RBAC: samo ovlašćeni) |
+| Endpoint                           | Metod | Svrha                                             |
+| ---------------------------------- | ----- | ------------------------------------------------- |
+| `/api/mars/price-availability`     | GET   | Čita iz `mars_cache`, filtriran po entitetu       |
+| `/api/mars/reservations`           | GET   | Čita iz `mars_cache`                              |
+| `/api/mars/invoices`               | GET   | Čita iz `mars_cache`                              |
+| `/api/mars/price-availability/:id` | PATCH | Pokreće write flow (5.1) za cene                  |
+| `/api/mars/reservations/:id`       | PATCH | Pokreće write flow za rezervacije                 |
+| `/api/mars/reservations`           | POST  | Nova rezervacija — write flow sa approval korakom |
+| `/api/mars/sync/trigger`           | POST  | Ručno pokretanje sync-a (admin only)              |
+| `/api/mars/audit-log`              | GET   | Pregled audit traga (RBAC: samo ovlašćeni)        |
 
 ### 7. MARS API integracija (delimično popunjeno 31.8.2026 — javna Stoplight stranica `marsapi.stoplight.io` pročitana; i dalje nedostaje write strana)
 
@@ -167,10 +167,10 @@ CREATE TABLE mars_connector.audit_log (
 
 **GET endpoint-i (potvrđeno):**
 
-| Endpoint | Metod | Svrha |
-|---|---|---|
-| `https://YourMarsDomain/mapi/v1/objects/index` | GET | Lista svih smeštajnih objekata vezanih za korisnikovu kompaniju — vraća `id` + `last_modified` (YYYY-MM-DD) po objektu. Namena: uporediti sa lokalnim `last_modified` da se zna šta treba sinhronizovati (odgovara `mars_cache` upsert obrascu iz §4.1). |
-| `https://YourMarsDomain/mapi/v1/objects/details` | GET | Pun detalj jednog objekta — naziv, lokacija, slike, amenities, `units[]`, `pricelist`, `common_items`. |
+| Endpoint                                         | Metod | Svrha                                                                                                                                                                                                                                                    |
+| ------------------------------------------------ | ----- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `https://YourMarsDomain/mapi/v1/objects/index`   | GET   | Lista svih smeštajnih objekata vezanih za korisnikovu kompaniju — vraća `id` + `last_modified` (YYYY-MM-DD) po objektu. Namena: uporediti sa lokalnim `last_modified` da se zna šta treba sinhronizovati (odgovara `mars_cache` upsert obrascu iz §4.1). |
+| `https://YourMarsDomain/mapi/v1/objects/details` | GET   | Pun detalj jednog objekta — naziv, lokacija, slike, amenities, `units[]`, `pricelist`, `common_items`.                                                                                                                                                   |
 
 Autentikacija: **HTTP Basic Auth** (potvrđeno). `responseType` query parametar bira `json`/`xml` odgovor (podrazumevano `json`). Nema vidljivih rate-limit pravila niti dokumentovanog error-response oblika osim generičkih HTTP statusa (200/400/401) — i dalje otvoreno.
 
@@ -211,13 +211,13 @@ I dalje nedostaje pre bilo kakvog koda: POST/PATCH write endpoint-i (nisu vidlji
 
 ### 10. Fazni plan implementacije
 
-| Faza | Sadržaj | Preduslov |
-|---|---|---|
-| **Faza 1** | Read-only sync za sva tri entiteta + `mars_cache` šema | Pristup MARS API dokumentaciji (GET endpoint-i) |
-| **Faza 2** | Metabase konekcija na `mars_cache`, prvi dashboard-i za kolege | Faza 1 završena |
-| **Faza 3** | Write flow za cene/dostupnost (najniži rizik) | MARS write endpoint dokumentacija za taj entitet |
-| **Faza 4** | Write flow za rezervacije + human-in-the-loop approval UI | Faza 3 stabilna, definisana pravila odobrenja |
-| **Faza 5** | Write flow za finansije/fakture (najviši rizik) | Faza 4 stabilna, potvrđena poslovna pravila |
+| Faza       | Sadržaj                                                        | Preduslov                                        |
+| ---------- | -------------------------------------------------------------- | ------------------------------------------------ |
+| **Faza 1** | Read-only sync za sva tri entiteta + `mars_cache` šema         | Pristup MARS API dokumentaciji (GET endpoint-i)  |
+| **Faza 2** | Metabase konekcija na `mars_cache`, prvi dashboard-i za kolege | Faza 1 završena                                  |
+| **Faza 3** | Write flow za cene/dostupnost (najniži rizik)                  | MARS write endpoint dokumentacija za taj entitet |
+| **Faza 4** | Write flow za rezervacije + human-in-the-loop approval UI      | Faza 3 stabilna, definisana pravila odobrenja    |
+| **Faza 5** | Write flow za finansije/fakture (najviši rizik)                | Faza 4 stabilna, potvrđena poslovna pravila      |
 
 ### 11. Otvorena pitanja (za Nenada, pre finalizacije)
 
@@ -229,4 +229,4 @@ I dalje nedostaje pre bilo kakvog koda: POST/PATCH write endpoint-i (nisu vidlji
 
 ---
 
-*Dokument pripremljen kao input za Claude Code agenta. Sekcije 6 i 7 zahtevaju dopunu nakon uvida u punu MARS API dokumentaciju (Stoplight).*
+_Dokument pripremljen kao input za Claude Code agenta. Sekcije 6 i 7 zahtevaju dopunu nakon uvida u punu MARS API dokumentaciju (Stoplight)._

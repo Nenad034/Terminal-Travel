@@ -1,16 +1,34 @@
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
-import { HelpAudience, HelpConfidence, HelpQuestion, LanguageCode, TicketRequesterType } from '@prisma/client';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import {
+  HelpAudience,
+  HelpConfidence,
+  HelpQuestion,
+  LanguageCode,
+  TicketRequesterType,
+} from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { AuditLogService } from '../../m1-core-identitet/audit-log/audit-log.service';
 import { PermissionsService } from '../../m1-core-identitet/permissions/permissions.service';
-import { AssistantEngineService, type AssistantCandidate } from '../../m15-ai-orkestracija/assistant-engine/assistant-engine.service';
+import {
+  AssistantEngineService,
+  type AssistantCandidate,
+} from '../../m15-ai-orkestracija/assistant-engine/assistant-engine.service';
 import { AnthropicClientService } from '../../m15-ai-orkestracija/anthropic/anthropic-client.service';
 import { AgentInvocationLogService } from '../../m18-operativni-nadzor/agent-invocations/agent-invocation-log.service';
 import { TicketsService } from '../../m14-helpdesk/tickets/tickets.service';
 import { HelpAbuseDetectorService } from '../abuse-detection/help-abuse-detector.service';
 import { audienceToPermissionSegment, resolveHelpAudience } from '../audience-context';
 import { AskQuestionDto } from './dto/ask-question.dto';
-import { type PaginationQueryDto, paginated, paginationArgs } from '../../../common/pagination/pagination';
+import {
+  type PaginationQueryDto,
+  paginated,
+  paginationArgs,
+} from '../../../common/pagination/pagination';
 
 const DEFAULT_LANGUAGE: LanguageCode = 'sr';
 // §5.3 — model treba da odgovori TAČNO ovim markerom kad prosleđeni članci ne pokrivaju pitanje,
@@ -72,20 +90,36 @@ export class HelpAssistantService {
     // audience je već strukturno fiksiran na PUBLIC_GUEST (resolveHelpAudience iznad), tako da
     // provera ovde svesno preskače (ne "propušta" ništa — nema šireg pristupa da se dodeli).
     if (actorUserId !== null) {
-      if (!(await this.permissions.hasPermission(actorUserId, 'M21', `article:${audienceToPermissionSegment(audience)}`, 'VIEW'))) {
-        throw new ForbiddenException(`Nema M21/article:${audienceToPermissionSegment(audience)}/VIEW dozvolu.`);
+      if (
+        !(await this.permissions.hasPermission(
+          actorUserId,
+          'M21',
+          `article:${audienceToPermissionSegment(audience)}`,
+          'VIEW',
+        ))
+      ) {
+        throw new ForbiddenException(
+          `Nema M21/article:${audienceToPermissionSegment(audience)}/VIEW dozvolu.`,
+        );
       }
     }
 
     const candidates = await this.loadCandidates(audience, dto.lang);
-    const { answerText, matchedArticleIds, confidence, usedAnthropic, inputTokens, outputTokens, latencyMs } =
-      await this.engine.resolveAnswer({
-        question: dto.question,
-        candidates,
-        embeddingTable: 'help_article_translations',
-        systemPrompt: SYSTEM_PROMPT,
-        noAnswerMarker: NO_ANSWER_MARKER,
-      });
+    const {
+      answerText,
+      matchedArticleIds,
+      confidence,
+      usedAnthropic,
+      inputTokens,
+      outputTokens,
+      latencyMs,
+    } = await this.engine.resolveAnswer({
+      question: dto.question,
+      candidates,
+      embeddingTable: 'help_article_translations',
+      systemPrompt: SYSTEM_PROMPT,
+      noAnswerMarker: NO_ANSWER_MARKER,
+    });
 
     const question = await this.prisma.helpQuestion.create({
       data: {
@@ -102,7 +136,9 @@ export class HelpAssistantService {
     // princip kao M18 komentar uz AgentInvocationLogService: "deterministički kod NIKAD ne
     // zove ovo").
     if (usedAnthropic) {
-      const agent = await this.prisma.aIAgent.findFirst({ where: { agentRole: 'HELP_CENTER_AGENT' } });
+      const agent = await this.prisma.aIAgent.findFirst({
+        where: { agentRole: 'HELP_CENTER_AGENT' },
+      });
       if (agent) {
         await this.invocationLog.record({
           agentId: agent.id,
@@ -119,7 +155,9 @@ export class HelpAssistantService {
 
     // §5.5 — svako pitanje/odgovor upisuje se u AuditLogEntry (actor_type=AI_AGENT), bez obzira
     // na to da li je jezički model pozvan (izlazni kriterijum §7, peta stavka).
-    const agentUser = await this.prisma.aIAgent.findFirst({ where: { agentRole: 'HELP_CENTER_AGENT' } });
+    const agentUser = await this.prisma.aIAgent.findFirst({
+      where: { agentRole: 'HELP_CENTER_AGENT' },
+    });
     await this.auditLog.write({
       actorType: 'AI_AGENT',
       actorId: agentUser?.userId ?? null,
@@ -141,7 +179,10 @@ export class HelpAssistantService {
     };
   }
 
-  private async loadCandidates(audience: HelpAudience, lang: LanguageCode | undefined): Promise<AssistantCandidate[]> {
+  private async loadCandidates(
+    audience: HelpAudience,
+    lang: LanguageCode | undefined,
+  ): Promise<AssistantCandidate[]> {
     const articles = await this.prisma.helpArticle.findMany({
       where: { status: 'PUBLISHED', audience: { has: audience } },
       include: { translations: true },
@@ -214,7 +255,9 @@ export class HelpAssistantService {
       data: { escalatedTicketId: ticket.id },
     });
 
-    const agentUser = await this.prisma.aIAgent.findFirst({ where: { agentRole: 'HELP_CENTER_AGENT' } });
+    const agentUser = await this.prisma.aIAgent.findFirst({
+      where: { agentRole: 'HELP_CENTER_AGENT' },
+    });
     await this.auditLog.write({
       actorType: 'AI_AGENT',
       actorId: agentUser?.userId ?? null,
@@ -253,7 +296,9 @@ export class HelpAssistantService {
     const question = await this.prisma.helpQuestion.findUnique({ where: { id: questionId } });
     if (!question) throw new NotFoundException(`HelpQuestion ${questionId} nije pronađen.`);
     if (question.askedBy !== actorUserId) {
-      throw new ForbiddenException('Samo korisnik koji je postavio pitanje može da potvrdi eskalaciju/oceni odgovor.');
+      throw new ForbiddenException(
+        'Samo korisnik koji je postavio pitanje može da potvrdi eskalaciju/oceni odgovor.',
+      );
     }
     return question;
   }
@@ -270,12 +315,19 @@ export class HelpAssistantService {
     // question.askedBy !== actorUserId — anoniman upisan askedBy=null tu proveru nikad ne
     // prolazi jer actorUserId iz JWT-a ne može biti null.
     if (!question.askedBy) {
-      throw new ForbiddenException('Anonimno pitanje nema vlasnika koji može da potvrdi eskalaciju.');
+      throw new ForbiddenException(
+        'Anonimno pitanje nema vlasnika koji može da potvrdi eskalaciju.',
+      );
     }
     const user = await this.prisma.user.findUnique({ where: { id: question.askedBy } });
     if (question.audienceContext === 'SUBAGENT') {
-      const subagent = user?.linkedProfileId ? await this.prisma.subagent.findUnique({ where: { id: user.linkedProfileId } }) : null;
-      return { requesterType: 'SUBAGENT', requesterClientAccountId: subagent?.clientAccountId ?? null };
+      const subagent = user?.linkedProfileId
+        ? await this.prisma.subagent.findUnique({ where: { id: user.linkedProfileId } })
+        : null;
+      return {
+        requesterType: 'SUBAGENT',
+        requesterClientAccountId: subagent?.clientAccountId ?? null,
+      };
     }
     // BUSINESS_CLIENT/PUBLIC_GUEST (logovan INDIVIDUAL gost) — User.linked_profile_id je
     // direktno ClientAccount.id kad postoji (§2.3); anoniman PUBLIC_GUEST nikad ne stiže dovde.
@@ -283,7 +335,10 @@ export class HelpAssistantService {
   }
 }
 
-function resolveTranslation<T extends { languageCode: LanguageCode }>(translations: T[], requestedLang: LanguageCode): T | null {
+function resolveTranslation<T extends { languageCode: LanguageCode }>(
+  translations: T[],
+  requestedLang: LanguageCode,
+): T | null {
   const byLang = (lang: LanguageCode) => translations.find((t) => t.languageCode === lang) ?? null;
   return byLang(requestedLang) ?? byLang('en') ?? byLang('sr') ?? null;
 }

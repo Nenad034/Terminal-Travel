@@ -9,10 +9,10 @@
 
 M4 ima dve odvojene grupe endpointa, sa vrlo različitim posledicama:
 
-| Grupa | Namena | Ko sme |
-| :---- | :---- | :---- |
-| **Administrativni** (`/providers`, `/provider-call-logs`) | podešavanje provajdera i dijagnostika | dozvole `M4/provider-config/*`, `M4/provider-call-log/VIEW` |
-| **Operativni** (`/internal/providers/...`) | stvarna pretraga, provera cene, **rezervacija i otkazivanje kod provajdera** | dozvola `M4/provider-config/EDIT` — Vlasnik, Direktor |
+| Grupa                                                     | Namena                                                                       | Ko sme                                                      |
+| :-------------------------------------------------------- | :--------------------------------------------------------------------------- | :---------------------------------------------------------- |
+| **Administrativni** (`/providers`, `/provider-call-logs`) | podešavanje provajdera i dijagnostika                                        | dozvole `M4/provider-config/*`, `M4/provider-call-log/VIEW` |
+| **Operativni** (`/internal/providers/...`)                | stvarna pretraga, provera cene, **rezervacija i otkazivanje kod provajdera** | dozvola `M4/provider-config/EDIT` — Vlasnik, Direktor       |
 
 > **U redovnom radu ovi endpointi se ne koriste.** M5 ne prolazi kroz HTTP nego poziva `IntegrationsService` direktno unutar servera. Operativni endpointi postoje kao administrativni/dijagnostički ulaz („da li Travelgate uopšte odgovara"), i zato nose istu dozvolu kao podešavanje provajdera.
 >
@@ -25,14 +25,17 @@ M4 ima dve odvojene grupe endpointa, sa vrlo različitim posledicama:
 ## Administrativni deo
 
 ### GET /integrations/providers
+
 Dozvola: `M4/provider-config/VIEW`. Trenutno vraća `[]` (uhvaćeno pozivom — nijedan provajder nije podešen).
 
 **`authConfig` se NIKAD ne vraća u odgovoru.** Kredencijali se šifruju pre upisa i ne postoji endpoint koji ih čita nazad. Ako ih izgubite, unose se ponovo.
 
 ### POST /integrations/providers
+
 Dozvola: `M4/provider-config/CREATE`.
 
 **Zahtev:**
+
 ```json
 {
   "providerCode": "travelgate",
@@ -49,11 +52,11 @@ Dozvola: `M4/provider-config/CREATE`.
 }
 ```
 
-| Polje | Vrednosti |
-| :---- | :---- |
-| `category` | `HOTEL`, `FLIGHT`, `TRANSFER`, `ACTIVITY`, `INSURANCE` |
+| Polje          | Vrednosti                                                                           |
+| :------------- | :---------------------------------------------------------------------------------- |
+| `category`     | `HOTEL`, `FLIGHT`, `TRANSFER`, `ACTIVITY`, `INSURANCE`                              |
 | `authStrategy` | `API_KEY`, `BASIC`, `OAUTH2_CLIENT_CREDENTIALS`, `REQUEST_SIGNING`, `SESSION_TOKEN` |
-| `status` | `ACTIVE`, `INACTIVE` |
+| `status`       | `ACTIVE`, `INACTIVE`                                                                |
 
 `authConfig` je slobodan objekat čiji oblik zavisi od `authStrategy` — za `API_KEY` je `{endpoint, apiKey}`, za `BASIC` `{endpoint, login, password}`.
 
@@ -62,6 +65,7 @@ Dozvola: `M4/provider-config/CREATE`.
 **`circuitFailureThreshold` / `circuitCooldownSeconds`** su „osigurač": posle toliko uzastopnih grešaka M4 prestaje da zove tog provajdera na toliko sekundi, umesto da svaki poziv čeka do isteka vremena. Bez toga jedan pokvaren provajder uspori celu pretragu.
 
 ### GET /integrations/providers/:code · PATCH /integrations/providers/:code
+
 Dozvole: `M4/provider-config/VIEW` odnosno `EDIT`. `:code` je `providerCode`, ne UUID.
 
 `PATCH` prima `authConfig`, `capabilitiesProfile`, `status`, `defaultTipNastupanja`, `timeoutSearchMs`, `timeoutBookingMs`, `useMock` — sva opciona.
@@ -69,16 +73,17 @@ Dozvole: `M4/provider-config/VIEW` odnosno `EDIT`. `:code` je `providerCode`, ne
 **`useMock: true`** prebacuje provajdera na ugrađeni lažni adapter, koji vraća izmišljene rezultate bez ijednog spoljnog poziva. Služi za razvoj i demonstraciju. Provera da li je uključen radi se ovim poljem — pazite da ne ostane uključen na produkciji, jer odgovori izgledaju potpuno normalno.
 
 ### GET /integrations/provider-call-logs
+
 Dozvola: `M4/provider-call-log/VIEW`. Trenutno vraća `[]` (uhvaćeno pozivom).
 
 Zapis svakog poziva ka provajderu — za dijagnostiku „zašto pretraga nije vratila taj hotel".
 
-| Filter | Vrednosti |
-| :---- | :---- |
-| `providerCode` | oznaka provajdera |
-| `operation` | `SEARCH`, `CONTENT`, `AVAILABILITY`, `BOOK`, `CANCEL` |
-| `from` / `to` | datumi |
-| `page` / `limit` | straničenje (vidi ispod) |
+| Filter           | Vrednosti                                             |
+| :--------------- | :---------------------------------------------------- |
+| `providerCode`   | oznaka provajdera                                     |
+| `operation`      | `SEARCH`, `CONTENT`, `AVAILABILITY`, `BOOK`, `CANCEL` |
+| `from` / `to`    | datumi                                                |
+| `page` / `limit` | straničenje (vidi ispod)                              |
 
 **Straničenje** (dodato 6.9.2026, dok. 39 nalaz 2.2). Odgovor NIJE go niz nego `{ data, total, page, limit, pageCount, hasMore }`, gde je `total` **stvaran** broj redova koji odgovaraju filteru (ne broj vraćenih). Opcioni `?page=` (podrazumevano `1`) i `?limit=` (podrazumevano `50`, najviše `200`); neispravna vrednost vraća `400`, ne ispravlja se tiho. Do tog datuma endpoint je vraćao go niz sa tihom granicom od 200 redova, bez ijedne naznake da ostatak postoji.
 
@@ -93,9 +98,11 @@ Svih pet ruta traži dozvolu `M4/provider-config/EDIT` (od 3.9.2026). Nalog bez 
 Svi putevi počinju sa `/integrations/internal/providers/:code`, gde je `:code` oznaka provajdera (`travelgate`, `solvex`, `webhotelier`, `mock`).
 
 ### POST /:code/search
+
 Pretraga kod jednog provajdera.
 
 **Zahtev:**
+
 ```json
 {
   "destinationCountry": "Grčka",
@@ -106,6 +113,7 @@ Pretraga kod jednog provajdera.
   "children": 1
 }
 ```
+
 `destinationCountry` i `destinationCity` su opcioni; `stayFrom`, `stayTo` i `adults` su obavezni.
 
 **Vraća `NormalizedSearchResult[]` — cene su NETO, bez marže.** Ovo nije ono što se pokazuje gostu. Prodajnu cenu pravi M5 (`GET /api/v1/sales/search`), koji na ovo dodaje maržu. Ako gradite prikaz za gosta, zovite M5, ne ovo.
@@ -113,13 +121,21 @@ Pretraga kod jednog provajdera.
 **M4 pita jednog provajdera po pozivu.** Nema objedinjavanja više izvora u jednom odgovoru — to radi M5, tako što pozove M4 za svakog provajdera i pojedinačno uhvati onog koji ne odgovori. Pad jednog provajdera zato ne obara pretragu, ali samo ako pozivate kroz M5.
 
 ### GET /:code/content/:externalId
+
 Statički sadržaj o proizvodu kod provajdera (opis, slike, sadržaji hotela) — `NormalizedContent`. `:externalId` je identifikator kod tog provajdera, ne naš.
 
 ### POST /:code/availability
+
 Provera stvarne dostupnosti i cene za konkretan termin.
 
 ```json
-{ "externalId": "TG-88213", "stayFrom": "2027-06-10", "stayTo": "2027-06-17", "adults": 2, "children": 1 }
+{
+  "externalId": "TG-88213",
+  "stayFrom": "2027-06-10",
+  "stayTo": "2027-06-17",
+  "adults": 2,
+  "children": 1
+}
 ```
 
 Vraća `AvailabilityQuote` sa poljem **`quoteExpiresAt`** — trenutak posle kog ova cena više ne važi i mora se tražiti nova provera.
@@ -127,6 +143,7 @@ Vraća `AvailabilityQuote` sa poljem **`quoteExpiresAt`** — trenutak posle kog
 > `quoteExpiresAt` M4 popunjava, ali **ne sprovodi**. Odbijanje potvrde sa isteklom ponudom je posao M5. Ako zovete M4 direktno, ništa vas neće sprečiti da potvrdite rezervaciju po ceni koja je istekla — a provajder će je odbiti ili naplatiti drugačije.
 
 ### POST /:code/bookings
+
 **Pravi stvarnu rezervaciju kod spoljnog dobavljača.** Ovo nije proba i ima finansijske posledice.
 
 ```json
@@ -144,18 +161,19 @@ Vraća `AvailabilityQuote` sa poljem **`quoteExpiresAt`** — trenutak posle kog
 **`idempotencyKey` je obavezan i štiti od duple rezervacije.** Ako veza pukne pre nego što stigne odgovor, ne znate da li je rezervacija napravljena. Ponovni poziv sa **istim** ključem vraća sačuvan ishod prvog poziva i **ne zove provajdera ponovo** — dokazano testom sa simuliranim prekidom veze. Ključ generiše pozivalac (M5 pravi jedan po pokušaju rezervacije), po jedan za svaki stvaran pokušaj; ponovna upotreba istog ključa za drugu rezervaciju vratiće vam tuđi rezultat.
 
 ### POST /:code/bookings/:ref/cancel
+
 Otkazuje rezervaciju kod provajdera. `:ref` je broj rezervacije koji je provajder vratio.
 
 ---
 
 ## Provajderi koji postoje u kodu
 
-| Oznaka | Protokol | Stanje |
-| :---- | :---- | :---- |
-| `travelgate` | GraphQL | adapter kompletan, **nikad pozvan uživo** — nema kredencijala |
-| `solvex` | SOAP (Master-Interlook) | adapter kompletan, isto |
-| `webhotelier` | REST | adapter kompletan, isto |
-| `mock` | — | lažni odgovori za razvoj |
+| Oznaka        | Protokol                | Stanje                                                        |
+| :------------ | :---------------------- | :------------------------------------------------------------ |
+| `travelgate`  | GraphQL                 | adapter kompletan, **nikad pozvan uživo** — nema kredencijala |
+| `solvex`      | SOAP (Master-Interlook) | adapter kompletan, isto                                       |
+| `webhotelier` | REST                    | adapter kompletan, isto                                       |
+| `mock`        | —                       | lažni odgovori za razvoj                                      |
 
 > Sva tri adaptera su dokazana testovima sa lažiranim mrežnim odgovorima. **Nijedan nije proveren protiv pravog servisa provajdera**, jer pristupni podaci nisu pribavljeni. Prvi stvaran poziv može otkriti razlike koje test sa lažiranim odgovorom ne vidi (drukčija polja, drukčije greške, ograničenja učestalosti).
 
@@ -167,13 +185,13 @@ Otkazuje rezervaciju kod provajdera. `:ref` je broj rezervacije koji je provajde
 { "message": "opis greške", "error": "Bad Request", "statusCode": 400 }
 ```
 
-| Kod | Kada |
-| :---- | :---- |
-| `400` | validacija tela zahteva |
-| `401` | nedostaje ili je istekao token |
-| `403` | nedostatak dozvole — i na administrativnim i na operativnim endpointima: `{"message":"Nema dozvolu M4/provider-config/EDIT","error":"Forbidden","statusCode":403}` |
-| `404` | nepoznat `providerCode` ili nepostojeći zapis |
-| `409` / `429` / `502` / `503` / `504` | greška provajdera, sa `providerErrorCode` u telu — vidi ispod |
+| Kod                                   | Kada                                                                                                                                                               |
+| :------------------------------------ | :----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `400`                                 | validacija tela zahteva                                                                                                                                            |
+| `401`                                 | nedostaje ili je istekao token                                                                                                                                     |
+| `403`                                 | nedostatak dozvole — i na administrativnim i na operativnim endpointima: `{"message":"Nema dozvolu M4/provider-config/EDIT","error":"Forbidden","statusCode":403}` |
+| `404`                                 | nepoznat `providerCode` ili nepostojeći zapis                                                                                                                      |
+| `409` / `429` / `502` / `503` / `504` | greška provajdera, sa `providerErrorCode` u telu — vidi ispod                                                                                                      |
 
 Nepoznato polje u telu zahteva vraća `400`, ne ignoriše se.
 
@@ -181,17 +199,18 @@ Nepoznato polje u telu zahteva vraća `400`, ne ignoriše se.
 
 M4 razlikuje sedam vrsta problema sa provajderom i **svaka stiže do pozivaoca sa sopstvenim statusom**, uz tačnu vrstu u polju `providerErrorCode`:
 
-| `providerErrorCode` | HTTP | Šta znači i šta uraditi |
-| :---- | :---- | :---- |
-| `NO_AVAILABILITY` | `409` | Uredan poslovni ishod — traženo postoji ali nije slobodno. Ponudite drugi termin, ne prijavljujte kvar. |
-| `INVALID_REQUEST` | `400` | Jedini slučaj u kom je pozivalac zaista pogrešio — provajder je odbio sadržaj zahteva. |
-| `RATE_LIMITED` | `429` | Prekoračen dozvoljen broj poziva kod provajdera. Sme se pokušati kasnije. |
-| `TIMEOUT` | `504` | Provajder nije odgovorio na vreme. |
-| `PROVIDER_UNAVAILABLE` | `503` | Provajder ne radi, ili je „osigurač" otvoren posle niza grešaka. Privremeno. |
-| `AUTH_FAILED` | `502` | **Naši** pristupni podaci su pogrešni ili istekli — nije greška pozivaoca nego naše konfiguracije. Traži intervenciju. |
-| `UNKNOWN` | `502` | Neprepoznat odgovor provajdera. |
+| `providerErrorCode`    | HTTP  | Šta znači i šta uraditi                                                                                                |
+| :--------------------- | :---- | :--------------------------------------------------------------------------------------------------------------------- |
+| `NO_AVAILABILITY`      | `409` | Uredan poslovni ishod — traženo postoji ali nije slobodno. Ponudite drugi termin, ne prijavljujte kvar.                |
+| `INVALID_REQUEST`      | `400` | Jedini slučaj u kom je pozivalac zaista pogrešio — provajder je odbio sadržaj zahteva.                                 |
+| `RATE_LIMITED`         | `429` | Prekoračen dozvoljen broj poziva kod provajdera. Sme se pokušati kasnije.                                              |
+| `TIMEOUT`              | `504` | Provajder nije odgovorio na vreme.                                                                                     |
+| `PROVIDER_UNAVAILABLE` | `503` | Provajder ne radi, ili je „osigurač" otvoren posle niza grešaka. Privremeno.                                           |
+| `AUTH_FAILED`          | `502` | **Naši** pristupni podaci su pogrešni ili istekli — nije greška pozivaoca nego naše konfiguracije. Traži intervenciju. |
+| `UNKNOWN`              | `502` | Neprepoznat odgovor provajdera.                                                                                        |
 
 **Primer odgovora:**
+
 ```json
 {
   "message": "Provider mock-1 je trenutno isključen (circuit OPEN, M4 spec §4.1)",

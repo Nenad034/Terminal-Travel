@@ -69,8 +69,8 @@ Sada su povezana dva mesta gde je to najvažnije: **pozivnica novom kolegi** i *
 
 **Ako pošta zakaže, ništa se ne ruši.** Ovo je namerna odluka: kad pozovete kolegu a mail server tog trenutka ne radi, nalog je već napravljen — bilo bi pogrešno da vam ceo postupak prijavi grešku i ostavi vas bez ičega. Umesto toga, ekran vam kaže da poruka nije otišla i pokaže link koji prosleđujete sami. Taj rezervni put ostaje **i kad pošta radi**, jer poruka može završiti u nepoželjnoj pošti ili adresa može biti pogrešno otkucana.
 
-**Šta i dalje ne šalje poštu, i zašto namerno.** Marketinški newsletter (M12) — jer masovna poruka traži i dugme „odjavi me" (zakonska obaveza), poštovanje pristanka svakog primaoca i usporavanje slanja da nas mail serveri ne označe kao izvor neželjene pošte. Poslati hiljadu poruka bez odjave gore je nego ne poslati ih. I sandučad iz modula M22 — tamo se poruke šalju *u ime konkretnog sandučeta* i, što je teži deo, **dovlače** iz njega; to je zaseban izbor koji tek treba napraviti.
+**Šta i dalje ne šalje poštu, i zašto namerno.** Marketinški newsletter (M12) — jer masovna poruka traži i dugme „odjavi me" (zakonska obaveza), poštovanje pristanka svakog primaoca i usporavanje slanja da nas mail serveri ne označe kao izvor neželjene pošte. Poslati hiljadu poruka bez odjave gore je nego ne poslati ih. I sandučad iz modula M22 — tamo se poruke šalju _u ime konkretnog sandučeta_ i, što je teži deo, **dovlače** iz njega; to je zaseban izbor koji tek treba napraviti.
 
 ---
 
-*Za tehničke detalje (tačna imena tabela, API pozivi, pravila evaluacije prava) vidi `02-SPECIFIKACIJA-M1-CORE-IDENTITET.md` u istom folderu — ovaj dokument je namerno pojednostavljen, ne zamenjuje tu specifikaciju.*
+_Za tehničke detalje (tačna imena tabela, API pozivi, pravila evaluacije prava) vidi `02-SPECIFIKACIJA-M1-CORE-IDENTITET.md` u istom folderu — ovaj dokument je namerno pojednostavljen, ne zamenjuje tu specifikaciju._

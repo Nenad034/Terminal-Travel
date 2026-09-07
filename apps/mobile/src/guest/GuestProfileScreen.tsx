@@ -14,7 +14,13 @@ interface FormState {
   dateOfBirth: string;
 }
 
-const EMPTY_FORM: FormState = { fullName: '', documentType: 'PASSPORT', documentNumber: '', nationality: '', dateOfBirth: '' };
+const EMPTY_FORM: FormState = {
+  fullName: '',
+  documentType: 'PASSPORT',
+  documentNumber: '',
+  nationality: '',
+  dateOfBirth: '',
+};
 
 // M9 spec §2a / M15 spec §6.5.6e / M6 spec §2.2 — gost pri PRVOM kreiranju putnog profila
 // bira ručan unos ili fotografisanje pasoša (skeniranje je uvek OPCIONA pogodnost, ne
@@ -69,14 +75,25 @@ export function GuestProfileScreen() {
     const formData = new FormData();
     // RN fetch prihvata ovaj oblik direktno kao multipart deo (isti obrazac kao ostatak Expo
     // ekosistema) — polje se zove "image", isto ime koje čita `FileInterceptor` na backendu.
-    formData.append('image', { uri: asset.uri, name: 'passport.jpg', type: 'image/jpeg' } as unknown as Blob);
+    formData.append('image', {
+      uri: asset.uri,
+      name: 'passport.jpg',
+      type: 'image/jpeg',
+    } as unknown as Blob);
 
     setScanning(true);
     try {
-      const result = await apiFetchMultipart<ScannedDocumentFields>('/mobile/guest-profile/scan-document', formData);
+      const result = await apiFetchMultipart<ScannedDocumentFields>(
+        '/mobile/guest-profile/scan-document',
+        formData,
+      );
       applyScanResult(result);
     } catch (err) {
-      setError(err instanceof ApiError ? 'Skeniranje nije uspelo — unesite podatke ručno.' : 'Skeniranje nije uspelo — unesite podatke ručno.');
+      setError(
+        err instanceof ApiError
+          ? 'Skeniranje nije uspelo — unesite podatke ručno.'
+          : 'Skeniranje nije uspelo — unesite podatke ručno.',
+      );
     } finally {
       setScanning(false);
     }
@@ -90,7 +107,10 @@ export function GuestProfileScreen() {
     }
     setSaving(true);
     try {
-      const created = await apiFetch<GuestProfile>('/crm/guest-profiles', { method: 'POST', body: form });
+      const created = await apiFetch<GuestProfile>('/crm/guest-profiles', {
+        method: 'POST',
+        body: form,
+      });
       setExisting(created);
     } catch (err) {
       setError(err instanceof ApiError ? extractMessage(err) : 'Čuvanje profila nije uspelo.');
@@ -113,42 +133,90 @@ export function GuestProfileScreen() {
         <Text style={styles.title}>Putni profil</Text>
         <View style={styles.card}>
           <Text style={styles.cardName}>{existing.fullName}</Text>
-          <Text style={styles.cardLine}>{existing.documentType === 'PASSPORT' ? 'Pasoš' : 'Lična karta'} · {maskDocumentNumber(existing.documentNumber)}</Text>
-          <Text style={styles.cardLine}>{existing.nationality} · rođ. {existing.dateOfBirth}</Text>
+          <Text style={styles.cardLine}>
+            {existing.documentType === 'PASSPORT' ? 'Pasoš' : 'Lična karta'} ·{' '}
+            {maskDocumentNumber(existing.documentNumber)}
+          </Text>
+          <Text style={styles.cardLine}>
+            {existing.nationality} · rođ. {existing.dateOfBirth}
+          </Text>
         </View>
       </View>
     );
   }
 
-  const canSave = form.fullName && form.documentNumber && form.nationality && form.dateOfBirth && !saving;
+  const canSave =
+    form.fullName && form.documentNumber && form.nationality && form.dateOfBirth && !saving;
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Putni profil</Text>
-      <Text style={styles.subtitle}>Popunite ručno ili fotografišite pasoš — polja se predpopunjuju, vi ih pregledate pre čuvanja.</Text>
+      <Text style={styles.subtitle}>
+        Popunite ručno ili fotografišite pasoš — polja se predpopunjuju, vi ih pregledate pre
+        čuvanja.
+      </Text>
 
-      <Pressable style={[styles.scanButton, scanning && styles.buttonDisabled]} disabled={scanning} onPress={scanPassport}>
-        <Text style={styles.scanButtonText}>{scanning ? 'Čitam dokument…' : '📷 Fotografiši pasoš'}</Text>
+      <Pressable
+        style={[styles.scanButton, scanning && styles.buttonDisabled]}
+        disabled={scanning}
+        onPress={scanPassport}
+      >
+        <Text style={styles.scanButtonText}>
+          {scanning ? 'Čitam dokument…' : '📷 Fotografiši pasoš'}
+        </Text>
       </Pressable>
       {scanWarning && <Text style={styles.notice}>{scanWarning}</Text>}
 
-      <TextInput style={styles.input} value={form.fullName} onChangeText={(v) => updateField('fullName', v)} placeholder="Ime i prezime" />
+      <TextInput
+        style={styles.input}
+        value={form.fullName}
+        onChangeText={(v) => updateField('fullName', v)}
+        placeholder="Ime i prezime"
+      />
       <View style={styles.row}>
         <Pressable
           style={[styles.typeOption, form.documentType === 'PASSPORT' && styles.typeOptionActive]}
           onPress={() => updateField('documentType', 'PASSPORT')}
         >
-          <Text style={form.documentType === 'PASSPORT' ? styles.typeOptionTextActive : styles.typeOptionText}>Pasoš</Text>
+          <Text
+            style={
+              form.documentType === 'PASSPORT' ? styles.typeOptionTextActive : styles.typeOptionText
+            }
+          >
+            Pasoš
+          </Text>
         </Pressable>
         <Pressable
-          style={[styles.typeOption, form.documentType === 'LICNA_KARTA' && styles.typeOptionActive]}
+          style={[
+            styles.typeOption,
+            form.documentType === 'LICNA_KARTA' && styles.typeOptionActive,
+          ]}
           onPress={() => updateField('documentType', 'LICNA_KARTA')}
         >
-          <Text style={form.documentType === 'LICNA_KARTA' ? styles.typeOptionTextActive : styles.typeOptionText}>Lična karta</Text>
+          <Text
+            style={
+              form.documentType === 'LICNA_KARTA'
+                ? styles.typeOptionTextActive
+                : styles.typeOptionText
+            }
+          >
+            Lična karta
+          </Text>
         </Pressable>
       </View>
-      <TextInput style={styles.input} value={form.documentNumber} onChangeText={(v) => updateField('documentNumber', v)} placeholder="Broj dokumenta" autoCapitalize="characters" />
-      <TextInput style={styles.input} value={form.nationality} onChangeText={(v) => updateField('nationality', v)} placeholder="Državljanstvo" />
+      <TextInput
+        style={styles.input}
+        value={form.documentNumber}
+        onChangeText={(v) => updateField('documentNumber', v)}
+        placeholder="Broj dokumenta"
+        autoCapitalize="characters"
+      />
+      <TextInput
+        style={styles.input}
+        value={form.nationality}
+        onChangeText={(v) => updateField('nationality', v)}
+        placeholder="Državljanstvo"
+      />
       <TextInput
         style={styles.input}
         value={form.dateOfBirth}
@@ -159,7 +227,11 @@ export function GuestProfileScreen() {
 
       {error && <Text style={styles.error}>{error}</Text>}
 
-      <Pressable style={[styles.button, !canSave && styles.buttonDisabled]} disabled={!canSave} onPress={save}>
+      <Pressable
+        style={[styles.button, !canSave && styles.buttonDisabled]}
+        disabled={!canSave}
+        onPress={save}
+      >
         <Text style={styles.buttonText}>{saving ? 'Čuvam…' : 'Sačuvaj profil'}</Text>
       </Pressable>
     </View>
@@ -185,12 +257,26 @@ const styles = StyleSheet.create({
   card: { backgroundColor: '#f2f2f2', borderRadius: 12, padding: 16, gap: 4 },
   cardName: { fontSize: 16, fontWeight: '700' },
   cardLine: { color: '#555' },
-  scanButton: { backgroundColor: '#e6f0ff', borderRadius: 8, padding: 14, alignItems: 'center', borderWidth: 1, borderColor: '#1a4d8f' },
+  scanButton: {
+    backgroundColor: '#e6f0ff',
+    borderRadius: 8,
+    padding: 14,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#1a4d8f',
+  },
   scanButtonText: { color: '#1a4d8f', fontWeight: '600' },
   notice: { backgroundColor: '#fff3cd', borderRadius: 8, padding: 10, fontSize: 13 },
   input: { borderWidth: 1, borderColor: '#ccc', borderRadius: 8, padding: 12 },
   row: { flexDirection: 'row', gap: 8 },
-  typeOption: { flex: 1, borderWidth: 1, borderColor: '#ccc', borderRadius: 8, padding: 12, alignItems: 'center' },
+  typeOption: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 8,
+    padding: 12,
+    alignItems: 'center',
+  },
   typeOptionActive: { borderColor: '#1a4d8f', backgroundColor: '#e6f0ff' },
   typeOptionText: { color: '#333' },
   typeOptionTextActive: { color: '#1a4d8f', fontWeight: '600' },

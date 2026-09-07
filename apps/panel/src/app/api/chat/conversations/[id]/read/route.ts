@@ -8,11 +8,16 @@ import { apiFetch, ApiError } from '@/lib/api-client';
 export async function POST(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   try {
-    const result = await apiFetch(`/chat/conversations/${id}/read`, { method: 'POST', requireAuth: true });
+    const result = await apiFetch(`/chat/conversations/${id}/read`, {
+      method: 'POST',
+      requireAuth: true,
+    });
     return NextResponse.json(result);
   } catch (err) {
     if (err instanceof ApiError) {
-      return NextResponse.json(err.body ?? { message: 'Označavanje pročitanim nije uspelo' }, { status: err.status });
+      return NextResponse.json(err.body ?? { message: 'Označavanje pročitanim nije uspelo' }, {
+        status: err.status,
+      });
     }
     throw err;
   }

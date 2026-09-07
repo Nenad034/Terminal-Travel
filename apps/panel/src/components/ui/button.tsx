@@ -34,8 +34,7 @@ const buttonVariants = cva(
 );
 
 export interface ButtonProps
-  extends React.ButtonHTMLAttributes<HTMLButtonElement>,
-    VariantProps<typeof buttonVariants> {
+  extends React.ButtonHTMLAttributes<HTMLButtonElement>, VariantProps<typeof buttonVariants> {
   asChild?: boolean;
 }
 
@@ -48,7 +47,9 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     // uživo, radi ispravno u pregledaču), ne runtime greška — ista tehnika kao shadcn/ui
     // referentna implementacija za monorepo sa mešovitim React verzijama.
     const Comp = (asChild ? Slot : 'button') as React.ElementType;
-    return <Comp className={cn(buttonVariants({ variant, size, className }))} ref={ref} {...props} />;
+    return (
+      <Comp className={cn(buttonVariants({ variant, size, className }))} ref={ref} {...props} />
+    );
   },
 );
 Button.displayName = 'Button';

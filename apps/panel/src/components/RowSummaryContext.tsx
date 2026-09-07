@@ -108,7 +108,8 @@ export interface AuditLogEntrySummary {
   context?: unknown;
 }
 
-export type RowSummary = BookingRowSummary | CalendarDaySummary | ProcessMapNodeSummary | AuditLogEntrySummary;
+export type RowSummary =
+  BookingRowSummary | CalendarDaySummary | ProcessMapNodeSummary | AuditLogEntrySummary;
 
 interface RowSummaryContextValue {
   summary: RowSummary | null;
@@ -131,7 +132,13 @@ const RowSummaryContext = createContext<RowSummaryContextValue | null>(null);
 // `TabsProvider`-a u Shell.tsx, pa `useTabs()` ovde ne uvodi novu zavisnost) — `summary` koji se
 // izlaže spolja ostaje ISTA jednostavna vrednost (`Record` slice za trenutan tab), pa `RightPanel.tsx`
 // nije morao da se menja.
-export function RowSummaryProvider({ children, onFirstShow }: { children: React.ReactNode; onFirstShow?: () => void }) {
+export function RowSummaryProvider({
+  children,
+  onFirstShow,
+}: {
+  children: React.ReactNode;
+  onFirstShow?: () => void;
+}) {
   const { activeTabId } = useTabs();
   const [summariesByTab, setSummariesByTab] = useState<Record<string, RowSummary>>({});
   const summary = summariesByTab[activeTabId] ?? null;
@@ -149,7 +156,11 @@ export function RowSummaryProvider({ children, onFirstShow }: { children: React.
     });
   }
 
-  return <RowSummaryContext.Provider value={{ summary, showSummary, clearSummary }}>{children}</RowSummaryContext.Provider>;
+  return (
+    <RowSummaryContext.Provider value={{ summary, showSummary, clearSummary }}>
+      {children}
+    </RowSummaryContext.Provider>
+  );
 }
 
 export function useRowSummary() {

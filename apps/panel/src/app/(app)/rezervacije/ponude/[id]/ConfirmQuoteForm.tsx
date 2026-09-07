@@ -7,7 +7,13 @@ import { confirmQuote, ConfirmState } from './actions';
 
 const initialState: ConfirmState = { error: null };
 
-export default function ConfirmQuoteForm({ quoteId, itemCount }: { quoteId: string; itemCount: number }) {
+export default function ConfirmQuoteForm({
+  quoteId,
+  itemCount,
+}: {
+  quoteId: string;
+  itemCount: number;
+}) {
   const boundAction = confirmQuote.bind(null, quoteId, itemCount);
   const [state, formAction] = useActionState(boundAction, initialState);
   const [buyerType, setBuyerType] = useState<'FIZICKO_LICE' | 'PRAVNO_LICE'>('FIZICKO_LICE');
@@ -36,7 +42,12 @@ export default function ConfirmQuoteForm({ quoteId, itemCount }: { quoteId: stri
         </label>
         <label className="text-xs text-ink-faint">
           nalogodavac — tip
-          <select name="buyerType" value={buyerType} onChange={(e) => setBuyerType(e.target.value as typeof buyerType)} className="input mt-1">
+          <select
+            name="buyerType"
+            value={buyerType}
+            onChange={(e) => setBuyerType(e.target.value as typeof buyerType)}
+            className="input mt-1"
+          >
             <option value="FIZICKO_LICE">fizičko lice</option>
             <option value="PRAVNO_LICE">pravno lice</option>
           </select>

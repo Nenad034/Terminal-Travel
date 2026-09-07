@@ -126,7 +126,9 @@ export class ProductContentImportsService {
     }
 
     const valueToApply =
-      dto.decision === 'EDITED_AND_APPROVED' ? (dto.editedValue as Record<string, unknown>) : (field.extractedValue as Record<string, unknown>);
+      dto.decision === 'EDITED_AND_APPROVED'
+        ? (dto.editedValue as Record<string, unknown>)
+        : (field.extractedValue as Record<string, unknown>);
 
     let productId = field.import.productId;
     if (!productId) {
@@ -144,7 +146,10 @@ export class ProductContentImportsService {
         },
       });
       productId = created.id;
-      await this.prisma.productContentImport.update({ where: { id: importId }, data: { productId } });
+      await this.prisma.productContentImport.update({
+        where: { id: importId },
+        data: { productId },
+      });
     }
 
     await this.applyFieldValue(productId, field.fieldType, valueToApply);
@@ -174,7 +179,11 @@ export class ProductContentImportsService {
     return applied;
   }
 
-  private async applyFieldValue(productId: string, fieldType: ImportFieldType, value: Record<string, unknown>) {
+  private async applyFieldValue(
+    productId: string,
+    fieldType: ImportFieldType,
+    value: Record<string, unknown>,
+  ) {
     switch (fieldType) {
       case 'NAME':
       case 'DESCRIPTION': {
@@ -220,13 +229,17 @@ export class ProductContentImportsService {
         const roomTypes = [...(attrs.room_types ?? []), value];
         await this.prisma.product.update({
           where: { id: productId },
-          data: { attributes: { ...attrs, room_types: roomTypes } as unknown as Prisma.InputJsonValue },
+          data: {
+            attributes: { ...attrs, room_types: roomTypes } as unknown as Prisma.InputJsonValue,
+          },
         });
         return;
       }
       case 'PHOTO': {
         const product = await this.prisma.product.findUniqueOrThrow({ where: { id: productId } });
-        const media = Array.isArray(product.media) ? (product.media as Record<string, unknown>[]) : [];
+        const media = Array.isArray(product.media)
+          ? (product.media as Record<string, unknown>[])
+          : [];
         const newItem = {
           url: value.url,
           type: value.type ?? 'image',
@@ -262,9 +275,15 @@ export class ProductContentImportsService {
       where: { importId, reviewStatus: 'PENDING' },
     });
     if (pending === 0) {
-      await this.prisma.productContentImport.update({ where: { id: importId }, data: { status: 'COMPLETED' } });
+      await this.prisma.productContentImport.update({
+        where: { id: importId },
+        data: { status: 'COMPLETED' },
+      });
     } else {
-      await this.prisma.productContentImport.update({ where: { id: importId }, data: { status: 'REVIEW_IN_PROGRESS' } });
+      await this.prisma.productContentImport.update({
+        where: { id: importId },
+        data: { status: 'REVIEW_IN_PROGRESS' },
+      });
     }
   }
 }

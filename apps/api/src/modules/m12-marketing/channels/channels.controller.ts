@@ -36,7 +36,11 @@ export class ChannelsController {
 
   @Patch(':code')
   @RequirePermission('M12', 'channel-config', 'EDIT')
-  update(@Param('code') code: string, @Body() dto: UpdateChannelConfigDto, @CurrentUser() actor: { userId: string }) {
+  update(
+    @Param('code') code: string,
+    @Body() dto: UpdateChannelConfigDto,
+    @CurrentUser() actor: { userId: string },
+  ) {
     return this.channels.update(code, dto, actor.userId);
   }
 }

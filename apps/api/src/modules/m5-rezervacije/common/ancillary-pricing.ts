@@ -77,7 +77,9 @@ export function computeAncillaryAmount(svc: AncillaryServiceLike, ctx: Ancillary
   const unit =
     svc.pricingMode === 'FLAT_PER_UNIT'
       ? (svc.flatAmount ?? 0)
-      : ctx.nightlyRate * (svc.percentageOfNightlyRate != null ? Number(svc.percentageOfNightlyRate) : 0) / 100;
+      : (ctx.nightlyRate *
+          (svc.percentageOfNightlyRate != null ? Number(svc.percentageOfNightlyRate) : 0)) /
+        100;
   const quantity = Math.max(ctx.quantity ?? 1, 1);
   return Math.round(unit * basisMultiplier(svc.priceBasis, ctx) * quantity);
 }
@@ -103,7 +105,10 @@ export interface OccupancyCheckInput {
  * Vraća razlog na srpskom umesto gole zastavice — poruka ide pravo agentu na ekran, a „ne može"
  * bez razloga je najbrži put do poziva podršci.
  */
-export function checkAncillaryOccupancy(svc: AncillaryServiceLike, guests: OccupancyCheckInput): string | null {
+export function checkAncillaryOccupancy(
+  svc: AncillaryServiceLike,
+  guests: OccupancyCheckInput,
+): string | null {
   if (!svc.priceBasis.startsWith('PER_ROOM')) return null;
 
   const total = guests.adults + guests.children;

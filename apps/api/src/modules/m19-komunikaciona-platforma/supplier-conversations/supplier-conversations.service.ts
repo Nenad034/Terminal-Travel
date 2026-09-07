@@ -1,4 +1,10 @@
-import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { AuditLogService } from '../../m1-core-identitet/audit-log/audit-log.service';
 import { PermissionsService } from '../../m1-core-identitet/permissions/permissions.service';
@@ -19,12 +25,20 @@ export class SupplierConversationsService {
   ) {}
 
   private async assertGrantAccessPermission(actorUserId: string): Promise<void> {
-    const allowed = await this.permissions.hasPermission(actorUserId, 'M19', 'supplier-conversation', 'GRANT_ACCESS');
-    if (!allowed) throw new ForbiddenException('Nema dozvolu M19/supplier-conversation/GRANT_ACCESS');
+    const allowed = await this.permissions.hasPermission(
+      actorUserId,
+      'M19',
+      'supplier-conversation',
+      'GRANT_ACCESS',
+    );
+    if (!allowed)
+      throw new ForbiddenException('Nema dozvolu M19/supplier-conversation/GRANT_ACCESS');
   }
 
   private async findExternalSupplierConversation(conversationId: string) {
-    const conversation = await this.prisma.conversation.findUnique({ where: { id: conversationId } });
+    const conversation = await this.prisma.conversation.findUnique({
+      where: { id: conversationId },
+    });
     if (!conversation || conversation.type !== 'EXTERNAL_SUPPLIER') {
       throw new NotFoundException(`EXTERNAL_SUPPLIER razgovor ${conversationId} nije pronađen.`);
     }
@@ -111,7 +125,9 @@ export class SupplierConversationsService {
     await this.assertGrantAccessPermission(actorUserId);
     const conversation = await this.findExternalSupplierConversation(conversationId);
 
-    const contact = await this.prisma.supplierContact.findUnique({ where: { id: dto.supplierContactId } });
+    const contact = await this.prisma.supplierContact.findUnique({
+      where: { id: dto.supplierContactId },
+    });
     if (!contact || contact.supplierId !== conversation.supplierId) {
       throw new BadRequestException('Kontakt-osoba ne pripada dobavljaču ovog razgovora.');
     }
@@ -124,13 +140,18 @@ export class SupplierConversationsService {
       where: { conversationId },
     });
     const existingUsers = await this.prisma.user.findMany({
-      where: { id: { in: existingContactParticipants.map((p) => p.userId) }, accountType: 'SUPPLIER_CONTACT' },
+      where: {
+        id: { in: existingContactParticipants.map((p) => p.userId) },
+        accountType: 'SUPPLIER_CONTACT',
+      },
     });
     if (existingUsers.length > 0) {
       throw new BadRequestException('Ovaj razgovor već ima dodeljenu kontakt-osobu dobavljača.');
     }
 
-    const existingUserWithEmail = await this.prisma.user.findUnique({ where: { email: contact.email } });
+    const existingUserWithEmail = await this.prisma.user.findUnique({
+      where: { email: contact.email },
+    });
     if (existingUserWithEmail) {
       throw new ConflictException(`Nalog sa email-om ${contact.email} već postoji.`);
     }
@@ -149,7 +170,10 @@ export class SupplierConversationsService {
     const inviteToken = await this.auth.createInviteToken(user.id);
 
     await this.prisma.$transaction([
-      this.prisma.supplierContact.update({ where: { id: contact.id }, data: { linkedUserId: user.id } }),
+      this.prisma.supplierContact.update({
+        where: { id: contact.id },
+        data: { linkedUserId: user.id },
+      }),
       this.prisma.conversationParticipant.create({ data: { conversationId, userId: user.id } }),
     ]);
 

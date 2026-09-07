@@ -31,12 +31,16 @@ const shot = process.argv[3] ?? 'qa-screenshot.png';
 /** Koliko čekati da se ekran smiri pre snimka (mapa se crta asinhrono). */
 const SETTLE_MS = Number(process.env.QA_SETTLE_MS ?? 6000);
 
-const browser = await chromium.launch(existsSync(SANDBOX_CHROMIUM) ? { executablePath: SANDBOX_CHROMIUM } : {});
+const browser = await chromium.launch(
+  existsSync(SANDBOX_CHROMIUM) ? { executablePath: SANDBOX_CHROMIUM } : {},
+);
 const context = await browser.newContext({ viewport: { width: 1600, height: 1000 } });
 
 // Prijava ide preko istog BFF puta kao iz browsera, pa kolačić sesije završi u istom
 // kontekstu koji potom otvara stranicu.
-const login = await context.request.post(`${PANEL}/api/session/login`, { data: { email: EMAIL, password: PASSWORD } });
+const login = await context.request.post(`${PANEL}/api/session/login`, {
+  data: { email: EMAIL, password: PASSWORD },
+});
 const loginBody = await login.json();
 if (loginBody.requiresMfa) {
   const mfa = await context.request.post(`${PANEL}/api/session/mfa`, {
@@ -51,18 +55,26 @@ if (loginBody.requiresMfa) {
 // isto kao kad je korisnik izabere prekidačem. QA_THEME=light|dim|dark
 if (process.env.QA_THEME) {
   const { hostname } = new URL(PANEL);
-  await context.addCookies([{ name: 'tt-panel-theme', value: process.env.QA_THEME, domain: hostname, path: '/' }]);
+  await context.addCookies([
+    { name: 'tt-panel-theme', value: process.env.QA_THEME, domain: hostname, path: '/' },
+  ]);
 }
 
 const page = await context.newPage();
 const problems = [];
 page.on('console', (msg) => {
-  if (msg.type() === 'error' || msg.type() === 'warning') problems.push(`[${msg.type()}] ${msg.text()}`);
+  if (msg.type() === 'error' || msg.type() === 'warning')
+    problems.push(`[${msg.type()}] ${msg.text()}`);
 });
 page.on('pageerror', (err) => problems.push(`[pageerror] ${err.message}`));
-page.on('requestfailed', (req) => problems.push(`[requestfailed] ${req.url()} — ${req.failure()?.errorText ?? ''}`));
+page.on('requestfailed', (req) =>
+  problems.push(`[requestfailed] ${req.url()} — ${req.failure()?.errorText ?? ''}`),
+);
 
-const response = await page.goto(`${PANEL}${path}`, { waitUntil: 'domcontentloaded', timeout: 120_000 });
+const response = await page.goto(`${PANEL}${path}`, {
+  waitUntil: 'domcontentloaded',
+  timeout: 120_000,
+});
 console.log(`HTTP: ${response?.status()}`);
 
 await page.waitForTimeout(SETTLE_MS);

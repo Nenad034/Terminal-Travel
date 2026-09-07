@@ -5,7 +5,13 @@ import { savePackageAttributes } from '../actions';
 import { Button } from '@/components/ui/button';
 import Icon from '@/components/Icon';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Command, CommandEmpty, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import {
+  Command,
+  CommandEmpty,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command';
 
 // M2 spec §2.3e (PACKAGE — `attributes.included_products[]`, `attributes.duration_days`),
 // M5 spec §3.0d.6a (grupni paket: termin = presek FIXED/CHARTER perioda sastojaka, povratak =
@@ -35,7 +41,9 @@ export default function PackageAttributesEditor({
   initial: PackageAttributes;
   candidates: PickableProduct[];
 }) {
-  const [durationDays, setDurationDays] = useState<string>(initial.duration_days != null ? String(initial.duration_days) : '');
+  const [durationDays, setDurationDays] = useState<string>(
+    initial.duration_days != null ? String(initial.duration_days) : '',
+  );
   const [includedIds, setIncludedIds] = useState<string[]>(initial.included_products ?? []);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -71,7 +79,10 @@ export default function PackageAttributesEditor({
         setSaving(false);
         return;
       }
-      await savePackageAttributes(productId, { duration_days: days, included_products: includedIds });
+      await savePackageAttributes(productId, {
+        duration_days: days,
+        included_products: includedIds,
+      });
       setSavedAt(Date.now());
     } catch {
       setError('Čuvanje nije uspelo. Pokušajte ponovo.');
@@ -94,7 +105,9 @@ export default function PackageAttributesEditor({
       {error && <p className="mb-3 rounded bg-danger-bg p-2 text-xs text-danger">{error}</p>}
 
       <label className="mb-4 flex max-w-xs flex-col gap-0.5">
-        <span className="text-[11px] text-ink-faint">Trajanje paketa (broj dana, uključujući dan polaska)</span>
+        <span className="text-[11px] text-ink-faint">
+          Trajanje paketa (broj dana, uključujući dan polaska)
+        </span>
         <input
           className="input text-xs"
           type="number"
@@ -105,15 +118,29 @@ export default function PackageAttributesEditor({
         />
       </label>
 
-      <h3 className="mb-2 text-xs font-semibold text-ink-faint">Uključeni proizvodi ({selected.length})</h3>
-      {selected.length === 0 && <p className="mb-3 text-xs text-ink-faint">Još ništa nije dodato.</p>}
+      <h3 className="mb-2 text-xs font-semibold text-ink-faint">
+        Uključeni proizvodi ({selected.length})
+      </h3>
+      {selected.length === 0 && (
+        <p className="mb-3 text-xs text-ink-faint">Još ništa nije dodato.</p>
+      )}
       <div className="mb-4 flex flex-col gap-1.5">
         {selected.map((p) => (
-          <div key={p.id} className="flex items-center justify-between rounded border border-border bg-bg px-3 py-1.5">
+          <div
+            key={p.id}
+            className="flex items-center justify-between rounded border border-border bg-bg px-3 py-1.5"
+          >
             <div className="text-xs text-ink">
-              {p.name} <span className="text-ink-faint">— {p.type} · {p.destinationCity}, {p.destinationCountry}</span>
+              {p.name}{' '}
+              <span className="text-ink-faint">
+                — {p.type} · {p.destinationCity}, {p.destinationCountry}
+              </span>
             </div>
-            <button type="button" onClick={() => removeProduct(p.id)} className="text-[11px] text-danger hover:underline">
+            <button
+              type="button"
+              onClick={() => removeProduct(p.id)}
+              className="text-[11px] text-danger hover:underline"
+            >
               ukloni
             </button>
           </div>
@@ -153,7 +180,10 @@ export default function PackageAttributesEditor({
                   }}
                 >
                   <span className="truncate">
-                    {p.name} <span className="text-ink-faint">— {p.type} · {p.destinationCity}, {p.destinationCountry}</span>
+                    {p.name}{' '}
+                    <span className="text-ink-faint">
+                      — {p.type} · {p.destinationCity}, {p.destinationCountry}
+                    </span>
                   </span>
                 </CommandItem>
               ))}

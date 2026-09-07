@@ -5,7 +5,8 @@ export interface OutgoingRequest {
   body?: Record<string, unknown>;
 }
 
-export type AuthStrategyType = 'API_KEY' | 'BASIC' | 'OAUTH2_CLIENT_CREDENTIALS' | 'REQUEST_SIGNING' | 'SESSION_TOKEN';
+export type AuthStrategyType =
+  'API_KEY' | 'BASIC' | 'OAUTH2_CLIENT_CREDENTIALS' | 'REQUEST_SIGNING' | 'SESSION_TOKEN';
 
 export interface AuthStrategy {
   strategyType: AuthStrategyType;

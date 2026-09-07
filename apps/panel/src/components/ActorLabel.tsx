@@ -51,7 +51,13 @@ function presentationFor(origin: ActorOrigin): OriginPresentation {
   }
 }
 
-export function Badge({ kind, children }: { kind: Exclude<BadgeKind, 'none'>; children: React.ReactNode }) {
+export function Badge({
+  kind,
+  children,
+}: {
+  kind: Exclude<BadgeKind, 'none'>;
+  children: React.ReactNode;
+}) {
   // Boje merene protiv stvarne pozadine, pravilo 29-DIZAJN-SISTEM-UI.md §2a (AA = 4.5:1 za tekst
   // ove veličine). `text-accent` na `bg-accent-soft` daje samo 3.96:1 u svetlom modu — pada; zato
   // `text-accent-strong` (5.98:1 svetli, 8.86:1 tamni). Ivica postoji jer se bedž pojavljuje i nad

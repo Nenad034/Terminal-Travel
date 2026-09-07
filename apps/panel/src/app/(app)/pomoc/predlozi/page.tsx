@@ -5,7 +5,6 @@ import ActorLabel from '@/components/ActorLabel';
 import HelpTabs from '../HelpTabs';
 import SuggestionActions from './SuggestionActions';
 
-
 interface Suggestion {
   id: string;
   basedOnQuestionIds: string[];
@@ -43,12 +42,18 @@ export default async function PredloziPage() {
 
       {!error && (
         <div className="flex flex-col gap-3">
-          {suggestions.length === 0 && <p className="rounded-lg border border-border bg-panel p-4 text-center text-xs text-ink-faint">Nema predloga na čekanju.</p>}
+          {suggestions.length === 0 && (
+            <p className="rounded-lg border border-border bg-panel p-4 text-center text-xs text-ink-faint">
+              Nema predloga na čekanju.
+            </p>
+          )}
           {suggestions.map((s) => (
             <div key={s.id} className="rounded-lg border border-border bg-panel p-4">
               <div className="mb-1 flex flex-wrap items-center justify-between gap-1">
                 <h2 className="text-sm font-semibold text-ink">{s.draftTitle}</h2>
-                <span className="text-[11px] text-ink-faint">{new Date(s.createdAt).toLocaleString('sr-RS')}</span>
+                <span className="text-[11px] text-ink-faint">
+                  {new Date(s.createdAt).toLocaleString('sr-RS')}
+                </span>
               </div>
               {/* 29-DIZAJN-SISTEM-UI.md §6a — poreklo stoji uz svaki predlog, ne samo u uvodnom
                   tekstu stranice: kartica se čita pojedinačno, uvod se preskače. */}
@@ -57,7 +62,8 @@ export default async function PredloziPage() {
               </div>
               <p className="mb-2 whitespace-pre-wrap text-xs text-ink-dim">{s.draftBody}</p>
               <p className="mb-3 text-[11px] text-ink-faint">
-                zasnovano na {s.basedOnQuestionIds.length} pitanj{s.basedOnQuestionIds.length === 1 ? 'u' : 'a'} (§5.4)
+                zasnovano na {s.basedOnQuestionIds.length} pitanj
+                {s.basedOnQuestionIds.length === 1 ? 'u' : 'a'} (§5.4)
               </p>
               {canReview && <SuggestionActions id={s.id} />}
             </div>

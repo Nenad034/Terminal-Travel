@@ -6,7 +6,6 @@ import Icon from '@/components/Icon';
 import NewSupplierConversationForm from './NewSupplierConversationForm';
 import SupplierConversationRow from './SupplierConversationRow';
 
-
 interface ConversationSummary {
   id: string;
   type: 'DIRECT' | 'GROUP' | 'EXTERNAL_SUPPLIER';
@@ -17,7 +16,10 @@ interface ConversationSummary {
 
 interface ConversationDetail {
   id: string;
-  participants: { userId: string; user: { id: string; fullName: string; accountType: string } | null }[];
+  participants: {
+    userId: string;
+    user: { id: string; fullName: string; accountType: string } | null;
+  }[];
 }
 
 interface AccessEntry {
@@ -56,7 +58,8 @@ export default async function SupplierChatPage() {
     const all = await apiFetch<ConversationSummary[]>('/chat/conversations');
     conversations = all.filter((c) => c.type === 'EXTERNAL_SUPPLIER');
   } catch {
-    error = 'Nemate pristup razgovorima sa dobavljačima (M19/supplier-conversation/VIEW ili nemate dodeljen pristup nijednom razgovoru).';
+    error =
+      'Nemate pristup razgovorima sa dobavljačima (M19/supplier-conversation/VIEW ili nemate dodeljen pristup nijednom razgovoru).';
   }
 
   const supplierNames = new Map<string, string>();
@@ -84,13 +87,19 @@ export default async function SupplierChatPage() {
     }
     if (canGrant) {
       try {
-        accessByConversation.set(c.id, await apiFetch<AccessEntry[]>(`/chat/supplier-conversations/${c.id}/access`));
+        accessByConversation.set(
+          c.id,
+          await apiFetch<AccessEntry[]>(`/chat/supplier-conversations/${c.id}/access`),
+        );
       } catch {
         accessByConversation.set(c.id, []);
       }
       if (canViewContacts && c.supplierId && !contactsBySupplier.has(c.supplierId)) {
         try {
-          contactsBySupplier.set(c.supplierId, await apiFetch<SupplierContactRow[]>(`/contracting/suppliers/${c.supplierId}/contacts`));
+          contactsBySupplier.set(
+            c.supplierId,
+            await apiFetch<SupplierContactRow[]>(`/contracting/suppliers/${c.supplierId}/contacts`),
+          );
         } catch {
           contactsBySupplier.set(c.supplierId, []);
         }
@@ -110,7 +119,10 @@ export default async function SupplierChatPage() {
   return (
     <div className="p-6">
       <RegisterTab label="Razgovori sa dobavljačima" />
-      <Link href="/chat" className="mb-3 inline-flex items-center gap-1 text-xs text-ink-faint hover:text-ink">
+      <Link
+        href="/chat"
+        className="mb-3 inline-flex items-center gap-1 text-xs text-ink-faint hover:text-ink"
+      >
         <Icon name="arrow-left" /> nazad na razgovore tima
       </Link>
 
@@ -128,7 +140,11 @@ export default async function SupplierChatPage() {
 
       {!error && (
         <div className="flex flex-col gap-3">
-          {conversations.length === 0 && <p className="rounded-lg border border-border bg-panel p-4 text-center text-xs text-ink-faint">Nema razgovora sa dobavljačima.</p>}
+          {conversations.length === 0 && (
+            <p className="rounded-lg border border-border bg-panel p-4 text-center text-xs text-ink-faint">
+              Nema razgovora sa dobavljačima.
+            </p>
+          )}
           {conversations.map((c) => (
             <SupplierConversationRow
               key={c.id}

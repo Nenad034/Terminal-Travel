@@ -28,6 +28,8 @@ describe('PrismaExceptionFilter', () => {
       clientVersion: '5.22.0',
     });
 
-    expect(() => filter.catch(exception, makeHost({ status: jest.fn(), json: jest.fn() }))).toThrow(exception);
+    expect(() => filter.catch(exception, makeHost({ status: jest.fn(), json: jest.fn() }))).toThrow(
+      exception,
+    );
   });
 });

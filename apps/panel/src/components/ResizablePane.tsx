@@ -54,7 +54,11 @@ export default function ResizablePane({
 
   const onPointerMove = useCallback(
     (e: PointerEvent) => {
-      const next = clamp(startWidth.current + sign * (e.clientX - startX.current), minWidth, maxWidth);
+      const next = clamp(
+        startWidth.current + sign * (e.clientX - startX.current),
+        minWidth,
+        maxWidth,
+      );
       setWidth(next);
     },
     [minWidth, maxWidth, sign],
@@ -129,7 +133,10 @@ export default function ResizablePane({
   );
 
   return (
-    <div className="flex h-full flex-shrink-0" style={{ width: collapsed ? collapsedWidth : width }}>
+    <div
+      className="flex h-full flex-shrink-0"
+      style={{ width: collapsed ? collapsedWidth : width }}
+    >
       {!collapsed && handleSide === 'left' && handle}
       <div className="min-w-0 flex-1 overflow-hidden">{children}</div>
       {!collapsed && handleSide === 'right' && handle}

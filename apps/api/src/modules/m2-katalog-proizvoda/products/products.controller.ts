@@ -1,5 +1,16 @@
 import { parsePagination } from '../../../common/pagination/pagination';
-import { Body, Controller, Delete, Get, Param, Patch, Post, Put, Query, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Put,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { LanguageCode, ProductStatus, ProductType, VisibleChannel } from '@prisma/client';
 import { ProductsService } from './products.service';
@@ -36,7 +47,10 @@ export class ProductsController {
     @Query('page') page?: string,
     @Query('limit') limit?: string,
   ) {
-    return this.products.findAll({ type, destinationCountry, status, channel, lang }, parsePagination(page, limit));
+    return this.products.findAll(
+      { type, destinationCountry, status, channel, lang },
+      parsePagination(page, limit),
+    );
   }
 
   @Post()
@@ -53,7 +67,11 @@ export class ProductsController {
 
   @Patch(':id')
   @RequirePermission('M2', 'product', 'EDIT')
-  update(@Param('id') id: string, @Body() dto: UpdateProductDto, @CurrentUser() actor: { userId: string }) {
+  update(
+    @Param('id') id: string,
+    @Body() dto: UpdateProductDto,
+    @CurrentUser() actor: { userId: string },
+  ) {
     return this.products.update(id, dto, actor.userId);
   }
 
@@ -82,7 +100,11 @@ export class ProductsController {
 
   @Post(':id/publish')
   @RequirePermission('M2', 'product', 'PUBLISH')
-  publish(@Param('id') id: string, @Body() dto: PublishProductDto, @CurrentUser() actor: { userId: string }) {
+  publish(
+    @Param('id') id: string,
+    @Body() dto: PublishProductDto,
+    @CurrentUser() actor: { userId: string },
+  ) {
     return this.products.publish(id, dto, actor.userId);
   }
 

@@ -13,7 +13,10 @@ const CHANNELS = ['FACEBOOK', 'INSTAGRAM', 'EMAIL'];
 export default function NewChannelForm() {
   const [state, formAction] = useActionState(createChannel, initialState);
   return (
-    <form action={formAction} className="flex items-end gap-2 rounded-lg border border-border bg-panel p-3 text-xs">
+    <form
+      action={formAction}
+      className="flex items-end gap-2 rounded-lg border border-border bg-panel p-3 text-xs"
+    >
       {state.error && <p className="w-full rounded bg-danger-bg p-2 text-danger">{state.error}</p>}
       <label className="text-ink-faint">
         kanal

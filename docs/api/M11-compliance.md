@@ -15,6 +15,7 @@
 Vraća "trenutnu" garanciju — najnoviju po `validTo`, bez obzira na status (aktivna, istekla, na obnavljanju).
 
 **Odgovor `200`:**
+
 ```json
 {
   "id": "tg-1",
@@ -28,6 +29,7 @@ Vraća "trenutnu" garanciju — najnoviju po `validTo`, bez obzira na status (ak
   "status": "ACTIVE"
 }
 ```
+
 Dozvola: `M11/travel-guarantee/VIEW`.
 
 ### PATCH /travel-guarantee
@@ -35,6 +37,7 @@ Dozvola: `M11/travel-guarantee/VIEW`.
 Uvek ljudska radnja (Vlasnik/Direktor) — AI agent nikad ne poziva ovaj endpoint sa `SUBMIT`/izmenom namere. `createNew: true` kreira novu godišnju polisu (obnavljanje); bez toga menja postojeću.
 
 **Zahtev (obnavljanje):**
+
 ```json
 {
   "createNew": true,
@@ -47,6 +50,7 @@ Uvek ljudska radnja (Vlasnik/Direktor) — AI agent nikad ne poziva ovaj endpoin
   "documentUrl": "https://.../garancija-2027.pdf"
 }
 ```
+
 **Odgovor `200`:** novi `TravelGuarantee` zapis, isti oblik kao GET. Upisuje se u M1 audit log kao `travel_guarantee.created` (ili `.updated` za izmenu bez `createNew`), sa identitetom Vlasnika/Direktora.
 
 Dozvola: `M11/travel-guarantee/EDIT` (nikad AI agent).
@@ -56,6 +60,7 @@ Dozvola: `M11/travel-guarantee/EDIT` (nikad AI agent).
 Kumulativna prodata vrednost `ORGANIZATOR` prometa naspram `coverageAmount` tekuće garancije. Isti izračun koji M5 koristi in-process pri potvrdi rezervacije (§2.2).
 
 **Odgovor `200`:**
+
 ```json
 {
   "travelGuaranteeId": "tg-1",
@@ -68,6 +73,7 @@ Kumulativna prodata vrednost `ORGANIZATOR` prometa naspram `coverageAmount` teku
   "inGracePeriod": false
 }
 ```
+
 Dozvola: `M11/travel-guarantee/VIEW`.
 
 ---
@@ -79,10 +85,13 @@ Dozvola: `M11/travel-guarantee/VIEW`.
 Lista `TravelGuaranteeRegistration` zapisa, opciono filtrirano po `status` i/ili `bookingId`.
 
 **Zahtev:**
+
 ```
 GET /api/v1/compliance/travel-guarantee-registrations?status=FAILED
 ```
+
 **Odgovor `200`:**
+
 ```json
 [
   {
@@ -99,6 +108,7 @@ GET /api/v1/compliance/travel-guarantee-registrations?status=FAILED
   }
 ]
 ```
+
 Dozvola: `M11/travel-guarantee-registration/VIEW`.
 
 ### POST /travel-guarantee-registrations/:id/retry
@@ -118,22 +128,26 @@ Dozvola: `M11/travel-guarantee-registration/RETRY` (Vlasnik/Direktor).
 Agregira već postojeće podatke iz M1 (audit log), M5 (rezervacije), M10 (fiskalni dokumenti) i M11 (CIS registracije) za zadati period.
 
 **Zahtev:**
+
 ```json
 { "periodFrom": "2026-01-01", "periodTo": "2026-01-31" }
 ```
+
 **Odgovor `201`:**
+
 ```json
 {
   "periodFrom": "2026-01-01",
   "periodTo": "2026-01-31",
   "generatedAt": "2026-08-12T10:00:00.000Z",
-  "auditLogEntries": [ "..." ],
-  "bookings": [ "..." ],
-  "fiscalDocuments": [ "..." ],
-  "travelGuaranteeRegistrations": [ "..." ],
+  "auditLogEntries": ["..."],
+  "bookings": ["..."],
+  "fiscalDocuments": ["..."],
+  "travelGuaranteeRegistrations": ["..."],
   "csv": "== Rezervacije ==\nbooking_number,status,tip_nastupanja,total_price,currency,created_at\n..."
 }
 ```
+
 `csv` polje se otvara direktno u Excel-u (privremeno rešenje dok se sa vlasnikom ne potvrdi PDF/nativna XLSX biblioteka — vidi M11 spec §7).
 
 Dozvola: `M11/inspection-export/CREATE`.

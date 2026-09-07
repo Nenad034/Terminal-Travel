@@ -40,7 +40,10 @@ const EKRANI = [
     kljuc: 'dosije',
     naziv: 'Dosije rezervacije',
     nadji: async (page) => {
-      await page.goto(`${PANEL}/rezervacije/lista`, { waitUntil: 'domcontentloaded', timeout: 120_000 });
+      await page.goto(`${PANEL}/rezervacije/lista`, {
+        waitUntil: 'domcontentloaded',
+        timeout: 120_000,
+      });
       await page.waitForTimeout(5000);
       // Red u listi NIJE `<a>` — dosije se otvara kao tab preko `openTab()` (BookingsTable.tsx),
       // pa se adresa ne može pročitati iz `href`. Broj rezervacije se čita iz prve ćelije i od
@@ -59,7 +62,11 @@ const EKRANI = [
       return broj ? `/rezervacije/lista/${broj}` : null;
     },
   },
-  { kljuc: 'pretraga', naziv: 'Pretraga ponude', putanja: '/rezervacije/pretraga?type=ACCOMMODATION' },
+  {
+    kljuc: 'pretraga',
+    naziv: 'Pretraga ponude',
+    putanja: '/rezervacije/pretraga?type=ACCOMMODATION',
+  },
   { kljuc: 'najave', naziv: 'Najave dobavljačima', putanja: '/rezervacije/najave' },
   { kljuc: 'katalog', naziv: 'Katalog proizvoda', putanja: '/katalog' },
   { kljuc: 'e-posta', naziv: 'E-pošta', putanja: '/email' },
@@ -103,9 +110,8 @@ const OCEKIVANI_NEUSPESI = [
 ];
 
 const trazeni = process.argv.slice(2);
-const izabrani = trazeni.length > 0
-  ? EKRANI.filter((e) => trazeni.some((t) => e.kljuc.startsWith(t)))
-  : EKRANI;
+const izabrani =
+  trazeni.length > 0 ? EKRANI.filter((e) => trazeni.some((t) => e.kljuc.startsWith(t))) : EKRANI;
 
 if (izabrani.length === 0) {
   console.error(`Nijedan ekran ne odgovara: ${trazeni.join(', ')}`);
@@ -116,12 +122,16 @@ if (izabrani.length === 0) {
 rmSync(IZLAZ, { recursive: true, force: true });
 mkdirSync(IZLAZ, { recursive: true });
 
-const browser = await chromium.launch(existsSync(SANDBOX_CHROMIUM) ? { executablePath: SANDBOX_CHROMIUM } : {});
+const browser = await chromium.launch(
+  existsSync(SANDBOX_CHROMIUM) ? { executablePath: SANDBOX_CHROMIUM } : {},
+);
 const context = await browser.newContext({ viewport: { width: 1600, height: 1000 } });
 
 // Prijava ide preko istog BFF puta kao iz browsera, pa kolačić sesije završi u kontekstu koji
 // potom otvara sve ekrane — jedna prijava za ceo prolaz.
-const login = await context.request.post(`${PANEL}/api/session/login`, { data: { email: EMAIL, password: PASSWORD } });
+const login = await context.request.post(`${PANEL}/api/session/login`, {
+  data: { email: EMAIL, password: PASSWORD },
+});
 const loginBody = await login.json().catch(() => ({}));
 if (loginBody.requiresMfa) {
   const mfa = await context.request.post(`${PANEL}/api/session/mfa`, {
@@ -158,11 +168,15 @@ for (const ekran of izabrani) {
   // uhvatiti ovde — bez nje se ne zna ni koji je zahtev pao, ni da li je uopšte važan.
   page.on('response', (res) => {
     if (res.status() < 400) return;
-    const ocekivan = OCEKIVANI_NEUSPESI.find((o) => o.status === res.status() && o.uzorak.test(res.url()));
+    const ocekivan = OCEKIVANI_NEUSPESI.find(
+      (o) => o.status === res.status() && o.uzorak.test(res.url()),
+    );
     if (ocekivan) return;
     greske.push(`[HTTP ${res.status()}] ${res.url()}`);
   });
-  page.on('requestfailed', (req) => greske.push(`[requestfailed] ${req.url()} — ${req.failure()?.errorText ?? ''}`));
+  page.on('requestfailed', (req) =>
+    greske.push(`[requestfailed] ${req.url()} — ${req.failure()?.errorText ?? ''}`),
+  );
 
   let putanja = ekran.putanja;
   let status = null;
@@ -180,15 +194,20 @@ for (const ekran of izabrani) {
         continue;
       }
     }
-    const odgovor = await page.goto(`${PANEL}${putanja}`, { waitUntil: 'domcontentloaded', timeout: 120_000 });
+    const odgovor = await page.goto(`${PANEL}${putanja}`, {
+      waitUntil: 'domcontentloaded',
+      timeout: 120_000,
+    });
     status = odgovor?.status() ?? null;
     await page.waitForTimeout(SETTLE_MS);
 
     // Granica greške (`error.tsx`) prikaže našu poruku, a HTTP status ostane 200 — bez ove
     // provere bi pukao ekran prošao kao ispravan (zamka 7.1b).
-    const palo = await page.evaluate(() =>
-      document.body.innerText.includes('Ovaj ekran nije uspeo da se prikaže')
-      || document.body.innerText.includes('Panel se nije učitao'));
+    const palo = await page.evaluate(
+      () =>
+        document.body.innerText.includes('Ovaj ekran nije uspeo da se prikaže') ||
+        document.body.innerText.includes('Panel se nije učitao'),
+    );
     if (palo) greske.push('Prikazana je stranica greške umesto sadržaja ekrana');
 
     await page.screenshot({ path: `${IZLAZ}/${ekran.kljuc}.png`, fullPage: false });
@@ -206,15 +225,19 @@ await browser.close();
 console.log('');
 for (const n of nalazi) {
   const oznaka = n.greske.length > 0 ? 'GREŠKA' : n.upozorenja.length > 0 ? 'upoz.' : 'u redu';
-  console.log(`${oznaka.padEnd(7)} ${n.ekran.naziv.padEnd(24)} ${n.status ?? ''} ${n.putanja ?? ''}`);
+  console.log(
+    `${oznaka.padEnd(7)} ${n.ekran.naziv.padEnd(24)} ${n.status ?? ''} ${n.putanja ?? ''}`,
+  );
   for (const g of [...new Set(n.greske)].slice(0, 8)) console.log(`        ${g}`);
   for (const u of [...new Set(n.upozorenja)].slice(0, 5)) console.log(`        ${u}`);
 }
 
 const paliEkrani = nalazi.filter((n) => n.greske.length > 0);
 console.log(`\nSnimci: ${IZLAZ}/`);
-console.log(paliEkrani.length === 0
-  ? `Svih ${nalazi.length} ekrana se otvorilo bez greške iz browsera.`
-  : `Ekrana sa greškom: ${paliEkrani.length} od ${nalazi.length}.`);
+console.log(
+  paliEkrani.length === 0
+    ? `Svih ${nalazi.length} ekrana se otvorilo bez greške iz browsera.`
+    : `Ekrana sa greškom: ${paliEkrani.length} od ${nalazi.length}.`,
+);
 
 process.exit(paliEkrani.length > 0 ? 1 : 0);

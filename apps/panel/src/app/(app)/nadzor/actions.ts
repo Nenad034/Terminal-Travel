@@ -25,7 +25,12 @@ export async function runWeeklyReview(_prev: FormState, _formData: FormData): Pr
   try {
     await apiFetch('/ops/weekly-reviews/run', { method: 'POST' });
   } catch (err) {
-    return { error: err instanceof ApiError ? extractMessage(err) : 'Pokretanje nedeljnog pregleda nije uspelo.' };
+    return {
+      error:
+        err instanceof ApiError
+          ? extractMessage(err)
+          : 'Pokretanje nedeljnog pregleda nije uspelo.',
+    };
   }
   revalidatePath('/nadzor');
   return { error: null };
@@ -34,7 +39,10 @@ export async function runWeeklyReview(_prev: FormState, _formData: FormData): Pr
 // M18 spec §3/§9 — POST /ops/notification-channels. Konfiguracija zavisi od channelType
 // (TELEGRAM: chatId, EMAIL: email adresa) — servis enkriptuje config_encrypted, ovaj ekran
 // ga nikad ne prikazuje unazad (isti princip kao M4/M12 ProviderConfig/authConfig).
-export async function createNotificationChannel(_prev: FormState, formData: FormData): Promise<FormState> {
+export async function createNotificationChannel(
+  _prev: FormState,
+  formData: FormData,
+): Promise<FormState> {
   const channelType = strOrUndef(formData, 'channelType');
   const configValue = strOrUndef(formData, 'configValue');
   const config = channelType === 'TELEGRAM' ? { chatId: configValue } : { email: configValue };
@@ -48,7 +56,10 @@ export async function createNotificationChannel(_prev: FormState, formData: Form
       },
     });
   } catch (err) {
-    return { error: err instanceof ApiError ? extractMessage(err) : 'Kreiranje kanala obaveštenja nije uspelo.' };
+    return {
+      error:
+        err instanceof ApiError ? extractMessage(err) : 'Kreiranje kanala obaveštenja nije uspelo.',
+    };
   }
   revalidatePath('/nadzor/kanali');
   return { error: null };
@@ -57,14 +68,21 @@ export async function createNotificationChannel(_prev: FormState, formData: Form
 // M18 spec §3/§9 — PATCH /ops/notification-channels/:id, jedino izmenljivo polje sa ovog
 // ekrana je status (ACTIVE/INACTIVE) — config se ne menja preko forme (spec §3 napomena,
 // isti princip kao M4/M12).
-export async function updateNotificationChannelStatus(id: string, _prev: FormState, formData: FormData): Promise<FormState> {
+export async function updateNotificationChannelStatus(
+  id: string,
+  _prev: FormState,
+  formData: FormData,
+): Promise<FormState> {
   try {
     await apiFetch(`/ops/notification-channels/${id}`, {
       method: 'PATCH',
       body: { status: strOrUndef(formData, 'status') },
     });
   } catch (err) {
-    return { error: err instanceof ApiError ? extractMessage(err) : 'Izmena kanala obaveštenja nije uspela.' };
+    return {
+      error:
+        err instanceof ApiError ? extractMessage(err) : 'Izmena kanala obaveštenja nije uspela.',
+    };
   }
   revalidatePath('/nadzor/kanali');
   return { error: null };
@@ -72,22 +90,34 @@ export async function updateNotificationChannelStatus(id: string, _prev: FormSta
 
 // M18 spec §5/§9 — POST /ops/trend-suggestions/:id/approve, dozvola M18/trend-suggestion/APPROVE.
 // Samo za DRAFT (servis odbija ostalo, spec §10 izlazni kriterijum).
-export async function approveTrendSuggestion(id: string, _prev: FormState, _formData: FormData): Promise<FormState> {
+export async function approveTrendSuggestion(
+  id: string,
+  _prev: FormState,
+  _formData: FormData,
+): Promise<FormState> {
   try {
     await apiFetch(`/ops/trend-suggestions/${id}/approve`, { method: 'POST' });
   } catch (err) {
-    return { error: err instanceof ApiError ? extractMessage(err) : 'Odobravanje predloga nije uspelo.' };
+    return {
+      error: err instanceof ApiError ? extractMessage(err) : 'Odobravanje predloga nije uspelo.',
+    };
   }
   revalidatePath('/nadzor/trendovi');
   return { error: null };
 }
 
 // M18 spec §5/§9 — POST /ops/trend-suggestions/:id/reject, ista dozvola kao odobravanje.
-export async function rejectTrendSuggestion(id: string, _prev: FormState, _formData: FormData): Promise<FormState> {
+export async function rejectTrendSuggestion(
+  id: string,
+  _prev: FormState,
+  _formData: FormData,
+): Promise<FormState> {
   try {
     await apiFetch(`/ops/trend-suggestions/${id}/reject`, { method: 'POST' });
   } catch (err) {
-    return { error: err instanceof ApiError ? extractMessage(err) : 'Odbijanje predloga nije uspelo.' };
+    return {
+      error: err instanceof ApiError ? extractMessage(err) : 'Odbijanje predloga nije uspelo.',
+    };
   }
   revalidatePath('/nadzor/trendovi');
   return { error: null };
@@ -96,11 +126,17 @@ export async function rejectTrendSuggestion(id: string, _prev: FormState, _formD
 // M18 spec §6.5/§9 — POST /ops/ai-provider-quota/:id/override, dozvola
 // M18/ai-provider-quota/OVERRIDE. Ručan povratak iz DEGRADED u NORMAL pre isteka perioda,
 // upisuje AuditLogEntry na backendu (M1) — ovaj ekran samo šalje zahtev.
-export async function overrideAiProviderQuota(id: string, _prev: FormState, _formData: FormData): Promise<FormState> {
+export async function overrideAiProviderQuota(
+  id: string,
+  _prev: FormState,
+  _formData: FormData,
+): Promise<FormState> {
   try {
     await apiFetch(`/ops/ai-provider-quota/${id}/override`, { method: 'POST' });
   } catch (err) {
-    return { error: err instanceof ApiError ? extractMessage(err) : 'Ručni povratak na NORMAL nije uspeo.' };
+    return {
+      error: err instanceof ApiError ? extractMessage(err) : 'Ručni povratak na NORMAL nije uspeo.',
+    };
   }
   revalidatePath('/nadzor/ai-troskovi');
   return { error: null };

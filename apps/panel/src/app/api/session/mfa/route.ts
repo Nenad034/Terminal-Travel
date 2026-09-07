@@ -9,19 +9,30 @@ export async function POST(req: NextRequest) {
   const { mfaToken, code } = await req.json();
 
   try {
-    const result = await apiFetch<{ accessToken: string; refreshToken: string }>('/iam/auth/mfa/verify', {
-      method: 'POST',
-      body: { mfaToken, code },
-      auth: false,
-    });
+    const result = await apiFetch<{ accessToken: string; refreshToken: string }>(
+      '/iam/auth/mfa/verify',
+      {
+        method: 'POST',
+        body: { mfaToken, code },
+        auth: false,
+      },
+    );
 
-    const payload = JSON.parse(Buffer.from(result.accessToken.split('.')[1], 'base64url').toString('utf8'));
-    await setSession({ accessToken: result.accessToken, refreshToken: result.refreshToken, userId: payload.sub });
+    const payload = JSON.parse(
+      Buffer.from(result.accessToken.split('.')[1], 'base64url').toString('utf8'),
+    );
+    await setSession({
+      accessToken: result.accessToken,
+      refreshToken: result.refreshToken,
+      userId: payload.sub,
+    });
 
     return NextResponse.json({ ok: true });
   } catch (err) {
     if (err instanceof ApiError) {
-      return NextResponse.json(err.body ?? { message: 'Neispravan MFA kod' }, { status: err.status });
+      return NextResponse.json(err.body ?? { message: 'Neispravan MFA kod' }, {
+        status: err.status,
+      });
     }
     throw err;
   }

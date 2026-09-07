@@ -40,25 +40,41 @@ function str(formData: FormData, key: string): string | undefined {
 export async function inviteUser(_prev: InviteState, formData: FormData): Promise<InviteState> {
   let user: { user: { id: string }; inviteToken: string; emailDelivered: boolean };
   try {
-    user = await apiFetch<{ user: { id: string }; inviteToken: string; emailDelivered: boolean }>('/iam/users', {
-      method: 'POST',
-      body: {
-        fullName: str(formData, 'fullName'),
-        email: str(formData, 'email'),
-        phone: str(formData, 'phone'),
-        branchId: str(formData, 'branchId'),
-        roleIds: formData.getAll('roleIds').filter((v): v is string => typeof v === 'string' && v !== ''),
+    user = await apiFetch<{ user: { id: string }; inviteToken: string; emailDelivered: boolean }>(
+      '/iam/users',
+      {
+        method: 'POST',
+        body: {
+          fullName: str(formData, 'fullName'),
+          email: str(formData, 'email'),
+          phone: str(formData, 'phone'),
+          branchId: str(formData, 'branchId'),
+          roleIds: formData
+            .getAll('roleIds')
+            .filter((v): v is string => typeof v === 'string' && v !== ''),
+        },
       },
-    });
+    );
   } catch (err) {
-    return { error: err instanceof ApiError ? extractMessage(err) : 'Pozivanje korisnika nije uspelo.' };
+    return {
+      error: err instanceof ApiError ? extractMessage(err) : 'Pozivanje korisnika nije uspelo.',
+    };
   }
   revalidatePath('/korisnici');
-  return { error: null, userId: user.user.id, inviteToken: user.inviteToken, emailDelivered: user.emailDelivered };
+  return {
+    error: null,
+    userId: user.user.id,
+    inviteToken: user.inviteToken,
+    emailDelivered: user.emailDelivered,
+  };
 }
 
 // M1 spec §7 — PATCH /iam/users/:id, samo ime/telefon (email/status se ne menjaju odavde).
-export async function updateUser(id: string, _prev: FormState, formData: FormData): Promise<FormState> {
+export async function updateUser(
+  id: string,
+  _prev: FormState,
+  formData: FormData,
+): Promise<FormState> {
   try {
     await apiFetch(`/iam/users/${id}`, {
       method: 'PATCH',
@@ -72,7 +88,9 @@ export async function updateUser(id: string, _prev: FormState, formData: FormDat
       },
     });
   } catch (err) {
-    return { error: err instanceof ApiError ? extractMessage(err) : 'Izmena korisnika nije uspela.' };
+    return {
+      error: err instanceof ApiError ? extractMessage(err) : 'Izmena korisnika nije uspela.',
+    };
   }
   revalidatePath(`/korisnici/${id}`);
   revalidatePath('/korisnici');
@@ -80,11 +98,17 @@ export async function updateUser(id: string, _prev: FormState, formData: FormDat
 }
 
 // M1 spec §7 — DELETE /iam/users/:id je meko suspendovanje (status=SUSPENDED, ne pravo brisanje).
-export async function suspendUser(id: string, _prev: FormState, _formData: FormData): Promise<FormState> {
+export async function suspendUser(
+  id: string,
+  _prev: FormState,
+  _formData: FormData,
+): Promise<FormState> {
   try {
     await apiFetch(`/iam/users/${id}`, { method: 'DELETE' });
   } catch (err) {
-    return { error: err instanceof ApiError ? extractMessage(err) : 'Suspendovanje naloga nije uspelo.' };
+    return {
+      error: err instanceof ApiError ? extractMessage(err) : 'Suspendovanje naloga nije uspelo.',
+    };
   }
   revalidatePath(`/korisnici/${id}`);
   revalidatePath('/korisnici');
@@ -92,7 +116,11 @@ export async function suspendUser(id: string, _prev: FormState, _formData: FormD
 }
 
 // M1 spec §7 — POST /iam/users/:id/roles (dodela uloge).
-export async function assignRole(userId: string, _prev: FormState, formData: FormData): Promise<FormState> {
+export async function assignRole(
+  userId: string,
+  _prev: FormState,
+  formData: FormData,
+): Promise<FormState> {
   try {
     await apiFetch(`/iam/users/${userId}/roles`, {
       method: 'POST',
@@ -106,11 +134,18 @@ export async function assignRole(userId: string, _prev: FormState, formData: For
 }
 
 // M1 spec §7 — DELETE /iam/users/:id/roles/:roleId (uklanjanje uloge).
-export async function removeRole(userId: string, roleId: string, _prev: FormState, _formData: FormData): Promise<FormState> {
+export async function removeRole(
+  userId: string,
+  roleId: string,
+  _prev: FormState,
+  _formData: FormData,
+): Promise<FormState> {
   try {
     await apiFetch(`/iam/users/${userId}/roles/${roleId}`, { method: 'DELETE' });
   } catch (err) {
-    return { error: err instanceof ApiError ? extractMessage(err) : 'Uklanjanje uloge nije uspelo.' };
+    return {
+      error: err instanceof ApiError ? extractMessage(err) : 'Uklanjanje uloge nije uspelo.',
+    };
   }
   revalidatePath(`/korisnici/${userId}`);
   return { error: null };
@@ -118,7 +153,11 @@ export async function removeRole(userId: string, roleId: string, _prev: FormStat
 
 // M1 spec §7 — POST /iam/users/:id/permission-overrides. Razlog obavezan (backend takođe
 // validira min 3 karaktera) — svesan pojedinačni izuzetak od podrazumevanih dozvola uloge.
-export async function createPermissionOverride(userId: string, _prev: FormState, formData: FormData): Promise<FormState> {
+export async function createPermissionOverride(
+  userId: string,
+  _prev: FormState,
+  formData: FormData,
+): Promise<FormState> {
   try {
     await apiFetch(`/iam/users/${userId}/permission-overrides`, {
       method: 'POST',
@@ -130,7 +169,9 @@ export async function createPermissionOverride(userId: string, _prev: FormState,
       },
     });
   } catch (err) {
-    return { error: err instanceof ApiError ? extractMessage(err) : 'Dodavanje izuzetka nije uspelo.' };
+    return {
+      error: err instanceof ApiError ? extractMessage(err) : 'Dodavanje izuzetka nije uspelo.',
+    };
   }
   revalidatePath(`/korisnici/${userId}`);
   return { error: null };
@@ -138,11 +179,18 @@ export async function createPermissionOverride(userId: string, _prev: FormState,
 
 // M1 spec §7 — DELETE /iam/users/permission-overrides/:overrideId (stvaran put kontrolera,
 // NIJE ugnježden pod /users/:id — potvrđeno u apps/api/src/modules/m1-core-identitet/users/).
-export async function deletePermissionOverride(userId: string, overrideId: string, _prev: FormState, _formData: FormData): Promise<FormState> {
+export async function deletePermissionOverride(
+  userId: string,
+  overrideId: string,
+  _prev: FormState,
+  _formData: FormData,
+): Promise<FormState> {
   try {
     await apiFetch(`/iam/users/permission-overrides/${overrideId}`, { method: 'DELETE' });
   } catch (err) {
-    return { error: err instanceof ApiError ? extractMessage(err) : 'Uklanjanje izuzetka nije uspelo.' };
+    return {
+      error: err instanceof ApiError ? extractMessage(err) : 'Uklanjanje izuzetka nije uspelo.',
+    };
   }
   revalidatePath(`/korisnici/${userId}`);
   return { error: null };
@@ -158,13 +206,18 @@ export async function saveRolePermissions(
 ): Promise<FormState> {
   try {
     if (added.length) {
-      await apiFetch(`/iam/roles/${roleId}/permissions`, { method: 'POST', body: { permissionIds: added } });
+      await apiFetch(`/iam/roles/${roleId}/permissions`, {
+        method: 'POST',
+        body: { permissionIds: added },
+      });
     }
     for (const permissionId of removed) {
       await apiFetch(`/iam/roles/${roleId}/permissions/${permissionId}`, { method: 'DELETE' });
     }
   } catch (err) {
-    return { error: err instanceof ApiError ? extractMessage(err) : 'Čuvanje dozvola uloge nije uspelo.' };
+    return {
+      error: err instanceof ApiError ? extractMessage(err) : 'Čuvanje dozvola uloge nije uspelo.',
+    };
   }
   revalidatePath(`/korisnici/uloge/${roleId}`);
   revalidatePath('/korisnici/uloge');

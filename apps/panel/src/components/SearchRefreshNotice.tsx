@@ -3,7 +3,12 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Icon from './Icon';
-import { useSearchState, diffIsEmpty, type OfferSnapshot, type SearchDiff } from './SearchStateContext';
+import {
+  useSearchState,
+  diffIsEmpty,
+  type OfferSnapshot,
+  type SearchDiff,
+} from './SearchStateContext';
 import { useSelection } from './SelectionContext';
 
 // M5 spec §3.0g.3 — "Osvežavanje mora da prijavi razliku, nikad da tiho zameni cenu".
@@ -65,7 +70,14 @@ export default function SearchRefreshNotice({ offers }: { offers: OfferSnapshot[
       <div className="mb-4 flex items-center gap-2 rounded-lg border border-border bg-panel px-3 py-2 text-xs text-ink-dim">
         <Icon name="check" className="text-ok" />
         Osveženo — nijedna cena se nije promenila.
-        <button onClick={() => { clearDiff(); setSeen(null); }} className="ml-auto text-ink-faint hover:text-ink" title="Zatvori">
+        <button
+          onClick={() => {
+            clearDiff();
+            setSeen(null);
+          }}
+          className="ml-auto text-ink-faint hover:text-ink"
+          title="Zatvori"
+        >
           <Icon name="close" />
         </button>
       </div>
@@ -77,7 +89,14 @@ export default function SearchRefreshNotice({ offers }: { offers: OfferSnapshot[
       <div className="mb-1 flex items-center gap-2 font-semibold">
         <Icon name="warning" className="text-warn" />
         Podaci su osveženi — cene su se promenile. Proverite pre nego što ih izgovorite gostu.
-        <button onClick={() => { clearDiff(); setSeen(null); }} className="ml-auto font-normal text-ink-faint hover:text-ink" title="Zatvori">
+        <button
+          onClick={() => {
+            clearDiff();
+            setSeen(null);
+          }}
+          className="ml-auto font-normal text-ink-faint hover:text-ink"
+          title="Zatvori"
+        >
           <Icon name="close" />
         </button>
       </div>
@@ -85,11 +104,16 @@ export default function SearchRefreshNotice({ offers }: { offers: OfferSnapshot[
         {shown.changed.map((c) => (
           <li key={c.key}>
             <span className="text-ink-dim">{c.label}:</span>{' '}
-            <span className="line-through text-ink-faint">{money(c.previous, c.currency)}</span>{' → '}
-            <span className={`font-mono font-semibold ${c.current > c.previous ? 'text-danger' : 'text-ok'}`}>
+            <span className="line-through text-ink-faint">{money(c.previous, c.currency)}</span>
+            {' → '}
+            <span
+              className={`font-mono font-semibold ${c.current > c.previous ? 'text-danger' : 'text-ok'}`}
+            >
               {money(c.current, c.currency)}
             </span>{' '}
-            <span className="text-ink-faint">({c.current > c.previous ? 'poskupelo' : 'pojeftinilo'})</span>
+            <span className="text-ink-faint">
+              ({c.current > c.previous ? 'poskupelo' : 'pojeftinilo'})
+            </span>
           </li>
         ))}
         {shown.gone.map((g) => (
@@ -101,7 +125,8 @@ export default function SearchRefreshNotice({ offers }: { offers: OfferSnapshot[
         ))}
         {shown.added.map((a) => (
           <li key={a.key}>
-            <span className="text-ink-dim">{a.label}:</span> <span className="font-semibold text-ok">nova ponuda</span>{' '}
+            <span className="text-ink-dim">{a.label}:</span>{' '}
+            <span className="font-semibold text-ok">nova ponuda</span>{' '}
             <span className="font-mono">{money(a.current, a.currency)}</span>
           </li>
         ))}

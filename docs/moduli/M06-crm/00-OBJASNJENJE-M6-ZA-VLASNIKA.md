@@ -23,6 +23,7 @@ Kad AI agent sažme upit gosta ili pripremi nacrt odgovora, taj zapis se čuva. 
 ## Četiri automatske poruke — rođendan, godišnjica, pred put, posle puta
 
 Svaki dan sistem sam proverava:
+
 - da li je danas nečiji rođendan (gost),
 - da li je danas godišnjica prve rezervacije (nalogodavac),
 - da li nekom putovanje počinje za 7, 3 ili 1 dan,
@@ -42,4 +43,4 @@ Dva dana posle povratka, gost automatski dobija (uz istu proveru saglasnosti kao
 
 ---
 
-*Za tehničke detalje (tačna imena polja, redosled provera, API pozivi) vidi `09-SPECIFIKACIJA-M6-CRM.md` u istom folderu — ovaj dokument je namerno pojednostavljen, ne zamenjuje ga.*
+_Za tehničke detalje (tačna imena polja, redosled provera, API pozivi) vidi `09-SPECIFIKACIJA-M6-CRM.md` u istom folderu — ovaj dokument je namerno pojednostavljen, ne zamenjuje ga._

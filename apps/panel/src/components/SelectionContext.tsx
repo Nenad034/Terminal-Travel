@@ -54,14 +54,22 @@ interface SelectionContextValue {
   removeItem: (key: string) => void;
   clear: () => void;
   /** §3.0g.3 — upisuje nalaz osvežavanja na izabrane stavke; prazan objekat briše ranije nalaze. */
-  markPriceChanges: (changes: Record<string, { previous: number; current: number } | 'GONE'>) => void;
+  markPriceChanges: (
+    changes: Record<string, { previous: number; current: number } | 'GONE'>,
+  ) => void;
 }
 
 const SelectionContext = createContext<SelectionContextValue | null>(null);
 
 // `onFirstAdd` otvara desni panel (Shell.tsx) — M5 spec §3.0e.1 "sistem ODMAH predlaže" isti
 // duh, ovde: panel se pojavljuje čim ima šta da pokaže, ne pre. Prema potrebi, ne unapred.
-export function SelectionProvider({ children, onFirstAdd }: { children: React.ReactNode; onFirstAdd?: () => void }) {
+export function SelectionProvider({
+  children,
+  onFirstAdd,
+}: {
+  children: React.ReactNode;
+  onFirstAdd?: () => void;
+}) {
   const [items, setItems] = useState<SelectionItem[]>([]);
 
   // `onFirstAdd` otvara desni panel, što je izmena stanja RODITELJA (Shell). Zvao se ranije
@@ -85,22 +93,27 @@ export function SelectionProvider({ children, onFirstAdd }: { children: React.Re
     setItems([]);
   }
 
-  function markPriceChanges(changes: Record<string, { previous: number; current: number } | 'GONE'>) {
+  function markPriceChanges(
+    changes: Record<string, { previous: number; current: number } | 'GONE'>,
+  ) {
     setItems((prev) =>
       prev.map((i) => {
         const change = changes[i.key];
         // Cena stavke se AŽURIRA na novu (stara ostaje vidljiva kroz `priceChange.previous`) —
         // ne sme ostati prikazana cena koju provajder više ne garantuje. Ono što spec zabranjuje
         // je TIHA zamena, ne zamena uz jasnu prijavu; upravo to `priceChange` i jeste.
-        if (change && change !== 'GONE') return { ...i, finalPrice: change.current, priceChange: change };
+        if (change && change !== 'GONE')
+          return { ...i, finalPrice: change.current, priceChange: change };
         if (change === 'GONE') return { ...i, priceChange: 'GONE' as const };
         return i.priceChange ? { ...i, priceChange: undefined } : i;
-      })
+      }),
     );
   }
 
   return (
-    <SelectionContext.Provider value={{ items, addItem, removeItem, clear, markPriceChanges }}>{children}</SelectionContext.Provider>
+    <SelectionContext.Provider value={{ items, addItem, removeItem, clear, markPriceChanges }}>
+      {children}
+    </SelectionContext.Provider>
   );
 }
 

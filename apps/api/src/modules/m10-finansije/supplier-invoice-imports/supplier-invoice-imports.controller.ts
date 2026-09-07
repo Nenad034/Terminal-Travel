@@ -47,7 +47,11 @@ export class SupplierInvoiceImportsController {
 
   @Post(':id/rows/:rowId/reject')
   @RequirePermission('M10', 'supplier-invoice-import', 'REVIEW')
-  rejectRow(@Param('id') id: string, @Param('rowId') rowId: string, @CurrentUser() actor: { userId: string }) {
+  rejectRow(
+    @Param('id') id: string,
+    @Param('rowId') rowId: string,
+    @CurrentUser() actor: { userId: string },
+  ) {
     return this.imports.rejectRow(id, rowId, actor);
   }
 }

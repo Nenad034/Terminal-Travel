@@ -5,7 +5,6 @@ import RegisterTab from '@/components/RegisterTab';
 import Icon from '@/components/Icon';
 import { Button } from '@/components/ui/button';
 
-
 interface Supplier {
   id: string;
   name: string;
@@ -59,9 +58,14 @@ export default async function SuppliersPage() {
 
       {!error && (
         <div className="overflow-hidden rounded-lg border border-border">
-          {suppliers.length === 0 && <p className="p-4 text-center text-xs text-ink-faint">Nema dobavljača.</p>}
+          {suppliers.length === 0 && (
+            <p className="p-4 text-center text-xs text-ink-faint">Nema dobavljača.</p>
+          )}
           {suppliers.map((s) => (
-            <div key={s.id} className="flex items-center justify-between border-b border-border bg-panel px-4 py-3 text-sm last:border-b-0">
+            <div
+              key={s.id}
+              className="flex items-center justify-between border-b border-border bg-panel px-4 py-3 text-sm last:border-b-0"
+            >
               <div>
                 <div className="font-medium text-ink">{s.name}</div>
                 <div className="text-xs text-ink-faint">

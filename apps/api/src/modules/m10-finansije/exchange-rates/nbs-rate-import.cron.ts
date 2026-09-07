@@ -58,10 +58,14 @@ export class NbsRateImportCron {
     try {
       const r = await this.exchangeRates.backfillMissingRates(od, do_);
       if (r.popunjeno > 0 || r.neuspelo > 0) {
-        this.logger.log(`Samolečenje kursne liste: popunjeno ${r.popunjeno}, neuspelo ${r.neuspelo}.`);
+        this.logger.log(
+          `Samolečenje kursne liste: popunjeno ${r.popunjeno}, neuspelo ${r.neuspelo}.`,
+        );
       }
     } catch (err) {
-      this.logger.warn(`Samolečenje kursne liste nije uspelo: ${err instanceof Error ? err.message : String(err)}`);
+      this.logger.warn(
+        `Samolečenje kursne liste nije uspelo: ${err instanceof Error ? err.message : String(err)}`,
+      );
     }
   }
 }

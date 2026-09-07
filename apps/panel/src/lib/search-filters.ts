@@ -13,15 +13,30 @@
 
 /** Filteri sa jednom vrednošću. Prazan string znači „bez filtera" i briše se iz adrese. */
 export const SCALAR_FILTER_KEYS = [
-  'priceMin', 'priceMax', 'availability',
+  'priceMin',
+  'priceMax',
+  'availability',
   // M5 spec §3.0c.3a — brzi filter refundabilno/nerefundabilno.
   'refundable',
   // M5 spec §3.0d.1 — filteri letova.
-  'stops', 'maxLayover', 'maxDuration', 'departFrom', 'departTo', 'arriveFrom', 'arriveTo', 'minCheckedBags',
+  'stops',
+  'maxLayover',
+  'maxDuration',
+  'departFrom',
+  'departTo',
+  'arriveFrom',
+  'arriveTo',
+  'minCheckedBags',
 ] as const;
 
 /** Filteri sa više izabranih vrednosti. Prazan niz znači „sve". */
-export const MULTI_FILTER_KEYS = ['amenityTags', 'boardTypes', 'airlines', 'connAirports', 'stars'] as const;
+export const MULTI_FILTER_KEYS = [
+  'amenityTags',
+  'boardTypes',
+  'airlines',
+  'connAirports',
+  'stars',
+] as const;
 
 export const ALL_FILTER_KEYS: string[] = [...SCALAR_FILTER_KEYS, ...MULTI_FILTER_KEYS];
 
@@ -116,7 +131,10 @@ export function starsMatch(productStars: number | null | undefined, wanted: stri
 }
 
 /** Proizvod prolazi samo ako nosi SVAKI traženi sadržaj (I-logika, ista kao na serveru, M5 §3.0c.3). */
-export function amenitiesMatch(productAmenities: string[] | null | undefined, wanted: string[]): boolean {
+export function amenitiesMatch(
+  productAmenities: string[] | null | undefined,
+  wanted: string[],
+): boolean {
   if (wanted.length === 0) return true;
   const have = productAmenities ?? [];
   return wanted.every((tag) => have.includes(tag));

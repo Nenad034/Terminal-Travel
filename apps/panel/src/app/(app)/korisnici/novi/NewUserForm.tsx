@@ -14,7 +14,13 @@ const initialState: InviteState = { error: null };
 // Dopuna 4.9.2026: slanje email-a još nije povezano, pa se link posle kreiranja PRIKAZUJE
 // ovde da ga pozivalac prosledi ručno (isti obrazac kao M19 pozivnica dobavljaču). Ranije
 // je token tiho nestajao i pozvani čovek nikad nije mogao da se prijavi.
-export default function NewUserForm({ roles, branches }: { roles: { id: string; name: string }[]; branches: { id: string; name: string }[] }) {
+export default function NewUserForm({
+  roles,
+  branches,
+}: {
+  roles: { id: string; name: string }[];
+  branches: { id: string; name: string }[];
+}) {
   const [state, formAction] = useActionState(inviteUser, initialState);
 
   if (state.inviteToken && state.userId) {
@@ -52,7 +58,10 @@ export default function NewUserForm({ roles, branches }: { roles: { id: string; 
   }
 
   return (
-    <form action={formAction} className="flex max-w-lg flex-col gap-3 rounded-lg border border-border bg-panel p-5">
+    <form
+      action={formAction}
+      className="flex max-w-lg flex-col gap-3 rounded-lg border border-border bg-panel p-5"
+    >
       {state.error && <p className="rounded bg-danger-bg p-3 text-sm text-danger">{state.error}</p>}
 
       <label className="text-xs text-ink-faint">

@@ -4,7 +4,6 @@ import RegisterTab from '@/components/RegisterTab';
 import Icon from '@/components/Icon';
 import NewSubagentForm from './NewSubagentForm';
 
-
 interface ClientAccountSummary {
   id: string;
   accountType: 'INDIVIDUAL' | 'LEGAL_ENTITY';
@@ -17,7 +16,9 @@ interface ClientAccountSummary {
 // account_type = LEGAL_ENTITY (M6). Nema poseban M6 endpoint za filter po accountType (samo
 // email/taxId, isti kao CRM lista), pa se ovde traži nalogodavac preko istog filtera kao
 // /crm, a rezultat se suzi na LEGAL_ENTITY na nivou prikaza — kompozicija, ne novi M6 API.
-export default async function NewSubagentPage(props: { searchParams: Promise<{ email?: string; taxId?: string }> }) {
+export default async function NewSubagentPage(props: {
+  searchParams: Promise<{ email?: string; taxId?: string }>;
+}) {
   const searchParams = await props.searchParams;
   const hasQuery = Boolean(searchParams?.email || searchParams?.taxId);
   let matches: ClientAccountSummary[] = [];
@@ -28,7 +29,9 @@ export default async function NewSubagentPage(props: { searchParams: Promise<{ e
       const params = new URLSearchParams();
       if (searchParams.email) params.set('email', searchParams.email);
       if (searchParams.taxId) params.set('taxId', searchParams.taxId);
-      const all = await apiFetch<ClientAccountSummary[]>(`/crm/client-accounts?${params.toString()}`);
+      const all = await apiFetch<ClientAccountSummary[]>(
+        `/crm/client-accounts?${params.toString()}`,
+      );
       matches = all.filter((a) => a.accountType === 'LEGAL_ENTITY');
     } catch {
       error = 'Pretraga nalogodavaca nije uspela (M6/client-account/VIEW).';
@@ -40,9 +43,22 @@ export default async function NewSubagentPage(props: { searchParams: Promise<{ e
       <RegisterTab label="Novi subagent" />
       <h1 className="mb-4 text-lg font-semibold text-ink">Novi subagent</h1>
 
-      <form className="mb-4 flex gap-2 rounded-lg border border-border bg-panel p-3 text-xs" action="/b2b/novi">
-        <input name="email" defaultValue={searchParams?.email ?? ''} placeholder="pretraga nalogodavca (pravno lice) po email-u" className="input flex-1" />
-        <input name="taxId" defaultValue={searchParams?.taxId ?? ''} placeholder="ili po PIB-u" className="input flex-1" />
+      <form
+        className="mb-4 flex gap-2 rounded-lg border border-border bg-panel p-3 text-xs"
+        action="/b2b/novi"
+      >
+        <input
+          name="email"
+          defaultValue={searchParams?.email ?? ''}
+          placeholder="pretraga nalogodavca (pravno lice) po email-u"
+          className="input flex-1"
+        />
+        <input
+          name="taxId"
+          defaultValue={searchParams?.taxId ?? ''}
+          placeholder="ili po PIB-u"
+          className="input flex-1"
+        />
         <button
           type="submit"
           title="Traži"
@@ -58,7 +74,11 @@ export default async function NewSubagentPage(props: { searchParams: Promise<{ e
         <div className="mb-4 overflow-hidden rounded-lg border border-border">
           {matches.length === 0 && (
             <p className="p-4 text-xs text-ink-faint">
-              Nema pravnih lica koja odgovaraju pretrazi. Nalogodavac mora prvo postojati u <Link href="/crm/novi" className="text-accent hover:underline">CRM-u</Link> kao pravno lice pre registracije kao subagent.
+              Nema pravnih lica koja odgovaraju pretrazi. Nalogodavac mora prvo postojati u{' '}
+              <Link href="/crm/novi" className="text-accent hover:underline">
+                CRM-u
+              </Link>{' '}
+              kao pravno lice pre registracije kao subagent.
             </p>
           )}
           {matches.map((a) => (

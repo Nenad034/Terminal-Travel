@@ -10,7 +10,9 @@ describe('ReconciliationService (M10 spec §5.3)', () => {
 
   it('prijavljuje MISSING_FISCAL_DOCUMENT kad je puna uplata ali nema aktivnog fiskalnog dokumenta', async () => {
     const { service, prisma } = makeService();
-    prisma.booking.findMany.mockResolvedValue([{ id: 'booking-1', totalPrice: 100000, confirmedAt: new Date(), fiscalDocuments: [] }]);
+    prisma.booking.findMany.mockResolvedValue([
+      { id: 'booking-1', totalPrice: 100000, confirmedAt: new Date(), fiscalDocuments: [] },
+    ]);
     prisma.payment.aggregate.mockResolvedValue({ _sum: { amount: 100000 } });
 
     const mismatches = await service.findMismatches();
@@ -21,7 +23,12 @@ describe('ReconciliationService (M10 spec §5.3)', () => {
   it('ne prijavljuje ništa kad postoji ISSUED fiskalni dokument i puna uplata', async () => {
     const { service, prisma } = makeService();
     prisma.booking.findMany.mockResolvedValue([
-      { id: 'booking-1', totalPrice: 100000, confirmedAt: new Date(), fiscalDocuments: [{ status: 'ISSUED' }] },
+      {
+        id: 'booking-1',
+        totalPrice: 100000,
+        confirmedAt: new Date(),
+        fiscalDocuments: [{ status: 'ISSUED' }],
+      },
     ]);
     prisma.payment.aggregate.mockResolvedValue({ _sum: { amount: 100000 } });
 
@@ -45,11 +52,16 @@ describe('ReconciliationService (M10 spec §5.3)', () => {
 
   it('checkAndEmitSignals emituje jedan događaj po neusklađenosti', async () => {
     const { service, prisma, eventBus } = makeService();
-    prisma.booking.findMany.mockResolvedValue([{ id: 'booking-1', totalPrice: 100000, confirmedAt: new Date(), fiscalDocuments: [] }]);
+    prisma.booking.findMany.mockResolvedValue([
+      { id: 'booking-1', totalPrice: 100000, confirmedAt: new Date(), fiscalDocuments: [] },
+    ]);
     prisma.payment.aggregate.mockResolvedValue({ _sum: { amount: 100000 } });
 
     await service.checkAndEmitSignals();
 
-    expect(eventBus.emit).toHaveBeenCalledWith('M10', 'reconciliation_mismatch', { bookingId: 'booking-1', reason: 'MISSING_FISCAL_DOCUMENT' });
+    expect(eventBus.emit).toHaveBeenCalledWith('M10', 'reconciliation_mismatch', {
+      bookingId: 'booking-1',
+      reason: 'MISSING_FISCAL_DOCUMENT',
+    });
   });
 });

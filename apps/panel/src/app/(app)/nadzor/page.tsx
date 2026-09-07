@@ -8,7 +8,6 @@ import RunWeeklyReviewButton from './RunWeeklyReviewButton';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 
-
 interface HealthSignal {
   id: string;
   sourceModule: string;
@@ -49,9 +48,9 @@ const SIGNAL_TYPES = [
 // (dozvola M18/health-signal/VIEW), GET /ops/weekly-reviews (M18/weekly-review/VIEW) za
 // najskoriji nedeljni pregled na vrhu ekrana — M18 spec §4 ("push" obaveštenje ide preko
 // NotificationChannel, ovaj panel je "pull" prikaz istog izvora, spec §2.1 napomena).
-export default async function NadzorPage(
-  props: { searchParams: Promise<{ module?: string; type?: string; severity?: string }> }
-) {
+export default async function NadzorPage(props: {
+  searchParams: Promise<{ module?: string; type?: string; severity?: string }>;
+}) {
   const searchParams = await props.searchParams;
   const me = await getMe();
   const canViewReview = hasPermission(me, 'M18', 'weekly-review', 'VIEW');
@@ -73,13 +72,20 @@ export default async function NadzorPage(
   if (canViewReview) {
     try {
       const reviews = await apiFetch<WeeklyHealthReview[]>('/ops/weekly-reviews');
-      latestReview = reviews.length > 0 ? [...reviews].sort((a, b) => new Date(b.generatedAt).getTime() - new Date(a.generatedAt).getTime())[0] : null;
+      latestReview =
+        reviews.length > 0
+          ? [...reviews].sort(
+              (a, b) => new Date(b.generatedAt).getTime() - new Date(a.generatedAt).getTime(),
+            )[0]
+          : null;
     } catch {
       // nema dozvolu ili nema podataka — sekcija se jednostavno ne prikazuje
     }
   }
 
-  const sorted = [...signals].sort((a, b) => new Date(b.detectedAt).getTime() - new Date(a.detectedAt).getTime());
+  const sorted = [...signals].sort(
+    (a, b) => new Date(b.detectedAt).getTime() - new Date(a.detectedAt).getTime(),
+  );
 
   return (
     <div className="p-6">
@@ -99,7 +105,8 @@ export default async function NadzorPage(
           {latestReview ? (
             <div className="text-xs text-ink-dim">
               <p className="mb-1 text-[11px] text-ink-faint">
-                {new Date(latestReview.periodStart).toLocaleDateString('sr-RS')} – {new Date(latestReview.periodEnd).toLocaleDateString('sr-RS')} ·{' '}
+                {new Date(latestReview.periodStart).toLocaleDateString('sr-RS')} –{' '}
+                {new Date(latestReview.periodEnd).toLocaleDateString('sr-RS')} ·{' '}
                 {latestReview.status}
               </p>
               <p className="whitespace-pre-line text-ink">{latestReview.summary}</p>
@@ -155,7 +162,9 @@ export default async function NadzorPage(
 
       {!error && (
         <div className="overflow-hidden rounded-lg border border-border">
-          {sorted.length === 0 && <p className="p-4 text-center text-xs text-ink-faint">Nema signala.</p>}
+          {sorted.length === 0 && (
+            <p className="p-4 text-center text-xs text-ink-faint">Nema signala.</p>
+          )}
           {sorted.map((s) => {
             const critical = s.severity === 'CRITICAL';
             return (
@@ -165,7 +174,8 @@ export default async function NadzorPage(
               >
                 <div className="flex items-center justify-between">
                   <div className="font-medium text-ink">
-                    {s.signalType} <span className="text-xs text-ink-faint">({s.sourceModule})</span>
+                    {s.signalType}{' '}
+                    <span className="text-xs text-ink-faint">({s.sourceModule})</span>
                   </div>
                   <div className="flex items-center gap-2">
                     {s.securityCategory && (
@@ -178,10 +188,14 @@ export default async function NadzorPage(
                 </div>
                 <div className="mt-1 text-xs text-ink-faint">
                   detektovano {new Date(s.detectedAt).toLocaleString('sr-RS')}
-                  {s.notifiedAt ? ` · obavešteno ${new Date(s.notifiedAt).toLocaleString('sr-RS')}` : ' · obaveštenje nije poslato'}
+                  {s.notifiedAt
+                    ? ` · obavešteno ${new Date(s.notifiedAt).toLocaleString('sr-RS')}`
+                    : ' · obaveštenje nije poslato'}
                 </div>
                 {s.details && Object.keys(s.details).length > 0 && (
-                  <pre className="mt-2 overflow-x-auto rounded bg-panel2 p-2 text-[11px] text-ink-dim">{JSON.stringify(s.details, null, 2)}</pre>
+                  <pre className="mt-2 overflow-x-auto rounded bg-panel2 p-2 text-[11px] text-ink-dim">
+                    {JSON.stringify(s.details, null, 2)}
+                  </pre>
                 )}
               </div>
             );
@@ -193,7 +207,12 @@ export default async function NadzorPage(
 }
 
 function SeverityBadge({ severity }: { severity: string }) {
-  if (severity === 'CRITICAL') return <Badge variant="danger" className="border-danger">{severity}</Badge>;
+  if (severity === 'CRITICAL')
+    return (
+      <Badge variant="danger" className="border-danger">
+        {severity}
+      </Badge>
+    );
   if (severity === 'WARNING') return <Badge variant="warn">{severity}</Badge>;
   return (
     <Badge variant="secondary" className="text-ink-faint">

@@ -2,12 +2,12 @@
 
 ## 1. Metapodaci
 
-* **Naziv:** Aktivacija hotela po stvarnoj tražnji, umesto trajne aktivacije svih hotela
-* **Inicijator:** Nenad Tomić
-* **Datum kreiranja:** 2.9.2026.
-* **Status:** Predloženo (Proposed) — čeka odgovor posrednika pre nego što se odluči dalji tok
-* **Prioritet:** Srednji (operativni trošak, ne blokira ništa hitno)
-* **Napomena o obimu — VAN Terminal Travel (TT) arhitekture.** Ovo se tiče **trenutne operativne aplikacije** koju agencija danas koristi, ne sistema Terminal koji se gradi po `docs/00-MASTER-ARHITEKTURA.md`. Ovaj fajl je prvi probni primer `intent.md` koraka (vidi Dodatak A, zapis 2.9.2026, master dokument) — testira se sam format, ne dodaje se ništa u TT specifikaciju.
+- **Naziv:** Aktivacija hotela po stvarnoj tražnji, umesto trajne aktivacije svih hotela
+- **Inicijator:** Nenad Tomić
+- **Datum kreiranja:** 2.9.2026.
+- **Status:** Predloženo (Proposed) — čeka odgovor posrednika pre nego što se odluči dalji tok
+- **Prioritet:** Srednji (operativni trošak, ne blokira ništa hitno)
+- **Napomena o obimu — VAN Terminal Travel (TT) arhitekture.** Ovo se tiče **trenutne operativne aplikacije** koju agencija danas koristi, ne sistema Terminal koji se gradi po `docs/00-MASTER-ARHITEKTURA.md`. Ovaj fajl je prvi probni primer `intent.md` koraka (vidi Dodatak A, zapis 2.9.2026, master dokument) — testira se sam format, ne dodaje se ništa u TT specifikaciju.
 
 ---
 
@@ -23,13 +23,13 @@ Cilj: naći model gde se plaća srazmerno stvarnoj upotrebi, a da to bude prihva
 
 ## 3. Željeno ponašanje
 
-* **Tri sloja hotela po važnosti**, ne samo uključen/isključen:
+- **Tri sloja hotela po važnosti**, ne samo uključen/isključen:
   1. **Core (stalno aktivni)** — hoteli koji nose najveći deo prometa (očekivano: mala grupa hotela nosi veliku većinu rezervacija). Ostaju trajno aktivni.
   2. **Sezonski aktivni** — hoteli sa jasnim sezonskim obrascem tražnje. Aktiviraju se unapred, pre sezone, na osnovu prošlogodišnjih podataka; deaktiviraju se posle sezone.
   3. **Na zahtev** — svi ostali. Podrazumevano neaktivni; aktiviraju se tek kad se pojavi stvarna pretraga za tu destinaciju/hotel (ako brzina aktivacije to dozvoljava — vidi otvoreno pitanje ispod).
-* Proces koji periodično (npr. nedeljno/mesečno) čita logove pretraga i rezervacija iz trenutne aplikacije, računa raspored po slojevima i primenjuje ga preko posrednikovog API-ja/portala za (de)aktivaciju.
-* **Bezbednosna ograda:** nijedan hotel se ne sme deaktivirati ako ima otvorenu rezervaciju, upit u toku ili potvrđen budući boravak.
-* **Prvi mesec — samo predlog, bez izvršenja.** Sistem/agent predlaže listu ("ovih X hotela bih isključio, ušteda Y EUR"), čovek ručno pregleda i odobrava pre nego što se bilo šta stvarno menja. Automatska primena se uvodi tek posle provere da lista ima smisla.
+- Proces koji periodično (npr. nedeljno/mesečno) čita logove pretraga i rezervacija iz trenutne aplikacije, računa raspored po slojevima i primenjuje ga preko posrednikovog API-ja/portala za (de)aktivaciju.
+- **Bezbednosna ograda:** nijedan hotel se ne sme deaktivirati ako ima otvorenu rezervaciju, upit u toku ili potvrđen budući boravak.
+- **Prvi mesec — samo predlog, bez izvršenja.** Sistem/agent predlaže listu ("ovih X hotela bih isključio, ušteda Y EUR"), čovek ručno pregleda i odobrava pre nego što se bilo šta stvarno menja. Automatska primena se uvodi tek posle provere da lista ima smisla.
 
 ---
 
@@ -45,10 +45,10 @@ Cilj: naći model gde se plaća srazmerno stvarnoj upotrebi, a da to bude prihva
 
 ## 5. Tehnički kontekst i ograničenja
 
-* **Konekcija:** TravelgateX preko posredničke IT kompanije, pull princip (mi inicijalno zovemo njih po potrebi).
-* **API/portal za (de)aktivaciju hotela postoji kod posrednika** (potvrđeno 1.9.2026, razgovor sa vlasnikom) — pitanje je samo brzina i uslovi korišćenja, ne postojanje mogućnosti.
-* **Logovi pretraga i rezervacija postoje u trenutnoj aplikaciji** (potvrđeno 1.9.2026) — tačna baza/format još nije pregledan.
-* Mejl posredniku sa pitanjima o brzini aktivacije, ograničenjima učestalosti, minimalnom periodu naplate i tačnom modelu obračuna je formulisan 1.9.2026 (vidi istoriju razgovora) — status slanja/odgovora još nepoznat u trenutku pisanja ovog fajla.
+- **Konekcija:** TravelgateX preko posredničke IT kompanije, pull princip (mi inicijalno zovemo njih po potrebi).
+- **API/portal za (de)aktivaciju hotela postoji kod posrednika** (potvrđeno 1.9.2026, razgovor sa vlasnikom) — pitanje je samo brzina i uslovi korišćenja, ne postojanje mogućnosti.
+- **Logovi pretraga i rezervacija postoje u trenutnoj aplikaciji** (potvrđeno 1.9.2026) — tačna baza/format još nije pregledan.
+- Mejl posredniku sa pitanjima o brzini aktivacije, ograničenjima učestalosti, minimalnom periodu naplate i tačnom modelu obračuna je formulisan 1.9.2026 (vidi istoriju razgovora) — status slanja/odgovora još nepoznat u trenutku pisanja ovog fajla.
 
 ---
 

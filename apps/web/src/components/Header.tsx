@@ -77,7 +77,9 @@ function LocaleSwitcher({ locale }: { locale: string }) {
         <a
           key={l}
           href={`/${l}`}
-          className={l === locale ? 'font-semibold text-accent' : 'text-ink-faint hover:text-accent'}
+          className={
+            l === locale ? 'font-semibold text-accent' : 'text-ink-faint hover:text-accent'
+          }
         >
           {l.toUpperCase()}
         </a>

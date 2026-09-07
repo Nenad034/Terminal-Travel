@@ -8,11 +8,17 @@ export async function POST(req: NextRequest) {
   const { token, newPassword } = await req.json();
 
   try {
-    await apiFetch('/iam/auth/password/reset', { method: 'POST', body: { token, newPassword }, auth: false });
+    await apiFetch('/iam/auth/password/reset', {
+      method: 'POST',
+      body: { token, newPassword },
+      auth: false,
+    });
     return NextResponse.json({ ok: true });
   } catch (err) {
     if (err instanceof ApiError) {
-      return NextResponse.json(err.body ?? { message: 'Promena lozinke nije uspela' }, { status: err.status });
+      return NextResponse.json(err.body ?? { message: 'Promena lozinke nije uspela' }, {
+        status: err.status,
+      });
     }
     throw err;
   }

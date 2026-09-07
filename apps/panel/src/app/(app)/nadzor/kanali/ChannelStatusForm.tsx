@@ -12,7 +12,10 @@ export default function ChannelStatusForm({ id, status }: { id: string; status: 
   const boundAction = updateNotificationChannelStatus.bind(null, id);
   const [state, formAction] = useActionState(boundAction, initialState);
   return (
-    <form action={formAction} className="flex items-end gap-2 border-t border-border pt-2 text-[11px]">
+    <form
+      action={formAction}
+      className="flex items-end gap-2 border-t border-border pt-2 text-[11px]"
+    >
       {state.error && <span className="text-danger">{state.error}</span>}
       <label className="text-ink-faint">
         status
@@ -29,7 +32,13 @@ export default function ChannelStatusForm({ id, status }: { id: string; status: 
 function SubmitButton() {
   const { pending } = useFormStatus();
   return (
-    <Button type="submit" disabled={pending} variant="outline" size="sm" className="h-auto px-2 py-1">
+    <Button
+      type="submit"
+      disabled={pending}
+      variant="outline"
+      size="sm"
+      className="h-auto px-2 py-1"
+    >
       {pending ? 'Čuvanje…' : 'sačuvaj'}
     </Button>
   );

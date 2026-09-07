@@ -5,7 +5,6 @@ import NadzorSubnav from '../NadzorSubnav';
 import OverrideQuotaButton from './OverrideQuotaButton';
 import { Badge } from '@/components/ui/badge';
 
-
 // `budgetLimitEur`/`consumedEur` su Prisma `Decimal` na backendu (schema.prisma) — preko JSON-a
 // stižu kao STRING, ne broj (Decimal.toJSON() vraća string), otud `string | null` ovde, ne
 // `number`. Nalaz iz stvarne greške u produkciji (29.8.2026): `q.consumedEur.toFixed is not a
@@ -58,7 +57,8 @@ export default async function NadzorAiTroskoviPage() {
       agentBudgets = await apiFetch<AIAgentBudget[]>('/ops/ai-agent-budgets');
     }
     if (!canViewProviderQuota && !canViewAgentBudget) {
-      error = 'Nemate dozvolu za uvid u AI troškove (M18/ai-provider-quota/VIEW ili M18/ai-agent-budget/VIEW).';
+      error =
+        'Nemate dozvolu za uvid u AI troškove (M18/ai-provider-quota/VIEW ili M18/ai-agent-budget/VIEW).';
     }
   } catch {
     error = 'Učitavanje AI troškova nije uspelo.';
@@ -79,35 +79,52 @@ export default async function NadzorAiTroskoviPage() {
         <>
           <h2 className="mb-2 text-sm font-semibold text-ink">Po AI provajderu</h2>
           <div className="mb-6 overflow-hidden rounded-lg border border-border">
-            {providerQuotas.length === 0 && <p className="p-4 text-center text-xs text-ink-faint">Nema konfigurisanih kvota (spec §11 — ne pretpostavlja se unapred).</p>}
+            {providerQuotas.length === 0 && (
+              <p className="p-4 text-center text-xs text-ink-faint">
+                Nema konfigurisanih kvota (spec §11 — ne pretpostavlja se unapred).
+              </p>
+            )}
             {providerQuotas.map((q) => (
-              <div key={q.id} className="border-b border-border bg-panel px-4 py-3 text-sm last:border-b-0">
+              <div
+                key={q.id}
+                className="border-b border-border bg-panel px-4 py-3 text-sm last:border-b-0"
+              >
                 <div className="flex items-center justify-between">
                   <div className="font-medium text-ink">
                     {q.providerName} <span className="text-xs text-ink-faint">({q.period})</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <EnforcementBadge state={q.enforcementState} />
-                    {canOverride && q.enforcementState === 'DEGRADED' && <OverrideQuotaButton id={q.id} />}
+                    {canOverride && q.enforcementState === 'DEGRADED' && (
+                      <OverrideQuotaButton id={q.id} />
+                    )}
                   </div>
                 </div>
                 <div className="mt-1 text-xs text-ink-dim">
                   {q.budgetLimitEur != null ? (
                     <>
-                      potrošeno <b className="text-ink">{Number(q.consumedEur).toFixed(4)}</b> / {Number(q.budgetLimitEur).toFixed(2)} EUR
+                      potrošeno <b className="text-ink">{Number(q.consumedEur).toFixed(4)}</b> /{' '}
+                      {Number(q.budgetLimitEur).toFixed(2)} EUR
                     </>
                   ) : (
-                    <>potrošeno {Number(q.consumedEur).toFixed(4)} EUR (nema postavljen budget_limit_eur)</>
+                    <>
+                      potrošeno {Number(q.consumedEur).toFixed(4)} EUR (nema postavljen
+                      budget_limit_eur)
+                    </>
                   )}
                   {q.quotaLimit != null && (
                     <span className="ml-3">
-                      · {q.consumed} / {q.quotaLimit} (prag upozorenja {q.alertThresholdPercentage}%)
+                      · {q.consumed} / {q.quotaLimit} (prag upozorenja {q.alertThresholdPercentage}
+                      %)
                     </span>
                   )}
                 </div>
                 <div className="mt-1 text-[11px] text-ink-faint">
-                  period {new Date(q.periodStart).toLocaleDateString('sr-RS')} – {new Date(q.periodEnd).toLocaleDateString('sr-RS')}
-                  {q.degradedAt ? ` · degradiran ${new Date(q.degradedAt).toLocaleString('sr-RS')}` : ''}
+                  period {new Date(q.periodStart).toLocaleDateString('sr-RS')} –{' '}
+                  {new Date(q.periodEnd).toLocaleDateString('sr-RS')}
+                  {q.degradedAt
+                    ? ` · degradiran ${new Date(q.degradedAt).toLocaleString('sr-RS')}`
+                    : ''}
                 </div>
               </div>
             ))}
@@ -119,20 +136,30 @@ export default async function NadzorAiTroskoviPage() {
         <>
           <h2 className="mb-2 text-sm font-semibold text-ink">Po agentu</h2>
           <div className="overflow-hidden rounded-lg border border-border">
-            {agentBudgets.length === 0 && <p className="p-4 text-center text-xs text-ink-faint">Nema konfigurisanih budžeta po agentu.</p>}
+            {agentBudgets.length === 0 && (
+              <p className="p-4 text-center text-xs text-ink-faint">
+                Nema konfigurisanih budžeta po agentu.
+              </p>
+            )}
             {agentBudgets.map((b) => (
-              <div key={b.id} className="border-b border-border bg-panel px-4 py-3 text-sm last:border-b-0">
+              <div
+                key={b.id}
+                className="border-b border-border bg-panel px-4 py-3 text-sm last:border-b-0"
+              >
                 <div className="flex items-center justify-between">
                   <div className="font-medium text-ink">
-                    agent {b.agentId.slice(0, 8)}… <span className="text-xs text-ink-faint">({b.period})</span>
+                    agent {b.agentId.slice(0, 8)}…{' '}
+                    <span className="text-xs text-ink-faint">({b.period})</span>
                   </div>
                   <EnforcementBadge state={b.enforcementState} />
                 </div>
                 <div className="mt-1 text-xs text-ink-dim">
-                  potrošeno <b className="text-ink">{Number(b.consumedEur).toFixed(4)}</b> / {Number(b.budgetLimitEur).toFixed(2)} EUR
+                  potrošeno <b className="text-ink">{Number(b.consumedEur).toFixed(4)}</b> /{' '}
+                  {Number(b.budgetLimitEur).toFixed(2)} EUR
                 </div>
                 <div className="mt-1 text-[11px] text-ink-faint">
-                  period {new Date(b.periodStart).toLocaleDateString('sr-RS')} – {new Date(b.periodEnd).toLocaleDateString('sr-RS')}
+                  period {new Date(b.periodStart).toLocaleDateString('sr-RS')} –{' '}
+                  {new Date(b.periodEnd).toLocaleDateString('sr-RS')}
                 </div>
               </div>
             ))}

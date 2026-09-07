@@ -16,13 +16,21 @@ interface Tier {
 
 // M6 spec §3.2 — ručna dodela nivoa lojalnosti mimo praga, obavezan razlog, uvek pobeđuje
 // nad automatski izračunatim nivoom (Vlasnik/Direktor, M6/loyalty-status/OVERRIDE).
-export default function LoyaltyOverrideForm({ clientAccountId, tiers }: { clientAccountId: string; tiers: Tier[] }) {
+export default function LoyaltyOverrideForm({
+  clientAccountId,
+  tiers,
+}: {
+  clientAccountId: string;
+  tiers: Tier[];
+}) {
   const boundAction = overrideLoyaltyStatus.bind(null, clientAccountId);
   const [state, formAction] = useActionState(boundAction, initialState);
 
   return (
     <form action={formAction} className="mt-3 flex flex-col gap-2 border-t border-border pt-3">
-      {state.error && <p className="rounded bg-danger-bg p-2 text-[11px] text-danger">{state.error}</p>}
+      {state.error && (
+        <p className="rounded bg-danger-bg p-2 text-[11px] text-danger">{state.error}</p>
+      )}
       <label className="text-[11px] text-ink-faint">
         ručna dodela nivoa
         <select name="tierId" required className="input mt-1">

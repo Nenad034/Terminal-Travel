@@ -29,7 +29,9 @@ describe('M2 — izlazni kriterijum (e2e)', () => {
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
     app = moduleRef.createNestApplication();
     app.setGlobalPrefix('api/v1');
-    app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }));
+    app.useGlobalPipes(
+      new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }),
+    );
     app.useGlobalFilters(new PrismaExceptionFilter());
     await app.init();
     prisma = app.get(PrismaService);
@@ -41,8 +43,12 @@ describe('M2 — izlazni kriterijum (e2e)', () => {
       await prisma.productContentImportField.deleteMany({
         where: { import: { productId: { in: createdProductIds } } },
       });
-      await prisma.productContentImport.deleteMany({ where: { productId: { in: createdProductIds } } });
-      await prisma.productTranslation.deleteMany({ where: { productId: { in: createdProductIds } } });
+      await prisma.productContentImport.deleteMany({
+        where: { productId: { in: createdProductIds } },
+      });
+      await prisma.productTranslation.deleteMany({
+        where: { productId: { in: createdProductIds } },
+      });
       await prisma.product.deleteMany({ where: { id: { in: createdProductIds } } });
     }
     if (createdUserIds.length) {
@@ -63,7 +69,9 @@ describe('M2 — izlazni kriterijum (e2e)', () => {
     });
     createdUserIds.push(user.id);
     const role = await prisma.role.findUniqueOrThrow({ where: { name: roleName } });
-    await prisma.userRole.create({ data: { userId: user.id, roleId: role.id, assignedBy: user.id } });
+    await prisma.userRole.create({
+      data: { userId: user.id, roleId: role.id, assignedBy: user.id },
+    });
     const accessToken = jwt.sign({ sub: user.id, sessionId: 'e2e-test-session' });
     return { user, accessToken };
   }
@@ -89,12 +97,22 @@ describe('M2 — izlazni kriterijum (e2e)', () => {
       await request(app.getHttpServer())
         .put(`/api/v1/catalog/products/${productId}/translations`)
         .set(authed(accessToken))
-        .send({ languageCode: 'sr', name: 'Hotel Zlatibor', description: 'Opis', slug: `hotel-zlatibor-${testRunId}` })
+        .send({
+          languageCode: 'sr',
+          name: 'Hotel Zlatibor',
+          description: 'Opis',
+          slug: `hotel-zlatibor-${testRunId}`,
+        })
         .expect(200);
       await request(app.getHttpServer())
         .put(`/api/v1/catalog/products/${productId}/translations`)
         .set(authed(accessToken))
-        .send({ languageCode: 'en', name: 'Zlatibor Hotel', description: 'Description', slug: `zlatibor-hotel-${testRunId}` })
+        .send({
+          languageCode: 'en',
+          name: 'Zlatibor Hotel',
+          description: 'Description',
+          slug: `zlatibor-hotel-${testRunId}`,
+        })
         .expect(200);
 
       const publishRes = await request(app.getHttpServer())
@@ -118,7 +136,11 @@ describe('M2 — izlazni kriterijum (e2e)', () => {
       const createRes = await request(app.getHttpServer())
         .post('/api/v1/catalog/products')
         .set(authed(accessToken))
-        .send({ type: 'ACCOMMODATION', destinationCountry: 'Srbija', destinationCity: 'Vrnjačka Banja' });
+        .send({
+          type: 'ACCOMMODATION',
+          destinationCountry: 'Srbija',
+          destinationCity: 'Vrnjačka Banja',
+        });
       const productId = createRes.body.id;
       createdProductIds.push(productId);
 
@@ -143,11 +165,21 @@ describe('M2 — izlazni kriterijum (e2e)', () => {
       await request(app.getHttpServer())
         .put(`/api/v1/catalog/products/${productId}/translations`)
         .set(authed(accessToken))
-        .send({ languageCode: 'sr', name: 'Srpski naziv', description: 'Opis', slug: `nis-${testRunId}` });
+        .send({
+          languageCode: 'sr',
+          name: 'Srpski naziv',
+          description: 'Opis',
+          slug: `nis-${testRunId}`,
+        });
       await request(app.getHttpServer())
         .put(`/api/v1/catalog/products/${productId}/translations`)
         .set(authed(accessToken))
-        .send({ languageCode: 'en', name: 'English name', description: 'Desc', slug: `nis-en-${testRunId}` });
+        .send({
+          languageCode: 'en',
+          name: 'English name',
+          description: 'Desc',
+          slug: `nis-en-${testRunId}`,
+        });
 
       const frRes = await request(app.getHttpServer())
         .get(`/api/v1/catalog/products/${productId}`)
@@ -194,7 +226,9 @@ describe('M2 — izlazni kriterijum (e2e)', () => {
       expect(publicRes.body).not.toHaveProperty('sourceExternalId');
       // Ne blanket regex na "source" — ProductTranslation.translationSource je legitimno polje
       // (poreklo prevoda: MANUAL/AI_GENERATED), nema veze sa identitetom dobavljača (§5.1).
-      expect(JSON.stringify(publicRes.body)).not.toMatch(/"sourceType"|"sourceContractId"|"sourceProvider"|"sourceExternalId"/);
+      expect(JSON.stringify(publicRes.body)).not.toMatch(
+        /"sourceType"|"sourceContractId"|"sourceProvider"|"sourceExternalId"/,
+      );
     });
 
     it('javni endpoint ne vraća proizvod koji nije ACTIVE ili nije vidljiv na traženom kanalu', async () => {
@@ -250,23 +284,28 @@ describe('M2 — izlazni kriterijum (e2e)', () => {
   });
 
   describe('Novi tipovi proizvoda TRANSPORT/TICKET/EVENT (izlazni kriterijum, stavka 7)', () => {
-    it.each(['TRANSPORT', 'TICKET', 'EVENT'])('kreira %s proizvod i nalazi ga filtriran po tipu', async (type) => {
-      const { accessToken } = await createInternalUser(SYSTEM_ROLES.VLASNIK);
-      const createRes = await request(app.getHttpServer())
-        .post('/api/v1/catalog/products')
-        .set(authed(accessToken))
-        .send({ type, destinationCountry: 'Srbija', destinationCity: 'Beograd' });
-      expect(createRes.status).toBe(201);
-      createdProductIds.push(createRes.body.id);
+    it.each(['TRANSPORT', 'TICKET', 'EVENT'])(
+      'kreira %s proizvod i nalazi ga filtriran po tipu',
+      async (type) => {
+        const { accessToken } = await createInternalUser(SYSTEM_ROLES.VLASNIK);
+        const createRes = await request(app.getHttpServer())
+          .post('/api/v1/catalog/products')
+          .set(authed(accessToken))
+          .send({ type, destinationCountry: 'Srbija', destinationCity: 'Beograd' });
+        expect(createRes.status).toBe(201);
+        createdProductIds.push(createRes.body.id);
 
-      const listRes = await request(app.getHttpServer())
-        .get('/api/v1/catalog/products')
-        .query({ type })
-        .set(authed(accessToken));
-      // Straničen odgovor od 5.9.2026 (dok. 39 nalaz 2.2) — redovi su u `.data`.
-      expect(listRes.body.data.every((p: { type: string }) => p.type === type)).toBe(true);
-      expect(listRes.body.data.some((p: { id: string }) => p.id === createRes.body.id)).toBe(true);
-    });
+        const listRes = await request(app.getHttpServer())
+          .get('/api/v1/catalog/products')
+          .query({ type })
+          .set(authed(accessToken));
+        // Straničen odgovor od 5.9.2026 (dok. 39 nalaz 2.2) — redovi su u `.data`.
+        expect(listRes.body.data.every((p: { type: string }) => p.type === type)).toBe(true);
+        expect(listRes.body.data.some((p: { id: string }) => p.id === createRes.body.id)).toBe(
+          true,
+        );
+      },
+    );
   });
 
   describe('room_types[] strukturirani objekti + podrazumevan age_policy (izlazni kriterijum, stavke 8-9)', () => {
@@ -291,11 +330,21 @@ describe('M2 — izlazni kriterijum (e2e)', () => {
                 name: 'Standardna soba',
                 capacity_adults: 2,
                 capacity_children: 0,
-                age_policy: [{ category: 'ADULT', age_from: 16, age_to: null, counts_toward_capacity: true }],
+                age_policy: [
+                  { category: 'ADULT', age_from: 16, age_to: null, counts_toward_capacity: true },
+                ],
               },
             ],
           },
-          media: [{ url: 'https://example.com/soba.jpg', type: 'image', order: 0, category: 'ROOM', room_type_code: 'DELUXE' }],
+          media: [
+            {
+              url: 'https://example.com/soba.jpg',
+              type: 'image',
+              order: 0,
+              category: 'ROOM',
+              room_type_code: 'DELUXE',
+            },
+          ],
         })
         .expect(200);
 
@@ -337,7 +386,9 @@ describe('M2 — izlazni kriterijum (e2e)', () => {
       expect(importRes.status).toBe(201);
       expect(importRes.body.status).toBe('EXTRACTED'); // preskače PENDING (§3.3a)
       const fieldId = importRes.body.fields[0].id;
-      expect(importRes.body.fields[0].sourceArticleRevisionId).toBe('11111111-1111-1111-1111-111111111111');
+      expect(importRes.body.fields[0].sourceArticleRevisionId).toBe(
+        '11111111-1111-1111-1111-111111111111',
+      );
       expect(importRes.body.fields[0].reviewedBy).toBeNull(); // ništa nije primenjeno pre ljudskog pregleda
 
       // pre odobrenja, media[] proizvoda je i dalje prazan
@@ -347,7 +398,9 @@ describe('M2 — izlazni kriterijum (e2e)', () => {
       expect(beforeReview.body.media).toEqual([]);
 
       const reviewRes = await request(app.getHttpServer())
-        .post(`/api/v1/catalog/product-content-imports/${importRes.body.id}/fields/${fieldId}/review`)
+        .post(
+          `/api/v1/catalog/product-content-imports/${importRes.body.id}/fields/${fieldId}/review`,
+        )
         .set(authed(accessToken))
         .send({ decision: 'APPROVED' });
       expect(reviewRes.status).toBe(201);
@@ -385,7 +438,9 @@ describe('M2 — izlazni kriterijum (e2e)', () => {
     it('Sales Manager sme GET /products', async () => {
       const { accessToken } = await createInternalUser(SYSTEM_ROLES.SALES_MANAGER);
 
-      const res = await request(app.getHttpServer()).get('/api/v1/catalog/products').set(authed(accessToken));
+      const res = await request(app.getHttpServer())
+        .get('/api/v1/catalog/products')
+        .set(authed(accessToken));
 
       expect(res.status).toBe(200);
     });

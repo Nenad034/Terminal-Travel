@@ -1,4 +1,17 @@
-import { BadRequestException, Body, Controller, Delete, Get, Param, Patch, Post, Res, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Res,
+  UploadedFile,
+  UseGuards,
+  UseInterceptors,
+} from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { diskStorage } from 'multer';
@@ -62,13 +75,17 @@ export class ConversationsController {
     FileInterceptor('file', {
       storage: diskStorage({
         destination: (req, _file, cb) => cb(null, ensureConversationUploadDir(req.params.id)),
-        filename: (_req, file, cb) => cb(null, `${randomUUID()}-${sanitizeAttachmentFileName(file.originalname)}`),
+        filename: (_req, file, cb) =>
+          cb(null, `${randomUUID()}-${sanitizeAttachmentFileName(file.originalname)}`),
       }),
       limits: { fileSize: MAX_ATTACHMENT_BYTES },
       fileFilter: (_req, file, cb) => {
         const ext = extname(file.originalname).toLowerCase();
         if (BLOCKED_ATTACHMENT_EXTENSIONS.includes(ext)) {
-          return cb(new BadRequestException(`Tip fajla "${ext}" nije dozvoljen kao prilog.`), false);
+          return cb(
+            new BadRequestException(`Tip fajla "${ext}" nije dozvoljen kao prilog.`),
+            false,
+          );
         }
         cb(null, true);
       },
@@ -101,7 +118,11 @@ export class ConversationsController {
   }
 
   @Patch('messages/:messageId')
-  editMessage(@Param('messageId') messageId: string, @Body() dto: UpdateMessageDto, @CurrentUser() user: { userId: string }) {
+  editMessage(
+    @Param('messageId') messageId: string,
+    @Body() dto: UpdateMessageDto,
+    @CurrentUser() user: { userId: string },
+  ) {
     return this.conversations.editMessage(messageId, dto, user.userId);
   }
 

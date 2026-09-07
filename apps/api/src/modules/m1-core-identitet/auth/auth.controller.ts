@@ -36,7 +36,12 @@ export class AuthController {
   @Post('mfa/verify')
   @Public()
   verifyMfa(@Body() dto: MfaVerifyDto, @Req() req: Request) {
-    return this.auth.verifyMfa(dto.mfaToken, dto.code, req.ip ?? null, req.headers['user-agent'] ?? null);
+    return this.auth.verifyMfa(
+      dto.mfaToken,
+      dto.code,
+      req.ip ?? null,
+      req.headers['user-agent'] ?? null,
+    );
   }
 
   // M1 spec §5/§6 (dopuna 4.9.2026) — prvo podešavanje 2FA za nalog koji je 2FA obavezan
@@ -52,7 +57,12 @@ export class AuthController {
   @Post('mfa/setup/confirm')
   @Public()
   confirmMfaSetup(@Body() dto: ConfirmMfaSetupDto, @Req() req: Request) {
-    return this.auth.confirmMfaSetup(dto.setupToken, dto.code, req.ip ?? null, req.headers['user-agent'] ?? null);
+    return this.auth.confirmMfaSetup(
+      dto.setupToken,
+      dto.code,
+      req.ip ?? null,
+      req.headers['user-agent'] ?? null,
+    );
   }
 
   @Post('refresh')
@@ -95,7 +105,10 @@ export class AuthController {
   @Post('mfa/enroll/confirm')
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
-  confirmMfaEnrollment(@Body('code') code: string, @Req() req: Request & { user: { userId: string } }) {
+  confirmMfaEnrollment(
+    @Body('code') code: string,
+    @Req() req: Request & { user: { userId: string } },
+  ) {
     return this.auth.confirmMfaEnrollment(req.user.userId, code).then(() => ({ ok: true }));
   }
 

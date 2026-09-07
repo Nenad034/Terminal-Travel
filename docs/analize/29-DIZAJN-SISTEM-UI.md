@@ -29,20 +29,20 @@
 **Verzija:** 1.73 — tri dopune levog panela/ActivityBar-a (5.9.2026, vlasnikov zahtev). (1) EUR ikonica (v1.72) uvećana sa 15px na 20px — na istoj visini reda vizuelno je ispadala manja od codicon glifova ("nije srazmerna veličini ostalih ikona"). (2) `ActivityBar.tsx`: svaka grupna ikonica dobija vidljiv kvadratni "tag" (`rounded-md`, `bg-panel`/`bg-accent-soft`), ne samo aktivna kao do sad ("sve ikone stavite u četvrtaste tagove sa vrlo blago zaobljenim ivicama") — isti jezik kao ikonica-bedž u `HomeSidebarPanel.tsx` `QuickLinkCard`. Strelica za ponovno širenje (v1.66 tačka 2) postaje `IconDuo` (dve strelice), par sa `Sidebar.tsx` skupljanjem (v1.71) — obe strane istog dejstva sad dosledno nose dve strelice. (3) `SidebarSection.tsx` (v1.69) i sve tri sekcije koje je koriste ("Filteri", "Sačuvani prikazi", "Grupne pretrage") + njihove pojedinačne stavke prelaze na "karticu" izgled (`rounded-lg border border-border bg-panel p-2`, ikonica u `rounded-md` bedžu, podebljan naslov) — isti vizuelni jezik kao `HomeSidebarPanel.tsx`, na vlasnikov zahtev uz priloženu sliku tog istog ekrana ("hoću ovako da izgledaju linkovi za accordion za filtere i ono ispod filtera").
 **Verzija:** 1.72 — poglavlje 3a, ikonica grupe "Prodaja" postaje € umesto lupe (5.9.2026, vlasnikov zahtev: "umesto ikone lupe u levoj traci glavnog menija stavite ikonu za EUR"). `@vscode/codicons` nema glif za valutu (ni "euro" ni "currency", jedini finansijski glif je `credit-card`, semantički pogrešan ovde) — `Icon.tsx` dobija poseban slučaj za rezervisano ime `euro`: prikazuje doslovan znak "€", veličinom/linijskom visinom uparen sa `.codicon` (16px/1) da stoji ravnopravno pored pravih Codicon ikonica u istom redu (ActivityBar/gornja traka). `nav.ts` grupa `prodaja` menja `icon: 'search'` → `icon: 'euro'`.
 **Verzija:** 1.71 — poglavlje 5c, jedan red sa dve namene na suprotnim krajevima (5.9.2026, vlasnikov zahtev: "Jedna strelica za povratak na prethodni nivo menija. Dve strelice za sklapanje celog levog panela... u jednoj liniji na suprotnim stranama"). LEVO: jedna `chevron-left` strelica, povratak na spisak sekcija tekuće grupe (samo dok je nešto izabrano). DESNO: `IconDuo` (dve `chevron-left`, isti "dupli glif" obrazac kao "Putovanja" ikonica, v1.68/v9ab4a46) — skupljanje CELE leve trake, uvek prisutno bez obzira na `selected`. Razlog: v1.70 je oba dejstva davala kroz identičan pojedinačan `chevron-left` glif na dva različita mesta — vizuelno nerazlučivo koje dugme radi šta.
-**Verzija:** 1.70 — poglavlje 5c, uklonjen naziv grupe i naziv sekcije iznad sadržaja levog panela (5.9.2026, vlasnikov zahtev: "uklonite Pretraga i Rezervacije sa ikonom lupe, nema razloga da stoje ovde, uklonite reč Prodaja, samo ostavite link za povratak"). Strelica za povratak na spisak sekcija grupe (`setForceShowList`) ostaje, ali bez vidljivog teksta naziva grupe (`title` atribut umesto vidljivog labela); red sa ikonicom+nazivom sekcije (npr. "🔍 Pretraga i rezervacije") je u potpunosti uklonjen — isti razlog kao uklanjanje `$ pretraga` naslova (commit 1b9b7a9): tab i otvorena grupa u gornjoj traci već pokazuju gde je korisnik. Važi za SVE grupe (M17 spec §4a), ne samo "Pretraga". Uz to, isti sklopivi "Filteri" obrazac (v1.69) primenjen i na `KatalogSidebarPanel.tsx` (do sad bez ikakvog "Filteri" naslova/ševrona, filteri su stajali direktno na vrhu panela).
-**Verzija:** 1.69 — poglavlje 6d, "Sačuvani prikazi"/"Grupne pretrage" postaju sklopivi (5.9.2026, vlasnikov zahtev: "previše praznog prostora u vrhu levog panela... kao što su filteri kao accordion tako stavite i ove dve stavke ispod"). Isti ševron-obrazac kao "Filteri" (§6d, "Section" komponenta, izdvojena u deljen `SidebarSection.tsx`) — podrazumevano ZATVORENE dok su prazne (prazno stanje je do sad zauzimalo isti prostor kao puno, samo sa objašnjenjem umesto sadržaja), automatski se otvaraju čim dobiju bar jedan zapis (npr. odmah po čuvanju novog prikaza).
+**Verzija:** 1.70 — poglavlje 5c, uklonjen naziv grupe i naziv sekcije iznad sadržaja levog panela (5.9.2026, vlasnikov zahtev: "uklonite Pretraga i Rezervacije sa ikonom lupe, nema razloga da stoje ovde, uklonite reč Prodaja, samo ostavite link za povratak"). Strelica za povratak na spisak sekcija grupe (`setForceShowList`) ostaje, ali bez vidljivog teksta naziva grupe (`title` atribut umesto vidljivog labela); red sa ikonicom+nazivom sekcije (npr. "🔍 Pretraga i rezervacije") je u potpunosti uklonjen — isti razlog kao uklanjanje `$ pretraga`naslova (commit 1b9b7a9): tab i otvorena grupa u gornjoj traci već pokazuju gde je korisnik. Važi za SVE grupe (M17 spec §4a), ne samo "Pretraga". Uz to, isti sklopivi "Filteri" obrazac (v1.69) primenjen i na`KatalogSidebarPanel.tsx`(do sad bez ikakvog "Filteri" naslova/ševrona, filteri su stajali direktno na vrhu panela).
+**Verzija:** 1.69 — poglavlje 6d, "Sačuvani prikazi"/"Grupne pretrage" postaju sklopivi (5.9.2026, vlasnikov zahtev: "previše praznog prostora u vrhu levog panela... kao što su filteri kao accordion tako stavite i ove dve stavke ispod"). Isti ševron-obrazac kao "Filteri" (§6d, "Section" komponenta, izdvojena u deljen`SidebarSection.tsx`) — podrazumevano ZATVORENE dok su prazne (prazno stanje je do sad zauzimalo isti prostor kao puno, samo sa objašnjenjem umesto sadržaja), automatski se otvaraju čim dobiju bar jedan zapis (npr. odmah po čuvanju novog prikaza).
 **Verzija:** 1.68 — poglavlje 6d.1, deseta ikonica "Putovanja" (5.9.2026, vlasnikov zahtev — M2 §2.3f/M5 §3.0d.6b, isti prolaz): spisak vrsta proizvoda pri vrhu centralnog panela raste sa devet na deset, "Putovanja" (grupni paket sa vodičem) dobija sopstvenu ikonicu odvojenu od "Grupni paketi", isti obrazac kao "Rent-a-car" pod "Prevoz".
 **Verzija:** 1.67 — poglavlje 6d, dve dopune u panelu filtera (5.9.2026, vlasnikov zahtev): (1) grupa "Aktivnosti" (M5 §3.0c.3e, novo) ostaje uvek otvorena, bez ševrona za sklapanje, jer je sve češće primarni kriterijum izbora destinacije, ne sporedan detalj; (2) kontekstualni filteri (M5 §3.0c.3d) dobijaju suptilnu info-oznaku zašto se pojavljuju/nestaju po destinaciji/mesecu, da nestanak ne deluje kao kvar.
-**Verzija:** 1.66 — poglavlje 2.0f, svetli mod (4.9.2026, vlasnikov zahtev: "bleštava bela zamara, hoću svetlo plavu nijansu i tamnije nijanse za ivice kartica/trake" + poređenje sa `mylighthouse.com/company/partnerships`): nova paleta svetlog moda **"Azur + Svetionik"** — podloga spuštena u svetlo plavo, tekst/granice u tegetu i akcent u tealu sa Lighthouse sajta (izvučeno iz njihovog CSS-a, ne procenjeno sa slike), ranija indigo akcent boja seli se na `--accent2` (zamenila mesto sa tealom, koji je do sad bio sekundaran). Tri predloga (čisto plava, doslovna Lighthouse, kombinacija) prikazana vizuelno kroz Artifact pre nego što je vlasnik birao. Dim i tamni mod nepromenjeni. Sve vrednosti prošle `tools/check-contrast.js` protiv svih pet podloga (§2.0f, zamka 1.9).
+**Verzija:** 1.66 — poglavlje 2.0f, svetli mod (4.9.2026, vlasnikov zahtev: "bleštava bela zamara, hoću svetlo plavu nijansu i tamnije nijanse za ivice kartica/trake" + poređenje sa `mylighthouse.com/company/partnerships`): nova paleta svetlog moda **"Azur + Svetionik"** — podloga spuštena u svetlo plavo, tekst/granice u tegetu i akcent u tealu sa Lighthouse sajta (izvučeno iz njihovog CSS-a, ne procenjeno sa slike), ranija indigo akcent boja seli se na `--accent2`(zamenila mesto sa tealom, koji je do sad bio sekundaran). Tri predloga (čisto plava, doslovna Lighthouse, kombinacija) prikazana vizuelno kroz Artifact pre nego što je vlasnik birao. Dim i tamni mod nepromenjeni. Sve vrednosti prošle`tools/check-contrast.js` protiv svih pet podloga (§2.0f, zamka 1.9).
 **Verzija:** 1.65 — poglavlje 6d, treći korak istog dana (3.9.2026, vlasnikov zahtev: *„stavite u jedan red filtere iznad rezultata pretrage i odvojite ih vertikalnom linijom"*): brzi filteri, sortiranje i prekidač lista/mapa stoje u **jednom** redu, grupe razdvojene **uspravnom crtom** (`h-4 w-px bg-border`, ista boja kao svaka druga granica — bez sopstvenog tokena). Uspravna crta je time i opšti obrazac ovog dokumenta za razdvajanje grupa **unutar** jedne vodoravne trake; vodoravna linija između sekcija je 1.63 uklonjena i ne vraća se (drugi slučaj — tamo su blokovi jedan ispod drugog, ovde grupe jedna kraj druge u istom redu).
 
-**Verzija:** 1.66 — četiri dorade posle probe na laptopu (4.9.2026, na zahtev vlasnika). (1) Poglavlje 6d.1: ekran pretrage gubi naslov `$ pretraga` i podnaslov iznad ikonica — tab već nosi naziv ekrana — a ikonice se dižu skoro do vrha panela, rastu **+20%** i zbijaju **−20%** (mereno od centra do centra, kroz širinu dugmeta; `gap` je bio 4px pa bi −20% na njemu bilo nevidljivo). Tanka linija ispod ikonica dodata pa uklonjena istog dana (*„višak je ipak"*). (2) Poglavlje 5c.1: skupljena leva traka dobija sopstvenu `chevron-right` strelicu — do tada se širila samo kao sporedan efekat klika na ikonicu grupe, što se ne može pretpostaviti; opšte pravilo upisano uz nju. (3) Ispravka rasporeda bez izmene dokumenta: domaćin AI chata više ne pravi prazan prostor ispod ekrana (zamka 9.10).
+**Verzija:** 1.66 — četiri dorade posle probe na laptopu (4.9.2026, na zahtev vlasnika). (1) Poglavlje 6d.1: ekran pretrage gubi naslov `$ pretraga` i podnaslov iznad ikonica — tab već nosi naziv ekrana — a ikonice se dižu skoro do vrha panela, rastu **+20%** i zbijaju **−20%** (mereno od centra do centra, kroz širinu dugmeta; `gap` je bio 4px pa bi −20% na njemu bilo nevidljivo). Tanka linija ispod ikonica dodata pa uklonjena istog dana (_„višak je ipak"_). (2) Poglavlje 5c.1: skupljena leva traka dobija sopstvenu `chevron-right` strelicu — do tada se širila samo kao sporedan efekat klika na ikonicu grupe, što se ne može pretpostaviti; opšte pravilo upisano uz nju. (3) Ispravka rasporeda bez izmene dokumenta: domaćin AI chata više ne pravi prazan prostor ispod ekrana (zamka 9.10).
 
 **Verzija:** 1.65 — poglavlja 6d.2 i 6f (4.9.2026, na zahtev vlasnika): traka za sortiranje prelazi sa reda dugmadi na **padajući meni** — prvi izuzetak od §6f otkad je to pravilo uvedeno. Razlog nije broj opcija (četiri, taman za dugmad) nego **širina reda**: od v1.60 sortiranje deli red sa brzim filterima i prekidačem lista/mapa, pa je na laptopu (~1366px, uz otvoren levi panel) traka natrpana do ivice — na velikom monitoru se to ne vidi, što je i razlog previda. §6f ostaje netaknut za skupove koji stoje sami u redu, uz dopunu: kad red deli prostor sa drugim grupama, proveriti ga na najužem ekranu koji se stvarno koristi. Izabran redosled se ispisuje na samom dugmetu (zatvoren meni ne sme da krije po čemu je lista poređana). Podaci i opcije: M5 §3.0g.8.
 
-**Verzija:** 1.64 — poglavlje 6d, brzi filteri menjaju mesto (3.9.2026, vlasnikov zahtev: *„u horizontalni filter iznad rezultata pretrage u centralnom panelu postavite i filtere za Non refundable, Refundable… za Kategoriju zvezdice postavite tag koji ima od 1 do 5 zvezdica"*): par **Refundabilno/Nerefundabilno** se seli iz levog panela u **vodoravnu traku iznad rezultata**, uz sortiranje, i tamo mu se pridružuje nov filter **kategorije (zvezdice)** — jedan tag sa pet zvezdica, ali pet nezavisnih prekidača, ne skala „N i više". Par **Odmah potvrda/Upit** ostaje u levom panelu (vlasnikov zahtev je imenovao samo druga dva) — poznata razlika u odnosu na raniji tekst, ne previd. Podaci/logika: M5 poglavlje 3.0c.3a (dopuna) i 3.0c.3c (novo).
+**Verzija:** 1.64 — poglavlje 6d, brzi filteri menjaju mesto (3.9.2026, vlasnikov zahtev: _„u horizontalni filter iznad rezultata pretrage u centralnom panelu postavite i filtere za Non refundable, Refundable… za Kategoriju zvezdice postavite tag koji ima od 1 do 5 zvezdica"_): par **Refundabilno/Nerefundabilno** se seli iz levog panela u **vodoravnu traku iznad rezultata**, uz sortiranje, i tamo mu se pridružuje nov filter **kategorije (zvezdice)** — jedan tag sa pet zvezdica, ali pet nezavisnih prekidača, ne skala „N i više". Par **Odmah potvrda/Upit** ostaje u levom panelu (vlasnikov zahtev je imenovao samo druga dva) — poznata razlika u odnosu na raniji tekst, ne previd. Podaci/logika: M5 poglavlje 3.0c.3a (dopuna) i 3.0c.3c (novo).
 
-**Verzija:** 1.63 — poglavlje 6d, drugi korak istog dana (3.9.2026, vlasnikov predlog): linije između sekcija filtera **uklonjene**, sekcija postaje jedan blok na `--sunken` podlozi (naslov i tagovi dele istu nijansu), blokove razdvaja razmak. Pilule tagova se **dižu** na `--panel`, jer njihov okvir na `--sunken` daje 2,94:1 u svetlom modu — ispod 3:1 praga za granice (§2a); `--border` se namerno ne dira. Izmereni odnosi podloga po sva tri moda upisani uz odluku, sa jasnim leverom za slučaj da se ijedan sloj pokaže preslabim. v1.62 *(nadmašena istog dana)* — sekcije filtera razdvajala je tanka linija uz veći razmak; uklonjeno jer je sedam linija u uskoj koloni čitano kao rešetka, ne kao grupe. v1.61 — poglavlje 6f dopunjeno (2.9.2026): imenovana konkretna komponenta za izbor iz VELIKOG skupa opcija — `Command` u `Popover`-u (`ui/command.tsx`, `ui/popover.tsx`, shadcn izvorni kod nad `cmdk`/Radix). Dopunjuje postojeće pravilo "mali skup → dugmad" drugom polovinom: veliki skup → pretraga sa kretanjem tastaturom, ne ručno pisana lista. Prvi ugrađen primer: birač sastojaka grupnog paketa. v1.60 — novo poglavlje 6d.2 (2.9.2026): traka za sortiranje rezultata, iznad liste u centralnom panelu — filter menja KOJI se rezultati vide, sortiranje samo REDOSLED, pa i dva različita mesta. Dugmad, ne padajući meni (§6f). Uz to, filteri letova (devet iz M5 §3.0d.1) prvi put dobijaju UI u levom panelu, a lista sadržaja smeštaja proširena sa 14 na svih ~30 `AmenityTag` vrednosti. Podaci i opcije po vrsti: M5 §3.0g.8/§3.0g.9. v1.59 — poglavlje 6d.1 **implementirano** (2.9.2026, isti dan kao specifikacija): ikonice devet vrsta su u centralnom panelu (`SearchPanel.tsx`), forma je ugrađena umesto iskačuća (`SearchCriteriaForm.tsx`), levi panel (`SearchSidebarPanel.tsx`) sadrži isključivo filtere i prikazuje ih samo uz aktivnu pretragu, skupljen red (`SearchCriteriaChip.tsx`) je dobio "poništi pretragu" i "osveži podatke", prelazak vrste koristi `router.prefetch`. Izgled traka razlike posle osvežavanja koristi postojeće tokene `--warn`/`--warn-bg` i `--ok`/`--danger` (poglavlje 4b), bez nove boje. Detalji podataka i ponašanja: M5 §3.0g, changelog v2.08. v1.58 — novo poglavlje 6d.1 (2.9.2026, na zahtev vlasnika): ekran pretrage seli formu iz levog panela u centralni — devet ikonica proizvoda centrirano pri vrhu, sopstvena forma po vrsti proizvoda, levi panel ostaje isključivo filterima. Skupljen red pretrage MORA da prikazuje kriterijume (golo "+" je zabranjeno — agent je na telefonu sa gostom), "Osveži podatke" prijavljuje razliku u ceni umesto da je tiho zameni, prelazak između vrsta ne briše ni unos ni desni panel, prelazak koristi `prefetch`. Podaci i tabele polja po svih devet vrsta: M5 §3.0g.
+**Verzija:** 1.63 — poglavlje 6d, drugi korak istog dana (3.9.2026, vlasnikov predlog): linije između sekcija filtera **uklonjene**, sekcija postaje jedan blok na `--sunken` podlozi (naslov i tagovi dele istu nijansu), blokove razdvaja razmak. Pilule tagova se **dižu** na `--panel`, jer njihov okvir na `--sunken` daje 2,94:1 u svetlom modu — ispod 3:1 praga za granice (§2a); `--border` se namerno ne dira. Izmereni odnosi podloga po sva tri moda upisani uz odluku, sa jasnim leverom za slučaj da se ijedan sloj pokaže preslabim. v1.62 _(nadmašena istog dana)_ — sekcije filtera razdvajala je tanka linija uz veći razmak; uklonjeno jer je sedam linija u uskoj koloni čitano kao rešetka, ne kao grupe. v1.61 — poglavlje 6f dopunjeno (2.9.2026): imenovana konkretna komponenta za izbor iz VELIKOG skupa opcija — `Command` u `Popover`-u (`ui/command.tsx`, `ui/popover.tsx`, shadcn izvorni kod nad `cmdk`/Radix). Dopunjuje postojeće pravilo "mali skup → dugmad" drugom polovinom: veliki skup → pretraga sa kretanjem tastaturom, ne ručno pisana lista. Prvi ugrađen primer: birač sastojaka grupnog paketa. v1.60 — novo poglavlje 6d.2 (2.9.2026): traka za sortiranje rezultata, iznad liste u centralnom panelu — filter menja KOJI se rezultati vide, sortiranje samo REDOSLED, pa i dva različita mesta. Dugmad, ne padajući meni (§6f). Uz to, filteri letova (devet iz M5 §3.0d.1) prvi put dobijaju UI u levom panelu, a lista sadržaja smeštaja proširena sa 14 na svih ~30 `AmenityTag` vrednosti. Podaci i opcije po vrsti: M5 §3.0g.8/§3.0g.9. v1.59 — poglavlje 6d.1 **implementirano** (2.9.2026, isti dan kao specifikacija): ikonice devet vrsta su u centralnom panelu (`SearchPanel.tsx`), forma je ugrađena umesto iskačuća (`SearchCriteriaForm.tsx`), levi panel (`SearchSidebarPanel.tsx`) sadrži isključivo filtere i prikazuje ih samo uz aktivnu pretragu, skupljen red (`SearchCriteriaChip.tsx`) je dobio "poništi pretragu" i "osveži podatke", prelazak vrste koristi `router.prefetch`. Izgled traka razlike posle osvežavanja koristi postojeće tokene `--warn`/`--warn-bg` i `--ok`/`--danger` (poglavlje 4b), bez nove boje. Detalji podataka i ponašanja: M5 §3.0g, changelog v2.08. v1.58 — novo poglavlje 6d.1 (2.9.2026, na zahtev vlasnika): ekran pretrage seli formu iz levog panela u centralni — devet ikonica proizvoda centrirano pri vrhu, sopstvena forma po vrsti proizvoda, levi panel ostaje isključivo filterima. Skupljen red pretrage MORA da prikazuje kriterijume (golo "+" je zabranjeno — agent je na telefonu sa gostom), "Osveži podatke" prijavljuje razliku u ceni umesto da je tiho zameni, prelazak između vrsta ne briše ni unos ni desni panel, prelazak koristi `prefetch`. Podaci i tabele polja po svih devet vrsta: M5 §3.0g.
 
 **Verzija:** 1.57 — dopuna poglavlja 6h (2.9.2026, na zahtev vlasnika: "ovo zaokruženo nema razloga da bude ovoliko naglašeno"): **na ekranu sažetka nema glavne radnje, pa nema ni punog akcentnog dugmeta.** Akcentna boja je rezervisana za glavnu radnju ekrana; ekran koji se samo čita je nema, pa uzgredne radnje idu kao tihe veze u `--accent-strong`, poravnate desno uz svoju sekciju. Ista komponenta zadržava punu težinu gde radnja jeste glavna (kartica Dokumenti) — težina se bira po kontekstu, ne po komponenti. Usput zabeležen nalaz koji nije bio boja: dugme se rasteglo preko cele širine zbog roditeljskog `flex flex-col` (`align-items: stretch`), ne zbog sopstvenih klasa.
 **Verzija:** 1.56 — novo poglavlje 6f (28.8.2026, na zahtev vlasnika: "gde god je moguće izbegao bih padajuće menije, koristio bih formu tastera na koji se klikne za ono što želim ili dva klika za ono što ne želim"). Pravilo za nove ekrane: mali/poznat skup opcija → dugmad (jednostruk izbor: jedno aktivno, klik menja; višestruk izbor: klik uključuje/isključuje), ne `<select>`. Prvi primer: `RoomTypesEditor.tsx` (M2/M17). Retrofit postojećih padajućih menija namerno van obima ove dopune.
@@ -114,13 +114,13 @@ Aplikacija treba da izgleda **prepoznatljivo drugačije** od bilo koje druge pos
 
 Panel je do 29.8.2026. prošao kroz tri izvora inspiracije (VS Code teme → GitHub Light → shadcn/ui). To nije lutanje nego posledica pravila iz ovog istog poglavlja ("paleta ostaje promenljiva, ne zaključana") — svaki prelaz je vlasnikova odluka, svaki je prošao proveru iz §2a. Ono što se **nije** menjalo ni jednom: boje žive isključivo kao centralni sloj CSS promenljivih, pa je svaki od tih prelaza bio izmena vrednosti tokena, ne prepravka UI koda.
 
-| Uloga | Tekuća vrednost (svetli / tamni) | Napomena |
-| :---- | :---- | :---- |
-| Osnovna pozadina | `#fafafa` / `#09090b` | Tailwind zinc-50 / zinc-950. Treći mod "dim" koristi slate skalu, §2.0f |
-| Akcentna boja (glavna, **različita po modu**) | `#4f46e5` / `#818cf8` | Tailwind indigo-600 / indigo-400. Dugmad, aktivna stavka u bočnoj traci, otvorena `Ctrl+K` paleta, ivica aktivnog taba. **Zamenila maslinastu `#8A8A5E`** 29.8.2026 (§2.0f) — time je i pravilo "ista u oba moda" iz §2.0b prestalo da važi za panel |
-| Sekundarni akcent (panel) | `#0f766e` / `#5eead4` | Tailwind teal. Kalendar, katalog, audit log — namerno drugi ton od indigo brenda da ostane razdvojiv kao drugi signal |
-| Boja linija ikonica (samo svetli mod) | `#1f3a5f` "navy teget" | Vlasnikov zahtev 21.8.2026; **preživelo sve promene palete** kao zasebna odluka, §3a |
-| Druga boja — **samo na sajtu (M8)**, boja šljive | Modro-plava (šljiva) | Vlasnikova odluka 17.8.2026, **nepromenjeno** — sajt ima sopstvenu paletu. Uloga: sve što nije glavna radnja — sekundarna dugmad, oznake, akcenti na deljenim stranicama. Glavna radnja ("Rezerviši", "Plati") ostaje topla, jer ona mora da vuče oko; kad bi obe boje vukle jednako, ni jedna ne bi. Zamenila je zelenu (`--accent2`), **nije se dodala kao treća** — zelena je do tada bila upotrebljena na jednom jedinom mestu, pa nije bila stvarna druga boja identiteta nego ostatak. |
+| Uloga                                            | Tekuća vrednost (svetli / tamni) | Napomena                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| :----------------------------------------------- | :------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Osnovna pozadina                                 | `#fafafa` / `#09090b`            | Tailwind zinc-50 / zinc-950. Treći mod "dim" koristi slate skalu, §2.0f                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| Akcentna boja (glavna, **različita po modu**)    | `#4f46e5` / `#818cf8`            | Tailwind indigo-600 / indigo-400. Dugmad, aktivna stavka u bočnoj traci, otvorena `Ctrl+K` paleta, ivica aktivnog taba. **Zamenila maslinastu `#8A8A5E`** 29.8.2026 (§2.0f) — time je i pravilo "ista u oba moda" iz §2.0b prestalo da važi za panel                                                                                                                                                                                                                                         |
+| Sekundarni akcent (panel)                        | `#0f766e` / `#5eead4`            | Tailwind teal. Kalendar, katalog, audit log — namerno drugi ton od indigo brenda da ostane razdvojiv kao drugi signal                                                                                                                                                                                                                                                                                                                                                                        |
+| Boja linija ikonica (samo svetli mod)            | `#1f3a5f` "navy teget"           | Vlasnikov zahtev 21.8.2026; **preživelo sve promene palete** kao zasebna odluka, §3a                                                                                                                                                                                                                                                                                                                                                                                                         |
+| Druga boja — **samo na sajtu (M8)**, boja šljive | Modro-plava (šljiva)             | Vlasnikova odluka 17.8.2026, **nepromenjeno** — sajt ima sopstvenu paletu. Uloga: sve što nije glavna radnja — sekundarna dugmad, oznake, akcenti na deljenim stranicama. Glavna radnja ("Rezerviši", "Plati") ostaje topla, jer ona mora da vuče oko; kad bi obe boje vukle jednako, ni jedna ne bi. Zamenila je zelenu (`--accent2`), **nije se dodala kao treća** — zelena je do tada bila upotrebljena na jednom jedinom mestu, pa nije bila stvarna druga boja identiteta nego ostatak. |
 
 **Koliko akcentnih boja:** panel (M17) ima **jednu brend boju** (indigo) i **jedan sekundarni signal** (teal, `--accent2`) sa usko određenom ulogom — kalendar/katalog/audit log. Ranija formulacija ovog poglavlja ("panel ostaje na jednoj") opisivala je stanje pre nego što je `--accent2` dobio stvarne potrošače; ispravljeno 2.9.2026 prema kodu. Pravilo iza toga se nije promenilo: druga boja sme da postoji samo dok ima **sopstvenu, imenovanu ulogu** — čim bi počela da se koristi "za lepše", vratili bismo se na šaren ekran na kom čitalac ne zna šta je važno. Sajt (M8) ima dve sa jasno razdvojenim ulogama (gore). Treće nema ni jedan kanal.
 
@@ -129,7 +129,7 @@ Panel je do 29.8.2026. prošao kroz tri izvora inspiracije (VS Code teme → Git
 ### 2.0 Dve palete, ne jedna — i zašto se to skoro izgubilo
 
 Panel i sajt **imaju odvojene palete** i to je namerno (različita publika, različit utisak): panel je shadcn/ui paleta (neutralan zinc + indigo akcent, §2.0f — ranije nazivana "Horizont", ime je prestalo da odgovara sadržaju posle prelaza 29.8.2026. i više se ne koristi), sajt je "Zalazak" (topla peščana, `apps/web/src/app/globals.css`, nepromenjena). Ovaj dokument je do 17.8.2026. beležio **samo panelovu** — i to je bio deo razloga zašto paleta sajta nikad nije prošla proveru iz poglavlja 2a i zašto je sedam parova padalo AA prag (vidi poglavlje 8). **Svaka nova paleta se upisuje ovde u istom prolazu kad nastane**, ne posle.
-Tekst, sekundarni elementi i ivice u obe palete su neutralni sivi tonovi izvedeni iz osnove tog kanala — svetli u tamnom modu, tamni u svetlom — da paleta deluje kao jedna porodica boja, ne kao nabacane komponente. *(Ovaj red je do 2.9.2026. stajao kao odlomljen red tabele iz poglavlja 2, bez zaglavlja i van konteksta — posledica ranije izmene koja je tabelu skratila a red ostavila; pretvoren u rečenicu, sadržaj nepromenjen.)*
+Tekst, sekundarni elementi i ivice u obe palete su neutralni sivi tonovi izvedeni iz osnove tog kanala — svetli u tamnom modu, tamni u svetlom — da paleta deluje kao jedna porodica boja, ne kao nabacane komponente. _(Ovaj red je do 2.9.2026. stajao kao odlomljen red tabele iz poglavlja 2, bez zaglavlja i van konteksta — posledica ranije izmene koja je tabelu skratila a red ostavila; pretvoren u rečenicu, sadržaj nepromenjen.)_
 
 Tačne HEX vrednosti panela **jesu** fiksirane, u §2.0f — ranija formulacija ("nisu fiksirane ovim dokumentom, biraju se pri izradi UI kod-baze") bila je tačna dok koda nije bilo, i upravo je ona omogućila da se paleta u kodu tri puta promeni bez ijednog traga u ovom dokumentu. Od 2.9.2026. važi obrnuto: **svaka promena vrednosti tokena u `globals.css` upisuje se u §2.0f u istom prolazu**, sa izmerenim kontrastom, isto pravilo kao za svaku drugu cross-referencu u repozitorijumu.
 
@@ -141,28 +141,28 @@ Tačne HEX vrednosti panela **jesu** fiksirane, u §2.0f — ranija formulacija 
 
 Vrednosti ispod ponovo izvučene **19.8.2026 direktno iz instaliranih fajlova** na ovoj razvojnoj mašini — **"Material Theme High Contrast"** (`equinusocio.vsc-material-theme-34.7.16`, `Material-Theme-Default-High-Contrast.json`) za tamni mod, **"Light 2026"** (VS Code ugrađena, `theme-defaults/themes/2026-light.json`) za svetli mod — ne iz sećanja, programski provereno protiv pravila iz poglavlja 2a.
 
-| Uloga | Tamni (Material High Contrast) | Svetli (Light 2026) |
-| :---- | :---- | :---- |
-| Pozadina (editor/glavni panel) | `#263238` | `#FFFFFF` |
-| Bočna traka / gornja traka | `#192227` | `#FAFAFD` |
-| Tekst (glavni) | `#EEFFFF` (12.77:1 na pozadini) | `#202020` (16.29:1 na pozadini) |
-| Tekst — sekundaran (bočna traka) | `#5f7a87` **(3.56:1 — pada AA, ispravljeno)** → `#9bb0bd` (7.19:1) | `#606060` (6.29:1 na beloj) |
-| Akcentna boja | `#80CBC4` (teal, 7.05:1 na tamnoj pozadini) | `#0069CC` (plava, 5.39:1 na beloj) |
-| Tekst na akcentnoj pozadini | `#ffffff` | `#FFFFFF` (5.39:1 na `#0069CC`) |
-| Ivica/border | `#3B4A51` | `#F0F1F2` |
+| Uloga                            | Tamni (Material High Contrast)                                     | Svetli (Light 2026)                |
+| :------------------------------- | :----------------------------------------------------------------- | :--------------------------------- |
+| Pozadina (editor/glavni panel)   | `#263238`                                                          | `#FFFFFF`                          |
+| Bočna traka / gornja traka       | `#192227`                                                          | `#FAFAFD`                          |
+| Tekst (glavni)                   | `#EEFFFF` (12.77:1 na pozadini)                                    | `#202020` (16.29:1 na pozadini)    |
+| Tekst — sekundaran (bočna traka) | `#5f7a87` **(3.56:1 — pada AA, ispravljeno)** → `#9bb0bd` (7.19:1) | `#606060` (6.29:1 na beloj)        |
+| Akcentna boja                    | `#80CBC4` (teal, 7.05:1 na tamnoj pozadini)                        | `#0069CC` (plava, 5.39:1 na beloj) |
+| Tekst na akcentnoj pozadini      | `#ffffff`                                                          | `#FFFFFF` (5.39:1 na `#0069CC`)    |
+| Ivica/border                     | `#3B4A51`                                                          | `#F0F1F2`                          |
 
 **Jedna stvarna korekcija, ne kozmetička:** izvorna vrednost sekundarnog teksta bočne trake u tamnom modu (`#5f7a87`) daje samo **3.56:1** na `#192227` pozadini — pada čak i tvrdi AA minimum (poglavlje 2a), ne samo novi AAA cilj. Posvetljena je unutar iste hladne sivo-plave porodice na `#9bb0bd` (7.19:1) pre nego što je upisana ovde — pravilo iz poglavlja 2a se ne zaobilazi ni kad izvor konteksta dolazi od stvarne, poznate teme. Akcentna boja na svetloj pozadini (`#0069CC`, 5.39:1) prolazi AA sa marginom ali ne dostiže AAA (7:1) — prihvatljivo dok se koristi kao pozadina dugmeta/velika kontrolna površina (poglavlje 2a, 3:1 prag za takve elemente).
 
 **Strukturna/interakciona vernost VS Code-u** (dopuna, 19.8.2026, na zahtev vlasnika — "izgled taba", "pozadinsko bojenje teksta") — pored boja, sledeće je preuzeto **doslovno** iz istih fajlova, ne aproksimirano. Napomena: Material Theme i Light 2026 rešavaju selekciju/hover na **strukturno različit način** (Material Theme koristi pune boje + promenu boje teksta, Light 2026 koristi providne slojeve preko postojeće pozadine) — obe vernosti su preuzete tačno kako izvor to radi, ne izjednačene veštački:
 
-| Element | Tamni (Material High Contrast) | Svetli (Light 2026) |
-| :---- | :---- | :---- |
-| Aktivan tab — pozadina | `#263238` (ista kao glavna pozadina) | `#FFFFFF` |
-| Neaktivan tab — pozadina | `#263238` (**ista kao aktivan** — razlika nije u pozadini nego u ivici/boji teksta ispod) | `#FAFAFD` |
-| Aktivan tab — ivica/tekst | Ivica `#80CBC4` **(izvorna VS Code vrednost — u implementaciji zamenjena bojom brenda: maslinastom do 29.8.2026, indigo od tada, §2.0f)**, tekst `#FFFFFF`; neaktivan tab tekst `#5f7a87` | Gornja ivica `#000000` (**crna, ne akcentna** — VS Code svetli mod signalizira aktivan tab crnom linijom, ovo ostaje nepromenjeno) |
-| Selekcija teksta (pozadinsko bojenje) | `#80CBC420` **(izvorno — u implementaciji ista logika sa bojom brenda, §2.0f)** | `#0069CC40` **(izvorno — u implementaciji ista logika sa bojom brenda, §2.0f)** |
-| Red pod hoverom (lista/stablo) | `#192227` (**puna boja**, ista kao bočna traka — ne providan sloj; hover ne koristi akcent, nepromenjeno) | `#00000014` (crna, providna, 8%; nepromenjeno) |
-| Izabran red (lista/stablo) | Pozadina `#192227` (puna), **tekst postaje akcentna boja** — izvorno `#80CBC4`, u implementaciji zahteva po-modu nijansu maslinaste (poglavlje 2.0b, jedini izuzetak) | Pozadina `#00000025` (crna, providna, 15%), tekst ostaje `#202020` (nepromenjeno) |
+| Element                               | Tamni (Material High Contrast)                                                                                                                                                            | Svetli (Light 2026)                                                                                                                |
+| :------------------------------------ | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :--------------------------------------------------------------------------------------------------------------------------------- |
+| Aktivan tab — pozadina                | `#263238` (ista kao glavna pozadina)                                                                                                                                                      | `#FFFFFF`                                                                                                                          |
+| Neaktivan tab — pozadina              | `#263238` (**ista kao aktivan** — razlika nije u pozadini nego u ivici/boji teksta ispod)                                                                                                 | `#FAFAFD`                                                                                                                          |
+| Aktivan tab — ivica/tekst             | Ivica `#80CBC4` **(izvorna VS Code vrednost — u implementaciji zamenjena bojom brenda: maslinastom do 29.8.2026, indigo od tada, §2.0f)**, tekst `#FFFFFF`; neaktivan tab tekst `#5f7a87` | Gornja ivica `#000000` (**crna, ne akcentna** — VS Code svetli mod signalizira aktivan tab crnom linijom, ovo ostaje nepromenjeno) |
+| Selekcija teksta (pozadinsko bojenje) | `#80CBC420` **(izvorno — u implementaciji ista logika sa bojom brenda, §2.0f)**                                                                                                           | `#0069CC40` **(izvorno — u implementaciji ista logika sa bojom brenda, §2.0f)**                                                    |
+| Red pod hoverom (lista/stablo)        | `#192227` (**puna boja**, ista kao bočna traka — ne providan sloj; hover ne koristi akcent, nepromenjeno)                                                                                 | `#00000014` (crna, providna, 8%; nepromenjeno)                                                                                     |
+| Izabran red (lista/stablo)            | Pozadina `#192227` (puna), **tekst postaje akcentna boja** — izvorno `#80CBC4`, u implementaciji zahteva po-modu nijansu maslinaste (poglavlje 2.0b, jedini izuzetak)                     | Pozadina `#00000025` (crna, providna, 15%), tekst ostaje `#202020` (nepromenjeno)                                                  |
 
 Razlika u aktivnoj ivici taba (akcent u tamnom, crna u svetlom) i providno-crno/belo pravilo za hover/selekciju su namerno preuzeti tačno ovako — to je stvarna VS Code odluka, ne nešto što bi ovaj dokument sam izmislio da izgleda slično. Redovi označeni "izvorno" ostaju tačan opis kako VS Code to radi (reference); stvarna implementacija koristi boju brenda umesto literalne VS Code akcentne boje — do 29.8.2026. maslinastu (§2.0b), od tada indigo (§2.0f).
 
@@ -191,19 +191,19 @@ Ova tabela je bila konkretna polazna vrednost ("Horizont v2") — nije menjala p
 
 Nova vrednost, prigušeniji zlatno-braon ton (bliži ostatku palete), PROVERENA WCAG 2.1 formulom (relativna luminansa) protiv obe stvarne pozadine na kojima se koristi:
 
-| Mod | Bilo (tekst na `warn-bg`) | Sad (tekst na `warn-bg`) | Tekst na `bg`/`panel` |
-| :---- | :---- | :---- | :---- |
-| Svetli | `#a86a12` na `#f9edd3` — **3.82:1 ❌** | `#7a5a12` na `#f3ecd9` — **5.40:1** | `#7a5a12` na `#ffffff` — 6.37:1 |
-| Tamni | `#e0a542` na `#332508` — 6.84:1 (prolazio) | `#e0ac52` na `#33240c` — **7.29:1** | `#e0ac52` na `#263238` — 6.39:1 |
+| Mod    | Bilo (tekst na `warn-bg`)                  | Sad (tekst na `warn-bg`)            | Tekst na `bg`/`panel`           |
+| :----- | :----------------------------------------- | :---------------------------------- | :------------------------------ |
+| Svetli | `#a86a12` na `#f9edd3` — **3.82:1 ❌**     | `#7a5a12` na `#f3ecd9` — **5.40:1** | `#7a5a12` na `#ffffff` — 6.37:1 |
+| Tamni  | `#e0a542` na `#332508` — 6.84:1 (prolazio) | `#e0ac52` na `#33240c` — **7.29:1** | `#e0ac52` na `#263238` — 6.39:1 |
 
 Tamni mod je ranije prolazio kontrast, ali je ipak blago prilagođen (isti pravac, malo svetlije/manje narandžasto) da ostane u istoj porodici tona kao ispravljen svetli mod — jedinstven ton umesto "svetli menjan, tamni slučajno ostao drugačiji". Ovo je deljen token — primenjeno svuda gde se `--warn`/`--warn-bg` koriste u panelu (51 mesto kroz 34 ekrana, ne samo dashboard kartice sa snimka), jedan izvor istine (`globals.css`), nema lokalnih izuzetaka po ekranu.
 
 **Drugi pokušaj (21.8.2026, isti dan)** — posle osvežavanja, vlasnik je snimkom potvrdio da prigušeniji zlatno-braon amber (tabela iznad) i dalje vizuelno čita kao "žuto", ista pritužba kao pre. Umesto dalje suptilne kalibracije unutar iste amber porodice, promenjena je **porodica boje** — ponuđene tri opcije kroz `AskUserQuestion` (narandžasto-riđa/bakarna dalje od crvenog kraja, maslinasto-zlatna bliža `--accent` porodici, ili potpuno neutralna bez obojene pozadine), vlasnik izabrao **maslinasto-zlatnu**: ista porodica kao jedinstvena akcentna boja (`#8A8A5E`, poglavlje 2.0b), samo tamnija/zasićenija nijansa — deluje kao deo iste palete umesto stranog tela. Finalne vrednosti, PROVERENE WCAG 2.1 formulom:
 
-| Mod | Tekst na `warn-bg` | Tekst na `bg`/`panel` |
-| :---- | :---- | :---- |
+| Mod    | Tekst na `warn-bg`              | Tekst na `bg`/`panel`           |
+| :----- | :------------------------------ | :------------------------------ |
 | Svetli | `#6b6b1f` na `#eeeedc` — 4.78:1 | `#6b6b1f` na `#ffffff` — 5.60:1 |
-| Tamni | `#c2c26a` na `#2a2a12` — 7.80:1 | `#c2c26a` na `#263238` — 7.03:1 |
+| Tamni  | `#c2c26a` na `#2a2a12` — 7.80:1 | `#c2c26a` na `#263238` — 7.03:1 |
 
 Ovo su finalne vrednosti u `globals.css` (zamenjuju tabelu iznad, koja ostaje kao zapis prvog, odbačenog pokušaja).
 
@@ -213,10 +213,10 @@ Ovo su finalne vrednosti u `globals.css` (zamenjuju tabelu iznad, koja ostaje ka
 
 Vlasnik je, uz snimak ekrana (linije oko kartica u centralnom delu, M6 CRM zapis), prijavio: "Jedva se vide okvirne linije sadrzaja u centralno delu. Potamnite ih za 15%." Provera je pokazala da `--border` (`#f0f1f2` svetli mod) daje samo **1.13:1** na belu pozadinu — daleko ispod 3:1 praga za granice iz poglavlja 2a, stvaran propust koji je postojao od uvođenja Horizont v2 palete, ne samo suptilna pritužba. Doslovnih "-15%" na vrednost ovoliko blizu bele (`240→204` po RGB kanalu) bi dalo tek **1.57:1** — praktično nepromenjeno, jer procenat od skoro-bele vrednosti ne pomera kontrast dovoljno da bude vidljiv. Umesto doslovnog izračuna, izabrana je vrednost koja stvarno prolazi 3:1 prag (isti standard primenjen na svaku drugu granicu u ovom dokumentu):
 
-| Mod | Bilo | Sad | Kontrast na `bg` |
-| :---- | :---- | :---- | :---- |
-| Svetli | `#f0f1f2` (1.13:1 ❌) | `#858c92` | 3.41:1 |
-| Tamni | `#3b4a51` (1.43:1 ❌) | `#748088` | 3.25:1 |
+| Mod    | Bilo                  | Sad       | Kontrast na `bg` |
+| :----- | :-------------------- | :-------- | :--------------- |
+| Svetli | `#f0f1f2` (1.13:1 ❌) | `#858c92` | 3.41:1           |
+| Tamni  | `#3b4a51` (1.43:1 ❌) | `#748088` | 3.25:1           |
 
 Tamni mod nije bio deo pritužbe (snimak je svetli mod), ali je imao isti stvaran propust pri proveri — ispravljen u istom prolazu, ista logika kao svaka druga token-ispravka ovog dana (jedan izvor istine, nema mod koji ostaje slučajno drugačiji). Ovo je deljen token — primenjeno svuda gde se `--border` koristi (kartice, forme, padajući meniji, `kbd` oznake), ne samo dashboard kartice sa snimka.
 
@@ -224,11 +224,11 @@ Tamni mod nije bio deo pritužbe (snimak je svetli mod), ali je imao isti stvara
 
 Pri pripremi uporednog prikaza otkrivena je i greška u **prvom** merenju ove regresije (i u originalnoj tabeli iznad): meren je kontrast samo protiv `--panel` i `--bg`, a granica se pojavljuje i na **`--panel-2`** (bočni panel, `Sidebar.tsx`/`RightPanel.tsx`) — i tamo je najslabija. To je isti propust protiv kog upozorava §2a ("meri se protiv svake podloge uz koju se pojavljuje") i isti oblik greške kao onaj iz §2.0c. Merodavan je najgori od tri broja:
 
-| Mod | Bilo (posle prelaza) | na `panel` / `bg` / `panel-2` | Sad | na `panel` / `bg` / `panel-2` |
-| :---- | :---- | :---- | :---- | :---- |
-| Svetli | `#e4e4e7` (zinc-200) | 1.27 / 1.22 / **1.15 ❌** | `#858c92` | 3.41 / 3.26 / **3.10 ✅** |
-| Tamni | `#3f3f46` (zinc-700) | 1.70 / 1.91 / **1.43 ❌** | `#748088` | 4.38 / 4.91 / **3.68 ✅** |
-| Dim | `#475569` (slate-600) | 1.93 / 2.36 / **1.37 ❌** | `#94a3b8` (slate-400) | 5.71 / 6.96 / **4.04 ✅** |
+| Mod    | Bilo (posle prelaza)  | na `panel` / `bg` / `panel-2` | Sad                   | na `panel` / `bg` / `panel-2` |
+| :----- | :-------------------- | :---------------------------- | :-------------------- | :---------------------------- |
+| Svetli | `#e4e4e7` (zinc-200)  | 1.27 / 1.22 / **1.15 ❌**     | `#858c92`             | 3.41 / 3.26 / **3.10 ✅**     |
+| Tamni  | `#3f3f46` (zinc-700)  | 1.70 / 1.91 / **1.43 ❌**     | `#748088`             | 4.38 / 4.91 / **3.68 ✅**     |
+| Dim    | `#475569` (slate-600) | 1.93 / 2.36 / **1.37 ❌**     | `#94a3b8` (slate-400) | 5.71 / 6.96 / **4.04 ✅**     |
 
 Svetli i tamni vraćaju **istu vrednost** koja je stajala od 21. do 29.8.2026 — dakle stanje koje je vlasnik već video i prihvatio, ne novo pooštravanje. Dim mod nije postojao u avgustu, pa je za njega birana prva stepenica slate skale koja prolazi na sve tri podloge (slate-500 pada na `--panel-2`, 2.18:1). Vlasniku su ponuđene četiri jačine po modu sa uporednim prikazom; izabrana je najmanja koja prolazi prag ("Prag" varijanta), ne najizraženija.
 
@@ -240,11 +240,11 @@ Vrednosti su upisane u **svih pet** blokova tokena (`:root`, `prefers-color-sche
 
 Vlasnik je, posle uživo pregleda: "previse je svetla bela pozadina centralnog panela u ligjht modu, zatamnite ga malo a da bide svetlije od levog i desnog panela. sve trake neka budu za nijansu tamnije od svega." Do sada je svetli mod imao samo DVE nijanse — `--panel` čisto bela (`#FFFFFF`, centralni sadržaj) i `--panel-2` (`#FAFAFD`, praktično nerazlučivo od bele) za SVE ostalo, trake I bočne panele zajedno. Sad tri, namerno odstupanje od poglavlja 2.0a glavne tabele (koja i dalje beleži izvorne VS Code "Light 2026" vrednosti kao referentnu tačku, ne kao trenutno stanje ovog tokena):
 
-| Nivo | Token | Vrednost | Koristi ga |
-| :---- | :---- | :---- | :---- |
-| Najsvetliji | `--panel` (= `--bg`, ostaju namerno jednaki, poglavlje 6b/v1.45 razlog) | `#FFFFFF` (GitHub Light `bgColor.default`, dopuna 26.8.2026 ispod) | Centralni sadržaj (`<main>`, aktivan tab) |
-| Srednji | `--panel-2` | `#F6F8FA` (GitHub Light `bgColor.muted`) | Levi/desni bočni panel (`Sidebar.tsx`, `RightPanel.tsx`, `ActivityBar.tsx`) |
-| Najtamniji | `--bar` (nov token) | `#EFF2F5` (sledeći korak GitHub-ove sopstvene neutralne skale, `base.color.neutral.2` — GitHub sâm nema treći nivo, ovaj projekat ga zahteva od 23.8.2026) | Gornja/donja traka (`TopBar.tsx`, `StatusBar.tsx`), unutrašnje zaglavlje terminal panela (`TerminalPanel.tsx`) |
+| Nivo        | Token                                                                   | Vrednost                                                                                                                                                   | Koristi ga                                                                                                     |
+| :---------- | :---------------------------------------------------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------- |
+| Najsvetliji | `--panel` (= `--bg`, ostaju namerno jednaki, poglavlje 6b/v1.45 razlog) | `#FFFFFF` (GitHub Light `bgColor.default`, dopuna 26.8.2026 ispod)                                                                                         | Centralni sadržaj (`<main>`, aktivan tab)                                                                      |
+| Srednji     | `--panel-2`                                                             | `#F6F8FA` (GitHub Light `bgColor.muted`)                                                                                                                   | Levi/desni bočni panel (`Sidebar.tsx`, `RightPanel.tsx`, `ActivityBar.tsx`)                                    |
+| Najtamniji  | `--bar` (nov token)                                                     | `#EFF2F5` (sledeći korak GitHub-ove sopstvene neutralne skale, `base.color.neutral.2` — GitHub sâm nema treći nivo, ovaj projekat ga zahteva od 23.8.2026) | Gornja/donja traka (`TopBar.tsx`, `StatusBar.tsx`), unutrašnje zaglavlje terminal panela (`TerminalPanel.tsx`) |
 
 Tamni mod nije tražio treću nijansu — `--bar` tamo dobija istu vrednost kao `--panel-2` (`#192227`), token postoji svuda (nijedna `bg-bar` klasa ne ostaje bez definisane promenljive), ali se ništa vizuelno ne menja. `--bg` menja vrednost zajedno sa `--panel` (isti par, namerno jednaki, v1.45 razlog — margina oko `w-[90%]` glavnog sadržaja ne sme da izgleda kao vidljiva "kutija" drugog tona).
 
@@ -252,12 +252,12 @@ Tamni mod nije tražio treću nijansu — `--bar` tamo dobija istu vrednost kao 
 
 **Dopuna 2.9.2026, na zahtev vlasnika ("u Light modu sve ikone i sva slova treba da budu za 30% tamnija").** Zahtev je primenjen **ciljano, ne ravnomerno** — odluka vlasnika posle uporednog prikaza sve četiri varijante (postojeće stanje / ciljano / sve −15% / sve −30%) sa izmerenim kontrastom po tokenu:
 
-| Token | Bilo | Sada | Kontrast na `--bg` (#fafafa) | na `--panel-2` (#f4f4f5) |
-|---|---|---|---|---|
-| `--text` | `#18181b` | **nepromenjeno** | 16.97:1 | 16.12:1 |
-| `--text-dim` | `#3f3f46` | `#2c2c31` | 10.01:1 → **13.31:1** | 9.50:1 → **12.64:1** |
-| `--text-faint` | `#63636a` | `#45454a` | 5.71:1 → **9.13:1** | 5.42:1 → **8.67:1** |
-| `--icon-line` | `#1f3a5f` | **nepromenjeno** | 11.00:1 | 10.45:1 |
+| Token          | Bilo      | Sada             | Kontrast na `--bg` (#fafafa) | na `--panel-2` (#f4f4f5) |
+| -------------- | --------- | ---------------- | ---------------------------- | ------------------------ |
+| `--text`       | `#18181b` | **nepromenjeno** | 16.97:1                      | 16.12:1                  |
+| `--text-dim`   | `#3f3f46` | `#2c2c31`        | 10.01:1 → **13.31:1**        | 9.50:1 → **12.64:1**     |
+| `--text-faint` | `#63636a` | `#45454a`        | 5.71:1 → **9.13:1**          | 5.42:1 → **8.67:1**      |
+| `--icon-line`  | `#1f3a5f` | **nepromenjeno** | 11.00:1                      | 10.45:1                  |
 
 Dva tokena su namerno ostavljena netaknuta, i to je suština odluke, ne izuzetak od nje. `--text` je već na 16.97:1 — ×0,7 bi dao 18.07:1, razliku koju oko ne registruje, a sva tri nivoa teksta bi se stisnula ka crnom i **hijerarhija (glavni / prigušen / slab) bi se izgubila**; to je jedini realan rizik ovakve izmene i jedini razlog da se ne primeni ravnomerno. `--icon-line` bi tamnjenjem izgubio prepoznatljiv "navy teget" ton koji je sam po sebi bio vlasnikov zahtev (21.8.2026, §3a) — to je estetska, ne kontrastna odluka i traži poseban zahtev. Smer izmene je isključivo naviše, pa nijedan AA prag (§2a) ne može da padne. Izmena je upisana u **oba** svetla bloka u `globals.css` — `:root` (prati OS) i `:root[data-theme='light']` (ručni prekidač); prepisivanje samo prvog je zamka koja daje promenu koja nestane čim korisnik izabere svetli mod dugmetom (zabeleženo u `33-ZAMKE-I-OBAVEZNE-PROVERE.md`).
 
@@ -273,39 +273,39 @@ Dva tokena su namerno ostavljena netaknuta, i to je suština odluke, ne izuzetak
 
 **Tri moda, ne dva** (dopuna istog dana, na zahtev vlasnika). Pored svetlog i tamnog dodat je **"dim"** — isti koncept kao Twitter/X Dim: tamna atmosfera ali plavkasto-siva, ne crna. Namerno koristi **slate** skalu umesto zinc, da bude sopstveno stanje a ne "tamni, malo svetliji". Nema `prefers-color-scheme` granu (operativni sistem ne signalizira tri stanja) — dostupan je isključivo preko ručnog prekidača, `ThemeToggle.tsx`, ciklusom svetli → dim → tamni.
 
-| Token | Svetli | Dim | Tamni | Uloga |
-| :---- | :---- | :---- | :---- | :---- |
-| `--bg` | `#e8eef6` | `#0f172a` | `#09090b` | Osnovna pozadina |
-| `--panel` | `#f9fbfd` | `#1e293b` | `#18181b` | Centralni sadržaj, kartice |
-| `--sunken` | `#dbe4ef` | `#16202f` | `#131316` | Utonula traka naslova sekcije (§6h) |
-| `--panel-2` | `#dde6f1` | `#334155` | `#27272a` | Bočni paneli |
-| `--bar` | `#dde6f1` | `#334155` | `#27272a` | Gornja/donja traka *(u svetlom modu trenutno jednako `--panel-2` — §2.0e)* |
-| `--border` | `#6c7a90` | `#94a3b8` | `#748088` | Granice — **namerno odstupanje od doslovne Tailwind vrednosti** da prođe 3:1 na sve podloge, §2.0d |
-| `--text` | `#232636` | `#f8fafc` | `#fafafa` | Glavni tekst — teget sa mylighthouse.com |
-| `--text-dim` | `#333645` | `#cbd5e1` | `#d4d4d8` | Prigušen tekst — sa mylighthouse.com |
-| `--text-faint` | `#464e5d` | `#a3b0c2` | `#a1a1aa` | Slab tekst, zaglavlja kolona, datumi — sa mylighthouse.com |
-| `--accent` | `#00686e` | `#818cf8` | `#818cf8` | Brend boja, glavna radnja — teal sa mylighthouse.com u svetlom modu |
-| `--accent-strong` | `#004c4c` | `#a5b4fc` | `#a5b4fc` | Tekst na `--accent-soft` (tvrdo pravilo §2a) |
-| `--accent-soft` | `#00686e33` | `#818cf833` | `#818cf833` | Meka podloga akcenta (20% alfa) |
-| `--accent-ink` | `#ffffff` | `#0b1120` | `#0b0b0f` | Tekst na punom akcentu |
-| `--accent2` / `-soft` | `#4f46e5` / `#4f46e51a` | `#5eead4` / `#5eead41a` | `#5eead4` / `#5eead41a` | Sekundarni signal — kalendar, katalog, audit log *(u svetlom modu: ranija indigo, sišla sa `--accent` 4.9.2026)* |
-| `--ok` / `--ok-bg` | `#166534` / `#f0fdf4` | `#4ade80` / `#0d1f13` | `#4ade80` / `#0d1f13` | Uspeh |
-| `--warn` / `--warn-bg` | `#92400e` / `#fffbeb` | `#fbbf24` / `#241a06` | `#fbbf24` / `#241a06` | Upozorenje |
-| `--danger` / `--danger-bg` | `#b91c1c` / `#fef2f2` | `#f87171` / `#240b0b` | `#f87171` / `#240b0b` | Greška |
-| `--icon-line` | `#1f3a5f` | `currentColor` | `currentColor` | Navy linije ikonica, samo svetli mod (§3a) |
+| Token                      | Svetli                  | Dim                     | Tamni                   | Uloga                                                                                                            |
+| :------------------------- | :---------------------- | :---------------------- | :---------------------- | :--------------------------------------------------------------------------------------------------------------- |
+| `--bg`                     | `#e8eef6`               | `#0f172a`               | `#09090b`               | Osnovna pozadina                                                                                                 |
+| `--panel`                  | `#f9fbfd`               | `#1e293b`               | `#18181b`               | Centralni sadržaj, kartice                                                                                       |
+| `--sunken`                 | `#dbe4ef`               | `#16202f`               | `#131316`               | Utonula traka naslova sekcije (§6h)                                                                              |
+| `--panel-2`                | `#dde6f1`               | `#334155`               | `#27272a`               | Bočni paneli                                                                                                     |
+| `--bar`                    | `#dde6f1`               | `#334155`               | `#27272a`               | Gornja/donja traka _(u svetlom modu trenutno jednako `--panel-2` — §2.0e)_                                       |
+| `--border`                 | `#6c7a90`               | `#94a3b8`               | `#748088`               | Granice — **namerno odstupanje od doslovne Tailwind vrednosti** da prođe 3:1 na sve podloge, §2.0d               |
+| `--text`                   | `#232636`               | `#f8fafc`               | `#fafafa`               | Glavni tekst — teget sa mylighthouse.com                                                                         |
+| `--text-dim`               | `#333645`               | `#cbd5e1`               | `#d4d4d8`               | Prigušen tekst — sa mylighthouse.com                                                                             |
+| `--text-faint`             | `#464e5d`               | `#a3b0c2`               | `#a1a1aa`               | Slab tekst, zaglavlja kolona, datumi — sa mylighthouse.com                                                       |
+| `--accent`                 | `#00686e`               | `#818cf8`               | `#818cf8`               | Brend boja, glavna radnja — teal sa mylighthouse.com u svetlom modu                                              |
+| `--accent-strong`          | `#004c4c`               | `#a5b4fc`               | `#a5b4fc`               | Tekst na `--accent-soft` (tvrdo pravilo §2a)                                                                     |
+| `--accent-soft`            | `#00686e33`             | `#818cf833`             | `#818cf833`             | Meka podloga akcenta (20% alfa)                                                                                  |
+| `--accent-ink`             | `#ffffff`               | `#0b1120`               | `#0b0b0f`               | Tekst na punom akcentu                                                                                           |
+| `--accent2` / `-soft`      | `#4f46e5` / `#4f46e51a` | `#5eead4` / `#5eead41a` | `#5eead4` / `#5eead41a` | Sekundarni signal — kalendar, katalog, audit log _(u svetlom modu: ranija indigo, sišla sa `--accent` 4.9.2026)_ |
+| `--ok` / `--ok-bg`         | `#166534` / `#f0fdf4`   | `#4ade80` / `#0d1f13`   | `#4ade80` / `#0d1f13`   | Uspeh                                                                                                            |
+| `--warn` / `--warn-bg`     | `#92400e` / `#fffbeb`   | `#fbbf24` / `#241a06`   | `#fbbf24` / `#241a06`   | Upozorenje                                                                                                       |
+| `--danger` / `--danger-bg` | `#b91c1c` / `#fef2f2`   | `#f87171` / `#240b0b`   | `#f87171` / `#240b0b`   | Greška                                                                                                           |
+| `--icon-line`              | `#1f3a5f`               | `currentColor`          | `currentColor`          | Navy linije ikonica, samo svetli mod (§3a)                                                                       |
 
 **Izmereni kontrasti** (`node tools/check-contrast.js --all`, 4.9.2026 — najgori slučaj po tokenu, tj. protiv najnepovoljnije od pet podloga: `bg`/`panel`/`sunken`/`panel-2`/`bar`):
 
-| Par | Svetli | Dim | Tamni | Prag |
-| :---- | :---- | :---- | :---- | :---- |
-| `--text` na površinama | 11.67:1 | 9.90:1 | 14.27:1 | 4.5:1 |
-| `--text-dim` na površinama | 9.32:1 | 6.97:1 | 10.08:1 | 4.5:1 |
-| `--text-faint` na površinama | 6.52:1 | 4.71:1 | 5.81:1 | 4.5:1 |
-| `--icon-line` na površinama | 8.94:1 | — | — | 3:1 |
-| `--accent-ink` na `--accent` (dugme) | 6.55:1 | 6.31:1 | 6.59:1 | 4.5:1 |
-| `--accent-strong` na `--accent-soft` | 6.99:1 | 5.33:1 | 6.55:1 | 4.5:1 |
+| Par                                                      | Svetli             | Dim                 | Tamni               | Prag  |
+| :------------------------------------------------------- | :----------------- | :------------------ | :------------------ | :---- |
+| `--text` na površinama                                   | 11.67:1            | 9.90:1              | 14.27:1             | 4.5:1 |
+| `--text-dim` na površinama                               | 9.32:1             | 6.97:1              | 10.08:1             | 4.5:1 |
+| `--text-faint` na površinama                             | 6.52:1             | 4.71:1              | 5.81:1              | 4.5:1 |
+| `--icon-line` na površinama                              | 8.94:1             | —                   | —                   | 3:1   |
+| `--accent-ink` na `--accent` (dugme)                     | 6.55:1             | 6.31:1              | 6.59:1              | 4.5:1 |
+| `--accent-strong` na `--accent-soft`                     | 6.99:1             | 5.33:1              | 6.55:1              | 4.5:1 |
 | `--ok` / `--warn` / `--danger` na svojim pill pozadinama | 6.81 / 6.84 / 5.91 | 9.86 / 10.27 / 6.73 | 9.86 / 10.27 / 6.73 | 4.5:1 |
-| `--border` (najgore od pet podloga) | 3.39:1 | 4.04:1 | 3.68:1 | 3:1 |
+| `--border` (najgore od pet podloga)                      | 3.39:1             | 4.04:1              | 3.68:1              | 3:1   |
 
 **Sve prolazi** (stanje od 4.9.2026, posle prelaska svetlog moda na "Azur + Svetionik"). Mesta najbliža padu i dalje zaslužuju pažnju pri svakoj sledećoj izmeni: `--border` u svetlom modu na `--sunken`/`--panel-2` (3.39:1, prag 3), `--text-faint` u dim modu (4.71:1, prag 4.5) i `--danger` u svetlom (5.91:1 — nepromenjen ovim prolazom, ali najbliži prag među statusnim bojama). Sve vrednosti su ručno merene, ne pretpostavljene sa Lighthouse ili Tailwind referenci — zato uz svaku stoji komentar u `globals.css`; bez njega ih sledeća zamena palete tiho vraća (zamka 1.9).
 
@@ -323,13 +323,13 @@ Dva tokena su namerno ostavljena netaknuta, i to je suština odluke, ne izuzetak
 
 **Panel od 29.8.2026. ima TRI varijante, ne dve** — svetli / dim / tamni (§2.0f). To je upravo slučaj koji je ranija formulacija ovog odlomka predviđala ("ako se pokaže stvarna potreba za više od dve varijante, to je nova odluka i nova AA provera za svaku") — vlasnik je tražio dim, sve tri su merene, pravilo je poštovano. Sajt (M8, "Zalazak") i dalje ima dve. Sam prekidač je u praksi ispao jednostavniji od VS Code liste: **jedno dugme koje cikluše svetli → dim → tamni** (`ThemeToggle.tsx`), sa sopstvenom ikonicom i naslovom po stanju — na tri opcije lista sa pregledom ne nosi svoju cenu. Izbor se pamti u **kolačiću** (`tt-panel-theme`) i `data-theme` stiže već u prvom HTML-u sa servera (`app/layout.tsx` čita kolačić), pa treptaja pogrešne teme nema uopšte.
 
-*Izmena 2.9.2026:* do tada je izbor stajao u `localStorage`, a primenjivala ga je blokirajuća `next/script` skripta u `<head>` (`THEME_INIT_SCRIPT`). Dve mane: React 19 na svaki `<script>` iscrtan iz komponente javlja upozorenje *"Encountered a script tag while rendering React component"* (poznat, široko prijavljen slučaj kod `next-themes`/shadcn), a server HTML je uvek bio bez `data-theme` pa je `<html>` morao da nosi `suppressHydrationWarning` — čime se gasi provera neslaganja server/klijent na korenskom elementu. Kolačić rešava oboje jer server ume da ga pročita: nema skripte, nema upozorenja, nema potisnute provere, i tema je tu pre prvog piksela umesto "brzo posle njega". Vrednost se proverava naspram spiska dozvoljenih (`light`/`dim`/`dark`) pre upisa u atribut — ručno napravljen kolačić ne može da ubaci proizvoljan sadržaj. Bez kolačića se ne postavlja ništa i `prefers-color-scheme` odlučuje, kao i ranije. Postojeći izbor iz `localStorage` se prenosi jednom, pri prvom otvaranju (`ThemeToggle.tsx`).
+_Izmena 2.9.2026:_ do tada je izbor stajao u `localStorage`, a primenjivala ga je blokirajuća `next/script` skripta u `<head>` (`THEME_INIT_SCRIPT`). Dve mane: React 19 na svaki `<script>` iscrtan iz komponente javlja upozorenje _"Encountered a script tag while rendering React component"_ (poznat, široko prijavljen slučaj kod `next-themes`/shadcn), a server HTML je uvek bio bez `data-theme` pa je `<html>` morao da nosi `suppressHydrationWarning` — čime se gasi provera neslaganja server/klijent na korenskom elementu. Kolačić rešava oboje jer server ume da ga pročita: nema skripte, nema upozorenja, nema potisnute provere, i tema je tu pre prvog piksela umesto "brzo posle njega". Vrednost se proverava naspram spiska dozvoljenih (`light`/`dim`/`dark`) pre upisa u atribut — ručno napravljen kolačić ne može da ubaci proizvoljan sadržaj. Bez kolačića se ne postavlja ništa i `prefers-color-scheme` odlučuje, kao i ranije. Postojeći izbor iz `localStorage` se prenosi jednom, pri prvom otvaranju (`ThemeToggle.tsx`).
 
 ---
 
 ## 2a. Kontrast — obavezno pravilo, ne preporuka
 
-*(dodato avgust 2026, na izričit zahtev vlasnika — "vrlo važno da se ne nerviram kasnije")*
+_(dodato avgust 2026, na izričit zahtev vlasnika — "vrlo važno da se ne nerviram kasnije")_
 
 Ovo nije estetska preporuka nego **tvrd, merljiv zahtev**, isti duh kao "Izlazni kriterijum" u Nivo 2 specifikacijama — ne prolazi dok se ne proveri, ne "izgleda dobro na oko".
 
@@ -350,16 +350,16 @@ Ovo nije estetska preporuka nego **tvrd, merljiv zahtev**, isti duh kao "Izlazni
 
 ### 3b. Skala veličine slova — obavezno pravilo, ne preporuka (dopuna, 26.8.2026, na zahtev vlasnika)
 
-*Vlasnik je uživo prijavio da su slova u banerima pretrage smeštaja premala i tražio: "hajde da standardizujemo velicinu slova u celoj aplikaciji u zavisnosti sta se opisuje... Heder, Footer, paneli". Pregled koda je potvrdio uzrok — nijedan korak veličine nije postojao u `globals.css`; svaka komponenta je birala `text-xs`/`text-sm` ili sirove Tailwind proizvoljne vrednosti (`text-[9px]`, `text-[10px]`, `text-[11px]`) nezavisno, bez zajedničkog pravila — otud vidljiva nedoslednost kroz ekrane. Vlasnik je preko `AskUserQuestion` potvrdio predloženu skalu i odlučio da se primeni u jednom sistematičnom prolazu kroz ceo panel (ne postepeno, modul po modul).*
+_Vlasnik je uživo prijavio da su slova u banerima pretrage smeštaja premala i tražio: "hajde da standardizujemo velicinu slova u celoj aplikaciji u zavisnosti sta se opisuje... Heder, Footer, paneli". Pregled koda je potvrdio uzrok — nijedan korak veličine nije postojao u `globals.css`; svaka komponenta je birala `text-xs`/`text-sm` ili sirove Tailwind proizvoljne vrednosti (`text-[9px]`, `text-[10px]`, `text-[11px]`) nezavisno, bez zajedničkog pravila — otud vidljiva nedoslednost kroz ekrane. Vlasnik je preko `AskUserQuestion` potvrdio predloženu skalu i odlučio da se primeni u jednom sistematičnom prolazu kroz ceo panel (ne postepeno, modul po modul)._
 
 **Četiri nivoa, po NAMENI sadržaja — ne po tome koji je ekran/traka u pitanju:**
 
-| Nivo | Veličina | Tailwind klasa | Za šta |
-| :---- | :---- | :---- | :---- |
-| Naslov | 16px | `text-base` | Naslov stranice (npr. `$ rezervacije/lista`), naslov modala |
-| Sekcija | 14px | `text-sm` | Naslovi panela (npr. "AI asistent", "Sažetak reda"), naslovi grupa u bočnoj traci, isticanje unutar sadržaja |
-| Sadržaj | 12px | `text-xs` | **Podrazumevano za sve ostalo** — tabele, kartice, forme, baneri, dugmad, Header/Footer trake, bočni paneli. Header/Footer NISU poseban, manji nivo — razlika prema "Naslovu"/"Sekciji" se pravi težinom fonta i bojom (`font-medium`/`text-ink` naspram `text-ink-faint`), ne dodatnim korakom veličine. |
-| Sitno | 11px | `text-[11px]` | ISKLJUČIVO značke/pilule (status boje, npr. PAID/CONFIRMED) i sporedni podaci gde prostor stvarno nedostaje (vremenske oznake, brojači u zagradi). **Donja granica cele aplikacije — ništa ne sme biti manje od ovoga.** |
+| Nivo    | Veličina | Tailwind klasa | Za šta                                                                                                                                                                                                                                                                                                    |
+| :------ | :------- | :------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Naslov  | 16px     | `text-base`    | Naslov stranice (npr. `$ rezervacije/lista`), naslov modala                                                                                                                                                                                                                                               |
+| Sekcija | 14px     | `text-sm`      | Naslovi panela (npr. "AI asistent", "Sažetak reda"), naslovi grupa u bočnoj traci, isticanje unutar sadržaja                                                                                                                                                                                              |
+| Sadržaj | 12px     | `text-xs`      | **Podrazumevano za sve ostalo** — tabele, kartice, forme, baneri, dugmad, Header/Footer trake, bočni paneli. Header/Footer NISU poseban, manji nivo — razlika prema "Naslovu"/"Sekciji" se pravi težinom fonta i bojom (`font-medium`/`text-ink` naspram `text-ink-faint`), ne dodatnim korakom veličine. |
+| Sitno   | 11px     | `text-[11px]`  | ISKLJUČIVO značke/pilule (status boje, npr. PAID/CONFIRMED) i sporedni podaci gde prostor stvarno nedostaje (vremenske oznake, brojači u zagradi). **Donja granica cele aplikacije — ništa ne sme biti manje od ovoga.**                                                                                  |
 
 **Tvrdo pravilo: `text-[9px]` i `text-[10px]` se više NIGDE ne koriste** — ispod su praga normalne čitljivosti za rad ceo radni dan (osoblje agencije, ne povremen posetilac). Svako postojeće mesto koje ih koristi prelazi na `text-[11px]` (ako je stvarno bedž/sporedan podatak) ili `text-xs` (ako je stvarno sadržaj — najčešći slučaj u praksi, pregled koda pri uvođenju ovog pravila pokazao je da je većina "sitnih" oznaka u banerima/karticama zapravo sadržaj, ne bedž).
 
@@ -367,61 +367,61 @@ Ovo nije estetska preporuka nego **tvrd, merljiv zahtev**, isti duh kao "Izlazni
 
 ## 3a. Ikonografija
 
-*(dodato avgust 2026, na zahtev vlasnika — rešava ranije otvoreno pitanje "ikonski set", poglavlje 8)*
+_(dodato avgust 2026, na zahtev vlasnika — rešava ranije otvoreno pitanje "ikonski set", poglavlje 8)_
 
 **Codicons** — zvanična, open-source ikonska biblioteka VS Code-a (MIT licenca, `@vscode/codicons`). Izbor nije slučajan imitator VS Code stila — to je doslovno isti izvor, pa je vizuelni jezik dosledan sa referencom koju vlasnik navodi, ne približna kopija. Tanke linije, jednobojne (prate trenutnu boju teksta, ne nose sopstvenu paletu), minimalističke — bez punih, "flat design" ilustrativnih ikonica.
 
 ### 3a.1 Konkretna ikonica po grupi i po sekciji (dopuna, 18.8.2026, na zahtev vlasnika)
 
-Pravilo iznad kaže *koji set* — ovo poglavlje kaže *koja ikonica za svaku stavku*, birana po **logičnom obliku onoga što se njome otvara** (ne proizvoljno/redom iz seta). Sve ikonice su iz `@vscode/codicons`, referencirane po njihovom zvaničnom imenu — direktno upotrebljivo u kodu (`<i class="codicon codicon-<ime>">` ili React ekvivalent) bez dodatnog prevođenja naziva.
+Pravilo iznad kaže _koji set_ — ovo poglavlje kaže _koja ikonica za svaku stavku_, birana po **logičnom obliku onoga što se njome otvara** (ne proizvoljno/redom iz seta). Sve ikonice su iz `@vscode/codicons`, referencirane po njihovom zvaničnom imenu — direktno upotrebljivo u kodu (`<i class="codicon codicon-<ime>">` ili React ekvivalent) bez dodatnog prevođenja naziva.
 
 **Gornja traka — 9 grupa** (spisak i sekcije unutar svake: M17 spec poglavlje 4a):
 
-| Grupa | Ikonica (Codicon) | Zašto |
-| :---- | :---- | :---- |
-| Početna | `home` | Doslovno početna tačka |
-| Prodaja | `search` | Jezgro grupe je pretraga (Pretraga i rezervacije + Kalendar) |
-| Katalog i nabavka | `package` | Proizvod kao fizička/prodajna jedinica |
-| Klijenti i partneri | `organization` | Spoljni subjekti (osobe i firme), za razliku od `account` koje nosi interni nalog |
-| Finansije i pravno | `law` | Grupa spaja fakture, garanciju i ugovore — svi po formalnom/pravnom osnovu |
-| Komunikacija i podrška | `comment-discussion` | Razgovor je zajednički imenilac (podrška, tim, gost, email) |
-| Sadržaj i znanje | `book` | Objavljen/uređen materijal (marketing i baza znanja) |
-| Analitika i nadzor | `graph-line` | Brojevi/trendovi kroz vreme |
-| Administracija | `settings-gear` | Isti obrazac kao VS Code zupčanik za podešavanja — namerno na suprotnom kraju trake |
+| Grupa                  | Ikonica (Codicon)    | Zašto                                                                               |
+| :--------------------- | :------------------- | :---------------------------------------------------------------------------------- |
+| Početna                | `home`               | Doslovno početna tačka                                                              |
+| Prodaja                | `search`             | Jezgro grupe je pretraga (Pretraga i rezervacije + Kalendar)                        |
+| Katalog i nabavka      | `package`            | Proizvod kao fizička/prodajna jedinica                                              |
+| Klijenti i partneri    | `organization`       | Spoljni subjekti (osobe i firme), za razliku od `account` koje nosi interni nalog   |
+| Finansije i pravno     | `law`                | Grupa spaja fakture, garanciju i ugovore — svi po formalnom/pravnom osnovu          |
+| Komunikacija i podrška | `comment-discussion` | Razgovor je zajednički imenilac (podrška, tim, gost, email)                         |
+| Sadržaj i znanje       | `book`               | Objavljen/uređen materijal (marketing i baza znanja)                                |
+| Analitika i nadzor     | `graph-line`         | Brojevi/trendovi kroz vreme                                                         |
+| Administracija         | `settings-gear`      | Isti obrazac kao VS Code zupčanik za podešavanja — namerno na suprotnom kraju trake |
 
 **Leva traka — 19 sekcija** (spisak: M17 spec poglavlje 4, plus Audit log koji je deo Administracije §4a):
 
-| Sekcija | Ikonica (Codicon) | Zašto |
-| :---- | :---- | :---- |
-| Korisnici i uloge | `account` | Interni nalog/identitet (M1) |
-| Audit log | `history` | Trag radnji kroz vreme |
-| Katalog proizvoda | `package` | Isto obrazloženje kao grupa |
-| Dobavljači i ugovori | `briefcase` | Poslovni odnos sa spoljnim subjektom |
-| Pretraga i rezervacije | `search` | Vođena pretraga je glavna radnja sekcije |
-| Kalendar rezervacija | `calendar` | Doslovan prikaz po datumu |
-| Finansije (fakture, plaćanja) | `credit-card` | Novčana transakcija |
-| Compliance (garancija putovanja) | `shield` | Zaštita/pokriće — bukvalno značenje garancije |
-| Ugovori sa klijentima | `file-text` | Konkretan potpisan dokument, za razliku od `law` (grupa, apstraktnije) |
-| Gosti i nalogodavci (CRM) | `organization` | Isto obrazloženje kao grupa — spoljni subjekt |
-| B2B partneri | `plug` | Spoljni sistem/subagent koji se "priključuje" na Terminal (M7) |
-| Izveštaji | `graph-line` | Isto obrazloženje kao grupa |
-| Podrška | `question` | Otvoreno pitanje koje čeka odgovor |
-| Marketing sadržaj | `megaphone` | Objava namenjena spoljnoj publici |
-| Operativni nadzor | `pulse` | Živ, kontinuiran signal sistema (M18) |
-| Razgovori (tim/dobavljači) | `comment-discussion` | Isto obrazloženje kao grupa |
-| Centar za pomoć | `mortar-board` | Učenje/uputstvo, razlikuje se od `question` (Podrška = otvoren slučaj, ovo = već napisan odgovor) |
-| Email/Inbox | `mail` | Namerno **ne** `inbox` — ta ikonica je već rezervisana za stalno vidljivu M15 Agent Inbox stavku (poglavlje 5c), da se dva različita pojma ne mešaju vizuelno |
-| Znanje (destinacije/proizvodi) | `compass` | Orijentacija po destinaciji — jedina ikonica u setu sa direktnom "putničkom" asocijacijom, namerno suzdržano korišćena (poglavlje 4b, boja/ukras se ne preteruje ni kroz izbor oblika) |
+| Sekcija                          | Ikonica (Codicon)    | Zašto                                                                                                                                                                                  |
+| :------------------------------- | :------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Korisnici i uloge                | `account`            | Interni nalog/identitet (M1)                                                                                                                                                           |
+| Audit log                        | `history`            | Trag radnji kroz vreme                                                                                                                                                                 |
+| Katalog proizvoda                | `package`            | Isto obrazloženje kao grupa                                                                                                                                                            |
+| Dobavljači i ugovori             | `briefcase`          | Poslovni odnos sa spoljnim subjektom                                                                                                                                                   |
+| Pretraga i rezervacije           | `search`             | Vođena pretraga je glavna radnja sekcije                                                                                                                                               |
+| Kalendar rezervacija             | `calendar`           | Doslovan prikaz po datumu                                                                                                                                                              |
+| Finansije (fakture, plaćanja)    | `credit-card`        | Novčana transakcija                                                                                                                                                                    |
+| Compliance (garancija putovanja) | `shield`             | Zaštita/pokriće — bukvalno značenje garancije                                                                                                                                          |
+| Ugovori sa klijentima            | `file-text`          | Konkretan potpisan dokument, za razliku od `law` (grupa, apstraktnije)                                                                                                                 |
+| Gosti i nalogodavci (CRM)        | `organization`       | Isto obrazloženje kao grupa — spoljni subjekt                                                                                                                                          |
+| B2B partneri                     | `plug`               | Spoljni sistem/subagent koji se "priključuje" na Terminal (M7)                                                                                                                         |
+| Izveštaji                        | `graph-line`         | Isto obrazloženje kao grupa                                                                                                                                                            |
+| Podrška                          | `question`           | Otvoreno pitanje koje čeka odgovor                                                                                                                                                     |
+| Marketing sadržaj                | `megaphone`          | Objava namenjena spoljnoj publici                                                                                                                                                      |
+| Operativni nadzor                | `pulse`              | Živ, kontinuiran signal sistema (M18)                                                                                                                                                  |
+| Razgovori (tim/dobavljači)       | `comment-discussion` | Isto obrazloženje kao grupa                                                                                                                                                            |
+| Centar za pomoć                  | `mortar-board`       | Učenje/uputstvo, razlikuje se od `question` (Podrška = otvoren slučaj, ovo = već napisan odgovor)                                                                                      |
+| Email/Inbox                      | `mail`               | Namerno **ne** `inbox` — ta ikonica je već rezervisana za stalno vidljivu M15 Agent Inbox stavku (poglavlje 5c), da se dva različita pojma ne mešaju vizuelno                          |
+| Znanje (destinacije/proizvodi)   | `compass`            | Orijentacija po destinaciji — jedina ikonica u setu sa direktnom "putničkom" asocijacijom, namerno suzdržano korišćena (poglavlje 4b, boja/ukras se ne preteruje ni kroz izbor oblika) |
 
 **Devet ikona pretrage proizvoda** (Smeštaj/Letovi/Transferi/...) već imaju svoju tabelu u poglavlju 5b i ne dupliraju se ovde.
 
-**Pravilo za svaku buduću sekciju** (M17 poglavlje 4 raste sa fazama): nova sekcija dobija ikonicu po istom principu — konkretan Codicon čiji oblik asocira na *ono što sekcija otvara*, ne sledeći slobodnu/generičku ikonicu samo zato što je "preostala" u setu. Ako Codicons set nema dovoljno specifičnu ikonicu za nešto novo (npr. vrlo specifičan tip dokumenta), bira se najbliža po značenju uz kratko obrazloženje u ovoj tabeli — ne izmišlja se nova ikonica van seta (poglavlje 3a).
+**Pravilo za svaku buduću sekciju** (M17 poglavlje 4 raste sa fazama): nova sekcija dobija ikonicu po istom principu — konkretan Codicon čiji oblik asocira na _ono što sekcija otvara_, ne sledeći slobodnu/generičku ikonicu samo zato što je "preostala" u setu. Ako Codicons set nema dovoljno specifičnu ikonicu za nešto novo (npr. vrlo specifičan tip dokumenta), bira se najbliža po značenju uz kratko obrazloženje u ovoj tabeli — ne izmišlja se nova ikonica van seta (poglavlje 3a).
 
 ---
 
 ## 4. Glavni obrazac interakcije — komandna paleta (`Ctrl+K` / `Cmd+K`)
 
-Ovo **nije nova ideja** — ovo je vizuelna/interakciona realizacija onoga što M17 spec već zove *omnisearch* (poglavlje 5.5) i M15 poglavlje 6.5 već definiše kao deljen mehanizam. Ovaj dokument ne menja to ponašanje, samo mu daje konkretan oblik:
+Ovo **nije nova ideja** — ovo je vizuelna/interakciona realizacija onoga što M17 spec već zove _omnisearch_ (poglavlje 5.5) i M15 poglavlje 6.5 već definiše kao deljen mehanizam. Ovaj dokument ne menja to ponašanje, samo mu daje konkretan oblik:
 
 - **Skriveno dok se ne pozove** — ne stalno vidljivo polje u zaglavlju, nego overlay koji iskače na `Ctrl+K`/`Cmd+K` i nestaje čim nije potreban (Escape, klik van, ili izvršena akcija).
 - **Prazan upit** → navigacija filtrirana na ulogu trenutnog korisnika (već propisano M17 §5.5), **i lista nedavno otvorenih zapisa/tabova** iznad nje (dopuna, 18.8.2026, na zahtev vlasnika — isti obrazac kao Linear/Spotlight) — brz povratak na ono na čemu se upravo radilo, bez ponovnog kucanja.
@@ -434,7 +434,7 @@ Ovo je i doslovno ono što vlasnik opisuje kao "skrivene naredbe za pokretanje m
 
 ## 4a. Tastaturne prečice — svaki čest postupak, ne samo komandna paleta
 
-*(dodato 18.8.2026, na zahtev vlasnika — referenca: Linear)*
+_(dodato 18.8.2026, na zahtev vlasnika — referenca: Linear)_
 
 Komandna paleta je glavni ulaz (poglavlje 4), ali nije jedina prečica — svaki čest postupak unutar ekrana koji je trenutno u fokusu (potvrdi, otkaži, sledeća/prethodna stavka, otvori u novom tabu, zatvori tab) dobija i sopstvenu jednoslovnu/kombinovanu prečicu, isti princip kao Linear (`C` = novi zapis, `E` = dodeli, itd. — tačan raspored slova po ekranu dorađuje se pri izradi, ne ovde).
 
@@ -444,7 +444,7 @@ Komandna paleta je glavni ulaz (poglavlje 4), ali nije jedina prečica — svaki
 
 ## 4b. Brzina i suzdržanost boje kao dosledna pravila (dopuna, 18.8.2026, na zahtev vlasnika)
 
-*(referenca: Linear — "100ms interaction target", "near-monochrome, color only for status")*
+_(referenca: Linear — "100ms interaction target", "near-monochrome, color only for status")_
 
 - **Merljiv brzinski cilj, ne samo osećaj** — svaka interakcija u fokusu (otvaranje kartice, promena taba, pojavljivanje komandne palete, poglavlje 6 "suptilne i brze" animacije) cilja **ispod 100ms** percipiranog odziva. Ovo je dopuna, ne izmena postojećeg poglavlja 6 — isti princip ("brzina i nisko kognitivno opterećenje imaju prioritet nad vizuelnim efektom"), sad sa konkretnim brojem umesto samo "brzo".
 - **Boja se koristi isključivo namerno, nikad dekorativno** — van akcentne boje rezervisane za AI (poglavlje 6a) i standardnih semantičkih boja (uspeh/upozorenje/greška/status), interfejs ostaje gotovo monohromatski (neutralna paleta, poglavlje 2). Ovo formalizuje već postojeći duh dokumenta (akcent rezervisan za AI, poglavlje 6a) kao opšte pravilo za ceo interfejs, ne samo za tu jednu oznaku — sprečava da buduće ekrane svaki dodaju sopstvenu, proizvoljnu paletu za isticanje.
@@ -462,7 +462,7 @@ Komandna paleta je glavni ulaz (poglavlje 4), ali nije jedina prečica — svaki
 
 ## 5a. Tabovi — više otvorenih ekrana istovremeno
 
-*(dodato avgust 2026, na zahtev vlasnika)*
+_(dodato avgust 2026, na zahtev vlasnika)_
 
 Traka tabova iznad centralnog panela (ispod gornje trake, poglavlje 5) — isti obrazac kao VS Code/browser tabovi, **unutar same Terminal aplikacije** (ovo nisu tabovi browsera, nego tabovi unutar jedne stranice). Svaki tab je jedan otvoren zapis/ekran — npr. "Rezervacija #482", "Petrović — profil", "Finansijski izveštaj — avgust" — otvoren nezavisno, bez da se izgubi mesto na kom se stalo u prethodnom.
 
@@ -480,13 +480,13 @@ Traka tabova iznad centralnog panela (ispod gornje trake, poglavlje 5) — isti 
 
 ## 5b. Tri-panelni raspored — navigator / prikaz / izdvajanje
 
-*(dodato avgust 2026, na zahtev vlasnika — referenca: VS Code Explorer + editor + peek/split)*
+_(dodato avgust 2026, na zahtev vlasnika — referenca: VS Code Explorer + editor + peek/split)_
 
 Ceo radni prostor (ispod gornje trake, poglavlje 5; iznad/pored tabova, poglavlje 5a) deli se na tri funkcionalno odvojene zone, isti princip za M17 i M7 (poglavlje 7):
 
 - **Levi panel — navigator, dva nivoa.** Gornji nivo je spisak **svih back-office modula** (isti spisak koji već postoji u `apps/panel/src/lib/nav.ts` — Katalog, Dobavljači i ugovori, Pretraga i rezervacije, Finansije, CRM, B2B, Izveštaji, Podrška, Marketing, Nadzor, Razgovori, Centar za pomoć, Email, Znanje, itd.). Klik na modul ga proširuje u stablo-strukturu (poglavlje 5) — isti vizuelni jezik kao VS Code Explorer/Source Control: tanke vertikalne linije, ševroni za sklapanje/rasklapanje. Sadržaj tog stabla je specifičan za modul (npr. "Pretraga i rezervacije" proširen pokazuje 9 ikona po vrsti proizvoda, ispod). Ovo je jedino mesto za pregledanje/pretragu; klik na stavku puni centralni panel, ne otvara novi prozor. **Sačuvani prikazi** (dopuna, 18.8.2026, na zahtev vlasnika — isti obrazac kao Salesforce/HubSpot/Attio) — na bilo kojoj listi (poglavlje 6d, ili lista bilo kog drugog modula) korisnik može da sačuva trenutnu kombinaciju filtera pod imenom (npr. "Rezervacije koje čekaju fiskalni dokument") — sačuvan prikaz se pojavljuje kao dodatna stavka u stablu te sekcije, lično po korisniku, ne deljeno (deljenje sa timom je moguće prošireno izdanje, ne ovde). **Implementirano 24.8.2026** za "Lista rezervacija" (M5 spec v1.56) — `SavedViewsSidebarPanel.tsx`, oslonjen na novi M1 `UserPreference` (M1 spec v1.8); ostale liste (npr. M14 tiketi, M6 CRM) čekaju svoj prolaz istim obrascem kad se ukaže potreba.
 - **Centralni panel — prikaz, uvek "radna površina" trenutno izabrane stavke.** Ako je iz levog navigatora izabrana lista (npr. "Rezervacije", "Profakture"), centar prikazuje **tu listu** — kartice/redovi/tabela, isti obrazac kao poglavlje 6d. Ako se iz liste (ili taba, poglavlje 5a) uđe u pojedinačan zapis, centar prikazuje **pun** taj zapis. Centar ostaje najveći deo ekrana (poglavlje 5, "sadržaj u fokusu").
-- **Desni panel — izdvajanje, uvek skraćena/izvedena verzija, nikad zamena za centar.** Kad je centar lista i korisnik klikne na jedan red **bez** da uđe u pun zapis, desni panel prikazuje **sažetak ključnih polja** tog reda (dopuna, 18.8.2026, na zahtev vlasnika — npr. broj rezervacije/profakture, gost, datum, status, iznos) — lista u centru ostaje otvorena, nepromenjena. **Implementirano 23.8.2026** za rezervacije (M5 spec v1.46) — `RowSummaryContext.tsx`, `RightPanel.tsx` `BookingSummary`; polja proširena na destinaciju/hotel/tip smeštaja/putnike/uplaćeno/dug, ne samo minimalna petorka iz originalnog primera. **"Pun zapis" (dupli klik/"Otvori") još NIJE dizajniran ni implementiran za rezervacije** — čeka poseban predlog (vlasnik, 23.8.2026: "Jos treba da osmislimo celu formu koja ce se otvarati klikom na broj rezervacije... dajte neki predlog"), otvorena stavka u `docs/analize/27-BACKLOG-IDEJA-I-PREDLOZI.md`. Kad centar prikazuje pun zapis, desni panel nosi kontekst *izveden* iz njega — AI razgovor vezan za taj zapis, istorija izmena, ili **"Povezano" traka**: dosledan blok koji pokazuje trenutno povezane zapise drugih modula (npr. gost → njegove rezervacije, fakture, otvoreni tiketi) — isti obrazac kao Attio/HubSpot, formalizovan ovde da ne ostane ad-hoc po ekranu. Prelazak sa sažetka u desnom panelu na **pun** prikaz zapisa (dupli klik/dugme "Otvori") uvek otvara **nov tab** (poglavlje 5a — "namerna radnja"), ne zamenjuje listu koja je već otvorena. Desni panel nikad ne pokreće nezavisnu navigaciju sam — uvek zavisi od onoga što je otvoreno u centru. **Može se otvoriti drugi desni panel pored prvog** (isti obrazac kao VS Code split editor grupe — prevlačenje ili prečica otvara novu kolonu) — dva desna panela jedan pored drugog, ne jedan preko drugog.
+- **Desni panel — izdvajanje, uvek skraćena/izvedena verzija, nikad zamena za centar.** Kad je centar lista i korisnik klikne na jedan red **bez** da uđe u pun zapis, desni panel prikazuje **sažetak ključnih polja** tog reda (dopuna, 18.8.2026, na zahtev vlasnika — npr. broj rezervacije/profakture, gost, datum, status, iznos) — lista u centru ostaje otvorena, nepromenjena. **Implementirano 23.8.2026** za rezervacije (M5 spec v1.46) — `RowSummaryContext.tsx`, `RightPanel.tsx` `BookingSummary`; polja proširena na destinaciju/hotel/tip smeštaja/putnike/uplaćeno/dug, ne samo minimalna petorka iz originalnog primera. **"Pun zapis" (dupli klik/"Otvori") još NIJE dizajniran ni implementiran za rezervacije** — čeka poseban predlog (vlasnik, 23.8.2026: "Jos treba da osmislimo celu formu koja ce se otvarati klikom na broj rezervacije... dajte neki predlog"), otvorena stavka u `docs/analize/27-BACKLOG-IDEJA-I-PREDLOZI.md`. Kad centar prikazuje pun zapis, desni panel nosi kontekst _izveden_ iz njega — AI razgovor vezan za taj zapis, istorija izmena, ili **"Povezano" traka**: dosledan blok koji pokazuje trenutno povezane zapise drugih modula (npr. gost → njegove rezervacije, fakture, otvoreni tiketi) — isti obrazac kao Attio/HubSpot, formalizovan ovde da ne ostane ad-hoc po ekranu. Prelazak sa sažetka u desnom panelu na **pun** prikaz zapisa (dupli klik/dugme "Otvori") uvek otvara **nov tab** (poglavlje 5a — "namerna radnja"), ne zamenjuje listu koja je već otvorena. Desni panel nikad ne pokreće nezavisnu navigaciju sam — uvek zavisi od onoga što je otvoreno u centru. **Može se otvoriti drugi desni panel pored prvog** (isti obrazac kao VS Code split editor grupe — prevlačenje ili prečica otvara novu kolonu) — dva desna panela jedan pored drugog, ne jedan preko drugog.
 
 Sve tri zone su sklopive/proširive nezavisno (VS Code obrazac) — zatvaranje levog panela kad tim samo čita jedan zapis, otvaranje drugog desnog panela kad treba paralelno pratiti dva izvedena prikaza.
 
@@ -494,17 +494,17 @@ Sve tri zone su sklopive/proširive nezavisno (VS Code obrazac) — zatvaranje l
 
 **Pretraga proizvoda — stablo-grana unutar modula "Pretraga i rezervacije"** (dopuna 17.8.2026, na zahtev vlasnika; pojašnjeno istog dana da izbegne zabunu — devet ikona ispod NIJE zamena za spisak back-office modula, nego njegov podskup, tačno onako kako VS Code Explorer proširuje jedan otvoren folder, ne zamenjuje spisak projekata): kad se taj modul otvori/proširi u levom navigatoru, njegovo stablo nosi jednu ikonicu (Codicons, poglavlje 3a) po vrsti turističkog proizvoda — izbor otvara odgovarajuću vođenu pretragu u centralnom panelu. Konkretan tok polja/koraka/filtera za svaku definisan je u M5 spec poglavljima 3.0c/3.0d, ne ovde (ovaj dokument ostaje raspored/interakcija, M5 ostaje podaci/tok). Konačna lista ikona (potvrđeno 17.8.2026), sa napomenom gde ikonica ne odgovara 1:1 jednom `Product.type`:
 
-| Ikonica | `Product.type` iza nje |
-| :---- | :---- |
-| Smeštaj | `ACCOMMODATION` |
-| Letovi | `FLIGHT` |
-| Transferi | `TRANSFER` |
-| Rent-a-car | `TRANSPORT` (`transport_mode=RENT_A_CAR`) — sopstvena ikonica iako deli `Product.type` sa ostatkom prevoza (bus/voz/brod), jer su polja pretrage potpuno drugačija |
-| Things to do | `EXCURSION` + `EVENT` + `TICKET` spojeno u jedan ekran (M5 poglavlje 3.0d.4) — tri tipa u pozadini, jedna ikonica |
+| Ikonica             | `Product.type` iza nje                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| :------------------ | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Smeštaj             | `ACCOMMODATION`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| Letovi              | `FLIGHT`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| Transferi           | `TRANSFER`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| Rent-a-car          | `TRANSPORT` (`transport_mode=RENT_A_CAR`) — sopstvena ikonica iako deli `Product.type` sa ostatkom prevoza (bus/voz/brod), jer su polja pretrage potpuno drugačija                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| Things to do        | `EXCURSION` + `EVENT` + `TICKET` spojeno u jedan ekran (M5 poglavlje 3.0d.4) — tri tipa u pozadini, jedna ikonica                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 | Individualni paketi | nije `Product.type` — otvara `Itinerary` tok (M5 poglavlje 3.0d.5), sastavljanje više pretraga u jedno putovanje. Dok je aktivan, preostalih 8 ikona postaju dugmad za dodavanje/uključivanje-isključivanje segmenta tog tipa (dopuna, 18.8.2026, na zahtev vlasnika); desni panel prikazuje cenu po segmentu, tekući (okvirni) zbir i eventualna upozorenja o hronologiji (M5 poglavlje 3.0.7), isti obrazac kao poređenje selekcije van itinerara (M5 poglavlje 3.0e.3). Traka iznad centralnog panela nosi i "Podeli"/"Kloniraj"/"Izvezi PDF" (dopuna, 18.8.2026 — M5 poglavlja 3.0.5/3.0.6/3.0.8) — podaci/tok: M5 poglavlje 3.0.4 |
-| Grupni paketi | `PACKAGE` |
-| Krstarenja | `CRUISE` (nov tip, M2 poglavlje 2.1/2.3, dodat 17.8.2026) |
-| Putno osiguranje | `INSURANCE` |
+| Grupni paketi       | `PACKAGE`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| Krstarenja          | `CRUISE` (nov tip, M2 poglavlje 2.1/2.3, dodat 17.8.2026)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| Putno osiguranje    | `INSURANCE`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
 
 **"Ručna stavka" — proizvod van kataloga** (dopuna, 18.8.2026, na zahtev vlasnika; podaci/tok: M5 spec poglavlje 3.0f) — svaka od devet ikona iznad dobija dodatnu, sitniju radnju uz sebe (ikonica `edit`, isti obrazac kao "izmeni" bilo gde drugde u interfejsu) koja umesto vođene pretrage otvara direktan unos: zemlja/destinacija i dalje se biraju iz iste M2 baze, ali sam proizvod (naziv/opis/cena) se unosi ručno — za hotel, lepljenje linka sajta hotela nudi AI predlog teksta i slika (M15 poglavlje 6.5.6c) koji agent pregleda pre čuvanja. Rezultat je `QuoteItem`/`BookingItem` sa `source_type = MANUAL`, ne `SearchResultOffer` — ne prolazi kroz `GET /search`.
 
@@ -514,7 +514,7 @@ Sve tri zone su sklopive/proširive nezavisno (VS Code obrazac) — zatvaranje l
 
 ## 5c. Gornja traka — grupe modula; leva traka — spisak pa skupljanje na izabranu stavku
 
-*(dodato 17.8.2026, na zahtev vlasnika)*
+_(dodato 17.8.2026, na zahtev vlasnika)_
 
 Back-office ima ~20 sekcija (M17 spec poglavlje 4) — previše za jednu vertikalnu ili horizontalnu traku ikonica bez grupisanja. Rešenje u dva koraka:
 
@@ -529,7 +529,7 @@ Ovaj obrazac važi identično za M17 i M7 (poglavlje 7) — grupisanje/spisak M7
 
 ### 5c.1 Skupljena leva traka — plutajući podmeni na prelazak mišem (dopuna, 2.9.2026, na zahtev vlasnika)
 
-*(vlasnik: "kada je levi panel zatvoren i u bočnoj levoj traci se pojave samo ikone, kada prelazimo mišem preko ikona, pojaviti i plutajuće podmenije")*
+_(vlasnik: "kada je levi panel zatvoren i u bočnoj levoj traci se pojave samo ikone, kada prelazimo mišem preko ikona, pojaviti i plutajuće podmenije")_
 
 Dok je leva traka skupljena, od cele navigacije na ekranu ostaje samo kolona ikonica. Do sada se spisak sekcija te grupe nije mogao videti bez ponovnog širenja trake — što skupljenu traku delimično obesmišljava: dobije se prostor, izgubi se mogućnost da se stigne bilo gde bez dva koraka. Zato **prelazak mišem preko ikonice otvara plutajući meni** sa sekcijama te grupe, iz kog se ide pravo na željenu sekciju.
 
@@ -543,12 +543,14 @@ Dok je leva traka skupljena, od cele navigacije na ekranu ostaje samo kolona iko
 
 Ovaj obrazac važi identično za M17 i M7 (poglavlje 7), isto kao ostatak §5c.
 
-**Dopuna 4.9.2026 — skupljena traka mora imati sopstvenu strelicu za povratak** (vlasnikov nalaz: *„kada skupimo levi panel strelicom u levo, nemamo za širenje strelicu u desno"*). Skupljanje ide preko `chevron-left` pri vrhu levog panela, ali se taj panel pri skupljanju odmontira u celosti (na 0px, §5b) i odnese svoju strelicu sa sobom. Povratak je do tada postojao samo kao **sporedan efekat** klika na ikonicu grupe — ponašanje koje radi, ali koje korisnik ne može da pretpostavi jer ništa na ekranu ne izgleda kao dugme za širenje. Skupljena traka zato nosi `chevron-right` na istoj visini i istoj strani, kao vidljiv par strelici za skupljanje; u proširenom stanju se ne prikazuje (tada je par u levom panelu). **Opšte pravilo:** kad se kontrola za neko stanje nalazi u elementu koji to isto stanje uklanja sa ekrana, povratna kontrola mora živeti u nečemu što ostaje vidljivo.
+**Dopuna 4.9.2026 — skupljena traka mora imati sopstvenu strelicu za povratak** (vlasnikov nalaz: _„kada skupimo levi panel strelicom u levo, nemamo za širenje strelicu u desno"_). Skupljanje ide preko `chevron-left` pri vrhu levog panela, ali se taj panel pri skupljanju odmontira u celosti (na 0px, §5b) i odnese svoju strelicu sa sobom. Povratak je do tada postojao samo kao **sporedan efekat** klika na ikonicu grupe — ponašanje koje radi, ali koje korisnik ne može da pretpostavi jer ništa na ekranu ne izgleda kao dugme za širenje. Skupljena traka zato nosi `chevron-right` na istoj visini i istoj strani, kao vidljiv par strelici za skupljanje; u proširenom stanju se ne prikazuje (tada je par u levom panelu). **Opšte pravilo:** kad se kontrola za neko stanje nalazi u elementu koji to isto stanje uklanja sa ekrana, povratna kontrola mora živeti u nečemu što ostaje vidljivo.
 
 ---
+
 ## 5d. Donja traka i lična podešavanja (dopuna, 18.8.2026, na zahtev vlasnika — referenca: VS Code status bar/nalog/split)
 
 **Donja traka** (nova zona, ispod centralnog panela, preko cele širine):
+
 - **Nalog koji je prijavljen** — ime + uloga (npr. "Marko Petrović · Prodajni agent"), klik otvara profil.
 - **Status veze** — API dostupan/nedostupan, WebSocket (M19 chat) povezan/prekinut — stvaran, koristan signal, ne dekorativan, jer panel zavisi od žive veze ka backend-u.
 - **AI status po trenutnom modulu** — da li je domenski agent za taj ekran `ACTIVATED` (M15 `ModuleAgentActivation`, poglavlje 3 tog spec-a) — kratka oznaka "AI: uključen"/"AI: isključen za ovaj modul", relevantno jer se agenti pale po modulu, ne globalno.
@@ -557,6 +559,7 @@ Ovaj obrazac važi identično za M17 i M7 (poglavlje 7), isto kao ostatak §5c.
 - **Klaster ikonica-pokretača** (dopuna, 19.8.2026, na zahtev vlasnika) — pet ikonica, krajnje levo ili desno u traci (ekranska odluka pri izradi): **Mejl** (M22, otvara tu sekciju unutar panela — nov tab, isto pravilo kao svaki drugi namerni klik, poglavlje 5a), **Interni chat** (M19, isto — otvara sekciju unutar panela), **WhatsApp**, **Viber**, **Telegram** (spoljne aplikacije — klik otvara desktop aplikaciju ili web verziju u novom tabu browsera, **bez ikakve veze sa Terminal bazom podataka** — čist prečac, isti princip kao pokretač na operativnom sistemu, ne nov kanal). Poslednje tri postoje isključivo zbog toga što ih tim već svakodnevno koristi za goste/partnere/kolege (vlasnikova odluka, 19.8.2026) — razlikuju se od "Pošalji ponudu" (poglavlje 6d) po tome što ne nose nikakav unapred pripremljen tekst, samo otvaraju aplikaciju.
 
 **Gornji desni deo gornje trake** (odvojeno od administratorske zupčanik-ikonice iz poglavlja 5c, koja ostaje za sistemska podešavanja vidljiva samo ovlašćenima):
+
 - **Ikonica naloga** (inicijali/avatar) → meni: profil, lična podešavanja, odjava.
 - **Lična podešavanja** (zupčanik, korisnički nivo) — ručan izbor teme preko automatske (poglavlje 2), veličina fonta, uključi/isključi zvuk AI odgovora (M17 spec poglavlje 5.5), uključi/isključi obaveštenja (poglavlje 5e ispod), oblik forme "Ponuda → Rezervacija" — jedna duga forma naspram stepper-a (dopuna, 18.8.2026, na zahtev vlasnika; podaci: M1 spec §3.9 `UserPreference`, tok: M5 spec §4.4). Svako ovakvo podešavanje se čuva kroz isti generički `UserPreference` mehanizam (M1 §3.9), ne kroz poseban model po podešavanju.
 - **Zvono za obaveštenja** — **informativna istorija** (nova poruka u M19 chat-u, M18 upozorenje) — razlika od Inbox ikonice: Inbox čeka **moju odluku** (akcionabilno), zvono znači **obavešten sam**, ne moram ništa da uradim. Zvono čuva i ono što je zatvoreno iz iskačućih obaveštenja (poglavlje 5e).
@@ -586,6 +589,7 @@ Isto važi identično za M7 portal (poglavlje 7), filtrirano na obim tog subagen
 **Meni nosi i izbor širine centralnog sadržaja** (dopuna, 2.9.2026) — zasebna grupa ispod prekidača, razdvojena linijom i naslovom "Širina sadržaja", jer se tu bira **jedna** od četiri vrednosti umesto da se nešto pali i gasi. Vrednosti, obrazloženje i razlog zašto je to granica a ne procenat: **§6b.1**.
 
 > **Gde se šta stvarno pamti (stanje koda, 2.9.2026).** Ovaj odlomak je do 2.9.2026. tvrdio da se vidljivost panela pamti kroz `UserPreference` — u kodu to nije tako. Tačno stanje:
+>
 > - **vidljivost panela** — `localStorage` (`tt-panel-layout-visibility`, `Shell.tsx`), privremeno rešenje iz 23.8.2026 kad `UserPreference` backend nije postojao u kodu. Pamti se **po browseru**, ne po nalogu; korisnik na drugom računaru zatiče podrazumevano stanje.
 > - **širina sadržaja** i **način prikaza desnog panela** — pravi `UserPreference` (M1 §3.9, ključevi `main_content_max_width` i `right_panel_display_mode`), dakle **po nalogu**.
 >
@@ -607,7 +611,7 @@ Isto važi identično za M7 portal (poglavlje 7), filtrirano na obim tog subagen
 
 ## 6. Sadržaj centralnog panela — isticanje, kartice, pokret
 
-*(dodato avgust 2026, na zahtev vlasnika)*
+_(dodato avgust 2026, na zahtev vlasnika)_
 
 Centralni panel (glavni radni prostor, ne bočna traka) prati vizuelne konvencije VS Code editora, primenjene na poslovni sadržaj umesto na kod:
 
@@ -619,7 +623,7 @@ Centralni panel (glavni radni prostor, ne bočna traka) prati vizuelne konvencij
 
 ## 6a. Obeležavanje autora radnje — čovek, AI agent, spoljni nalog
 
-*(dodato avgust 2026, na zahtev vlasnika)*
+_(dodato avgust 2026, na zahtev vlasnika)_
 
 Terminal je platforma u kojoj AI agent nije pomoćni alat nego **formalan nalog sa sopstvenim pravima** — M15 poglavlje 1 uvodi `User.account_type = AI_AGENT`, a svaka njegova akcija ulazi u isti `AuditLogEntry` sa `actor_type = AI_AGENT` (M1 poglavlje 3.8). Ta razlika mora biti vidljiva **i u interfejsu**, ne samo u bazi — inače tim ne može da proceni koliko da veruje onome što čita, a to je jedino na osnovu čega odlučuje da li da pregleda tekst pre slanja ili da ga prihvati kakav jeste.
 
@@ -627,10 +631,10 @@ Ovo poglavlje je **jedini izvor istine** za taj vizuelni jezik. Modulske specifi
 
 ### 6a.1 Tri porekla, tri prikaza
 
-| Poreklo | Oznaka | Vizuelno |
-| :---- | :---- | :---- |
-| Zaposleni (`STAFF`) | ime i prezime | bez dodatne oznake — podrazumevano stanje |
-| AI agent (`AI_AGENT`) | ime agenta + bedž **"AI"** | `accent-soft` pozadina bedža, `accent` boja teksta — isti obrazac kao već postojeći "AI nacrt" bedž u M14 prikazu tiketa |
+| Poreklo                                                                   | Oznaka                      | Vizuelno                                                                                                                  |
+| :------------------------------------------------------------------------ | :-------------------------- | :------------------------------------------------------------------------------------------------------------------------ |
+| Zaposleni (`STAFF`)                                                       | ime i prezime               | bez dodatne oznake — podrazumevano stanje                                                                                 |
+| AI agent (`AI_AGENT`)                                                     | ime agenta + bedž **"AI"**  | `accent-soft` pozadina bedža, `accent` boja teksta — isti obrazac kao već postojeći "AI nacrt" bedž u M14 prikazu tiketa  |
 | Spoljni nalog (`SUPPLIER_CONTACT`, `SUBAGENT_ADMIN`/`SUBAGENT_*`, `GOST`) | ime + naziv firme ili uloge | neutralna oznaka, **bez** `accent` boje — akcentna boja je rezervisana za AI, da se ta jedna razlika ne izgubi u šarenilu |
 
 ### 6a.2 Pravila koja se ne krše
@@ -649,7 +653,7 @@ Na **svakom** ekranu bilo kog kanala koji prikazuje autora radnje ili poruke —
 
 ## 6b. Širina prikaza — sajt (M8) ide punom širinom, sa izuzetkom
 
-*(vlasnikova odluka 17.8.2026)*
+_(vlasnikova odluka 17.8.2026)_
 
 **Sajt zauzima celu širinu ekrana na kom se prikazuje.** Ranije je sadržaj bio ograničen na 1152px, pa je na širokom monitoru skoro pola ekrana ostajalo prazno. Zaglavlje, sadržaj i podnožje dele **isti bočni prostor** koji raste sa ekranom (`px-4` → `px-10`) — puna širina nije isto što i bez margine; tekst nikad ne dodiruje ivicu prozora.
 
@@ -661,25 +665,25 @@ Ovo pravilo se odnosi **samo na M8**; panel (M17) ima sopstveno pravilo — §6b
 
 ### 6b.1 Panel (M17) — puna širina podrazumevano, ali korisnik sme da je suzi (dopuna, 2.9.2026, na zahtev vlasnika)
 
-*(vlasnik: "omogućiti ko to želi da se u centralnom panelu širina prikaza podesi na manju širinu")*
+_(vlasnik: "omogućiti ko to želi da se u centralnom panelu širina prikaza podesi na manju širinu")_
 
 Panel je radna površina, ne štampana strana, i **podrazumevano ostaje na punoj širini** — to se ovom dopunom ne menja ni za jednog korisnika koji ništa ne dira. Ali isti argument o čitljivosti koji važi za tekstualne stranice sajta (gore) važi i ovde na velikom monitoru: red koji ide preko celog ekrana zamara, a oko mora da putuje od kraja do kraja da poveže početak i kraj istog reda. Zato širina postaje **lični izbor**, ne jedinstvena odluka za sve.
 
 **Granica širine, ne procenat.** Ovo je suština rešenja i razlog zašto se ne ponavlja greška iz avgusta:
 
-| Pristup | Ponašanje |
-| :---- | :---- |
-| Procenat (npr. 80%) | Oduzima prostor **uvek**, i na uskom ekranu gde ga ionako nema. Tako je radio raniji `w-[90%]`, koji je zato ukinut 29.8.2026 na vlasnikovu prijavu da margina postaje sve primetnija kad bočni paneli oduzmu prostor. |
-| Gornja granica (`max-width`) | Deluje **samo kad raspoloživog prostora ima više od nje**. Na užem ekranu se ponaša identično kao puna širina, bez ijednog izgubljenog piksela. Ista postavka radi ispravno na svakom uređaju. |
+| Pristup                      | Ponašanje                                                                                                                                                                                                              |
+| :--------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Procenat (npr. 80%)          | Oduzima prostor **uvek**, i na uskom ekranu gde ga ionako nema. Tako je radio raniji `w-[90%]`, koji je zato ukinut 29.8.2026 na vlasnikovu prijavu da margina postaje sve primetnija kad bočni paneli oduzmu prostor. |
+| Gornja granica (`max-width`) | Deluje **samo kad raspoloživog prostora ima više od nje**. Na užem ekranu se ponaša identično kao puna širina, bez ijednog izgubljenog piksela. Ista postavka radi ispravno na svakom uređaju.                         |
 
 **Četiri ponuđene vrednosti** (vlasnik potvrdio posle predloga sa obrazloženjem):
 
-| Izbor | Granica | Zašto baš tu |
-| :---- | :---- | :---- |
-| Puna širina | — | Podrazumevano. Nepromenjeno ponašanje za sve koji ništa ne biraju. |
-| Široko | 1680px | Deluje tek na velikim/ultraširokim monitorima; na 1920px sa otvorenim bočnim panelima praktično neprimetno. |
-| Srednje | 1440px | Osetno mirniji ekran, a najšira tabela u panelu (lista rezervacija, 11 kolona) i dalje staje bez stiskanja kolona. |
-| Usko | 1280px | **Donja granica koja se preporučuje.** Ispod ~1250px ta tabela počinje da stiska kolone ili traži horizontalno skrolovanje — gora šteta po preglednost nego predugačak red teksta. |
+| Izbor       | Granica | Zašto baš tu                                                                                                                                                                       |
+| :---------- | :------ | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Puna širina | —       | Podrazumevano. Nepromenjeno ponašanje za sve koji ništa ne biraju.                                                                                                                 |
+| Široko      | 1680px  | Deluje tek na velikim/ultraširokim monitorima; na 1920px sa otvorenim bočnim panelima praktično neprimetno.                                                                        |
+| Srednje     | 1440px  | Osetno mirniji ekran, a najšira tabela u panelu (lista rezervacija, 11 kolona) i dalje staje bez stiskanja kolona.                                                                 |
+| Usko        | 1280px  | **Donja granica koja se preporučuje.** Ispod ~1250px ta tabela počinje da stiska kolone ili traži horizontalno skrolovanje — gora šteta po preglednost nego predugačak red teksta. |
 
 Donja granica nije proizvoljna: **određena je najširim stvarnim sadržajem u panelu**, ne osećajem. Ako se ikad pokaže potreba za užim prikazom, rešenje je manje kolona u toj tabeli (zaseban zahtev), ne uža granica koja bi tabelu pokvarila.
 
@@ -693,7 +697,7 @@ Poravnava se **samo leva ivica**, namerno: i na punoj širini traka tabova ide d
 
 ## 6c. AI razgovor — plutajući kontekst iznad unosa
 
-*(dodato avgust 2026, na zahtev vlasnika — referenca: Claude Code panel unutar VS Code)*
+_(dodato avgust 2026, na zahtev vlasnika — referenca: Claude Code panel unutar VS Code)_
 
 Svaki ekran koji vodi razgovor sa AI agentom (M19 chat sa AI nacrtom, M21/M23 AI asistent, M15 omnisearch/komandna paleta) prati isti obrazac unosa kao Claude Code panel:
 
@@ -718,6 +722,7 @@ Ovaj obrazac ne menja pravila iz poglavlja 6a (obeležavanje autora) niti M15 po
 - **`CommandPalette` (poglavlje 4) ostaje nepromenjen, poseban ulaz** (vlasnikova odluka, 25.8.2026) — AI chat NE dobija sopstvenu, punu listu stavki menija ispod polja (razmatrano, odbačeno da se ne duplira ista funkcija na dva mesta); postojeće 4 brze prečice (poglavlje 6c.2 "šta još") ostaju kao i do sada, bez proširenja.
 
 **Ispravka (25.8.2026, uživo nalaz uz snimak ekrana, isti dan)** — prvi prolaz implementacije je pogrešno ostavio red za unos PRI VRHU sekcije umesto pri dnu (uzrok: poruke se renderuju u uslovnom `{turns.length > 0 && ...}` bloku bez `turns` — kad je razgovor prazan, nema `flex-1` elementa koji popunjava prostor, pa red za unos "isplivava" na vrh). Ispravljeno: blok poruka je sad UVEK montiran (prazan kad nema poruka), `flex-1` ga i dalje širi da popuni ceo preostali prostor, red za unos ostaje pri dnu bez obzira na broj poruka — ovo NIJE nova specifikacija, samo ispravka pogrešne implementacije prvobitnog teksta iznad ("Polje za unos je fiksirano pri dnu"). Uz istu ispravku:
+
 - **Istorija razgovora raste ODOZDO NAGORE** (na zahtev vlasnika) — najnovija poruka je uvek najbliža polju za unos (dno), starije poruke se otkrivaju skrolovanjem nagore — isti obrazac kao svaka poznata chat aplikacija.
 - **4 brze prečice ispod polja (poglavlje 6c.2) su UKLONJENE** (na zahtev vlasnika, isti razgovor) — zamenjene ikonicom "Otvori modul" (§6c.0a ispod) koja pokriva SVE module na zahtev, ne samo 4 unapred izabrana.
 - **Meniji koji se otvaraju iz reda za unos (dugme `+`, §6c.1, i novo §6c.0a ispod) sad rastu NAGORE** (`position: fixed` + `bottom`, ne `top`) — posledica premeštanja reda za unos na dno, meni koji bi se otvorio nadole bi izašao van ekrana.
@@ -751,7 +756,7 @@ Svaka od dve naslagane sekcije (postojeći sažetak/podsetnik, i AI chat ispod) 
 
 ### 6c.0c Treća pozicija — dno centralnog panela (dopuna, 3.9.2026, na zahtev vlasnika)
 
-Vlasnikov zahtev: *„pored mogućnosti da se AI polje iz desnog panela otvori u posebnom tabu, omogućite da se polje klikom na strelicu koja pokazuje prema centralnom panelu pojavi u dnu centralnog panela, kao ovde u VS Code"*.
+Vlasnikov zahtev: _„pored mogućnosti da se AI polje iz desnog panela otvori u posebnom tabu, omogućite da se polje klikom na strelicu koja pokazuje prema centralnom panelu pojavi u dnu centralnog panela, kao ovde u VS Code"_.
 
 AI asistent sada ima **tri pozicije, ali je i dalje jedno jedino polje**: desni panel (podrazumevano, §6c.0), dno centralne kolone, i pun tab (Fokus). Pozicija se pamti po korisniku (`UserPreference`, ključ `ai_dock_position`), isto kao push/overlay režim desnog panela.
 
@@ -791,7 +796,7 @@ Priložen kontekst prikazuje se kao uklonjiv "čip" u plutajućem bloku iznad po
 - **Slash komande (`/`)** — kratke, determinističke prečice koje ne čekaju jezički model (npr. `/otkazi`, `/posalji-vaucer`, `/rezime`), mapirane direktno na već postojeću radnju — isti princip kao poglavlje 4a (prečica za čest postupak), samo dostupno unutar razgovora.
 - **Dugme "Zaustavi"** dok agent generiše odgovor — zamenjuje dugme za slanje dok je odgovor u toku, standardan obrazac, eksplicitno upisan da ne bude propušten pri izradi.
 - **Istorija razgovora vezanih za trenutni zapis** — mala ikonica koja otvara ranije razgovore o istom zapisu (transkripti se već čuvaju gde god postoje, npr. M7 `SubagentChatMessage`) — bez ponovnog postavljanja istog pitanja.
-- **Traka moda/dozvola** (već skicirana gore, poglavlje 6c) — konkretizovano: vidljiv prekidač npr. "Samo pretraga" naspram "Izvršni mod" (M7 poglavlje 2.0.4) — korisnik uvek vidi šta agent trenutno *sme*, ne samo šta upravo radi.
+- **Traka moda/dozvola** (već skicirana gore, poglavlje 6c) — konkretizovano: vidljiv prekidač npr. "Samo pretraga" naspram "Izvršni mod" (M7 poglavlje 2.0.4) — korisnik uvek vidi šta agent trenutno _sme_, ne samo šta upravo radi.
 
 ### 6c.3 Prikaz odgovora — obrazac Chrome/Google AI pretrage (dopuna, 18.8.2026, na zahtev vlasnika)
 
@@ -804,7 +809,7 @@ Priložen kontekst prikazuje se kao uklonjiv "čip" u plutajućem bloku iznad po
 
 ## 6d. Rezultati pretrage — kartice/redovi, filteri u levom panelu, unakrsna prodaja
 
-*(dodato 17.8.2026, na zahtev vlasnika — podaci/logika iza ovoga: M5 poglavlje 3.0c/3.0d/3.0e)*
+_(dodato 17.8.2026, na zahtev vlasnika — podaci/logika iza ovoga: M5 poglavlje 3.0c/3.0d/3.0e)_
 
 - **Kartice** (poglavlje 6, isti vizuelni jezik) za tipove sa bogatim vizuelnim sadržajem — Smeštaj, Krstarenja, Grupni paketi, Things to do: slika, naziv, ključne činjenice, cena, dugme "Dodaj".
 - **Kompaktni redovi** (tabela-stil) za tipove gde je brzo poređenje bitnije od slike — Letovi, Transferi, Rent-a-car: jedan red po ponudi (kompanija/vozilo, vreme, trajanje, cena), isti utisak kao Google Flights lista.
@@ -830,16 +835,16 @@ Priložen kontekst prikazuje se kao uklonjiv "čip" u plutajućem bloku iznad po
 
 ### 6d.1 Ekran pretrage — ikonice proizvoda u centralnom panelu, forma po vrsti, levi panel samo filteri (dopuna, 2.9.2026, na zahtev vlasnika)
 
-*(podaci/logika iza ovoga: M5 poglavlje 3.0g — tamo su i tabele polja po svih devet vrsta proizvoda)*
+_(podaci/logika iza ovoga: M5 poglavlje 3.0g — tamo su i tabele polja po svih devet vrsta proizvoda)_
 
-Vlasnikova odluka menja raspored opisan u poglavlju 5b i u tački "Filteri" iznad. Razlog je njegov: *"ovo nam je među najvažnijim modulima, odavde sve kreće"* — a dotadašnja forma je bila jedan zajednički iskačući prozor sa devetak polja za svih devet vrsta proizvoda.
+Vlasnikova odluka menja raspored opisan u poglavlju 5b i u tački "Filteri" iznad. Razlog je njegov: _"ovo nam je među najvažnijim modulima, odavde sve kreće"_ — a dotadašnja forma je bila jedan zajednički iskačući prozor sa devetak polja za svih devet vrsta proizvoda.
 
 - **Ikonice svih deset vrsta proizvoda — centrirane pri vrhu centralnog panela**, ne u levom navigatoru (deseto, "Putovanja", dodato 5.9.2026 — M5 §3.0d.6b). Postavlja se svih deset i onda kad šest nema izvor podataka (M5 §3.0g.5).
 - **Forma ispod ikonica, u centralnom panelu, različita za svaku vrstu.** Polja se stvarno razlikuju (M5 §3.0g.6) — zajednička forma je bila kompromis, ne odluka.
 - **Levi panel ostaje isključivo filterima**, koji se menjaju prema aktivnoj vrsti. Broj presedanja i udaljenost od plaže nemaju šta jedno kraj drugog. Sve ostalo iz tačke "Filteri" u poglavlju 6d (grupisanje po kategoriji, pinovani brzi filteri) važi nepromenjeno.
 - **Rezultati ispod forme**, izbor i dalje ide u desni panel (nepromenjeno).
 
-**Dopuna 4.9.2026 (na zahtev vlasnika) — ikonice idu skoro do vrha, bez naslova iznad.** Ekran je do tada iznad ikonica nosio `$ pretraga` sa podnaslovom „Objedinjena pretraga kataloga (M2), ugovorene dostupnosti (M3) i uživo ponuda (M4)"; oboje je **uklonjeno** — tab već nosi naziv ekrana, pa je naslov ponavljao ono što stoji dva reda iznad, a podnaslov je opisivao arhitekturu čitaocu koji je ionako pred rezultatima. Gornji razmak panela smanjen (`pt-2` uz nepromenjeno bočno/donje `p-6`) da izbor vrste bude prvo što oko sretne. Ikonice **+20%** (18px → 21,6px), razmak **−20%** — meren od centra do centra (100px → 80px, kroz širinu dugmeta), jer je `gap` već bio 4px pa bi −20% na njemu bilo nevidljivo. Tanka linija ispod ikonica je istog dana dodata pa uklonjena na vlasnikov poziv (*„višak je ipak"*) — razmak sam dovoljno odvaja izbor vrste od forme.
+**Dopuna 4.9.2026 (na zahtev vlasnika) — ikonice idu skoro do vrha, bez naslova iznad.** Ekran je do tada iznad ikonica nosio `$ pretraga` sa podnaslovom „Objedinjena pretraga kataloga (M2), ugovorene dostupnosti (M3) i uživo ponuda (M4)"; oboje je **uklonjeno** — tab već nosi naziv ekrana, pa je naslov ponavljao ono što stoji dva reda iznad, a podnaslov je opisivao arhitekturu čitaocu koji je ionako pred rezultatima. Gornji razmak panela smanjen (`pt-2` uz nepromenjeno bočno/donje `p-6`) da izbor vrste bude prvo što oko sretne. Ikonice **+20%** (18px → 21,6px), razmak **−20%** — meren od centra do centra (100px → 80px, kroz širinu dugmeta), jer je `gap` već bio 4px pa bi −20% na njemu bilo nevidljivo. Tanka linija ispod ikonica je istog dana dodata pa uklonjena na vlasnikov poziv (_„višak je ipak"_) — razmak sam dovoljno odvaja izbor vrste od forme.
 
 Time ekran pretrage dobija isti oblik kao ekran zapisa (poglavlje 6h) — sažetak gore, tabovi, sadržaj ispod — što je vlasnik i tražio ("da vizuelno izgleda slično kao forma za rezervaciju").
 
@@ -857,10 +862,9 @@ Time ekran pretrage dobija isti oblik kao ekran zapisa (poglavlje 6h) — sažet
 
 ---
 
-
 ### 6d.2 Traka za sortiranje — iznad rezultata, ne u levom panelu (dopuna, 2.9.2026)
 
-*(opcije po vrsti proizvoda i obrazloženje: M5 §3.0g.8)*
+_(opcije po vrsti proizvoda i obrazloženje: M5 §3.0g.8)_
 
 Sortiranje do 2.9.2026 nije postojalo nigde u aplikaciji — rezultati su izlazili redom kojim stignu. Traka stoji **iznad liste rezultata u centralnom panelu**, ne u levom panelu među filterima: filter menja **koji** se rezultati vide, sortiranje samo **redosled**. To su dve različite radnje i mešanje ih u istu kolonu tera korisnika da traži sortiranje među desetak filtera. Isti razlog zašto je i na velikim portalima traka nad listom.
 
@@ -892,6 +896,7 @@ Implementirano kao deljena komponenta (`apps/panel/src/components/ContentCard.ts
 **Pravilo:** za polje sa malim, unapred poznatim skupom opcija (tip kreveta, uzrasna kategorija, status i slično), podrazumevani izbor je **grupa dugmadi/pločica** (klik = izabrano), ne `<select>` padajući meni — vlasnikova formulacija: "gde god je moguće izbegao bih padajuće menije, koristio bih formu tastera na koji se klikne za ono što želim ili dva klika za ono što ne želim." Razlog: definisanje strukturiranih pravila (npr. tip sobe, poglavlje "Tipovi soba" M2/M17) je već zahtevno po koncentraciji/vremenu — dodatni klik da se meni otvori, pa još jedan da se opcija nađe u listi, troši oboje bez razloga kad je skup opcija dovoljno mali da stane u red dugmadi.
 
 **Konkretan obrazac:**
+
 - **Jednostruk izbor** (npr. tip osnovnog kreveta) — red/grupa dugmadi, tačno jedno aktivno u svakom trenutku (`aria-pressed`/vizuelno `bg-accent-soft text-accent-strong` na aktivnom, isto stanje kao aktivan filter poglavlje 6d); klik na već aktivno dugme ga NE deselektuje (jednostruk izbor uvek mora imati tačno jednu vrednost, za razliku od višestrukog izbora ispod) — klik na drugo dugme prebacuje izbor.
 - **Višestruk izbor** (npr. pogodnosti/`amenities[]`) — svako dugme je nezavisan prekidač: prvi klik uključuje (aktivno stanje), drugi klik na ISTO dugme isključuje — ovo je vlasnikovo "dva klika za ono što ne želim" kad je dugme već bilo uključeno (podrazumevano stanje ili ranije uključeno).
 - Kad je skup opcija velik (desetine/stotine vrednosti, npr. spisak zemalja) — dugmad prestaje da bude praktična; padajući meni ili tekstualna pretraga sa predlozima ostaju opravdani, ovo pravilo važi za "mali, poznat skup", ne za svaki izbor uopšte.
@@ -900,7 +905,7 @@ Implementirano kao deljena komponenta (`apps/panel/src/components/ContentCard.ts
 
 **Namerno van obima ove dopune:** retrofit postojećih `<select>`/`MultiSelectDropdown` mesta u aplikaciji (npr. status/tip proizvoda filteri u "Lista rezervacija") — ovo pravilo važi za NOVE ekrane od ovog datuma; zamena postojećih ostaje poseban, veći zadatak ako se pokaže vredno truda (dosledna izmena kroz više ekrana odjednom, ne parče po parče).
 
-**Dopuna 4.9.2026 — broj opcija nije jedini kriterijum kad red deli prostor sa drugim grupama.** Prvi izuzetak od ovog pravila napravljen je za traku sortiranja (§6d.2): četiri opcije su po broju taman za dugmad, ali stoje u redu u kom su već brzi filteri i prekidač lista/mapa, pa je na laptopu (~1366px, uz otvoren levi panel) traka bila natrpana do ivice. Vlasnik je zatražio padajući meni upravo sa te mašine — *„ovo je na laptopu, nisam primetio na velikim monitorima"*. **Pravilo ostaje isto za skupove koji stoje sami u redu; kad red deli prostor, proveriti ga na najužem ekranu koji se stvarno koristi, ne na razvojnom monitoru.** Ovo je ista vrsta previda kao zamka 1.x (boja izgleda dobro dok se ne izmeri) — obrazac je tačan, a prostor u kom se primenjuje nije proveren.
+**Dopuna 4.9.2026 — broj opcija nije jedini kriterijum kad red deli prostor sa drugim grupama.** Prvi izuzetak od ovog pravila napravljen je za traku sortiranja (§6d.2): četiri opcije su po broju taman za dugmad, ali stoje u redu u kom su već brzi filteri i prekidač lista/mapa, pa je na laptopu (~1366px, uz otvoren levi panel) traka bila natrpana do ivice. Vlasnik je zatražio padajući meni upravo sa te mašine — _„ovo je na laptopu, nisam primetio na velikim monitorima"_. **Pravilo ostaje isto za skupove koji stoje sami u redu; kad red deli prostor, proveriti ga na najužem ekranu koji se stvarno koristi, ne na razvojnom monitoru.** Ovo je ista vrsta previda kao zamka 1.x (boja izgleda dobro dok se ne izmeri) — obrazac je tačan, a prostor u kom se primenjuje nije proveren.
 
 ---
 
@@ -911,6 +916,7 @@ Implementirano kao deljena komponenta (`apps/panel/src/components/ContentCard.ts
 **Razlog za sopstvenu komponentu, ne oslanjanje na native `<input type="date">`:** native kalendar postoji, ALI redosled segmenata (dan/mesec/godina) pri direktnom kucanju zavisi od OS/browser lokala, ne od jezika stranice — u en-US redosledu bi kucanje "12082026" ispalo mesec=12/dan=08 (8. decembar), ne dan=12/mesec=08 (12. avgust) kako korisnik namerava. `DateField.tsx` fiksira DD-MM-GGGG redosled bez obzira na lokal korisnikovog uređaja, i sam crta kalendar (bez nove biblioteke, poglavlje 6 Master dokumenta) da kalendar-klik radi identično u svakom browseru.
 
 **Ponašanje:**
+
 - Kucanje cifara automatski dodaje tačke dok se kuca ("1" → "12" → "12.08" → "12.08.2026.") — nevažeći datum (npr. "31.02.") dobija crvenu ivicu i `title` objašnjenje, ne tiho pogrešnu vrednost.
 - Ikonica kalendara otvara sopstveni popover (mesec/godina zaglavlje sa strelicama, mreža dana, prečica "Danas") — zatvara se klikom van njega ili izborom dana.
 - Spoljni ugovor ostaje ISO `"yyyy-mm-dd"` u oba pravca (isto što je i native `<input type="date">` nosio) — ništa niz tok (server actions, API filteri) se ne menja, samo unos.
@@ -922,19 +928,19 @@ Implementirano kao deljena komponenta (`apps/panel/src/components/ContentCard.ts
 
 ## 6h. Ekran zapisa — tri nivoa težine, ne deset jednakih kartica (dopuna, 2.9.2026, na zahtev vlasnika)
 
-*(vlasnik, uz snimak ekrana rezervacije: "da li smatrate da je ovo malo teško za oko šta gde da gleda jer je vizuelno sve isto? da li imate predlog kako ovo da popravimo")*
+_(vlasnik, uz snimak ekrana rezervacije: "da li smatrate da je ovo malo teško za oko šta gde da gleda jer je vizuelno sve isto? da li imate predlog kako ovo da popravimo")_
 
 Ekran rezervacije (kartica **Pregled**) nije bio pretrpan — imao je tačno onoliko podataka koliko treba. Problem je bio što su svi bili na **istom nivou**: `rounded-lg border border-border bg-panel p-4` ponavljao se desetak puta na istom ekranu, a naslovi sekcija su bili `text-xs uppercase text-ink-faint` — dakle **najsitniji i najbleđi tekst na ekranu bilo je ono što treba da orijentiše**. Kad je sve jednako istaknuto, ništa nije istaknuto.
 
 **Pravilo: svaki ekran pojedinačnog zapisa ima tačno tri nivoa težine.**
 
-| Nivo | Šta je | Kako izgleda |
-| :---- | :---- | :---- |
+| Nivo        | Šta je                                                                    | Kako izgleda                                                                                                                              |
+| :---------- | :------------------------------------------------------------------------ | :---------------------------------------------------------------------------------------------------------------------------------------- |
 | 1 — sažetak | Ono što se traži u prve dve sekunde: koja je stvar, za koga, kada, koliko | Jedina kartica sa okvirom na vrhu; brojevi ~18px, oznake ~9px. **Tačno jedan po ekranu** — ako ga dobije i druga sekcija, nivoa opet nema |
-| 2 — sekcija | Skup srodnih podataka (usluge, putnici, uplate) | Naslov u punoj boji teksta sa linijom ispod, **bez okvira oko sadržaja** |
-| 3 — red | Pojedinačan podatak u sekciji | Red liste razdvojen tankom linijom, bez sopstvene pozadine |
+| 2 — sekcija | Skup srodnih podataka (usluge, putnici, uplate)                           | Naslov u punoj boji teksta sa linijom ispod, **bez okvira oko sadržaja**                                                                  |
+| 3 — red     | Pojedinačan podatak u sekciji                                             | Red liste razdvojen tankom linijom, bez sopstvene pozadine                                                                                |
 
-**Okvir dobija samo ono što je zaseban entitet ili nešto na šta se klikne.** Isti podatak sme da ima okvir na jednom ekranu a da ga nema na drugom: stavka aranžmana je kartica na kartici *Aranžman* (tamo se menja) i običan red na *Pregledu* (tamo se samo čita).
+**Okvir dobija samo ono što je zaseban entitet ili nešto na šta se klikne.** Isti podatak sme da ima okvir na jednom ekranu a da ga nema na drugom: stavka aranžmana je kartica na kartici _Aranžman_ (tamo se menja) i običan red na _Pregledu_ (tamo se samo čita).
 
 **Odnos veličina brojeva i oznaka je najmanje 2:1.** Zatečeno stanje je bilo 13px naspram 9px, pa su se iznosi čitali kao još jedan red teksta.
 
@@ -956,7 +962,7 @@ Ekran rezervacije (kartica **Pregled**) nije bio pretrpan — imao je tačno ono
 - **Zato je BROJ uz ikonu obavezan kad je spisak skraćen, ne ukras.** Cena nevidljive trake je što se ne vidi da sadržaja ima još — broj u linku (`svi (12) →`) je jedini signal da ispod vidljivih redova ima još. **Skraćivanje bez tog linka je zabranjeno.**
 - **Link vodi na karticu tog sektora** (`?tab=putnici`, `?tab=finansije`, …), ne na neki novi ekran — pun prikaz već postoji, Pregled samo upućuje na njega.
 - **Visina skrola prati visinu reda te sekcije**, ne jedna vrednost za sve: red usluge je viši (naziv + red detalja) od reda uplate, pa bi zajednička visina negde presekla peti red na pola, što izgleda kao greška u prikazu, a ne kao namerno skraćivanje.
-**Šifra se nikad ne prikazuje sama, ni naziv sam** (dopuna 2.9.2026, na zahtev vlasnika: "pišite pun naziv države + oznaka: Grčka (GR)"). Svuda gde ekran prikazuje šifru iz ugovora ili kataloga — država, tip sobe, pansion — piše se **naziv i šifra zajedno**: `Grčka (GR)`, `Standardna soba (STD)`, `Polupansion (HB)`. Naziv je za prodavca koji čita ekran, šifra je za razgovor sa dobavljačem, vaučer i reklamaciju: ko zove hotel kaže "HB", ne "polupansion". Ako naziv nije poznat, prikazuje se **sirova šifra** — pogrešan naziv je gori od nikakvog, jer izgleda kao podatak. Nazivi država ne dolaze iz ručne liste nego iz `Intl.DisplayNames` (`sr-Latn`, jer `sr` vraća ćirilicu), pa nova destinacija ne traži izmenu koda.
+  **Šifra se nikad ne prikazuje sama, ni naziv sam** (dopuna 2.9.2026, na zahtev vlasnika: "pišite pun naziv države + oznaka: Grčka (GR)"). Svuda gde ekran prikazuje šifru iz ugovora ili kataloga — država, tip sobe, pansion — piše se **naziv i šifra zajedno**: `Grčka (GR)`, `Standardna soba (STD)`, `Polupansion (HB)`. Naziv je za prodavca koji čita ekran, šifra je za razgovor sa dobavljačem, vaučer i reklamaciju: ko zove hotel kaže "HB", ne "polupansion". Ako naziv nije poznat, prikazuje se **sirova šifra** — pogrešan naziv je gori od nikakvog, jer izgleda kao podatak. Nazivi država ne dolaze iz ručne liste nego iz `Intl.DisplayNames` (`sr-Latn`, jer `sr` vraća ćirilicu), pa nova destinacija ne traži izmenu koda.
 
 **Kolone su jednake širine** (ispravka 2.9.2026, na zahtev vlasnika) — raniji odnos 1,5:1 poništen. Desna kolona je u međuvremenu dobila dovoljno sadržaja (uplate, povezano, reklamacije, predstavnici, vlasništvo) da uža kolona više nije bila opravdana.
 **Šifra se nikad ne prikazuje sama, ni naziv sam** (dopuna 2.9.2026, na zahtev vlasnika: "pišite pun naziv države + oznaka: Grčka (GR)"). Svuda gde ekran prikazuje šifru iz ugovora ili kataloga — država, tip sobe, pansion — piše se **naziv i šifra zajedno**: `Grčka (GR)`, `Standardna soba (STD)`, `Polupansion (HB)`. Naziv je za prodavca koji čita ekran, šifra je za razgovor sa dobavljačem, vaučer i reklamaciju: ko zove hotel kaže "HB", ne "polupansion". Ako naziv nije poznat, prikazuje se **sirova šifra** — pogrešan naziv je gori od nikakvog, jer izgleda kao podatak. Nazivi država ne dolaze iz ručne liste nego iz `Intl.DisplayNames` (`sr-Latn`, jer `sr` vraća ćirilicu), pa nova destinacija ne traži izmenu koda.
@@ -964,10 +970,10 @@ Ekran rezervacije (kartica **Pregled**) nije bio pretrpan — imao je tačno ono
 **Kolone su jednake širine** (ispravka 2.9.2026, na zahtev vlasnika) — raniji odnos 1,5:1 poništen. Desna kolona je u međuvremenu dobila dovoljno sadržaja (uplate, povezano, reklamacije, predstavnici, vlasništvo) da uža kolona više nije bila opravdana.
 **Šta ide u koju kolonu** (ispravka 2.9.2026, na zahtev vlasnika). Podela više nije "sam zapis levo, sve oko njega desno" nego **po tome koliko se često gleda i koliko je vezano za novac**:
 
-| Leva kolona | Desna kolona |
-| :---- | :---- |
-| Aranžman, Putnici, Uplate, Povezano | Beleške, Komunikacija, Reklamacije, Predstavnici, Vlasništvo i zaduženje |
-| *"šta je kupljeno, ko putuje, da li je plaćeno"* — ono što se proverava pri svakom otvaranju | *"šta se dešavalo oko rezervacije"* — istorija i operativa, čita se kad nešto zapne |
+| Leva kolona                                                                                  | Desna kolona                                                                        |
+| :------------------------------------------------------------------------------------------- | :---------------------------------------------------------------------------------- |
+| Aranžman, Putnici, Uplate, Povezano                                                          | Beleške, Komunikacija, Reklamacije, Predstavnici, Vlasništvo i zaduženje            |
+| _"šta je kupljeno, ko putuje, da li je plaćeno"_ — ono što se proverava pri svakom otvaranju | _"šta se dešavalo oko rezervacije"_ — istorija i operativa, čita se kad nešto zapne |
 
 Novac je time uz sam aranžman, umesto preko ekrana od njega — cena usluge i uplata su isto pitanje i najčešće se gledaju zajedno.
 
@@ -979,11 +985,11 @@ Novac je time uz sam aranžman, umesto preko ekrana od njega — cena usluge i u
 **Sekcija koja već ima traku naslova ne sme da sadrži još jedan okvir.** Kutija u kutiji je najčešći način da se hijerarhija nehotice vrati na početak — komponenta koja se koristi i samostalno i unutar sekcije mora imati način da izostavi sopstveni okvir (u kodu: `flat`).
 **Sekcija je jedan objekat: utonula traka naslova + izdignuto telo** (dopuna 2.9.2026, na zahtev vlasnika: "centralni sektor unutra u tamnijoj nijansi; sektori — naslovni deo tamnija nijansa a sadržaj ispod svetlija"). Do te dopune je traka naslova imala boju, a sadržaj ispod nje je sedeo direktno na pozadini strane — sekcija je čitala kao "traka, pa ništa", ne kao celina.
 
-| Sloj | Token | Uloga |
-| :---- | :---- | :---- |
-| Pozadina strane | `--bg` | ono na čemu sve stoji |
-| Traka naslova sekcije, sažetak na vrhu | `--sunken` **(nov)** | okvir oko podataka — tone |
-| Telo sekcije | `--panel` | sami podaci — jedina površina koja se diže |
+| Sloj                                   | Token                | Uloga                                      |
+| :------------------------------------- | :------------------- | :----------------------------------------- |
+| Pozadina strane                        | `--bg`               | ono na čemu sve stoji                      |
+| Traka naslova sekcije, sažetak na vrhu | `--sunken` **(nov)** | okvir oko podataka — tone                  |
+| Telo sekcije                           | `--panel`            | sami podaci — jedina površina koja se diže |
 
 **Zašto nov token, a ne postojeći `--panel-2`.** `--panel-2` je "traka/hrom" i po nasleđenoj VS Code logici je u SVETLOM modu tamniji od sadržaja, a u dim/tamnom **svetliji**. Vlasnikov zahtev traži jedinstven odnos u sva tri moda: naslov uvek tone, sadržaj se uvek diže. To je Material logika visine — što je bliže čitaocu, to je svetlije. `--sunken` je zato **uvek** tamniji od `--panel`; `--panel-2` ostaje nepromenjen i dalje služi bočnim panelima i zaglavljima tabela. Dve različite uloge, dve boje — ne preopterećuje se jedan token sa dva suprotna značenja.
 
@@ -996,13 +1002,14 @@ Pravilo koje iz toga sledi: **akcentna boja je rezervisana za glavnu radnju ekra
 
 Ista komponenta zadržava punu težinu tamo gde radnja **jeste** glavna (kartica Dokumenti) — težina se bira po **kontekstu**, ne po komponenti. Komponenta koja se koristi i kao glavna i kao uzgredna radnja mora imati obe varijante (u kodu: `quiet`).
 
-*Usput nalaz koji nije bio boja:* dugme se rasteglo preko cele širine zato što ga je roditelj sa `flex flex-col` podrazumevano razvukao (`align-items: stretch`), ne zato što je tako stilizovano. Kad element izgleda šire nego što treba, prvo proveriti roditeljski `flex`, pa tek onda sopstvene klase.
+_Usput nalaz koji nije bio boja:_ dugme se rasteglo preko cele širine zato što ga je roditelj sa `flex flex-col` podrazumevano razvukao (`align-items: stretch`), ne zato što je tako stilizovano. Kad element izgleda šire nego što treba, prvo proveriti roditeljski `flex`, pa tek onda sopstvene klase.
 **Sprovođenje.** Pravilo je prvo primenjeno SAMO na karticu Pregled ekrana rezervacije (2.9.2026, na vlasnikov zahtev — "hajde uradite samo za rezervacije da vidim kako uživo izgleda"), uz prekidač koji vraća zatečeni izgled dok vlasnik ne odluči. Kad odluči, izgled koji je izgubio se **briše iz koda** zajedno sa prekidačem — dva paralelna izgleda istog ekrana su tačno ono što je u prethodnom projektu dalo četiri dashboard-a koji rade isti posao (`22-ANALIZA-PRIMETRAVEL-NALAZI.md`). Tek posle toga se pravilo primenjuje na ostale ekrane zapisa (gost, ugovor, faktura, proizvod), da se ne prepravlja tri puta.
 
 ---
+
 ## 7. Obim primene — M17 i M7 istim obrascem, M8/M9 zasebno
 
-*(izmenjeno 17.8.2026 — ranije "samo M17 za sada")*
+_(izmenjeno 17.8.2026 — ranije "samo M17 za sada")_
 
 Ovaj dizajn sistem je pisan prvenstveno za **M17 (interni panel)** — okruženje za tim koji radi svaki dan, gde command-palette obrazac ima najviše smisla. **Vlasnikova odluka (17.8.2026): M7 (B2B portal, subagenti) dobija identičan vizuelni i interakcioni obrazac kao M17** — ista paleta-mehanizam (poglavlje 2), ista komandna paleta (poglavlje 4), isti tri-panelni raspored (poglavlje 5b), isti AI-razgovor obrazac (poglavlje 6c). Razlog: subagenti su redovni, profesionalni korisnici pod istim vremenskim pritiskom kao interni tim, ne povremeni gost — razlikovanje ide kroz **podatke koje vide** (M7 spec poglavlje 2.0, dobavljača-slep + bez marže/nabavne cene), ne kroz pojednostavljen interfejs. M7 zadržava sopstvenu "beli-label" paletu po subagentu (M7 spec poglavlje 2.0.5) umesto fiksne palete panela — mehanizam biranja/token-sloj ostaje isti kao M17, samo se boje pune iz `SubagentBranding` umesto iz fiksne palete.
 
@@ -1012,25 +1019,26 @@ I dalje se **ne pretpostavlja** da isti obrazac direktno odgovara i M8 (B2C sajt
 
 ## 8. Otvoreno za dalje
 
-- ~~Tačne HEX vrednosti palete panela — biraju se pri izradi prvog stvarnog ekrana, obavezno u skladu sa pravilom kontrasta (poglavlje 2a).~~ **Rešeno; tekuće vrednosti su u §2.0f.** *(Ovde je do 2.9.2026. stajala tabela palete "Horizont" sa amber akcentom `#9c6216` — vrednosti iz prvog prolaza M17 implementacije, potisnute već 17.8.2026, pa opet 19.8, 26.8. i 29.8. Nisu nikad ažurirane, pa je ovo poglavlje mesecima pokazivalo boje koje aplikacija nije koristila. Uklonjene, ne prepisane — istorija prelaza je u §2.0a–§2.0f, gde joj je mesto; tabela vrednosti stoji na jednom mestu, ne na dva.)*
+- ~~Tačne HEX vrednosti palete panela — biraju se pri izradi prvog stvarnog ekrana, obavezno u skladu sa pravilom kontrasta (poglavlje 2a).~~ **Rešeno; tekuće vrednosti su u §2.0f.** _(Ovde je do 2.9.2026. stajala tabela palete "Horizont" sa amber akcentom `#9c6216` — vrednosti iz prvog prolaza M17 implementacije, potisnute već 17.8.2026, pa opet 19.8, 26.8. i 29.8. Nisu nikad ažurirane, pa je ovo poglavlje mesecima pokazivalo boje koje aplikacija nije koristila. Uklonjene, ne prepisane — istorija prelaza je u §2.0a–§2.0f, gde joj je mesto; tabela vrednosti stoji na jednom mestu, ne na dva.)_
 
 - **Paleta sajta (M8) — "Zalazak"** (`apps/web/src/app/globals.css`, `apps/web/tailwind.config.ts`). Nastala iz `docs/moduli/M01-core-identitet/00-MOCKUP-M1-TERMINAL-STYLE.html` (paleta 1) i **nikad nije prošla proveru iz poglavlja 2a** — ispravljeno 17.8.2026:
 
-  | Uloga | Svetli — bilo | Svetli — sad | Tamni — bilo | Tamni — sad |
-  | :---- | :---- | :---- | :---- | :---- |
-  | granica (border) | `#e6d3b0` (1.19:1 ❌) | `#8f836d` (3.02:1) | `#3d2a1a` (1.20:1 ❌) | `#8c603c` (3.00:1) |
-  | tekst — najslabiji | `#9c8663` (2.84:1 ❌) | `#77664b` (4.50:1) | `#8f7a62` (4.00:1 ❌) | `#9a846a` (4.58:1) |
-  | akcent (amber) | `#c1791f` (3.17:1 ❌) | `#935c18` (5.04:1) | `#e8a63c` ✅ | nepromenjen |
-  | akcent — jači | `#9c5f14` (4.06:1 ❌) | `#7a4a12` (5.86:1) | `#f4c473` ✅ | nepromenjen |
-  | uspeh (ok) | `#1f9d67` (3.07:1 ❌) | `#187c51` (4.62:1) | `#3ecf8e` ✅ | nepromenjen |
-  | upozorenje (warn) | `#a86a12` (3.82:1 ❌) | `#975f10` (4.57:1) | `#e0a542` ✅ | nepromenjen |
-  | **šljiva (druga boja)** | — | `#5b4b8a` (6.05:1) | — | `#a99bd8` (6.52:1) |
-  | šljiva — podloga bedža | — | `#e8e3f4` (7.85:1) | — | `#221c33` (7.35:1) |
-  | ~~zelena (`accent2`)~~ | `#12907d` (3.39:1 ❌) | **ukinuta** | `#2ba894` | **ukinuta** |
+  | Uloga                   | Svetli — bilo         | Svetli — sad       | Tamni — bilo          | Tamni — sad        |
+  | :---------------------- | :-------------------- | :----------------- | :-------------------- | :----------------- |
+  | granica (border)        | `#e6d3b0` (1.19:1 ❌) | `#8f836d` (3.02:1) | `#3d2a1a` (1.20:1 ❌) | `#8c603c` (3.00:1) |
+  | tekst — najslabiji      | `#9c8663` (2.84:1 ❌) | `#77664b` (4.50:1) | `#8f7a62` (4.00:1 ❌) | `#9a846a` (4.58:1) |
+  | akcent (amber)          | `#c1791f` (3.17:1 ❌) | `#935c18` (5.04:1) | `#e8a63c` ✅          | nepromenjen        |
+  | akcent — jači           | `#9c5f14` (4.06:1 ❌) | `#7a4a12` (5.86:1) | `#f4c473` ✅          | nepromenjen        |
+  | uspeh (ok)              | `#1f9d67` (3.07:1 ❌) | `#187c51` (4.62:1) | `#3ecf8e` ✅          | nepromenjen        |
+  | upozorenje (warn)       | `#a86a12` (3.82:1 ❌) | `#975f10` (4.57:1) | `#e0a542` ✅          | nepromenjen        |
+  | **šljiva (druga boja)** | —                     | `#5b4b8a` (6.05:1) | —                     | `#a99bd8` (6.52:1) |
+  | šljiva — podloga bedža  | —                     | `#e8e3f4` (7.85:1) | —                     | `#221c33` (7.35:1) |
+  | ~~zelena (`accent2`)~~  | `#12907d` (3.39:1 ❌) | **ukinuta**        | `#2ba894`             | **ukinuta**        |
 
   Nepromenjeni ostaju `--bg`, `--panel`, `--panel-2`, `--text`, `--text-dim`, `--accent-soft`, `--accent-ink`, `--danger` — svi su prolazili. Posledično provereno i ispravljeno: `--accent-ink` na `--accent` (tekst na punom dugmetu "Rezerviši", najvažnija kontrola na sajtu) bio je `3.30:1`, sad je `5.26:1`.
 
   Merenja su rađena protiv **stvarnih** podloga uz koje se svaka boja koristi (`bg`, `panel`, `panel-2`, `accent-soft`, `ok-bg`, `warn-bg`), ne jedne pretpostavljene — po pravilu iz poglavlja 2a.
+
 - ~~`--border` pada 3:1 prag u sva tri moda panela (§2.0d).~~ **Rešeno 2.9.2026** — vlasnik izabrao "Prag" varijantu (najmanja vrednost koja prolazi na sve tri podloge) posle uporednog prikaza četiri jačine po modu; §2.0d dopuna.
 - **Vidljivost panela ("Customize Layout", §5f) i dalje je u `localStorage`, ne u `UserPreference`.** Privremeno rešenje iz 23.8.2026 kad taj backend nije postojao u kodu; sada postoji i koristi se za druga dva podešavanja rasporeda (`main_content_max_width`, `right_panel_display_mode`). Posledica dok se ne prebaci: korisnik koji sakrije bočnu traku na jednom računaru zatiče je otvorenu na drugom. Nije rešeno uz izmenu od 2.9.2026 da se ta izmena ne pomeša sa migracijom postojećeg podešavanja.
 - **`--bar` u svetlom modu je izgubio treću nijansu (§2.0e) — čeka vlasnikovu odluku.** Traka i bočni panel su posle prelaza na shadcn ponovo iste boje (`#f4f4f5`), iako je vlasnik 23.8.2026. tražio da trake budu za nijansu tamnije od svega. Manje vidljivo od granica, pa nije rešeno u istom prolazu; vraća se čim vlasnik potvrdi da mu i dalje smeta.

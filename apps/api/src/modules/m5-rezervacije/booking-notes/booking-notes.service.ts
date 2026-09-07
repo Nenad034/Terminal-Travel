@@ -69,7 +69,9 @@ export class BookingNotesService {
       throw new NotFoundException(`Beleška ${noteId} nije pronađena na rezervaciji ${bookingId}.`);
     }
     if (note.createdBy !== actor.userId && !(await this.isVlasnikOrDirektor(actor.userId))) {
-      throw new ForbiddenException('Belešku sme da obriše samo njen autor ili Vlasnik/Direktor (M5 spec §4.6).');
+      throw new ForbiddenException(
+        'Belešku sme da obriše samo njen autor ili Vlasnik/Direktor (M5 spec §4.6).',
+      );
     }
     await this.prisma.bookingNote.delete({ where: { id: noteId } });
     await this.auditLog.write({

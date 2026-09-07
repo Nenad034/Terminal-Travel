@@ -4,11 +4,18 @@ import { PrismaService } from '../../../prisma/prisma.service';
 import { AuditLogService } from '../../m1-core-identitet/audit-log/audit-log.service';
 import { EventBusService } from '../../../common/events/event-bus.service';
 import { PermissionsService } from '../../m1-core-identitet/permissions/permissions.service';
-import { FieldCheckInSyncDto, FieldIncidentNoteSyncDto, SyncFieldDataDto } from './dto/sync-field-data.dto';
+import {
+  FieldCheckInSyncDto,
+  FieldIncidentNoteSyncDto,
+  SyncFieldDataDto,
+} from './dto/sync-field-data.dto';
 
 // M9 spec §3.2 — stavke aktivne za itinerar/sinhronizaciju (otkazane stavke ne pripadaju
 // itineraru vodiča, isti skup statusa kao M5 kalendar/duplikat provera).
-const ACTIVE_ITEM_STATUSES: BookingItemStatus[] = [BookingItemStatus.CONFIRMED, BookingItemStatus.PENDING_SUPPLIER_CONFIRMATION];
+const ACTIVE_ITEM_STATUSES: BookingItemStatus[] = [
+  BookingItemStatus.CONFIRMED,
+  BookingItemStatus.PENDING_SUPPLIER_CONFIRMATION,
+];
 
 /**
  * M9 spec §3.2/§3.3 — deo za vodiče na terenu (offline-first). Agregacioni servis: kompozicija
@@ -39,7 +46,9 @@ export class FieldStaffService {
       orderBy: { stayFrom: 'asc' },
     });
 
-    const guestProfileIds = items.flatMap((item) => item.guests.map((g) => g.guestProfileId).filter((id): id is string => !!id));
+    const guestProfileIds = items.flatMap((item) =>
+      item.guests.map((g) => g.guestProfileId).filter((id): id is string => !!id),
+    );
     const guestProfiles = guestProfileIds.length
       ? await this.prisma.guestProfile.findMany({ where: { id: { in: guestProfileIds } } })
       : [];
@@ -100,7 +109,8 @@ export class FieldStaffService {
     return checkIns.map((c) => ({
       id: c.id,
       bookingItemId: guestById.get(c.bookingItemGuestId)?.bookingItemId ?? null,
-      guestName: `${guestById.get(c.bookingItemGuestId)?.guestFirstName ?? ''} ${guestById.get(c.bookingItemGuestId)?.guestLastName ?? ''}`.trim(),
+      guestName:
+        `${guestById.get(c.bookingItemGuestId)?.guestFirstName ?? ''} ${guestById.get(c.bookingItemGuestId)?.guestLastName ?? ''}`.trim(),
       checkedInAt: c.checkedInAt,
       checkedInBy: c.checkedInBy,
       syncedAt: c.syncedAt,
@@ -109,7 +119,12 @@ export class FieldStaffService {
 
   async sync(guideUserId: string, dto: SyncFieldDataDto) {
     if (dto.incidentNotes?.length) {
-      const allowed = await this.permissions.hasPermission(guideUserId, 'M9', 'field-incident', 'CREATE');
+      const allowed = await this.permissions.hasPermission(
+        guideUserId,
+        'M9',
+        'field-incident',
+        'CREATE',
+      );
       if (!allowed) throw new ForbiddenException('Nema dozvolu M9/field-incident/CREATE');
     }
 
@@ -135,13 +150,20 @@ export class FieldStaffService {
       // §3.2 — "poslednji upis pobeđuje po vremenskoj oznaci": samo primeni ako je pristigli
       // zapis stariji/istovetan po sadržaju NE menja ništa osim potvrde synced_at; ako se
       // sadržaj razlikuje i pristigla vremenska oznaka je NOVIJA, prepiši polja.
-      const contentChanged = existing.bookingItemGuestId !== dto.bookingItemGuestId || existing.checkedInAt.getTime() !== incomingCheckedInAt.getTime();
-      const shouldOverwrite = contentChanged && incomingCheckedInAt.getTime() > existing.checkedInAt.getTime();
+      const contentChanged =
+        existing.bookingItemGuestId !== dto.bookingItemGuestId ||
+        existing.checkedInAt.getTime() !== incomingCheckedInAt.getTime();
+      const shouldOverwrite =
+        contentChanged && incomingCheckedInAt.getTime() > existing.checkedInAt.getTime();
 
       const updated = await this.prisma.fieldCheckIn.update({
         where: { id: dto.id },
         data: shouldOverwrite
-          ? { bookingItemGuestId: dto.bookingItemGuestId, checkedInAt: incomingCheckedInAt, syncedAt: now }
+          ? {
+              bookingItemGuestId: dto.bookingItemGuestId,
+              checkedInAt: incomingCheckedInAt,
+              syncedAt: now,
+            }
           : { syncedAt: now },
       });
 
@@ -149,7 +171,9 @@ export class FieldStaffService {
         actorType: 'HUMAN',
         actorId: guideUserId,
         module: 'M9',
-        action: shouldOverwrite ? 'field_checkin.resynced_overwritten' : 'field_checkin.resynced_idempotent',
+        action: shouldOverwrite
+          ? 'field_checkin.resynced_overwritten'
+          : 'field_checkin.resynced_idempotent',
         resourceType: 'FieldCheckIn',
         resourceId: dto.id,
         beforeState: { checkedInAt: existing.checkedInAt, syncedAt: existing.syncedAt },
@@ -193,13 +217,23 @@ export class FieldStaffService {
     let wasAlreadySynced = false;
     if (existing) {
       wasAlreadySynced = existing.syncedAt !== null;
-      const contentChanged = existing.note !== dto.note || existing.severity !== dto.severity || existing.createdAt.getTime() !== incomingCreatedAt.getTime();
-      const shouldOverwrite = contentChanged && incomingCreatedAt.getTime() > existing.createdAt.getTime();
+      const contentChanged =
+        existing.note !== dto.note ||
+        existing.severity !== dto.severity ||
+        existing.createdAt.getTime() !== incomingCreatedAt.getTime();
+      const shouldOverwrite =
+        contentChanged && incomingCreatedAt.getTime() > existing.createdAt.getTime();
 
       record = await this.prisma.fieldIncidentNote.update({
         where: { id: dto.id },
         data: shouldOverwrite
-          ? { bookingId: dto.bookingId, note: dto.note, severity: dto.severity, createdAt: incomingCreatedAt, syncedAt: now }
+          ? {
+              bookingId: dto.bookingId,
+              note: dto.note,
+              severity: dto.severity,
+              createdAt: incomingCreatedAt,
+              syncedAt: now,
+            }
           : { syncedAt: now },
       });
 
@@ -207,10 +241,16 @@ export class FieldStaffService {
         actorType: 'HUMAN',
         actorId: guideUserId,
         module: 'M9',
-        action: shouldOverwrite ? 'field_incident.resynced_overwritten' : 'field_incident.resynced_idempotent',
+        action: shouldOverwrite
+          ? 'field_incident.resynced_overwritten'
+          : 'field_incident.resynced_idempotent',
         resourceType: 'FieldIncidentNote',
         resourceId: dto.id,
-        beforeState: { note: existing.note, severity: existing.severity, syncedAt: existing.syncedAt },
+        beforeState: {
+          note: existing.note,
+          severity: existing.severity,
+          syncedAt: existing.syncedAt,
+        },
         afterState: { note: record.note, severity: record.severity, syncedAt: record.syncedAt },
         context: { conflictDetected: contentChanged },
       });

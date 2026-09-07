@@ -19,8 +19,16 @@ export async function GET(req: NextRequest) {
     // Odgovor je od 5.9.2026 `{ data, total, ... }` (dok. 39 nalaz 2.2); ovaj posrednik i dalje
     // vraća go niz, jer ga `AddServicePanel` koristi kao spisak opcija, ne kao stranicu.
     const result = await apiFetch<{
-      data: { id: string; destinationCity: string; destinationArea: string | null; destinationCountry: string; translation: { name: string } | null }[];
-    }>(`/catalog/products?type=${encodeURIComponent(type)}&status=ACTIVE&lang=sr`, { requireAuth: true });
+      data: {
+        id: string;
+        destinationCity: string;
+        destinationArea: string | null;
+        destinationCountry: string;
+        translation: { name: string } | null;
+      }[];
+    }>(`/catalog/products?type=${encodeURIComponent(type)}&status=ACTIVE&lang=sr`, {
+      requireAuth: true,
+    });
     return NextResponse.json(
       result.data.map((p) => ({
         id: p.id,
@@ -32,7 +40,9 @@ export async function GET(req: NextRequest) {
     );
   } catch (err) {
     if (err instanceof ApiError) {
-      return NextResponse.json(err.body ?? { message: 'Katalog nije dostupan' }, { status: err.status });
+      return NextResponse.json(err.body ?? { message: 'Katalog nije dostupan' }, {
+        status: err.status,
+      });
     }
     throw err;
   }

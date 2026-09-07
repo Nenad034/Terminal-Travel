@@ -20,11 +20,13 @@ Lista objavljenih (`status=PUBLISHED`) članaka vidljivih pozivaocu. Filtriranje
 `status` je namenjen uredniku (npr. panel `/pomoc`): kad pozivalac ima `M21/article:<segment>/EDIT` za bar jedan audience segment, vraća članke traženog statusa ograničene na segmente za koje ima `EDIT` (ne tuđe `DRAFT`-ove). Bez `EDIT` dozvole ni za jedan segment, parametar se tiho ignoriše — ponašanje ostaje identično kao bez njega (samo `PUBLISHED`, izvedena publika), bezbedno za AI asistenta koji ga nikad ne šalje.
 
 **Zahtev (uređivač traži sopstvene nacrte):**
+
 ```
 GET /api/v1/help/articles?status=DRAFT
 ```
 
 **Odgovor `200`:**
+
 ```json
 [
   {
@@ -37,7 +39,11 @@ GET /api/v1/help/articles?status=DRAFT
     "generatedBy": "HUMAN",
     "approvedBy": "u-direktor-1",
     "publishedAt": "2026-08-15T10:00:00.000Z",
-    "translation": { "languageCode": "sr", "title": "Kako obraditi otkazivanje sa delimičnim povraćajem", "body": "1. Otvori rezervaciju u M5...\n2. ..." }
+    "translation": {
+      "languageCode": "sr",
+      "title": "Kako obraditi otkazivanje sa delimičnim povraćajem",
+      "body": "1. Otvori rezervaciju u M5...\n2. ..."
+    }
   }
 ]
 ```
@@ -49,8 +55,14 @@ Pojedinačni (`INDIVIDUAL`) `GUEST` nalog uvek dobija `[]` (van obima v1, spec p
 Kreira nacrt (`status=DRAFT`, `generatedBy=HUMAN`). Zahteva `M21/article:<segment>/EDIT` za SVAKI segment u `audience` (npr. `audience: ["STAFF","SUBAGENT"]` zahteva i `article:staff/EDIT` i `article:subagent/EDIT`).
 
 **Zahtev:**
+
 ```json
-{ "slug": "kako-obraditi-otkazivanje", "audience": ["STAFF"], "relatedModule": "M5", "isCriticalExample": true }
+{
+  "slug": "kako-obraditi-otkazivanje",
+  "audience": ["STAFF"],
+  "relatedModule": "M5",
+  "isCriticalExample": true
+}
 ```
 
 **Odgovor `201`:** isti oblik kao red u listi iznad (bez `translation` — dodaje se posebno).
@@ -62,6 +74,7 @@ Uređivač (ima `EDIT` za bar jedan audience segment članka) vidi članak u bil
 Odgovor uz `translation` (rešen fallback — traženi jezik→en→sr) uključuje i `translations`: pun niz svih postojećih `ArticleTranslation` redova za članak (dodato M17 Faza 7/16.8.2026 — jedan poziv umesto ranijeg poziva po jeziku).
 
 **Odgovor `200`:**
+
 ```json
 {
   "id": "a1b2...",
@@ -81,13 +94,21 @@ Odgovor uz `translation` (rešen fallback — traženi jezik→en→sr) uključu
 Izmena polja i/ili prelazak statusa. Prelazak u `PUBLISHED` zahteva `M21/article:<segment>/PUBLISH` (isključivo Direktor/Vlasnik) i automatski popunjava `approved_by` sa pozivaocem — nikad se ne prima kroz telo, nikad AI.
 
 **Zahtev (objava):**
+
 ```json
 { "status": "PUBLISHED" }
 ```
 
 **Odgovor `200`:**
+
 ```json
-{ "id": "a1b2...", "status": "PUBLISHED", "approvedBy": "u-direktor-1", "publishedAt": "2026-08-15T10:00:00.000Z", "...": "..." }
+{
+  "id": "a1b2...",
+  "status": "PUBLISHED",
+  "approvedBy": "u-direktor-1",
+  "publishedAt": "2026-08-15T10:00:00.000Z",
+  "...": "..."
+}
 ```
 
 ### PUT /help/articles/:id/translations
@@ -95,8 +116,13 @@ Izmena polja i/ili prelazak statusa. Prelazak u `PUBLISHED` zahteva `M21/article
 Upsert prevoda (isti obrazac kao M2/M12). Zahteva `EDIT` za sve audience segmente članka.
 
 **Zahtev:**
+
 ```json
-{ "languageCode": "en", "title": "How to handle a partial-refund cancellation", "body": "1. Open the booking in M5...\n2. ..." }
+{
+  "languageCode": "en",
+  "title": "How to handle a partial-refund cancellation",
+  "body": "1. Open the booking in M5...\n2. ..."
+}
 ```
 
 ---
@@ -108,11 +134,13 @@ Upsert prevoda (isti obrazac kao M2/M12). Zahteva `EDIT` za sve audience segment
 Glavni upit AI asistentu. Publika se izvodi iz naloga; asistent pretražuje isključivo `PUBLISHED` članke vidljive toj publici — nikad sadržaj drugih publika, bez obzira na formulaciju pitanja (spec poglavlje 5.2).
 
 **Zahtev:**
+
 ```json
 { "question": "Kako obrađujem otkazivanje sa delimičnim povraćajem?", "lang": "sr" }
 ```
 
 **Odgovor `201` (pouzdan odgovor):**
+
 ```json
 {
   "id": "q1...",
@@ -124,8 +152,15 @@ Glavni upit AI asistentu. Publika se izvodi iz naloga; asistent pretražuje iskl
 ```
 
 **Odgovor `201` (bez pouzdanog odgovora):**
+
 ```json
-{ "id": "q2...", "answer": null, "matchedArticleIds": [], "confidence": "NONE", "offerEscalation": true }
+{
+  "id": "q2...",
+  "answer": null,
+  "matchedArticleIds": [],
+  "confidence": "NONE",
+  "offerEscalation": true
+}
 ```
 
 Nalog bez rešive publike uopšte (npr. `SUPPLIER_CONTACT`, `AI_AGENT`) dobija `403` sa uputstvom da koristi M14. `INDIVIDUAL` `GUEST` nalog (i nepovezan `GUEST`) VIŠE ne dobija `403` (avgust 2026) — resolveHelpAudience ga rešava u `PUBLIC_GUEST` i asistent odgovara iz uže FAQ liste za tu publiku.
@@ -143,9 +178,16 @@ Nalog bez rešive publike uopšte (npr. `SUPPLIER_CONTACT`, `AI_AGENT`) dobija `
 Korisnikova potvrda eskalacije sopstvenog pitanja → kreira M14 `Ticket` (`channel=HELP_CENTER`) sa pitanjem već upisanim u prvu (`REQUESTER`) poruku. Samo autor pitanja; `400` ako je već eskalirano.
 
 **Odgovor `201`:**
+
 ```json
 {
-  "ticket": { "id": "t1...", "ticketNumber": "HD-2026-000042", "channel": "HELP_CENTER", "status": "OPEN", "...": "..." },
+  "ticket": {
+    "id": "t1...",
+    "ticketNumber": "HD-2026-000042",
+    "channel": "HELP_CENTER",
+    "status": "OPEN",
+    "...": "..."
+  },
   "question": { "id": "q2...", "escalatedTicketId": "t1...", "...": "..." }
 }
 ```
@@ -171,6 +213,7 @@ Nastaju automatski (dnevni cron, 6h) kad se nagomilaju ponovljena `NONE`/`LOW`/n
 Predlozi na čekanju (`status=PENDING_APPROVAL`). Zahteva `M21/suggestion/APPROVE`.
 
 **Odgovor `200`:**
+
 ```json
 [
   {
@@ -189,22 +232,36 @@ Predlozi na čekanju (`status=PENDING_APPROVAL`). Zahteva `M21/suggestion/APPROV
 Odobri ili odbij. Zahteva `M21/suggestion/APPROVE`.
 
 **Zahtev (odobri):**
+
 ```json
 { "decision": "APPROVE" }
 ```
 
 **Odgovor `200`:** `APPROVE` kreira stvaran `HelpArticle` u statusu `PENDING_APPROVAL` — **NE `PUBLISHED`**, i dalje čeka sopstveni korak objavljivanja (`PATCH /help/articles/:id`, gore).
+
 ```json
 {
-  "suggestion": { "id": "s1...", "status": "APPROVED", "reviewedBy": "u-hr-1", "reviewedAt": "2026-08-16T08:00:00.000Z" },
-  "createdArticle": { "id": "a9...", "status": "PENDING_APPROVAL", "generatedBy": "AI", "...": "..." }
+  "suggestion": {
+    "id": "s1...",
+    "status": "APPROVED",
+    "reviewedBy": "u-hr-1",
+    "reviewedAt": "2026-08-16T08:00:00.000Z"
+  },
+  "createdArticle": {
+    "id": "a9...",
+    "status": "PENDING_APPROVAL",
+    "generatedBy": "AI",
+    "...": "..."
+  }
 }
 ```
 
 **Zahtev (odbij):**
+
 ```json
 { "decision": "REJECT" }
 ```
+
 ```json
 { "suggestion": { "id": "s1...", "status": "REJECTED" }, "createdArticle": null }
 ```

@@ -34,4 +34,4 @@ Dok smo testirali M16, primetili smo da je potvrda rezervacije (korak odmah posl
 
 ---
 
-*Za tehničke detalje vidi `17-SPECIFIKACIJA-M16-MCP-DISTRIBUCIJA.md` (ovaj folder), `docs/api/M16-mcp-distribucija.md` za primere poziva, i dopunu u `06-SPECIFIKACIJA-M5-REZERVACIJE.md` (poglavlje 6.2/4.0a) za tačno šta je u M5 izmenjeno da bi M16 mogao da postoji — ovaj dokument je namerno pojednostavljen, ne zamenjuje ih.*
+_Za tehničke detalje vidi `17-SPECIFIKACIJA-M16-MCP-DISTRIBUCIJA.md` (ovaj folder), `docs/api/M16-mcp-distribucija.md` za primere poziva, i dopunu u `06-SPECIFIKACIJA-M5-REZERVACIJE.md` (poglavlje 6.2/4.0a) za tačno šta je u M5 izmenjeno da bi M16 mogao da postoji — ovaj dokument je namerno pojednostavljen, ne zamenjuje ih._

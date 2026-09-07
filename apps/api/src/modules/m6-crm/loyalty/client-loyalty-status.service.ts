@@ -1,5 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import { LoyaltyQualificationMetric, LoyaltyQualificationPeriod, LoyaltyTier } from '@prisma/client';
+import {
+  LoyaltyQualificationMetric,
+  LoyaltyQualificationPeriod,
+  LoyaltyTier,
+} from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { AuditLogService } from '../../m1-core-identitet/audit-log/audit-log.service';
 
@@ -51,7 +55,11 @@ export class ClientLoyaltyStatusService {
     let matchedTier: LoyaltyTier | null = null;
     let metricValue = 0;
     for (const tier of tiers) {
-      const value = await this.computeMetric(clientAccountId, tier.qualificationMetric, tier.qualificationPeriod);
+      const value = await this.computeMetric(
+        clientAccountId,
+        tier.qualificationMetric,
+        tier.qualificationPeriod,
+      );
       if (value >= Number(tier.threshold)) {
         matchedTier = tier;
         metricValue = value;
@@ -60,10 +68,16 @@ export class ClientLoyaltyStatusService {
     }
     if (!matchedTier && tiers.length > 0) {
       const lowest = tiers[tiers.length - 1];
-      metricValue = await this.computeMetric(clientAccountId, lowest.qualificationMetric, lowest.qualificationPeriod);
+      metricValue = await this.computeMetric(
+        clientAccountId,
+        lowest.qualificationMetric,
+        lowest.qualificationPeriod,
+      );
     }
 
-    const existing = await this.prisma.clientLoyaltyStatus.findUnique({ where: { clientAccountId } });
+    const existing = await this.prisma.clientLoyaltyStatus.findUnique({
+      where: { clientAccountId },
+    });
     const tierChanged = (existing?.currentTierId ?? null) !== (matchedTier?.id ?? null);
 
     return this.prisma.clientLoyaltyStatus.upsert({
@@ -85,7 +99,12 @@ export class ClientLoyaltyStatusService {
   }
 
   // §3.2 — ručni override, obavezan razlog, uvek pobeđuje nad automatski izračunatim nivoom.
-  async override(clientAccountId: string, tierId: string, reason: string, actor: { userId: string }) {
+  async override(
+    clientAccountId: string,
+    tierId: string,
+    reason: string,
+    actor: { userId: string },
+  ) {
     const before = await this.prisma.clientLoyaltyStatus.findUnique({ where: { clientAccountId } });
 
     const updated = await this.prisma.clientLoyaltyStatus.upsert({
@@ -152,6 +171,10 @@ export class ClientLoyaltyStatusService {
       where: { itemStatus: { not: 'CANCELLED' }, booking: bookingWhere },
       select: { stayFrom: true, stayTo: true },
     });
-    return items.reduce((sum, i) => sum + Math.max(0, Math.round((i.stayTo.getTime() - i.stayFrom.getTime()) / 86_400_000)), 0);
+    return items.reduce(
+      (sum, i) =>
+        sum + Math.max(0, Math.round((i.stayTo.getTime() - i.stayFrom.getTime()) / 86_400_000)),
+      0,
+    );
   }
 }

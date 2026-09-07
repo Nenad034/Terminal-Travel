@@ -5,7 +5,6 @@ import { apiFetch } from '@/lib/api-client';
 import type { PublicProduct } from '@/lib/types';
 import { slugToType, typeToSlug } from '@/lib/categories';
 
-
 // M8 spec poglavlje 2 — /[tip]/[slug]. M2 public endpoint pretražuje samo po :id, nema
 // slug lookup (dopuna po potrebi, zavedeno u backlogu) — ova stranica zato učita ceo
 // javni katalog za jezik i pronađe proizvod po ProductTranslation.slug, tehnika manje
@@ -59,7 +58,12 @@ export default async function ProductPage({
     '@context': 'https://schema.org',
     '@type': 'BreadcrumbList',
     itemListElement: [
-      { '@type': 'ListItem', position: 1, name: tc(product.type), item: `/${locale}/${typeToSlug(product.type)}` },
+      {
+        '@type': 'ListItem',
+        position: 1,
+        name: tc(product.type),
+        item: `/${locale}/${typeToSlug(product.type)}`,
+      },
       { '@type': 'ListItem', position: 2, name: product.translation?.name },
     ],
   };
@@ -73,8 +77,14 @@ export default async function ProductPage({
        koja ga traži, ne skriven u zajedničkom rasporedu. */
     <div className="mx-auto grid max-w-6xl grid-cols-1 gap-8 lg:grid-cols-3">
       {/* M8 spec §5.1 — schema.org JSON-LD */}
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }} />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }}
+      />
 
       <div className="lg:col-span-2">
         <div className="mb-6 flex h-64 items-center justify-center rounded-lg bg-accent-soft text-accent-strong">
@@ -92,14 +102,39 @@ export default async function ProductPage({
           <input type="hidden" name="productId" value={product.id} />
           <label className="text-sm text-ink-dim">
             {t('selectDates')}
-            <input type="date" name="stayFrom" required className="mt-1 w-full rounded-md border border-border bg-bg px-3 py-2 text-ink" />
+            <input
+              type="date"
+              name="stayFrom"
+              required
+              className="mt-1 w-full rounded-md border border-border bg-bg px-3 py-2 text-ink"
+            />
           </label>
-          <input type="date" name="stayTo" required className="w-full rounded-md border border-border bg-bg px-3 py-2 text-ink" />
+          <input
+            type="date"
+            name="stayTo"
+            required
+            className="w-full rounded-md border border-border bg-bg px-3 py-2 text-ink"
+          />
           <div className="flex gap-2">
-            <input type="number" name="adults" defaultValue={2} min={1} className="w-1/2 rounded-md border border-border bg-bg px-3 py-2 text-ink" />
-            <input type="number" name="children" defaultValue={0} min={0} className="w-1/2 rounded-md border border-border bg-bg px-3 py-2 text-ink" />
+            <input
+              type="number"
+              name="adults"
+              defaultValue={2}
+              min={1}
+              className="w-1/2 rounded-md border border-border bg-bg px-3 py-2 text-ink"
+            />
+            <input
+              type="number"
+              name="children"
+              defaultValue={0}
+              min={0}
+              className="w-1/2 rounded-md border border-border bg-bg px-3 py-2 text-ink"
+            />
           </div>
-          <button type="submit" className="rounded-md bg-accent px-4 py-2 font-medium text-accent-ink hover:bg-accent-strong">
+          <button
+            type="submit"
+            className="rounded-md bg-accent px-4 py-2 font-medium text-accent-ink hover:bg-accent-strong"
+          >
             {t('book')}
           </button>
         </form>
@@ -116,7 +151,15 @@ function buildJsonLd(product: PublicProduct, locale: string) {
     inLanguage: locale,
   };
   if (product.type === 'ACCOMMODATION') {
-    return { ...base, '@type': 'Hotel', address: { '@type': 'PostalAddress', addressLocality: product.destinationCity, addressCountry: product.destinationCountry } };
+    return {
+      ...base,
+      '@type': 'Hotel',
+      address: {
+        '@type': 'PostalAddress',
+        addressLocality: product.destinationCity,
+        addressCountry: product.destinationCountry,
+      },
+    };
   }
   if (product.type === 'PACKAGE') {
     return { ...base, '@type': 'TouristTrip' };

@@ -55,7 +55,7 @@ Ovaj fajl je **indeks, ne izvor istine** — svaka stavka ovde je jedan red sa p
 
 - **Zajednički skup izvora i trag do izvora po tvrdnji, kao dopuna M23** (nastalo iz poređenja sa Google NotebookLM, 17.8.2026; vlasnik potvrdio da predlog ima smisla, čeka odluku o obimu pre dopune spec-a) — M23 već jeste "sveska po temi" (registar odobrenih izvora, nacrti sa ljudskim odobrenjem, osvežavanje na 30 dana), i namerno je **stroži** od NotebookLM-a po pitanju porekla (samo zvaničan sajt objekta / zvanične mreže / državni portal, bez OTA i sajtova sa recenzijama, §4a). Tri konkretne razlike koje NotebookLM ima, a M23 nema:
   1. **Izvor je vezan za tačno jedan članak** (`ArticleSource.article_id` je obavezan FK, §2.3) — isti dostavljen tekst mora da se ponovo unosi za svaki naredni članak. Predlog: izvor postaje samostalan zapis, veza ka članku postaje spona (jedan izvor → više članaka).
-  2. **Nema traga od pojedinačne tvrdnje do izvora** — `ArticleRevision.source_ids` (§2.4) pamti *koji* izvori su korišćeni za ceo nacrt, ne *koja rečenica odakle*. Predlog: trag po pasusu nacrta, vidljiv uređivaču pri odobravanju (§2.4 tok). **Ovo je preporučen prvi korak** — ne dira granice modula, ne otvara poverljivost, a direktno menja koliko uređivač može da veruje nacrtu koji odobrava.
+  2. **Nema traga od pojedinačne tvrdnje do izvora** — `ArticleRevision.source_ids` (§2.4) pamti _koji_ izvori su korišćeni za ceo nacrt, ne _koja rečenica odakle_. Predlog: trag po pasusu nacrta, vidljiv uređivaču pri odobravanju (§2.4 tok). **Ovo je preporučen prvi korak** — ne dira granice modula, ne otvara poverljivost, a direktno menja koliko uređivač može da veruje nacrtu koji odobrava.
   3. **Interni dokumenti nisu dozvoljeni kao izvor** — tri dozvoljena tipa (§4a) su svi spoljni web. Najvredniji materijal agencije (M3 ugovori/cenovnici, M22 prepiska, M14 reklamacije, M5 istorija rezervacija) je nevidljiv za generisanje sadržaja. Predlog: novi tipovi izvora kao **pokazivač na zapis u tom modulu, nikad kopija podatka** (princip #2 Master dokumenta ostaje netaknut).
   - Posledica koju (1)+(3) otključavaju: **otkrivanje neslaganja među izvorima** — npr. ugovor kaže prijava u 15:00, sajt hotela 14:00. Sa jednim izvorom po činjenici to je strukturno nevidljivo.
   - **Poverljivost je uslov, ne detalj.** `Article` može dobiti `share_token` i biti javno otvoren bez prijave (§5). Ako izvor postane M3 ugovor, u istom skupu su neto cene i provizije — postoji put kojim bi tekst izveden iz ugovora završio kod gosta ili subagenta sa neto cenom. Pre bilo kakve implementacije (3) mora se postaviti tvrdo pravilo: članak koji je ikad koristio interni izvor ne dobija javni link bez posebne, eksplicitne ljudske potvrde (ili se interni izvori ograniče isključivo na članke označene kao interni).
@@ -80,13 +80,13 @@ Ovaj fajl je **indeks, ne izvor istine** — svaka stavka ovde je jedan red sa p
 
 - **Excel izvoz za svaki izveštaj i listu, bez obzira na modul** (25.8.2026, zahtev vlasnika) — svaki ekran koji prikazuje listu ili izveštaj (M2 katalog, M5 rezervacije, M6 CRM, M7 B2B, M10 finansije, M13 BI, M14 helpdesk...) treba dugme "Izvezi u Excel" nad trenutno prikazanim/filtriranim podacima, ne samo M13 dinamički izveštaji. Predlog: zajednička M17 UI komponenta (dugme + XLSX generator na klijentu ili zajednički backend endpoint) koju svaki ekran poziva nad svojim već postojećim tabelarnim podacima — ne novi modul, ne posebna logika po modulu. Otvoreno pre implementacije: (a) generisanje na klijentu (npr. biblioteka za XLSX u browseru, nova tech-stack stavka koja traži potvrdu) vs. zajednički backend endpoint koji prima trenutne filtere/kolone i vraća fajl; (b) da li izvoz poštuje već primenjene filtere i vidljive kolone ekrana ili uvek pun skup; (c) da li M7 (subagent) i M8/M9 (gost) izvozi imaju isto pravo kao M17 (interni tim) ili je ovo prvo samo interni alat. Nije prošlo kroz `tt-architecture-core` proveru niti dobilo obim od vlasnika.
 
-- **TT kao dobavljač ka OTA kanalima (Booking.com/Expedia i sl.), obrnut smer od M4** (vlasnik potvrdio pravac 29.8.2026, kao odgovor na otvoreno pitanje iz nalaza o Google AI Mode hotel booking-u, Master dokument Dodatak A, unos 29.8.2026) — M4 danas pokriva isključivo TT kao *primaoca* sadržaja od dobavljača (Travelgate/Solvex/WebHotelier/MARS, `ProviderAdapter` ugovor, M4 spec poglavlje 2). Ideja je obrnut tok: TT-ov sopstveni katalog (M2) postaje vidljiv gostima OTA platformi tako što TT izlaže/šalje svoj inventar OTA-ima, ne samo prima njihov. Odvojeno od M16 (koji izlaže TT eksternim AI agentima direktno, MCP kanal, ne kroz OTA posrednika) — komplementaran, ne isti tok.
+- **TT kao dobavljač ka OTA kanalima (Booking.com/Expedia i sl.), obrnut smer od M4** (vlasnik potvrdio pravac 29.8.2026, kao odgovor na otvoreno pitanje iz nalaza o Google AI Mode hotel booking-u, Master dokument Dodatak A, unos 29.8.2026) — M4 danas pokriva isključivo TT kao _primaoca_ sadržaja od dobavljača (Travelgate/Solvex/WebHotelier/MARS, `ProviderAdapter` ugovor, M4 spec poglavlje 2). Ideja je obrnut tok: TT-ov sopstveni katalog (M2) postaje vidljiv gostima OTA platformi tako što TT izlaže/šalje svoj inventar OTA-ima, ne samo prima njihov. Odvojeno od M16 (koji izlaže TT eksternim AI agentima direktno, MCP kanal, ne kroz OTA posrednika) — komplementaran, ne isti tok.
   - Otvoreno pre pisanja spec-a: da li ovo ide kao proširenje M4 (`ProviderAdapter` dobija i izlazni smer, ne samo ulazni) ili je tok dovoljno različit (TT šalje cenu/dostupnost umesto da je prima, drugačiji ugovor/auth po OTA) da zahteva novo poglavlje ili zaseban mali modul — čeka `tt-architecture-core` prolaz.
   - Da li OTA API-ji uopšte prihvataju agenciju/turoperatora kao dobavljača ili samo direktnog vlasnika smeštajnog objekta/lanca — čisto istraživačko pitanje, ne pretpostavljati odgovor pre provere zvanične dokumentacije (Booking.com Connectivity, Expedia Partner Central/EPS Rapid i sl.).
   - Da li se izlaže ceo M2 katalog ili samo sopstveni ugovoreni sadržaj (M3) — pravno pitanje da li TT sme dalje da distribuiše tuđi posredovan sadržaj (Travelgate i sl.) na OTA kanal, van obima ove beleške.
   - Komercijalni model (provizija koju OTA uzima, uticaj na M10 finansijski tok) — poslovno pitanje za vlasnika, ne pretpostavka AI agenta.
   - Da li rezervacije koje stignu sa OTA kanala prolaze kroz isti M5 tok/fiskalizaciju kao svaki drugi kanal (princip već primenjen u M16 poglavlje 4) ili ulaze drugačijim putem (webhook od OTA umesto MCP poziva).
-  Nije prošlo kroz `tt-architecture-core` proveru niti dobilo obim od vlasnika — čista beleška da se potvrđen pravac ne izgubi.
+    Nije prošlo kroz `tt-architecture-core` proveru niti dobilo obim od vlasnika — čista beleška da se potvrđen pravac ne izgubi.
 
 - **AI-sklopljena, personalizovana stranica po posetiocu (inspiracija: Adobe "agentic sites" demo, Cerebras+Gemma inferencija <1.2s)** (31.8.2026, na osnovu spoljne vesti) — Adobe je demonstrirao sistem koji za javni sajt u realnom vremenu, po posetiocu, RAG-om (nad katalogom/brend pravilima tog sajta) sklapa personalizovane blokove stranice (hero, navigacija, ponude) umesto statičkog/A-B-testiranog rasporeda za sve. Relevantno za **M8** (sajt agencije, B2C) — TT već ima prirodne RAG izvore koji bi napajali tako nešto bez izmišljanja sadržaja: **M2** (katalog proizvoda) i **M23** (Znanje, odobreni izvori o destinacijama/hotelima).
   - **Moja preporuka (nije potvrđeno, čeka odluku vlasnika): ne raditi sad.** Dva razloga: (1) razmera ne odgovara — Adobe-ov use case cilja enterprise sajtove sa ogromnim, raznorodnim tokom posetilaca gde personalizacija po segmentu realno menja konverziju; TT je butik agencija, vrednost bi bila nesrazmerno manja od cene uvođenja posebne inferencione infrastrukture (Cerebras-klase brzina, nova stavka tehničkog steka, poglavlje 6 Master dokumenta); (2) M8 još nije ni prošao osnovni izlazni kriterijum (statičan-ali-funkcionalan katalog + booking tok) — ovo bi bio "korak 2" pre "korak 1".
@@ -131,12 +131,16 @@ Ovaj fajl je **indeks, ne izvor istine** — svaka stavka ovde je jedan red sa p
 ---
 
 ## M1 — Core / Identitet i pristup
-*(§9, `docs/moduli/M01-core-identitet/02-SPECIFIKACIJA-M1-CORE-IDENTITET.md`)*
+
+_(§9, `docs/moduli/M01-core-identitet/02-SPECIFIKACIJA-M1-CORE-IDENTITET.md`)_
+
 - **ČEKA VLASNIKA: pristupni podaci mail naloga sa kog sistem šalje poštu** (odloženo 4.9.2026, na izričit zahtev vlasnika — "ovo ćemo kasnije, samo me podsetite"). Kod je gotov i proveren; poruke odlaze tek kad se u `apps/api/.env` upišu: **adresa servera** (`SMTP_HOST`), **port** (`SMTP_PORT`), **korisničko ime** (`SMTP_USER`), **lozinka** (`SMTP_PASSWORD`) i **adresa pošiljaoca** (`MAIL_FROM`, npr. `no-reply@terminaltravel.rs`), plus `PANEL_BASE_URL` za linkove u porukama. Nijedna izmena koda nije potrebna. **Pitanje za vlasnika:** na čemu je pošta agencije (Google Workspace / Microsoft 365 / hosting kod domaćeg provajdera / nešto drugo) — odatle sledi gde se ti podaci tačno nalaze; ako poslovni domen za poštu još ne postoji, to je odluka o domenu, ne o kodu. Do tada sve radi kao i pre: poruke se loguju, ne šalju, a link za aktivaciju se u panelu prikazuje za ručno prosleđivanje (M1 spec §5). Vidi master dokument poglavlje 6 (red o `nodemailer`) i `apps/api/.env.example`.
 - Konkretna dodela dozvola po ulozi definiše se kad svaki modul dođe na red, ne unapred u M1.
 
 ## M2 — Katalog proizvoda
-*(§9, `docs/moduli/M02-katalog-proizvoda/03-SPECIFIKACIJA-M2-KATALOG-PROIZVODA.md`)*
+
+_(§9, `docs/moduli/M02-katalog-proizvoda/03-SPECIFIKACIJA-M2-KATALOG-PROIZVODA.md`)_
+
 - **Ekran za unos `daily_program[]` ("Putovanja")** (§2.3f, 5.9.2026) — model podataka je definisan (dan/naslov/opis/obroci/noćenje), ali panel ekran za unos/uređivanje programa po danima nije napravljen, isti status kao ostatak PACKAGE CRUD-a. Čeka svoj prolaz kad M17 katalog ekrani dođu na red za PACKAGE atribute.
 - **Filteri za grupne pakete (`PACKAGE`) po atributima ugrađenih proizvoda** (M5 §3.0d.6, 5.9.2026, vlasnikov zahtev) — danas `GET /search?type=PACKAGE` filtrira samo po destinaciji/broju putnika, ne po zvezdicama/sadržajima/kontekstualnim filterima smeštaja ili atributima leta koji su UNUTAR `included_products[]`. Predlog (nije razrađeno): paket prolazi filter ako bar jedan ugrađen proizvod odgovarajućeg tipa ispunjava sve tražene uslove. Čeka `tt-architecture-core`/vlasnikovu potvrdu tačnog oblika pre spec dopune.
 - **Prikaz `optional_products[]` (fakultativni izleti) gostu na M8/M7** (M2 §2.3f/M5 §3.0d.6b, 5.9.2026) — danas definisano samo za interni tok Ponude (M17); M8 (javni sajt) i M7 (B2B portal) ne podržavaju izbor opcionih stavki u toku rezervacije uopšte, pa je prikaz na tim kanalima van obima dok ta funkcionalnost ne postoji.
@@ -159,7 +163,9 @@ Ovaj fajl je **indeks, ne izvor istine** — svaka stavka ovde je jedan red sa p
 - **`destination_area` (§2.1b, v1.19, 4.9.2026) nije popunjen/prikazan van M5 booking-detaila i vaučera** — namerno odloženo u istom prolazu: M4 provajder adapteri (API proizvodi), M8 javni sajt (pretraga/katalog), M9 aplikacija terenskog osoblja, M13 BI/`FactBooking`, M15 omnipretraga/AI agent, M12 marketing sadržaj, M5 predikativni unos u polju pretrage.
 
 ## M3 — Ugovaranje i alotmani
-*(§8, `docs/moduli/M03-ugovaranje-alotmani/04-SPECIFIKACIJA-M3-UGOVARANJE-ALOTMANI.md`)*
+
+_(§8, `docs/moduli/M03-ugovaranje-alotmani/04-SPECIFIKACIJA-M3-UGOVARANJE-ALOTMANI.md`)_
+
 - ~~Panel ekran za pojedinačan ugovor/period ne postoji~~ — **rešeno 29.8.2026**: `ugovori/[id]/page.tsx` (detalj ugovora + unos perioda, uključujući `age_policy_override`) i `ugovori/[id]/periods/[periodId]/page.tsx` (`RateLine`/`CancellationRule`). Napomena: backend `PUT .../rates` i `.../cancellation-rules` uvek KREIRAJU novu stavku (nema izmene/brisanja postojeće po ID-ju) — panel prati isti oblik, izmena/brisanje pojedinačne stavke ostaje otvoreno ako se pokaže potreba. `age_pricing[]` po redu cenovnika (§2.4a) ostaje API-only.
 - Tačan format `cancellation_terms_summary` (slobodan tekst vs. strukturirano).
 - Obračun konverzije valute za fakturisanje u RSD — definiše se u M10.
@@ -171,7 +177,9 @@ Ovaj fajl je **indeks, ne izvor istine** — svaka stavka ovde je jedan red sa p
 - **Talas 2** (M3 §8, ostaje otvoreno): dobavljač jednostrano suspenduje kapacitet ("STOP SALE"); obavezni datumski vezani doplati (Nova godina i sl.); rok povrata kao fiksan datum/dan u nedelji; ograničenje distributivnog kanala; **ograničenje tržišta porekla gosta** i **ograničenje po segmentu gosta** (i dalje bez mesta — zahtevaju M5 odluku kako se proverava u toku prodaje, ne samo gde se čuva); **obavezan minimalni markup koji nameće dobavljač** (zahteva izmenu M5 `MarkupRule`); interakcija `commission_model` sa `MarkupRule` (bruto/neto osnovica); Solvex format kao mogući M4 (feed) kandidat umesto M3 ručnog unosa.
 
 ## M4 — Integracije spoljnih API konekcija
-*(§9, `docs/moduli/M04-integracije-api/05-SPECIFIKACIJA-M4-INTEGRACIJE-API.md`)*
+
+_(§9, `docs/moduli/M04-integracije-api/05-SPECIFIKACIJA-M4-INTEGRACIJE-API.md`)_
+
 - **Lighthouse/Cubilis istražen, ništa usvojeno** (4.9.2026, na zahtev vlasnika) — link je bio B2C booking engine jednog hotela, ne dobavljački API; stvarna veza bi bila „TT kao kanal na Cubilis channel manager-u". **Arhitektonski nalaz koji važi nezavisno od odluke: `ProviderAdapter` (M4 §2) je isključivo PULL, a channel manager je PUSH** — M4 nema ni endpoint koji prima ARI ažuriranja ni mesto gde bi se ta ponuda čuvala (bliže M3 alotmanu). Isto važi za HyperGuest PUSH režim. Usvajanje bilo kog push-izvora = izmena M4 specifikacije, ne još jedan adapter. Pun zapis: M4 spec §9.
 - **HyperGuest istražen, ništa usvojeno** (4.9.2026, na zahtev vlasnika) — B2B marketplace koji povezuje hotel direktno sa agencijom; kategorijski isto mesto kao Travelgate/Solvex. Pre bilo kakve odluke tražiti od njih: pokrivenost u TT destinacijama, cenovnik za kupca, preklapanje sa postojećim izvorima, test okruženje. Otvoreno pitanje sa posledicom na M10: NET vs. komisiona rata daju različit poreski tretman (§4.4), a `default_tip_nastupanja` je danas po provajderu, ne po ponudi. Pun zapis: M4 spec §9.
 - **Tri MCP konektora za pretragu smeštaja + TravelgateX/HotelX B2B API, empirijski/dokumentaciono nalaz, nijedan usvojen** (28.8.2026, dopunjeno istog dana) — Expedia/Novasol/Booking.com (live testirano) + TravelgateX/HotelX (iz dokumentacije, čeka live potvrdu) u `docs/moduli/M04-integracije-api/05-ANALIZA-MCP-KONEKTORI-SMESTAJ.md`. Čeka odluku vlasnika da li/koji/kako integrisati; TravelgateX nalaz treba uporediti i sa postojećim Travelgate adapterom (M4 spec poglavlje 5).
@@ -190,7 +198,9 @@ Ovaj fajl je **indeks, ne izvor istine** — svaka stavka ovde je jedan red sa p
 - **Atlas Flight Booking Skill kao moguća referenca za budući avio adapter** (nalaz iz vesti, 19.8.2026, dopunjeno istog dana istraživanjem atlaslovestravel.com) — Atlas (Singapur) je open-source-ovao (Apache 2.0, GitHub/PyPI) alat koji AI agentu daje search/cene/dostupnost/booking preko 140+ niskobudžetnih avio-kompanija, sa 4 obavezne tačke ljudske potvrde (autorizacija, promena cene, izbor sedišta, plaćanje) — isti obrazac koji M15 registar ovlašćenja (poglavlje 7 master dokumenta) već zahteva za akcije koje pominju cenu. Tehnički Atlas ne pravi posebnu konekciju po aviokompaniji — jedan **NDC (New Distribution Capability, IATA standard)**-certifikovan API prema 140+ LCC (AirAsia, Ryanair, IndiGo...), rezervacija se kreira direktno u sistemu te aviokompanije kroz zajednički NDC sloj, bez pojedinačnih ugovora. Relevantno za M5 poglavlje 3.0d.1 ("oblik odgovora za multi-segment let... čeka M4 avio/GDS adapter") i M10 BSP poravnanje (isto "čeka M4 avio/GDS adapter") — NDC je prirodan kandidat standarda kad taj adapter dođe na red, umesto adaptera po aviokompaniji. Nije neutralan GDS standard sam po sebi nego Atlas-ov komercijalni sloj iznad NDC-a (zahteva ATRIP nalog, pretplata/transakciona naknada) — vezuje na jednog provajdera, ne zamenjuje odluku o GDS-u. Razmotriti tek kad avio/GDS adapter stvarno dođe na red u faznom planu, ne pre.
 
 ## M5 — Rezervacije i tok prodaje
-*(§13, `docs/moduli/M05-rezervacije/06-SPECIFIKACIJA-M5-REZERVACIJE.md`)*
+
+_(§13, `docs/moduli/M05-rezervacije/06-SPECIFIKACIJA-M5-REZERVACIJE.md`)_
+
 - **Filteri liste po zaduženom korisniku, partneru, dobavljaču i poslovnici** (§13, 6.9.2026, vlasnik potvrdio da su potrebni) — dva od četiri su POSTALA moguća 31.8.2026 (`assigned_to_id`, `franchise_subagent_id` već stižu u odgovoru liste, fali samo ime i filter), dobavljač traži dopunu upita, **poslovnica čeka poslovnu odluku vlasnika** — taj pojam ne postoji ni u šemi ni u M1.
 - **Mapa — slova i ikonice se povlače sa javnog Protomaps skladišta** (§3.0h.5, 2.9.2026) — sami podaci mape su kod nas, ali fontovi i sprite idu sa GitHub Pages. Jedini deo mape koji izlazi van naše infrastrukture; za produkciju se preseljava, inače odluka o EU hostingu nije dosledno sprovedena.
 - **Mapa — povezivanje kartice i tačke** (§3.0h.5, 2.9.2026) — prelaz mišem preko rezultata da istakne tačku i obrnuto (Airbnb obrazac). Traži da lista i mapa stoje jedna pored druge; danas se smenjuju.
@@ -250,7 +260,9 @@ Ovaj fajl je **indeks, ne izvor istine** — svaka stavka ovde je jedan red sa p
 - **Treći izgled filtera ("levi panel") — danas po-ekranu preferenca, ne globalno pravilo panela** (6.9.2026, M5 spec v2.40). Ako vlasnik poželi da izbor traka/prozor/levi panel važi ISTOVREMENO za sve module (jedan zajednički prekidač), treba zamena po-modulnog `localStorage` ključa jednim zajedničkim — nije potvrđeno da je to cilj, samo mogućnost.
 
 ## M6 — CRM (Gosti i Nalogodavci)
-*(§11, `docs/moduli/M06-crm/09-SPECIFIKACIJA-M6-CRM.md`)*
+
+_(§11, `docs/moduli/M06-crm/09-SPECIFIKACIJA-M6-CRM.md`)_
+
 - **`GuestProfile` nema rok važenja dokumenta, pol, ni mesto/zemlju rođenja** (M5 §3.0g.7, 2.9.2026) — potrebno zbog vlasnikove odluke da se podaci putnika traže odmah i u celosti; avio-kompanije traže pol i rok važenja dokumenta, a rok važenja je i uslov za vizu.
 - Tačan period čuvanja/anonimizacije ličnih podataka gosta (pravo na zaborav) — utvrditi sa pravnikom.
 - **EU Digital Identity Wallet (EUDI) kao izvor podataka gosta** (22.8.2026, Phocuswright izveštaj 2026) — eIDAS 2.0 obavezuje EU platforme na prihvatanje do kraja 2027; TT nije u obavezanom krugu, ali gost sa novčanikom bi mogao njime popuniti `GuestProfile` umesto ručnog unosa. Čeka stvarnu potražnju iz EU tržišta, ne pre.
@@ -258,7 +270,9 @@ Ovaj fajl je **indeks, ne izvor istine** — svaka stavka ovde je jedan red sa p
 - **`CommunicationLog.booking_id` — veza komunikacije sa pojedinačnom rezervacijom** (1.9.2026, otkriveno pri gradnji kartice Komunikacija na ekranu rezervacije, M5 spec §4.5) — `CommunicationLog` (M6 §4.1) danas se vezuje samo za `client_account_id`/`guest_profile_id`. Posledica: kartica Komunikacija na rezervaciji prikazuje **celu prepisku sa nalogodavcem**, ne prepisku o toj rezervaciji, i tako je i označena na ekranu (ne predstavlja se kao uža nego što jeste). Da veza nedostaje vidi se i danas: M5 §6.1b podsetnik upisuje broj rezervacije **u tekst** `summary` polja — isti obrazac "podatak kao tekst umesto kao veza" koji je u `22-ANALIZA-PRIMETRAVEL-NALAZI.md` §14.3 prepoznat kao greška. Izmena je mala (nullable `booking_id` + filter na `GET /crm/communication-log`), ali dotiče M5/M6/M14 pisače tog zapisa — čeka odluku vlasnika.
 
 ## M7 — B2B modul (Subagenti)
-*(§13, `docs/moduli/M07-b2b-subagenti/12-SPECIFIKACIJA-M7-B2B-SUBAGENTI.md`)*
+
+_(§13, `docs/moduli/M07-b2b-subagenti/12-SPECIFIKACIJA-M7-B2B-SUBAGENTI.md`)_
+
 - Da li agencija treba mogućnost direktne intervencije u proviziji sub-subagenta u sporovima.
 - Prilagođavanja M10 za automatsko fakturisanje provizije nazad ka subagentima.
 - Konkretan LLM/tehnički mehanizam AI razgovora sa subagentom (UI/prompt dizajn).
@@ -267,7 +281,9 @@ Ovaj fajl je **indeks, ne izvor istine** — svaka stavka ovde je jedan red sa p
 - ~~Da li M7 portal dobija isti interakcioni obrazac kao M17~~ — **rešeno 17.8.2026** (poglavlje 2.0.6): identičan obrazac; obim podataka izričito potvrđen (sve iz prodajnog toka sem marže/nabavne cene/naziva dobavljača, moduli van prodajnog toka potpuno nevidljivi). Portal frontend sam još nije izgrađen.
 
 ## M8 — Sajt agencije (B2C prikaz)
-*(§9a/§10, `docs/moduli/M08-sajt-b2c/10-SPECIFIKACIJA-M8-SAJT-B2C.md`)*
+
+_(§9a/§10, `docs/moduli/M08-sajt-b2c/10-SPECIFIKACIJA-M8-SAJT-B2C.md`)_
+
 - Detalji cookie/consent banera — potvrditi sa pravnikom pri implementaciji.
 - ~~"Nastavi bez naloga" (anonimni checkout, poglavlje 3 korak 3) odloženo~~ — **rešeno avgust 2026** (§9a): `POST /crm/client-accounts/guest-checkout`, javan, rate-limitovan 5/sat po IP.
 - Vizuelna/screenshot provera responsive prikaza (poglavlje 9) — CSS audit urađen (bez fiksnih desktop širina), stvarna vizuelna provera čeka headless browser alat (nova zavisnost, čeka `tt-tech-stack` potvrdu) ili ručnu proveru.
@@ -284,13 +300,17 @@ Ovaj fajl je **indeks, ne izvor istine** — svaka stavka ovde je jedan red sa p
   - Nije prošlo kroz `tt-architecture-core` proveru niti dobilo obim od vlasnika; čeka odgovor na tačku 4 (šta provajderi već daju) i pravnički odgovor na B8 pre bilo kakve dopune M2/M4/M8 spec-a.
 
 ## M9 — Mobilna aplikacija
-*(§9, `docs/moduli/M09-mobilna-aplikacija/16-SPECIFIKACIJA-M9-MOBILNA-APLIKACIJA.md`)*
+
+_(§9, `docs/moduli/M09-mobilna-aplikacija/16-SPECIFIKACIJA-M9-MOBILNA-APLIKACIJA.md`)_
+
 - Tačna dubina unapred preuzetih podataka (14 dana je predlog) — podesivo.
 - Konkretan provajder push notifikacija — bira se pri implementaciji.
 - ~~Fotografisanje pasoša → auto-popunjavanje `GuestProfile`~~ — **implementirano 2.9.2026** (M9 §2a v1.7, mehanizam M15 §6.5.6e). Nema fizičkog uređaja za uživo proveru kamera toka u ovoj sesiji — poznato ograničenje, zabeleženo u M9 §8.
 
 ## M10 — Finansije i računovodstvo
-*(§12, `docs/moduli/M10-finansije/07-SPECIFIKACIJA-M10-FINANSIJE.md`)*
+
+_(§12, `docs/moduli/M10-finansije/07-SPECIFIKACIJA-M10-FINANSIJE.md`)_
+
 - Tačan tehnički ugovor sa SEF v4.0.0 i izabranim ESIR/fiskalnim rešenjem — potvrditi sa knjigovođom.
 - Automatski dnevni uvoz NBS kursa — za sada moguć i ručni unos.
 - **Nalaz (29.8.2026):** ako se doda panel ekran za kursnu listu (`nbsMiddleRate`) ili pregled AI-uparivanja faktura (`matchConfidence`) — oba su Prisma `Decimal` polja, primeniti zamku `docs/analize/33-ZAMKE-I-OBAVEZNE-PROVERE.md` §10.1 (`Decimal` stiže kao string preko JSON-a, ne broj) od prvog dana tog ekrana.
@@ -311,7 +331,9 @@ Ovaj fajl je **indeks, ne izvor istine** — svaka stavka ovde je jedan red sa p
 - **Zakon o zaštiti potrošača — rok povraćaja novca (istraživanje, avgust 2026):** `RefundInstruction` (poglavlje 8.5.3) prati status (`PENDING → APPROVED → EXECUTED`) ali nema rok/deadline polje niti alarm — zakon (prema istraženim izvorima, potrebna potvrda pravnika) traži povraćaj u roku od 14 dana od otkazivanja. Isti obrazac kao `buyer_acceptance_deadline` (§6) samo primenjen na refundaciju — mehanička dopuna kad se rok potvrdi.
 
 ## M11 — Regulatorni modul (Compliance)
-*(§7, `docs/moduli/M11-compliance/08-SPECIFIKACIJA-M11-COMPLIANCE.md`)*
+
+_(§7, `docs/moduli/M11-compliance/08-SPECIFIKACIJA-M11-COMPLIANCE.md`)_
+
 - Tačan tehnički ugovor za CIS registraciju garancije i skidanje opterećenja pri stornu — implementirano kao `MockCisGatewayAdapter` dok se ne potvrdi.
 - Lep PDF/nativni XLSX format izvoza za inspekciju — trenutno JSON + CSV (bez nove biblioteke), čeka izbor konkretne biblioteke sa vlasnikom.
 - Da li M11 treba da prati i druge licence/dozvole agencije van YUTA garancije.
@@ -320,7 +342,9 @@ Ovaj fajl je **indeks, ne izvor istine** — svaka stavka ovde je jedan red sa p
 - **Osiguranje od AI-generisanih grešaka** (avgust 2026, analiza rizika povodom spoljnog izvora) — proveriti sa brokerom pre nego što bilo koji M15 domenski agent pređe u `ACTIVATED` u produkciji. Detalji: `docs/analize/31-AI-RIZIK-PRAVNA-ODGOVORNOST-OSIGURANJE-USKLADJENOST.md` poglavlje 3, i `26-PRAVNA-I-KNJIGOVODSTVENA-OTVORENA-PITANJA.md` stavka B6.
 
 ## M12 — Marketing i sadržajni engine
-*(§9, `docs/moduli/M12-marketing/15-SPECIFIKACIJA-M12-MARKETING.md`)*
+
+_(§9, `docs/moduli/M12-marketing/15-SPECIFIKACIJA-M12-MARKETING.md`)_
+
 - Ožičiti `ContentTranslation` na deljeni M15 `TranslationService` (M15 spec poglavlje 6.7, dodato 18.8.2026) — polje `translation_source=AI_GENERATED` već postoji, mehanizam koji ga stvarno puni za nove jezike još ne. M23 je prvi stvaran potrošač (poglavlje 4e tog dokumenta); M12 čeka da se taj obrazac uživo proveri.
 - Tačan izbor društvenih mreža/kanala za lansiranje — potvrditi pre implementacije adaptera.
 - Ako se pronađe raniji "Content Engine" predlog pomenut u Master dokumentu, uporediti i uskladiti.
@@ -328,20 +352,26 @@ Ovaj fajl je **indeks, ne izvor istine** — svaka stavka ovde je jedan red sa p
 - **Da li se sadržaj priprema i za mašinske čitaoce (GEO), ne samo za ljude i klasičan SEO** (31.8.2026, iz Phocuswright izveštaja — `docs/analize/37-PHOCUSWRIGHT-TRENDOVI-2026.md`) — izveštaj beleži pad opštih pretraživača kao primarnog izvora za istraživanje putovanja sa 51% na 36% u korist AI platformi, i predviđa da se prednost pomera sa SEO pozicije na to koliko su strukturisani podaci agencije čitljivi modelima koji sastavljaju odgovor. M12 danas planira distribuciju isključivo ka ljudskim kanalima (društvene mreže, email). Otvoreno pre bilo kakve dopune spec-a: da li je ovo uopšte posao M12 ili već postojećeg M16 (koji AI agentima izlaže žive podatke kroz MCP, što je jači oblik iste stvari nego mašinski čitljiva stranica) — moja preporuka je da se ne otvara nov marketinški mehanizam dok M16 ne bude uživo, jer bi pola posla dupliralo ono što MCP kanal već radi.
 
 ## M13 — Izveštavanje i BI
-*(§9, `docs/moduli/M13-bi/13-SPECIFIKACIJA-M13-BI.md`)*
+
+_(§9, `docs/moduli/M13-bi/13-SPECIFIKACIJA-M13-BI.md`)_
+
 - Tačan skup KPI-jeva koje AI agent proaktivno ističe — širi se po potrebi.
 - Break-even/P&L izveštaj za `CHARTER`/`FIXED_LEASE` periode — dodaje se kad se pokaže potreba.
 - **Nalaz (29.8.2026):** trenutni izveštaji ne prikazuju nijedno Prisma `Decimal` polje direktno (provereno) — ako se to promeni, primeniti zamku `docs/analize/33-ZAMKE-I-OBAVEZNE-PROVERE.md` §10.1 (`Decimal` stiže kao string preko JSON-a, ne broj).
 - Sačuvani/preporučeni preseti redosleda dimenzija za dinamički izveštaj — UX pogodnost za M17.
 
 ## M14 — Podrška / Helpdesk
-*(§8, `docs/moduli/M14-helpdesk/14-SPECIFIKACIJA-M14-HELPDESK.md`)*
+
+_(§8, `docs/moduli/M14-helpdesk/14-SPECIFIKACIJA-M14-HELPDESK.md`)_
+
 - SLA pravila za ostale kategorije tiketa (npr. automatsko eskaliranje tehničkog problema).
 - Integracija sa M9 mobilnom aplikacijom za goste (Faza 6).
 - **Zakon o zaštiti potrošača — rok gosta za prijavu reklamacije (istraživanje, avgust 2026):** poglavlje 3 ispravno prati 8-dnevni rok agencije za odgovor (`zzp_response_deadline`), ali ne ograničava kada gost sme da otvori `REKLAMACIJA` tiket u odnosu na datum povratka — zakon (potrebna potvrda pravnika) daje gostu 15 dana posle povratka da prijavi.
 
 ## M15 — AI agentska orkestracija
-*(§11, `docs/moduli/M15-ai-orkestracija/18-SPECIFIKACIJA-M15-AI-ORKESTRACIJA.md`)*
+
+_(§11, `docs/moduli/M15-ai-orkestracija/18-SPECIFIKACIJA-M15-AI-ORKESTRACIJA.md`)_
+
 - **`query_view` ne pokriva "hitne" notifikacije po rezervaciji** (24.8.2026, na zahtev vlasnika — "Ostavi za kasnije") — "hitno" postoji samo kao mock podatak na M5 panel listi, nema pravu tabelu; čeka i M5 pravu bazu i deterministička pravila za "hitno" nad stvarnim podacima pre nego što se doda `query_view` pogled.
 - Tačan raspored uvođenja agenata po modulu — zavisi od redosleda stabilizacije u produkciji.
 - Konkretan izbor LLM provajdera/modela po domenskom agentu.
@@ -355,7 +385,9 @@ Ovaj fajl je **indeks, ne izvor istine** — svaka stavka ovde je jedan red sa p
 - **`OmnisearchAgent` UI ožičenje za opštu pretragu interneta uz odobrenje** (poglavlje 6.5.6b M15 spec) — mehanizam (`safeFetchText`, `WebContentSafetyAgent`, `M15_WEB_RESEARCH` gate) je zajednički i već izgrađen za `BiTerminalAgent` (v1.31), `OmnisearchAgent` još nema sopstven alat/UI element za ovaj tok.
 
 ## M16 — Agentski distribucioni interfejs (MCP)
-*(§10, `docs/moduli/M16-mcp-distribucija/17-SPECIFIKACIJA-M16-MCP-DISTRIBUCIJA.md`)*
+
+_(§10, `docs/moduli/M16-mcp-distribucija/17-SPECIFIKACIJA-M16-MCP-DISTRIBUCIJA.md`)_
+
 - **Rešeno (avgust 2026):** MCP wire-protokol implementiran (2026-07-28 spec). Oblik odgovora ostao pljosnat (isti DTO kao M5), poruke o greškama za write-alate su akcione.
 - Pun OAuth 2.1 authorization server (dinamička registracija, PKCE, discovery) — prvi prolaz koristi jednostavan unapred-deljen ključ, potvrđeno vlasnikom kao svesna odluka.
 - Mehanizam agentskog plaćanja — proveriti stanje standarda pre uvođenja (trenutno `confirm_booking` potvrđuje bez naplate, `UNPAID`). Dopuna 22.8.2026 (Phocuswright izveštaj 2026): razmotriti granularne novčane limite po MCP klijentu (`max_transaction_amount_eur`), ne samo binarni READ_ONLY/READ_WRITE, po uzoru na M18 `budget_limit_eur`. Pun izveštaj je od 31.8.2026. zaveden u repozitorijum: `docs/analize/37-PHOCUSWRIGHT-TRENDOVI-2026.md` (MCP + agent-ready platni okviri kao standard 2027–2028, „Look-to-Book kriza” od agentskog saobraćaja).
@@ -365,7 +397,9 @@ Ovaj fajl je **indeks, ne izvor istine** — svaka stavka ovde je jedan red sa p
 - **Buduće labavljenje/ukidanje ručnog `READ_WRITE` odobrenja (Vlasnik/Direktor), po MCP alatu i po klijentu** (22.8.2026, vlasnikova odluka: tvrdo pravilo važi za početak dok se ne stekne poverenje, kasnije olabaviti) — `create_quote`/čitanje pre `confirm_booking`/`cancel_booking` (potonja dva nikad bez ljudske potvrde, isto pravilo kao M15 registar ovlašćenja). Detalji: M16 spec poglavlje 3.1/10.
 
 ## M17 — Interni radni panel
-*(§8, `docs/moduli/M17-interni-panel/11-SPECIFIKACIJA-M17-INTERNI-PANEL.md`)*
+
+_(§8, `docs/moduli/M17-interni-panel/11-SPECIFIKACIJA-M17-INTERNI-PANEL.md`)_
+
 - **Ekran pretrage — nov raspored** (M5 §3.0g, dizajn dok. §6d.1, 2.9.2026): ikonice u centralnom panelu, forma po vrsti proizvoda, levi panel samo filteri, skupljen red sa vidljivim kriterijumima, "Poništi pretragu"/"Osveži podatke", stanje se pamti po vrsti, `prefetch`. **Specifikacija upisana, kod nije pisan** — čeka potvrdu vlasnika.
 - Razmotriti zaseban modul za notifikacije/podsetnike ako agregacija upozorenja postane nedovoljna.
 - ~~Obeležavanje autora radnje (§3.1)~~ **Rešeno (17.8.2026)** — `ActorLabel` na osam ekrana, live-provera dovršena u oba moda; usput ispravljen pad kontrasta AI bedža i "Invalid Date" u audit logu.
@@ -376,7 +410,9 @@ Ovaj fajl je **indeks, ne izvor istine** — svaka stavka ovde je jedan red sa p
 - **Trake (`--bar`) u svetlom modu vratiti za nijansu tamnije od bočnih panela** (nalaz 2.9.2026, `29-DIZAJN-SISTEM-UI.md` §2.0e/§8) — vlasnikov zahtev od 23.8.2026 delimično poništen prelaskom na shadcn paletu; `--panel-2` i `--bar` su ponovo iste boje.
 
 ## M18 — Operativni nadzor i AI optimizacija
-*(§11, `docs/moduli/M18-operativni-nadzor/19-SPECIFIKACIJA-M18-OPERATIVNI-NADZOR.md`)*
+
+_(§11, `docs/moduli/M18-operativni-nadzor/19-SPECIFIKACIJA-M18-OPERATIVNI-NADZOR.md`)_
+
 - Dodavanje `VIBER`/`WHATSAPP` kanala obaveštenja.
 - Tačan prag za "neuobičajen skok" po tipu signala — podešava se empirijski u produkciji.
 - Konkretan iznos `budget_limit_eur` (globalno i po agentu) i period — poslovna odluka pri implementaciji (§6.5).
@@ -384,7 +420,9 @@ Ovaj fajl je **indeks, ne izvor istine** — svaka stavka ovde je jedan red sa p
 - **Provera "bez modela" liste (§6.2, 11 akcija) pri aktivaciji svakog domenskog agenta** (18.8.2026, na zahtev vlasnika) — pre nego što M5/M7/M10/M14/M20 domenski agent pređe u `ACTIVATED`, proveriti da kod za tu deterministički-opisanu akciju zaista ne poziva jezički model.
 
 ## M19 — Komunikaciona platforma
-*(§11, `docs/moduli/M19-komunikaciona-platforma/20-SPECIFIKACIJA-M19-KOMUNIKACIONA-PLATFORMA.md`)*
+
+_(§11, `docs/moduli/M19-komunikaciona-platforma/20-SPECIFIKACIJA-M19-KOMUNIKACIONA-PLATFORMA.md`)_
+
 - Da li interni chat treba grupne kanale po timovima od starta.
 - Pretraga istorije poruka — dodaje se ako obim komunikacije to zahteva.
 - Obaveštavanje dobavljača o novoj poruci van portala (email/SMS ping).
@@ -396,7 +434,9 @@ Ovaj fajl je **indeks, ne izvor istine** — svaka stavka ovde je jedan red sa p
 - ~~Evidencija AI porekla poruke (§2.3/§9.5)~~ **Rešeno (avgust 2026)** — polja, migracija, tok slanja i prikaz u panelu; potvrđeno e2e testom protiv prave baze.
 
 ## M20 — Ugovori sa klijentima
-*(§8, `docs/moduli/M20-ugovori-klijenti/21-SPECIFIKACIJA-M20-UGOVORI-KLIJENTI.md`)*
+
+_(§8, `docs/moduli/M20-ugovori-klijenti/21-SPECIFIKACIJA-M20-UGOVORI-KLIJENTI.md`)_
+
 - Tačan izgled/template ugovora po `contract_type` — dizajnersko/pravno pitanje, implementirano kao `MockContractDocumentGeneratorAdapter` dok se ne potvrdi.
 - Tačan trenutak kad prihvatanje/potpis mora biti završen u odnosu na izdavanje vaučera.
 - `contract_type = PRODAJA_AVIO_KARTE`/`TRANSFER` — uskladiti sa PDV pitanjem iz M10.
@@ -405,7 +445,9 @@ Ovaj fajl je **indeks, ne izvor istine** — svaka stavka ovde je jedan red sa p
 - Ownership-scoping za `GET /client-contracts` (Prodajni agent/Gost "sopstveno") nije implementiran na nivou servisa, samo kao dozvola po ulozi.
 
 ## M21 — Centar za pomoć (baza znanja + AI asistent)
-*(backend implementiran avgust 2026 — `apps/api/src/modules/m21-centar-za-pomoc/`; §8, `docs/moduli/M21-centar-za-pomoc/23-SPECIFIKACIJA-M21-CENTAR-ZA-POMOC.md`)*
+
+_(backend implementiran avgust 2026 — `apps/api/src/modules/m21-centar-za-pomoc/`; §8, `docs/moduli/M21-centar-za-pomoc/23-SPECIFIKACIJA-M21-CENTAR-ZA-POMOC.md`)_
+
 - ~~Tačna podela `EDIT`/`PUBLISH` dozvola za help sadržaj~~ — rešeno: HR ima EDIT za sve četiri publike, PUBLISH isključivo Direktor/Vlasnik (seed.ts).
 - Ožičiti `HelpArticleTranslation` na deljeni M15 `TranslationService` (M15 spec poglavlje 6.7, dodato 18.8.2026) — isti obrazac kao M23 poglavlje 4e, ne novi mehanizam. Čeka da se prvo uživo proveri kroz M23.
 - Tačan prag/algoritam grupisanja pitanja za `HelpArticleSuggestion` — polazna vrednost postavljena (3+ u 30 dana, `HelpSuggestionsService`), fino podešavanje čeka stvarnu količinu pitanja u produkciji.
@@ -418,7 +460,9 @@ Ovaj fajl je **indeks, ne izvor istine** — svaka stavka ovde je jedan red sa p
 - **Video/audio uputstvo za celu aplikaciju (NotebookLM stila)** (22.8.2026, vlasnik eksplicitno tražio) — poslednji korak kad je aplikacija gotova, čeka STT/TTS i generator izbor.
 
 ## M22 — Email/Inbox platforma
-*(§10, `docs/moduli/M22-email-inbox/25-SPECIFIKACIJA-M22-EMAIL-INBOX.md`)* — backend implementiran avgust 2026 (`apps/api/src/modules/m22-email-inbox/`).
+
+_(§10, `docs/moduli/M22-email-inbox/25-SPECIFIKACIJA-M22-EMAIL-INBOX.md`)_ — backend implementiran avgust 2026 (`apps/api/src/modules/m22-email-inbox/`).
+
 - ~~Izbor konkretnog email provajdera/API-ja~~ — rešeno za ovaj prolaz: generički `EmailProviderAdapter` sa mock implementacijom (isti obrazac kao M4), bez žive konekcije. Kad vlasnik izabere pravog provajdera (Gmail API/Microsoft Graph/IMAP-SMTP), samo nova adapter klasa.
 - Pristup ličnim (van-agencijskim) mejl nalozima zaposlenih — zahteva IT/pravnu potvrdu, i dalje otvoreno.
 - Real-time chat sa dobavljačima ostaje potpuno odvojen otvoren gap.
@@ -428,7 +472,9 @@ Ovaj fajl je **indeks, ne izvor istine** — svaka stavka ovde je jedan red sa p
 - **"Compose" — napisati i poslati nov mejl proizvoljnom primaocu** (23.8.2026, otkriveno pri M15 §6.9.3 dopuni — `BiTerminalAgent` je trebalo da može da pošalje izveštaj mejlom, ali M22 danas ume samo da odgovori unutar postojećeg niza poruka) — zaseban zadatak, M22 spec `docs/moduli/M15-ai-orkestracija/18-SPECIFIKACIJA-M15-AI-ORKESTRACIJA.md` poglavlje 11.
 
 ## M23 — Znanje
-*(§10, `docs/moduli/M23-znanje/28-SPECIFIKACIJA-M23-ZNANJE.md` — backend implementiran avgust 2026)*
+
+_(§10, `docs/moduli/M23-znanje/28-SPECIFIKACIJA-M23-ZNANJE.md` — backend implementiran avgust 2026)_
+
 - ~~M17 ekran (interni tim)~~ — **rešeno avgust 2026 (M17 Faza 7)**, `apps/panel/src/app/(app)/znanje/`, uživo provereno. M7 portal prikaz (subagenti) ostaje poseban naredni korak.
 - ~~Frontend `/znanje/:share_token` stranica (M8)~~ — **rešeno avgust 2026**, `apps/web/src/app/[locale]/znanje/[shareToken]/page.tsx`, uživo provereno.
 - Živa web pretraga/scraping izvora, umesto ručno dostavljenog teksta — v1 potvrđeno bez toga (može zahtevati proveru uslova korišćenja platforme).
@@ -439,15 +485,18 @@ Ovaj fajl je **indeks, ne izvor istine** — svaka stavka ovde je jedan red sa p
 - Da li `Article` za destinaciju/zemlju treba hijerarhiju (država sadrži destinacije) ili ravna lista sa filterom je dovoljna.
 
 ## Dizajn sistem UI (cross-modularno)
-*(§8, `docs/analize/29-DIZAJN-SISTEM-UI.md`)*
+
+_(§8, `docs/analize/29-DIZAJN-SISTEM-UI.md`)_
+
 - Tačne HEX vrednosti palete (za oba moda) — biraju se pri izradi prvog stvarnog ekrana, obavezno u skladu sa pravilom kontrasta (§2a — WCAG AA minimum).
 - Da li M7 (B2B portal) dobija isti "power-user" obrazac kao M17 ili prilagođenu verziju.
 - Da li izbor tamnog/svetlog moda treba sinhronizaciju preko uređaja (backend polje) ili ostaje lokalno.
 - Tačna paleta semantičkih boja za isticanje teksta (upozorenje/greška/uspeh) — bira se sa HEX vrednostima.
 - Gornja granica broja istovremeno otvorenih tabova (§5a) i ponašanje kad se dostigne.
-- ~~`text-accent` na `bg-accent-soft` pada WCAG AA u svetlom modu (3.96:1)~~ **Rešeno (17.8.2026)** — nalaz iz M17 live-provere, ispravljeno na svih 17 mesta u panelu (`text-accent-strong`, 5.98:1 svetli / 8.86:1 tamni). Pored očekivanih statusnih oznaka i bedževa, obuhvaćeno je i **pet dugmadi sa `hover:bg-accent-soft`** — tekst im je na običnoj pozadini prolazio, ali je na hover-u padao na istih 3.96:1 (§2a izričito traži proveru protiv pozadine *u tom trenutku*, ne jedne pretpostavljene). Pravilo upisano u `29-DIZAJN-SISTEM-UI.md` §2a.
+- ~~`text-accent` na `bg-accent-soft` pada WCAG AA u svetlom modu (3.96:1)~~ **Rešeno (17.8.2026)** — nalaz iz M17 live-provere, ispravljeno na svih 17 mesta u panelu (`text-accent-strong`, 5.98:1 svetli / 8.86:1 tamni). Pored očekivanih statusnih oznaka i bedževa, obuhvaćeno je i **pet dugmadi sa `hover:bg-accent-soft`** — tekst im je na običnoj pozadini prolazio, ali je na hover-u padao na istih 3.96:1 (§2a izričito traži proveru protiv pozadine _u tom trenutku_, ne jedne pretpostavljene). Pravilo upisano u `29-DIZAJN-SISTEM-UI.md` §2a.
 
 ## Infrastruktura / zavisnosti (cross-modularno)
+
 - Nadogradnja NestJS 10→11, Next.js 14→16 i next-intl 3→4 (sve major) pre produkcije — `npm audit` (13.8.2026, posle dodavanja M8/`apps/web`) pokazuje 30 ranjivosti (12 high/15 moderate/3 low). U pravoj putanji zahteva (ne samo dev-alati poput `@nestjs/cli`/`@angular-devkit`/`eslint-config-next`): `express`/`body-parser`/`multer`/`qs`/`@nestjs/core`/`@nestjs/swagger`/`js-yaml`/`lodash` (API), i `next`/`next-intl`/`postcss` (web — HTTP request smuggling, DoS, open redirect). Sve zakrpe zahtevaju major skok, nema patch/minor rešenja. Trenutno nizak stvaran rizik — nema produkcionog hostinga (EU provajder namerno još nije izabran). Uraditi kao izolovan zadatak (ne usred rada na poslovnim modulima), sa punom e2e regresijom posle — prirodno uz izbor hosting provajdera pred lansiranje.
 
 - **TCT-IMC (Travelsoft) API istraživanje** (31.8.2026, vlasnik dobio dev kredencijale od TCT-a pre potpisivanja ugovora, radi upoznavanja; dopunjeno isti dan uvidom u pun Postman collection) — obuhvata Hotel API (pretraga→kotacija→revalidacija→potvrda→otkazivanje), Flight Package API (let+hotel paket) i Back Office API (fakture/plaćanja), upoređeno sa M3/M4/M5/M10. Isti Travelsoft proizvođač kao Travelsoft Pay (već pomenut gore). Nekoliko konkretnih nalaza vrednih dopune ako TCT-IMC ikad postane stvaran M4/M10 dobavljač: TCT-ov bafer rok otkazivanja (klijent vidi raniji rok od stvarnog dobavljačevog), `price`/`converted_price`/`client_currency` razlika, automatska zamena ponude pri revalidaciji (`hotelMatchType`), avio-specifična kompleksnost po prevozniku (Wizzair price-check/Ryanair 3DS), i tri-nivoa neto cena u kazni otkazivanja. Back Office faktura je u EU e-invoicing (EN 16931/UBL) obrascu — koristan referentan primer za budući M10 SEF rad. Sve ostalo potvrđuje da je TT-ov strukturiran pristup (`AncillaryService`/`TouristTaxInfo`/`min_stay_nights`/`ClientPaymentSchedules`) već usklađen sa dobrom praksom. Pun nalaz: `docs/analize/38-ANALIZA-TCT-IMC-API.md`. Nije prošlo kroz `tt-architecture-core` proveru niti dobilo obim od vlasnika.

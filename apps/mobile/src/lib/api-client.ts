@@ -23,7 +23,12 @@ interface ApiFetchOptions {
   auth?: boolean;
 }
 
-async function doFetch(path: string, method: string, body: unknown, accessToken: string | null): Promise<Response> {
+async function doFetch(
+  path: string,
+  method: string,
+  body: unknown,
+  accessToken: string | null,
+): Promise<Response> {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (accessToken) headers['Authorization'] = `Bearer ${accessToken}`;
   return fetch(`${API_BASE_URL}${path}`, {
@@ -37,13 +42,22 @@ async function tryRefresh(): Promise<string | null> {
   const session = await getSession();
   if (!session) return null;
   try {
-    const res = await doFetch('/iam/auth/refresh', 'POST', { refreshToken: session.refreshToken }, null);
+    const res = await doFetch(
+      '/iam/auth/refresh',
+      'POST',
+      { refreshToken: session.refreshToken },
+      null,
+    );
     if (!res.ok) {
       await clearSession();
       return null;
     }
     const body = (await res.json()) as { accessToken: string; refreshToken: string };
-    await setSession({ ...session, accessToken: body.accessToken, refreshToken: body.refreshToken });
+    await setSession({
+      ...session,
+      accessToken: body.accessToken,
+      refreshToken: body.refreshToken,
+    });
     return body.accessToken;
   } catch {
     return null;
@@ -88,7 +102,11 @@ export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): 
 // M9 spec §2a (dopuna 2.9.2026) — jedini pozivalac je skeniranje pasoša (slika ide kao
 // multipart, ne JSON telo). Bez `Content-Type` header-a — `fetch` ga sam postavlja sa tačnom
 // `boundary` vrednošću kad je telo `FormData`; ručno postavljanje bi ga pokvarilo.
-async function doFetchMultipart(path: string, formData: FormData, accessToken: string | null): Promise<Response> {
+async function doFetchMultipart(
+  path: string,
+  formData: FormData,
+  accessToken: string | null,
+): Promise<Response> {
   const headers: Record<string, string> = {};
   if (accessToken) headers['Authorization'] = `Bearer ${accessToken}`;
   return fetch(`${API_BASE_URL}${path}`, { method: 'POST', headers, body: formData });

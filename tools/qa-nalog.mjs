@@ -34,7 +34,9 @@ const SECRET = process.env.QA_TOTP_SECRET ?? 'GVOWG4JTJNSVGYYB';
 const db = process.env.DATABASE_URL ?? '';
 if (!/@(localhost|127\.0\.0\.1)[:/]/.test(db)) {
   console.error('ODBIJENO: DATABASE_URL ne pokazuje na lokalnu bazu.');
-  console.error('Ovaj nalog ima poznatu lozinku i poznatu 2FA tajnu — van lokalne mašine se ne pravi.');
+  console.error(
+    'Ovaj nalog ima poznatu lozinku i poznatu 2FA tajnu — van lokalne mašine se ne pravi.',
+  );
   process.exit(2);
 }
 
@@ -44,9 +46,17 @@ if (!/@(localhost|127\.0\.0\.1)[:/]/.test(db)) {
 function encryptSecret(plainText) {
   if (!process.env.ENCRYPTION_KEY) throw new Error('ENCRYPTION_KEY nije podešen u apps/api/.env');
   const iv = randomBytes(12);
-  const cipher = createCipheriv('aes-256-gcm', createHash('sha256').update(process.env.ENCRYPTION_KEY).digest(), iv);
+  const cipher = createCipheriv(
+    'aes-256-gcm',
+    createHash('sha256').update(process.env.ENCRYPTION_KEY).digest(),
+    iv,
+  );
   const enc = Buffer.concat([cipher.update(plainText, 'utf8'), cipher.final()]);
-  return [iv.toString('base64'), cipher.getAuthTag().toString('base64'), enc.toString('base64')].join('.');
+  return [
+    iv.toString('base64'),
+    cipher.getAuthTag().toString('base64'),
+    enc.toString('base64'),
+  ].join('.');
 }
 
 const prisma = new PrismaClient();
@@ -77,7 +87,9 @@ const user = await prisma.user.upsert({
 const uloga = await prisma.role.findUniqueOrThrow({ where: { name: 'VLASNIK' } });
 const postoji = await prisma.userRole.findFirst({ where: { userId: user.id, roleId: uloga.id } });
 if (!postoji) {
-  await prisma.userRole.create({ data: { userId: user.id, roleId: uloga.id, assignedBy: user.id } });
+  await prisma.userRole.create({
+    data: { userId: user.id, roleId: uloga.id, assignedBy: user.id },
+  });
 }
 
 console.log(`QA nalog spreman: ${EMAIL} (uloga VLASNIK, 2FA fiksnom tajnom)`);

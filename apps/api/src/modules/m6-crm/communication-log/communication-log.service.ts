@@ -18,7 +18,9 @@ export class CommunicationLogService {
 
   async create(dto: CreateCommunicationLogDto) {
     if (!dto.clientAccountId && !dto.guestProfileId) {
-      throw new BadRequestException('Bar jedno od clientAccountId/guestProfileId mora biti popunjeno.');
+      throw new BadRequestException(
+        'Bar jedno od clientAccountId/guestProfileId mora biti popunjeno.',
+      );
     }
     const draftedByAi = dto.draftedByAi ?? false;
 
@@ -40,7 +42,8 @@ export class CommunicationLogService {
   async markSent(id: string, actor: { userId: string }) {
     const log = await this.prisma.communicationLog.findUnique({ where: { id } });
     if (!log) throw new NotFoundException(`CommunicationLog ${id} nije pronađen.`);
-    if (log.sentBy) throw new BadRequestException(`CommunicationLog ${id} je već označen kao poslat.`);
+    if (log.sentBy)
+      throw new BadRequestException(`CommunicationLog ${id} je već označen kao poslat.`);
 
     return this.prisma.communicationLog.update({ where: { id }, data: { sentBy: actor.userId } });
   }

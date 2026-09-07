@@ -17,7 +17,11 @@ export class PostTripSurveysController {
 
   @Get()
   @RequirePermission('M6', 'post-trip-survey', 'VIEW')
-  findMany(@Query('bookingId') bookingId: string | undefined, @Query('status') status: string | undefined, @CurrentUser() actor: { userId: string }) {
+  findMany(
+    @Query('bookingId') bookingId: string | undefined,
+    @Query('status') status: string | undefined,
+    @CurrentUser() actor: { userId: string },
+  ) {
     return this.surveys.findMany({ bookingId, status }, actor.userId);
   }
 }

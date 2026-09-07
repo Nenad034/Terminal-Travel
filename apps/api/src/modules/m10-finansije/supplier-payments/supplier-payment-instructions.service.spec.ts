@@ -4,7 +4,12 @@ import { SupplierPaymentInstructionsService } from './supplier-payment-instructi
 describe('SupplierPaymentInstructionsService (M10 spec §8.5.2)', () => {
   function makeService() {
     const prisma: any = {
-      supplierPaymentInstruction: { create: jest.fn(), findUnique: jest.fn(), update: jest.fn(), findMany: jest.fn() },
+      supplierPaymentInstruction: {
+        create: jest.fn(),
+        findUnique: jest.fn(),
+        update: jest.fn(),
+        findMany: jest.fn(),
+      },
       supplierObligation: { findUnique: jest.fn() },
     };
     const auditLog = { write: jest.fn() };
@@ -17,7 +22,9 @@ describe('SupplierPaymentInstructionsService (M10 spec §8.5.2)', () => {
     prisma.supplierObligation.findUnique.mockResolvedValue({ id: 'so-1', status: 'PENDING' });
 
     await expect(
-      service.create({ supplierObligationId: 'so-1', method: 'BANK_TRANSFER' } as any, { userId: 'actor-1' }),
+      service.create({ supplierObligationId: 'so-1', method: 'BANK_TRANSFER' } as any, {
+        userId: 'actor-1',
+      }),
     ).rejects.toThrow(BadRequestException);
   });
 
@@ -37,8 +44,13 @@ describe('SupplierPaymentInstructionsService (M10 spec §8.5.2)', () => {
 
   it('odbija execute nad instrukcijom koja nije PENDING', async () => {
     const { service, prisma } = makeService();
-    prisma.supplierPaymentInstruction.findUnique.mockResolvedValue({ id: 'spi-1', status: 'EXECUTED' });
+    prisma.supplierPaymentInstruction.findUnique.mockResolvedValue({
+      id: 'spi-1',
+      status: 'EXECUTED',
+    });
 
-    await expect(service.execute('spi-1', { userId: 'actor-1' })).rejects.toThrow(BadRequestException);
+    await expect(service.execute('spi-1', { userId: 'actor-1' })).rejects.toThrow(
+      BadRequestException,
+    );
   });
 });

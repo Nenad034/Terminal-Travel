@@ -14,7 +14,13 @@ import { useLocale, useTranslations } from 'next-intl';
 // Prevodi idu kroz `next-intl`, isto kao ostatak sajta — `NextIntlClientProvider` je u
 // `[locale]/layout.tsx`, iznad ove granice, pa je dostupan i ovde. Jezici bez sopstvenog
 // prevoda dobijaju engleski, ne prazan tekst.
-export default function SiteError({ error, retry }: { error: Error & { digest?: string }; retry: () => void }) {
+export default function SiteError({
+  error,
+  retry,
+}: {
+  error: Error & { digest?: string };
+  retry: () => void;
+}) {
   const t = useTranslations('errors');
   // Adresa mora da nosi jezik (6.9.2026): golo `/` je gosta sa nemačkog sajta vraćalo na
   // podrazumevani jezik — usred greške, još i promena jezika. Uhvaćeno preko ESLint pravila
@@ -38,7 +44,10 @@ export default function SiteError({ error, retry }: { error: Error & { digest?: 
         >
           {t('retry')}
         </button>
-        <Link href={`/${locale}`} className="rounded border border-border px-4 py-2 text-sm hover:bg-panel2">
+        <Link
+          href={`/${locale}`}
+          className="rounded border border-border px-4 py-2 text-sm hover:bg-panel2"
+        >
           {t('home')}
         </Link>
       </div>

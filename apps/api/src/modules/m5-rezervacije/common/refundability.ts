@@ -9,8 +9,12 @@ export interface RefundWindow {
 }
 
 /** CONTRACTED — samo PRE_ARRIVAL prozori nose refund_percentage (EARLY_DEPARTURE ne, M3 spec §2.5). */
-export function isRefundableFromCancellationRules(rules: { ruleType: string; refundPercentage: number | null }[]): boolean {
-  const preArrival = rules.filter((r) => r.ruleType === 'PRE_ARRIVAL' && r.refundPercentage !== null);
+export function isRefundableFromCancellationRules(
+  rules: { ruleType: string; refundPercentage: number | null }[],
+): boolean {
+  const preArrival = rules.filter(
+    (r) => r.ruleType === 'PRE_ARRIVAL' && r.refundPercentage !== null,
+  );
   return preArrival.some((r) => (r.refundPercentage as number) > 0);
 }
 

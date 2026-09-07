@@ -22,7 +22,15 @@ interface TicketMessage {
 // je "pošalji" dugme ovde (POST .../messages/:messageId/send, isti obrazac kao M6
 // CommunicationLogPanel "označi kao poslato"). Interne beleške (isInternalNote) su ovde uvek
 // vidljive jer je ovo interni panel (M17) — backend ih već filtrira za Gost/subagent kanale.
-export default function TicketMessagesPanel({ ticketId, messages, canRespond }: { ticketId: string; messages: TicketMessage[]; canRespond: boolean }) {
+export default function TicketMessagesPanel({
+  ticketId,
+  messages,
+  canRespond,
+}: {
+  ticketId: string;
+  messages: TicketMessage[];
+  canRespond: boolean;
+}) {
   return (
     <div className="rounded-lg border border-border bg-panel p-4">
       <div className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-ink">
@@ -34,7 +42,10 @@ export default function TicketMessagesPanel({ ticketId, messages, canRespond }: 
       ) : (
         <div className="mb-3 flex flex-col gap-2">
           {messages.map((m) => (
-            <div key={m.id} className={`rounded border p-2 text-xs ${m.isInternalNote ? 'border-warn bg-warn-bg' : 'border-border bg-panel2'}`}>
+            <div
+              key={m.id}
+              className={`rounded border p-2 text-xs ${m.isInternalNote ? 'border-warn bg-warn-bg' : 'border-border bg-panel2'}`}
+            >
               {/* 29-DIZAJN-SISTEM-UI.md §6a — zajednička komponenta umesto ranijeg lokalnog bedža.
                   Poslat AI nacrt prikazuje OBA podatka (ko je poslao + da je nacrt AI), §6a.2 pravilo 2. */}
               <div className="flex flex-wrap items-center justify-between gap-1 text-[11px] text-ink-faint">
@@ -76,8 +87,16 @@ function NewMessageForm({ ticketId }: { ticketId: string }) {
 
   return (
     <form action={formAction} className="flex flex-col gap-2 border-t border-border pt-3">
-      {state.error && <p className="rounded bg-danger-bg p-2 text-[11px] text-danger">{state.error}</p>}
-      <textarea name="body" required rows={3} placeholder="odgovor gostu/subagentu ili interna beleška" className="input" />
+      {state.error && (
+        <p className="rounded bg-danger-bg p-2 text-[11px] text-danger">{state.error}</p>
+      )}
+      <textarea
+        name="body"
+        required
+        rows={3}
+        placeholder="odgovor gostu/subagentu ili interna beleška"
+        className="input"
+      />
       <label className="flex items-center gap-2 text-[11px] text-ink-dim">
         <input type="checkbox" name="isInternalNote" className="h-3.5 w-3.5" />
         interna beleška (nikad vidljiva gostu/subagentu)
@@ -110,7 +129,13 @@ function SendDraftButton({ ticketId, messageId }: { ticketId: string; messageId:
 function SendSubmit() {
   const { pending } = useFormStatus();
   return (
-    <Button type="submit" disabled={pending} variant="outline" size="sm" className="h-auto border-accent px-2 py-0.5 text-accent-strong hover:bg-accent-soft">
+    <Button
+      type="submit"
+      disabled={pending}
+      variant="outline"
+      size="sm"
+      className="h-auto border-accent px-2 py-0.5 text-accent-strong hover:bg-accent-soft"
+    >
       {pending ? 'Šaljem…' : 'pošalji nacrt'}
     </Button>
   );

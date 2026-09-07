@@ -36,7 +36,9 @@ export function applyDefaultAgePolicy<T extends RoomTypeLike>(roomType: T): T {
   return { ...roomType, age_policy: DEFAULT_AGE_POLICY };
 }
 
-export function applyDefaultAgePolicyToRoomTypes<T extends RoomTypeLike>(roomTypes: T[] | undefined): T[] {
+export function applyDefaultAgePolicyToRoomTypes<T extends RoomTypeLike>(
+  roomTypes: T[] | undefined,
+): T[] {
   if (!roomTypes) return [];
   return roomTypes.map(applyDefaultAgePolicy);
 }

@@ -10,15 +10,15 @@ TCT-IMC je proizvod **Travelsoft** grupacije — ista grupacija koja stoji iza T
 
 ## 1. Tok API-ja (pretraga → kotacija → revalidacija → potvrda)
 
-| Korak | Endpoint | Svrha |
-|---|---|---|
-| 1a | `POST /v1/hotel/searchSync` | Sinhrona pretraga (blokira do `max_timeout`, do 15 rešenja po `solutions_nr`) |
-| 1b | `POST /v1/hotel/search` + `POST /v1/hotel/results` | Asinhrona varijanta — `search` pokreće posao (vraća `search_id`/`search_code` odmah), `results` preuzima (sa `last_check` za inkrementalno pollovanje) |
-| 2 | `POST /v1/hotel/valuation` | Revalidacija konkretne ponude (`id`+`code` iz koraka 1) pre potvrde — ponovo proverava cenu/dostupnost, vraća pun `price_breakdown` po noći i uslove otkazivanja |
-| 3 | `POST /v1/hotel/hotelDetails` | Pun opis hotela (sirov, po dobavljaču — `provider_id`, ne GIATA-spojen) vezan za `availsearch_id` |
-| 4 | `POST /v1/hotel/book` | Potvrda rezervacije |
-| 5 | `POST /v1/hotel/bookingDetails` | Preuzimanje već potvrđene rezervacije preko `code`+`external_reference` |
-| 6 | `POST /v1/hotel/cancel` | Otkazivanje rezervacije preko `code` — jednostavan poziv, nema strukturiran povraćaj/kaznu u odgovoru (ta informacija je već poznata unapred iz `cxl_policies`) |
+| Korak | Endpoint                                           | Svrha                                                                                                                                                            |
+| ----- | -------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1a    | `POST /v1/hotel/searchSync`                        | Sinhrona pretraga (blokira do `max_timeout`, do 15 rešenja po `solutions_nr`)                                                                                    |
+| 1b    | `POST /v1/hotel/search` + `POST /v1/hotel/results` | Asinhrona varijanta — `search` pokreće posao (vraća `search_id`/`search_code` odmah), `results` preuzima (sa `last_check` za inkrementalno pollovanje)           |
+| 2     | `POST /v1/hotel/valuation`                         | Revalidacija konkretne ponude (`id`+`code` iz koraka 1) pre potvrde — ponovo proverava cenu/dostupnost, vraća pun `price_breakdown` po noći i uslove otkazivanja |
+| 3     | `POST /v1/hotel/hotelDetails`                      | Pun opis hotela (sirov, po dobavljaču — `provider_id`, ne GIATA-spojen) vezan za `availsearch_id`                                                                |
+| 4     | `POST /v1/hotel/book`                              | Potvrda rezervacije                                                                                                                                              |
+| 5     | `POST /v1/hotel/bookingDetails`                    | Preuzimanje već potvrđene rezervacije preko `code`+`external_reference`                                                                                          |
+| 6     | `POST /v1/hotel/cancel`                            | Otkazivanje rezervacije preko `code` — jednostavan poziv, nema strukturiran povraćaj/kaznu u odgovoru (ta informacija je već poznata unapred iz `cxl_policies`)  |
 
 Ovaj tok je **direktno uporediv sa TT M5** (`Quote` → `confirmQuote` → `Booking`) — ista tri koraka (traži, zaključaj cenu, potvrdi), samo eksplicitnije razdvojena na TCT strani (odvojen `valuation` poziv umesto da je revalidacija ugrađena u `confirmQuote`).
 

@@ -17,7 +17,10 @@ export class CommunicationLogController {
 
   @Get()
   @RequirePermission('M6', 'communication-log', 'VIEW')
-  findMany(@Query('clientAccountId') clientAccountId?: string, @Query('guestProfileId') guestProfileId?: string) {
+  findMany(
+    @Query('clientAccountId') clientAccountId?: string,
+    @Query('guestProfileId') guestProfileId?: string,
+  ) {
     return this.communicationLog.findMany({ clientAccountId, guestProfileId });
   }
 

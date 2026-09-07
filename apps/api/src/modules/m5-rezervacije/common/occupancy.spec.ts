@@ -52,7 +52,17 @@ describe('classifyAge (M2 spec §2.3b)', () => {
   });
 
   it('odbija uzrast koji ne pripada nijednoj kategoriji', () => {
-    const partial = [{ category: 'ADULT' as const, ageFrom: 30, ageTo: null, countsTowardCapacity: true, maxCount: null, requiresCrib: false, cribIncluded: null }];
+    const partial = [
+      {
+        category: 'ADULT' as const,
+        ageFrom: 30,
+        ageTo: null,
+        countsTowardCapacity: true,
+        maxCount: null,
+        requiresCrib: false,
+        cribIncluded: null,
+      },
+    ];
     expect(() => classifyAge(5, partial)).toThrow(BadRequestException);
   });
 });
@@ -73,7 +83,9 @@ describe('assertRoomCapacity (M5 spec §3.2a)', () => {
   });
 
   it('odbija kad broj odraslih premašuje capacity_adults', () => {
-    expect(() => assertRoomCapacity({ adults: 3, children: 0, childrenAges: [] }, roomType)).toThrow(BadRequestException);
+    expect(() =>
+      assertRoomCapacity({ adults: 3, children: 0, childrenAges: [] }, roomType),
+    ).toThrow(BadRequestException);
   });
 
   it('sprovodi max_count po kategoriji nezavisno od ukupnog kapaciteta', () => {
@@ -83,7 +95,15 @@ describe('assertRoomCapacity (M5 spec §3.2a)', () => {
       capacityChildren: 3,
       agePolicy: [
         ...DEFAULT_AGE_POLICY.filter((p) => p.category !== 'INFANT'),
-        { category: 'INFANT', ageFrom: 0, ageTo: 1.99, countsTowardCapacity: false, maxCount: 1, requiresCrib: true, cribIncluded: null },
+        {
+          category: 'INFANT',
+          ageFrom: 0,
+          ageTo: 1.99,
+          countsTowardCapacity: false,
+          maxCount: 1,
+          requiresCrib: true,
+          cribIncluded: null,
+        },
       ],
     };
     expect(() =>
@@ -109,9 +129,21 @@ describe('computeRoomBaseCost (M5 spec §3.2b)', () => {
     const cost = computeRoomBaseCost({
       room: { adults: 2, children: 1, childrenAges: [8] },
       roomType,
-      rateLine: { price: 10000, priceBasis: 'PER_ROOM_PER_NIGHT', occupancy: 'dvokrevetna', cribFeePerNight: null },
+      rateLine: {
+        price: 10000,
+        priceBasis: 'PER_ROOM_PER_NIGHT',
+        occupancy: 'dvokrevetna',
+        cribFeePerNight: null,
+      },
       agePricingCandidates: [
-        { ageCategory: 'CHILD', occupantIndex: 1, minAdultsPresent: null, pricingMode: 'FLAT_PRICE_PER_NIGHT', percentage: null, flatPrice: 2000 },
+        {
+          ageCategory: 'CHILD',
+          occupantIndex: 1,
+          minAdultsPresent: null,
+          pricingMode: 'FLAT_PRICE_PER_NIGHT',
+          percentage: null,
+          flatPrice: 2000,
+        },
       ],
       nights: 3,
     });
@@ -123,9 +155,21 @@ describe('computeRoomBaseCost (M5 spec §3.2b)', () => {
     const cost = computeRoomBaseCost({
       room: { adults: 2, children: 1, childrenAges: [8] },
       roomType,
-      rateLine: { price: 5000, priceBasis: 'PER_PERSON_PER_NIGHT', occupancy: 'dvokrevetna', cribFeePerNight: null },
+      rateLine: {
+        price: 5000,
+        priceBasis: 'PER_PERSON_PER_NIGHT',
+        occupancy: 'dvokrevetna',
+        cribFeePerNight: null,
+      },
       agePricingCandidates: [
-        { ageCategory: 'CHILD', occupantIndex: 1, minAdultsPresent: null, pricingMode: 'PERCENTAGE_OF_BASE_PRICE', percentage: 50, flatPrice: null },
+        {
+          ageCategory: 'CHILD',
+          occupantIndex: 1,
+          minAdultsPresent: null,
+          pricingMode: 'PERCENTAGE_OF_BASE_PRICE',
+          percentage: 50,
+          flatPrice: null,
+        },
       ],
       nights: 2,
     });
@@ -137,9 +181,21 @@ describe('computeRoomBaseCost (M5 spec §3.2b)', () => {
     const cost = computeRoomBaseCost({
       room: { adults: 2, children: 1, childrenAges: [1] },
       roomType,
-      rateLine: { price: 8000, priceBasis: 'PER_ROOM_PER_NIGHT', occupancy: 'dvokrevetna', cribFeePerNight: 500 },
+      rateLine: {
+        price: 8000,
+        priceBasis: 'PER_ROOM_PER_NIGHT',
+        occupancy: 'dvokrevetna',
+        cribFeePerNight: 500,
+      },
       agePricingCandidates: [
-        { ageCategory: 'INFANT', occupantIndex: null, minAdultsPresent: null, pricingMode: 'FLAT_PRICE_PER_NIGHT', percentage: null, flatPrice: 0 },
+        {
+          ageCategory: 'INFANT',
+          occupantIndex: null,
+          minAdultsPresent: null,
+          pricingMode: 'FLAT_PRICE_PER_NIGHT',
+          percentage: null,
+          flatPrice: 0,
+        },
       ],
       nights: 1,
     });
@@ -151,7 +207,12 @@ describe('computeRoomBaseCost (M5 spec §3.2b)', () => {
       computeRoomBaseCost({
         room: { adults: 2, children: 1, childrenAges: [8] },
         roomType,
-        rateLine: { price: 10000, priceBasis: 'PER_ROOM_PER_NIGHT', occupancy: 'dvokrevetna', cribFeePerNight: null },
+        rateLine: {
+          price: 10000,
+          priceBasis: 'PER_ROOM_PER_NIGHT',
+          occupancy: 'dvokrevetna',
+          cribFeePerNight: null,
+        },
         agePricingCandidates: [],
         nights: 1,
       }),
@@ -165,18 +226,55 @@ describe('computeRoomBaseCost (M5 spec §3.2b)', () => {
   // granicu na 15,99, isto dete se klasifikuje kao CHILD i dobija CHILD popust.
   it('ContractPeriod.age_policy_override menja klasifikaciju gosta za obračun cene', () => {
     const room = { adults: 2, children: 1, childrenAges: [13] };
-    const rateLine: RateLineForCalc = { price: 10000, priceBasis: 'PER_ROOM_PER_NIGHT', occupancy: 'dvokrevetna', cribFeePerNight: null };
+    const rateLine: RateLineForCalc = {
+      price: 10000,
+      priceBasis: 'PER_ROOM_PER_NIGHT',
+      occupancy: 'dvokrevetna',
+      cribFeePerNight: null,
+    };
     const agePricingCandidates = [
-      { ageCategory: 'CHILD' as const, occupantIndex: 1, minAdultsPresent: null, pricingMode: 'FLAT_PRICE_PER_NIGHT' as const, percentage: null, flatPrice: 2000 },
+      {
+        ageCategory: 'CHILD' as const,
+        occupantIndex: 1,
+        minAdultsPresent: null,
+        pricingMode: 'FLAT_PRICE_PER_NIGHT' as const,
+        percentage: null,
+        flatPrice: 2000,
+      },
     ];
 
-    expect(() => computeRoomBaseCost({ room, roomType, rateLine, agePricingCandidates, nights: 1 })).toThrow(BadRequestException);
+    expect(() =>
+      computeRoomBaseCost({ room, roomType, rateLine, agePricingCandidates, nights: 1 }),
+    ).toThrow(BadRequestException);
 
     const override: AgePolicyEntry[] = [
-      { category: 'ADULT', ageFrom: 16, ageTo: null, countsTowardCapacity: true, maxCount: null, requiresCrib: false, cribIncluded: null },
-      { category: 'CHILD', ageFrom: 2, ageTo: 15.99, countsTowardCapacity: true, maxCount: null, requiresCrib: false, cribIncluded: null },
+      {
+        category: 'ADULT',
+        ageFrom: 16,
+        ageTo: null,
+        countsTowardCapacity: true,
+        maxCount: null,
+        requiresCrib: false,
+        cribIncluded: null,
+      },
+      {
+        category: 'CHILD',
+        ageFrom: 2,
+        ageTo: 15.99,
+        countsTowardCapacity: true,
+        maxCount: null,
+        requiresCrib: false,
+        cribIncluded: null,
+      },
     ];
-    const cost = computeRoomBaseCost({ room, roomType, rateLine, agePricingCandidates, agePolicyOverride: override, nights: 1 });
+    const cost = computeRoomBaseCost({
+      room,
+      roomType,
+      rateLine,
+      agePricingCandidates,
+      agePolicyOverride: override,
+      nights: 1,
+    });
     expect(cost).toBe(10000 + 2000);
   });
 });

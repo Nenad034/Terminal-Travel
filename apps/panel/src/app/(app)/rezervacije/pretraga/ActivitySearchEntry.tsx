@@ -5,7 +5,10 @@ import { useRouter } from 'next/navigation';
 import Icon from '@/components/Icon';
 import { Button } from '@/components/ui/button';
 import { searchDestinationsByActivity, type ActivityDestinationResult } from './actions';
-import { ACTIVITY_LABELS, type ActivityTag } from '../../katalog/destinacije/DestinationProfilesEditor';
+import {
+  ACTIVITY_LABELS,
+  type ActivityTag,
+} from '../../katalog/destinacije/DestinationProfilesEditor';
 
 // M5 spec §3.0c.3e (dopuna 5.9.2026) — "Nov, alternativan ulaz u pretragu": gost/agent bira
 // aktivnost, sistem vraća destinacije čiji `DestinationProfile.activities[]` je sadrži, klik na
@@ -46,13 +49,20 @@ export default function ActivitySearchEntry() {
 
   return (
     <div className="relative mb-3">
-      <Button variant="outline" size="sm" onClick={() => setOpen((v) => !v)} className="flex items-center gap-1.5">
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => setOpen((v) => !v)}
+        className="flex items-center gap-1.5"
+      >
         <Icon name="compass" /> Pretraga po aktivnosti
       </Button>
 
       {open && (
         <div className="absolute z-40 mt-1 w-96 rounded-lg border border-border bg-panel p-3 text-xs shadow-sm">
-          <p className="mb-2 text-ink-faint">Izaberite aktivnost — sistem predlaže destinacije koje je podržavaju (M5 spec §3.0c.3e).</p>
+          <p className="mb-2 text-ink-faint">
+            Izaberite aktivnost — sistem predlaže destinacije koje je podržavaju (M5 spec §3.0c.3e).
+          </p>
           <div className="mb-3 flex flex-wrap gap-1">
             {(Object.keys(ACTIVITY_LABELS) as ActivityTag[]).map((tag) => (
               <button
@@ -61,7 +71,9 @@ export default function ActivitySearchEntry() {
                 onClick={() => pick(tag)}
                 aria-pressed={activity === tag}
                 className={`rounded border px-2 py-0.5 ${
-                  activity === tag ? 'border-accent bg-accent-soft text-accent-strong' : 'border-border text-ink-dim hover:border-accent hover:text-ink'
+                  activity === tag
+                    ? 'border-accent bg-accent-soft text-accent-strong'
+                    : 'border-border text-ink-dim hover:border-accent hover:text-ink'
                 }`}
               >
                 {ACTIVITY_LABELS[tag]}
@@ -72,7 +84,9 @@ export default function ActivitySearchEntry() {
           {pending && <p className="text-ink-faint">Pretraga…</p>}
           {error && <p className="rounded bg-danger-bg p-2 text-danger">{error}</p>}
           {!pending && !error && results && results.length === 0 && (
-            <p className="text-ink-faint">Nijedna destinacija još nema profil sa ovom aktivnošću.</p>
+            <p className="text-ink-faint">
+              Nijedna destinacija još nema profil sa ovom aktivnošću.
+            </p>
           )}
           {!pending && results && results.length > 0 && (
             <ul className="flex flex-col gap-1">
@@ -86,7 +100,9 @@ export default function ActivitySearchEntry() {
                     <span className="text-ink">
                       {d.destinationCity}, {d.destinationCountry}
                     </span>
-                    {d.excursionCount > 0 && <span className="text-ink-faint">{d.excursionCount} izleta</span>}
+                    {d.excursionCount > 0 && (
+                      <span className="text-ink-faint">{d.excursionCount} izleta</span>
+                    )}
                   </button>
                 </li>
               ))}

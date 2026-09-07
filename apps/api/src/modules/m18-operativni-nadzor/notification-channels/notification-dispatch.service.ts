@@ -18,23 +18,36 @@ export class NotificationDispatchService {
     private readonly email: EmailClientService,
   ) {}
 
-  async dispatch(signal: Pick<HealthSignal, 'id' | 'sourceModule' | 'signalType' | 'severity' | 'details'>): Promise<HealthSignal> {
+  async dispatch(
+    signal: Pick<HealthSignal, 'id' | 'sourceModule' | 'signalType' | 'severity' | 'details'>,
+  ): Promise<HealthSignal> {
     const text = `[${signal.severity}] ${signal.sourceModule} — ${signal.signalType}\n${JSON.stringify(signal.details)}`;
     await this.dispatchText(text);
-    return this.prisma.healthSignal.update({ where: { id: signal.id }, data: { notifiedAt: new Date() } });
+    return this.prisma.healthSignal.update({
+      where: { id: signal.id },
+      data: { notifiedAt: new Date() },
+    });
   }
 
   async dispatchText(text: string): Promise<void> {
-    const channels = await this.prisma.notificationChannel.findMany({ where: { status: 'ACTIVE' } });
+    const channels = await this.prisma.notificationChannel.findMany({
+      where: { status: 'ACTIVE' },
+    });
     for (const channel of channels) {
       const config = JSON.parse(decryptSecret(channel.configEncrypted)) as Record<string, unknown>;
       if (channel.channelType === 'TELEGRAM') {
         await this.telegram.send(String(config.chatId ?? ''), text);
       } else if (channel.channelType === 'EMAIL') {
-        await this.email.send(String(config.email ?? ''), 'Terminal Travel — operativno obaveštenje', text);
+        await this.email.send(
+          String(config.email ?? ''),
+          'Terminal Travel — operativno obaveštenje',
+          text,
+        );
       } else {
         // IN_APP — čeka M19 (spec §3 napomena); čist stub dok taj kanal ne postoji.
-        this.logger.warn(`IN_APP kanal ${channel.id} je ACTIVE, ali isporuka čeka M19 — poruka nije isporučena.`);
+        this.logger.warn(
+          `IN_APP kanal ${channel.id} je ACTIVE, ali isporuka čeka M19 — poruka nije isporučena.`,
+        );
       }
     }
   }

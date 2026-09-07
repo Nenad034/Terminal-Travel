@@ -38,7 +38,11 @@ export class SuppliersController {
 
   @Patch(':id')
   @RequirePermission('M3', 'supplier', 'EDIT')
-  update(@Param('id') id: string, @Body() dto: UpdateSupplierDto, @CurrentUser() actor: { userId: string }) {
+  update(
+    @Param('id') id: string,
+    @Body() dto: UpdateSupplierDto,
+    @CurrentUser() actor: { userId: string },
+  ) {
     return this.suppliers.update(id, dto, actor.userId);
   }
 

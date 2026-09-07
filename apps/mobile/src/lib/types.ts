@@ -25,7 +25,14 @@ export interface Quote {
   status: string;
   expiresAt: string;
   isExpired?: boolean;
-  items: { id: string; productId: string; finalPrice: number; finalPriceCurrency: string; stayFrom: string; stayTo: string }[];
+  items: {
+    id: string;
+    productId: string;
+    finalPrice: number;
+    finalPriceCurrency: string;
+    stayFrom: string;
+    stayTo: string;
+  }[];
   [key: string]: unknown;
 }
 
@@ -35,7 +42,15 @@ export interface Booking {
   status: string;
   paymentStatus: string;
   voucherUrl: string | null;
-  items: { id: string; productId: string; finalPrice: number; finalPriceCurrency: string; itemStatus: string; stayFrom: string; stayTo: string }[];
+  items: {
+    id: string;
+    productId: string;
+    finalPrice: number;
+    finalPriceCurrency: string;
+    itemStatus: string;
+    stayFrom: string;
+    stayTo: string;
+  }[];
   [key: string]: unknown;
 }
 

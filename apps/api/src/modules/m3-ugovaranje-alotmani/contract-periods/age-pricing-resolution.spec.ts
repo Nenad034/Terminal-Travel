@@ -42,7 +42,11 @@ describe('resolveAgePricing (M3 spec §2.4a — najspecifičniji pobeđuje)', ()
   });
 
   it('bira najviši zadovoljen min_adults_present kad ih ima više', () => {
-    const higherThreshold: AgePricingCandidate = { ...conditionalRow, minAdultsPresent: 3, flatPrice: 999 };
+    const higherThreshold: AgePricingCandidate = {
+      ...conditionalRow,
+      minAdultsPresent: 3,
+      flatPrice: 999,
+    };
     const result = resolveAgePricing([conditionalRow, higherThreshold], 'CHILD', 2, 3);
     expect(result).toBe(higherThreshold);
   });

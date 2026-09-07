@@ -41,7 +41,9 @@ export function parseRooms(raw: string | null | undefined): SearchRoom[] {
       const room = (r ?? {}) as { adults?: unknown; childrenAges?: unknown };
       return {
         adults: Math.max(1, Number(room.adults) || 1),
-        childrenAges: Array.isArray(room.childrenAges) ? room.childrenAges.map((a) => String(a ?? '')) : [],
+        childrenAges: Array.isArray(room.childrenAges)
+          ? room.childrenAges.map((a) => String(a ?? ''))
+          : [],
       };
     });
   } catch {
@@ -58,7 +60,12 @@ export function parseRooms(raw: string | null | undefined): SearchRoom[] {
  */
 export function roomsFromTotals(adults: string, children: string): SearchRoom[] {
   const childCount = Math.max(0, Number(children) || 0);
-  return [{ adults: Math.max(1, Number(adults) || 1), childrenAges: Array.from({ length: childCount }, () => '') }];
+  return [
+    {
+      adults: Math.max(1, Number(adults) || 1),
+      childrenAges: Array.from({ length: childCount }, () => ''),
+    },
+  ];
 }
 
 export function serializeRooms(rooms: SearchRoom[]): string {
@@ -88,7 +95,8 @@ export function setChildCount(room: SearchRoom, count: number): SearchRoom {
 export function validateRooms(rooms: SearchRoom[]): string | null {
   for (let i = 0; i < rooms.length; i++) {
     for (const age of rooms[i].childrenAges) {
-      if (age.trim() === '') return `Unesite uzrast svakog deteta (soba ${i + 1}) — bez toga cena nije tačna.`;
+      if (age.trim() === '')
+        return `Unesite uzrast svakog deteta (soba ${i + 1}) — bez toga cena nije tačna.`;
       const n = Number(age);
       if (!Number.isInteger(n) || n < 0 || n > MAX_CHILD_AGE) {
         return `Uzrast deteta u sobi ${i + 1} mora biti između 0 i ${MAX_CHILD_AGE}.`;
@@ -118,7 +126,11 @@ export function toOccupancy(rooms: SearchRoom[]) {
 export function describeRooms(rooms: SearchRoom[]): string {
   const adults = totalAdults(rooms);
   const ages = rooms.flatMap((r) => r.childrenAges).filter((a) => a !== '');
-  const roomsPart = rooms.length > 1 ? `${rooms.length} ${rooms.length < 5 ? 'sobe' : 'soba'} · ` : '';
-  const childPart = ages.length > 0 ? ` + ${ages.length} ${ages.length === 1 ? 'dete' : 'dece'} (${ages.join(', ')})` : '';
+  const roomsPart =
+    rooms.length > 1 ? `${rooms.length} ${rooms.length < 5 ? 'sobe' : 'soba'} · ` : '';
+  const childPart =
+    ages.length > 0
+      ? ` + ${ages.length} ${ages.length === 1 ? 'dete' : 'dece'} (${ages.join(', ')})`
+      : '';
   return `${roomsPart}${adults} odr.${childPart}`;
 }

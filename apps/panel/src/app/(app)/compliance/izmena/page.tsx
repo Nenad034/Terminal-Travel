@@ -2,7 +2,6 @@ import { apiFetch } from '@/lib/api-client';
 import RegisterTab from '@/components/RegisterTab';
 import UpdateGuaranteeForm from './UpdateGuaranteeForm';
 
-
 interface TravelGuarantee {
   id: string;
   provider: string;

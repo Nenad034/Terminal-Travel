@@ -19,11 +19,20 @@ export default function NewContentForm() {
   const slugRequired = SLUG_REQUIRED_TYPES.includes(type);
 
   return (
-    <form action={formAction} className="flex flex-col gap-3 rounded-lg border border-border bg-panel p-5">
+    <form
+      action={formAction}
+      className="flex flex-col gap-3 rounded-lg border border-border bg-panel p-5"
+    >
       {state.error && <p className="rounded bg-danger-bg p-3 text-sm text-danger">{state.error}</p>}
 
       <Field label="tip">
-        <select name="type" required value={type} onChange={(e) => setType(e.target.value)} className="input">
+        <select
+          name="type"
+          required
+          value={type}
+          onChange={(e) => setType(e.target.value)}
+          className="input"
+        >
           {TYPES.map((t) => (
             <option key={t} value={t}>
               {t}
@@ -39,7 +48,11 @@ export default function NewContentForm() {
       )}
 
       <Field label="proizvod (M2 Product ID, opciono)">
-        <input name="productId" className="input" placeholder="UUID — ostavite prazno za opšti sadržaj" />
+        <input
+          name="productId"
+          className="input"
+          placeholder="UUID — ostavite prazno za opšti sadržaj"
+        />
       </Field>
 
       <Field label="ciljni kanali">

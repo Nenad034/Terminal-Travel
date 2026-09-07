@@ -18,7 +18,9 @@ export class NotificationChannelsService {
   constructor(private readonly prisma: PrismaService) {}
 
   async findAll() {
-    const channels = await this.prisma.notificationChannel.findMany({ orderBy: { createdAt: 'asc' } });
+    const channels = await this.prisma.notificationChannel.findMany({
+      orderBy: { createdAt: 'asc' },
+    });
     return channels.map(omitSecret);
   }
 

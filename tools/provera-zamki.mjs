@@ -21,10 +21,19 @@ const problemi = [];
 
 const viden = new Map();
 for (const b of brojevi) viden.set(b, (viden.get(b) ?? 0) + 1);
-for (const [b, k] of viden) if (k > 1) problemi.push(`Broj ${b} nosi ${k} unosa — broj je adresa, ne oznaka.`);
+for (const [b, k] of viden)
+  if (k > 1) problemi.push(`Broj ${b} nosi ${k} unosa — broj je adresa, ne oznaka.`);
 
 // Preskaču se generisani i tuđi folderi; `.next` sadrži kopije naših komentara iz build-a.
-const PRESKOCI = new Set(['node_modules', '.git', '.next', 'dist', 'coverage', 'worktrees', 'qa-snimci']);
+const PRESKOCI = new Set([
+  'node_modules',
+  '.git',
+  '.next',
+  'dist',
+  'coverage',
+  'worktrees',
+  'qa-snimci',
+]);
 const NASTAVCI = ['.md', '.ts', '.tsx', '.mjs', '.js', '.yml'];
 
 function* fajlovi(dir) {
@@ -51,4 +60,6 @@ if (problemi.length > 0) {
   for (const p of problemi) console.error('  ' + p);
   process.exit(1);
 }
-console.log(`Numeracija zamki u redu: ${brojevi.length} unosa, nijedan duplikat, svi pokazivači vode negde.`);
+console.log(
+  `Numeracija zamki u redu: ${brojevi.length} unosa, nijedan duplikat, svi pokazivači vode negde.`,
+);

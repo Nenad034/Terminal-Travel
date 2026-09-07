@@ -15,13 +15,21 @@ export async function POST(req: NextRequest) {
       { method: 'POST', body: dto, auth: false },
     );
 
-    const payload = JSON.parse(Buffer.from(tokens.accessToken.split('.')[1], 'base64url').toString('utf8'));
-    await setSession({ accessToken: tokens.accessToken, refreshToken: tokens.refreshToken, userId: payload.sub });
+    const payload = JSON.parse(
+      Buffer.from(tokens.accessToken.split('.')[1], 'base64url').toString('utf8'),
+    );
+    await setSession({
+      accessToken: tokens.accessToken,
+      refreshToken: tokens.refreshToken,
+      userId: payload.sub,
+    });
 
     return NextResponse.json({ ok: true });
   } catch (err) {
     if (err instanceof ApiError) {
-      return NextResponse.json(err.body ?? { message: 'Nastavak bez naloga nije uspeo' }, { status: err.status });
+      return NextResponse.json(err.body ?? { message: 'Nastavak bez naloga nije uspeo' }, {
+        status: err.status,
+      });
     }
     throw err;
   }

@@ -104,4 +104,4 @@ Uz to je svaka od sedam vrsta pokrivena testom, da se ne izgubi ponovo pri nekoj
 
 ---
 
-*Za tehničke detalje (tačna imena polja, redosled provera, API pozivi) vidi `05-SPECIFIKACIJA-M4-INTEGRACIJE-API.md` u istom folderu i `docs/api/M4-integracije-api.md` — ovaj dokument je namerno pojednostavljen, ne zamenjuje ih.*
+_Za tehničke detalje (tačna imena polja, redosled provera, API pozivi) vidi `05-SPECIFIKACIJA-M4-INTEGRACIJE-API.md` u istom folderu i `docs/api/M4-integracije-api.md` — ovaj dokument je namerno pojednostavljen, ne zamenjuje ih._

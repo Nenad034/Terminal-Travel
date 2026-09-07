@@ -21,6 +21,7 @@ blizu [POI], usluga [tip pansiona]".
 
 Koraci koje agent treba da izvede, nezavisno od toga koji se provajder(i)
 pozivaju:
+
 1. Izvući strukturirane parametre iz upita.
 2. Postaviti razjašnjavajuće pitanje ako nešto ključno nedostaje ili je
    dvosmisleno (vidi 1.1).
@@ -31,6 +32,7 @@ pozivaju:
    zahtevu, i navesti izvore.
 
 ### 1.1 Obavezno razjašnjavajuće pitanje: uzrast dece
+
 Ako korisnik navede uzrast dece kao opseg (npr. "2-12 godina"), agent MORA da
 pita tačan uzrast svakog deteta pre poziva bilo kog provajdera — cena i
 dostupnost soba zavise od tačnih godina, ne od opsega. Ovo je opšte pravilo,
@@ -39,16 +41,19 @@ ne specifično za jedan provajder.
 ## 2. Expedia (`search_hotels`)
 
 ### 2.1 Obavezna polja i format
+
 - Jedino obavezno polje je `destination` (string, slobodan tekst).
 - Datumi u formatu `YYYY-MM-DD`.
 - Preporučeno uvek popuniti `user_location`, `user_locale`,
   `client_device_info` (lokacija KORISNIKA, ne destinacija putovanja).
 
 ### 2.2 GREŠKA: kombinacija previše filtera u jednom pozivu ruši poziv
+
 Poziv sa punim setom parametara odjednom (`check_in_date` + `check_out_date`
-+ `adult_count` + `children_age_list` + `star_ratings` + `property_types` +
-`property_themes` + `query_text` + `sort_type` u istom pozivu) je dosledno
-vraćao grešku `"Unknown error"` bez ikakvog detalja o uzroku.
+
+- `adult_count` + `children_age_list` + `star_ratings` + `property_types` +
+  `property_themes` + `query_text` + `sort_type` u istom pozivu) je dosledno
+  vraćao grešku `"Unknown error"` bez ikakvog detalja o uzroku.
 
 **Kako smo to otkrili i rešili:** binarna pretraga uzroka — pozivati prvo
 samo sa `destination`, pa dodavati po jednu grupu parametara dok se greška ne
@@ -61,6 +66,7 @@ vrati grešku bez detalja, automatski retry sa redukovanim setom (prvo ukloni
 zadrži `destination`, datume, broj gostiju).
 
 ### 2.3 GREŠKA (tiha): većina "filtera" ne filtrira ništa
+
 Sistematski testirano (isti upit, dodavanje po jednog filtera): sledeći
 parametri **ne vraćaju grešku, ali i ne menjaju skup rezultata** — API vraća
 identičnu listu kao da filter uopšte nije poslat, uključujući objekte koji
@@ -88,6 +94,7 @@ na strani aplikacije, nad poljima iz `data` niza u odgovoru
 to radi.**
 
 ### 2.4 Parametri koji STVARNO rade
+
 - `check_in_date` / `check_out_date` — utiču na cenu/dostupnost kako se
   očekuje.
 - `adult_count` / `children_age_list` — menjaju sastav gostiju, cenu i
@@ -98,6 +105,7 @@ to radi.**
   liste.
 
 ### 2.5 `query_text` — radi, ali menja i geografski obuhvat pretrage
+
 Kad je poslat `query_text` (npr. "near ski slopes half board"), rezultat se
 promenio u odnosu na baznu listu, ALI su se pojavili i objekti udaljeni
 desetinama kilometara od tražene destinacije (u jednom testu čak i objekat
@@ -109,21 +117,24 @@ naknadno filtrirati rezultate po geografskoj blizini (`geo_location`
 lat/lng) prema traženoj destinaciji.**
 
 ### 2.6 Validacija koja radi ispravno (dobri, iskoristivi error-i)
-- `check_in_date` posle `check_out_date` — jasna greška: *"Validation Error:
-  The check_in (...) must be before the check_out (...)."*
-- Nepostojeća/besmislena destinacija — jasna greška: *"The location could
-  not be resolved... Simplify the location query and retry."* — dobar signal
+
+- `check_in_date` posle `check_out_date` — jasna greška: _"Validation Error:
+  The check_in (...) must be before the check_out (...)."_
+- Nepostojeća/besmislena destinacija — jasna greška: _"The location could
+  not be resolved... Simplify the location query and retry."_ — dobar signal
   da agent pojednostavi upit i pokuša ponovo, ili pita korisnika.
 
 Ove poruke su čitljive i mogu se koristiti direktno u UX toku ili za
 automatski retry, bez dodatnog "prevođenja".
 
 ### 2.7 Šta API uopšte nema u šemi (nije pitanje filtriranja, nego nepostojanja polja)
+
 Poređenjem sa punim Expedia web filterima (koje korisnik vidi na
 expedia.com — cenovni raspon sa histogramom, "Meal plans available"
 [Breakfast included/All-inclusive/Dinner/Lunch], Property class,
 Neighbourhood, Property amenities, Property type, Property brand,
 cancellation/payment opcije, guest rating pragovi), utvrđeno je da:
+
 - Zvezdice, cena, guest rating, property type, amenities **postoje** kao
   parametri u MCP alatu, ali se ignorišu (2.3).
 - **Tip pansiona/obroka ("Meal plans available") uopšte ne postoji kao
@@ -138,9 +149,10 @@ filtere na sajtu. Nije testirano da li Expedia URL prihvata query parametre
 za filtere direktno u linku — proveriti pre oslanjanja na taj pristup.
 
 ### 2.8 Format odgovora (relevantna polja)
+
 ```json
 {
-  "occupants": [{"adults": 2, "child_ages": [5, 8], "total_travelers": 4}],
+  "occupants": [{ "adults": 2, "child_ages": [5, 8], "total_travelers": 4 }],
   "data": [
     {
       "hotel_id": "6300113",
@@ -163,6 +175,7 @@ za filtere direktno u linku — proveriti pre oslanjanja na taj pristup.
 ## 3. Novasol (`search-properties`) — kuće/apartmani za odmor
 
 ### 3.1 Bitna razlika u tipu proizvoda (proveriti PRE poziva)
+
 Novasol nudi samostalne kuće/apartmane za odmor, ne hotele sa uslugom. U
 šemi alata **nema koncepta zvezdica ni tipa pansiona** — samo `reviewScore`
 (0–5), broj spavaćih soba/kupatila (`minBedrooms`/`minBathrooms`) i kapacitet
@@ -172,6 +185,7 @@ kombinuje provajdere treba prvo da odredi da li korisnik traži hotel-sa-
 uslugom ili samostalni smeštaj, pre nego što bira kome da pošalje upit.
 
 ### 3.2 Format datuma se razlikuje od Expedije — čest izvor grešaka
+
 Novasol očekuje `startDate` u formatu `dd-MM-yyyy` (npr. `10-01-2027`), za
 razliku od Expedia alata koji koristi `yyyy-MM-dd`. **Ako se više provajdera
 poziva iz istog toka sa istim internim modelom datuma, obavezna je
@@ -179,8 +193,10 @@ konverzija formata po provajderu** — ovo je konkretan, lako propustljiv bug
 pri integraciji.
 
 ### 3.3 Filteri koje smo testirali i koji rade ispravno
+
 Testirano na destinaciji sa velikim brojem objekata (Istra, ~1900+
 oglasa), poređenjem baznog poziva sa filtriranim:
+
 - `minBedrooms: 3` — ukupan broj rezultata pao sa 1930 na 1229, i svi
   vraćeni objekti su zaista imali 3+ spavaće sobe.
 - `maxPrice: 800` (EUR, ukupno za ceo boravak, ne po noći) — broj pao sa 1930
@@ -194,6 +210,7 @@ oglasa), poređenjem baznog poziva sa filtriranim:
   proveriti na konkretnom slučaju ako je to bitno.**
 
 ### 3.4 `maxPrice`/`minPrice` su za CEO boravak, ne po noći
+
 Polja `minPrice`/`maxPrice` predstavljaju cenu za CELU grupu za ceo boravak,
 ne po osobi ni po noći. Ako korisnik da budžet po noći ili po osobi, mora se
 konvertovati pre poziva (alat ima `priceType: "per_night"` opciju koja
@@ -201,13 +218,16 @@ konvertuje umesto ručnog množenja — koristiti to polje, ne računati ručno 
 agentu, da se izbegne duplo množenje sa brojem noćenja).
 
 ### 3.5 Transparentno prijavljivanje kad filter ne može da se zadovolji
+
 Kod male destinacije (Bad Kleinkirchheim, gde Novasol ima svega 1 objekat u
 ponudi), poziv sa `features: ["sauna","hottubspabath"]` je vratio taj jedini
 objekat, ali je odgovor eksplicitno sadržao:
+
 ```json
 "filtersRelaxed": true,
 "relaxedFilters": ["features"]
 ```
+
 Odgovor time sam kaže "nisam mogao da zadovoljim ovaj filter pa sam ga
 privremeno isključio". Isto se desilo kod `minBedrooms: 3` +
 `maxPrice: 1000` na istoj maloj destinaciji — vraćeno je 0 rezultata, uz
@@ -224,6 +244,7 @@ ne daju.
 ## 4. Booking.com (`accommodations_search`)
 
 ### 4.1 Ima eksplicitan parametar za tip pansiona — jedini od tri testirana
+
 `meal_plan` prima `breakfast_included`, `half_board`, `full_board`,
 `all_inclusive`. Ovo je jedino mesto gde je tip pansiona uopšte mogao da se
 pošalje kao pravi parametar pretrage (kod Expedije ne postoji u šemi, kod
@@ -235,6 +256,7 @@ korisniku pre poziva (isto pravilo kao u sekciji 1.1, ovde je i eksplicitno
 zahtevano od strane samog alata).
 
 ### 4.2 Filteri koje smo testirali i koji rade ispravno
+
 - `star_rating: [4]` — bazni poziv (bez filtera) vraćao je mešavinu 3★ i
   4★ objekata. Poziv sa `star_rating: [4]` vratio je **isključivo** 4★
   hotele (10 od 10 proverenih rezultata, svi tačno 4.0).
@@ -252,11 +274,19 @@ zahtevano od strane samog alata).
   što se to prikaže korisniku kao garantovana činjenica.**
 
 ### 4.3 Greška je informativna, ne prazna/tiha
+
 Poziv sa `meal_plan: "all_inclusive"` (bez ostalih filtera, za Bad
 Kleinkirchheim) je vratio grešku:
+
 ```json
-{"type":"not_found","message":"No accommodations found for the given search parameters in Booking.com inventory","suggestedAction":"Ask the user to change the search parameters","retryGuidance":"..."}
+{
+  "type": "not_found",
+  "message": "No accommodations found for the given search parameters in Booking.com inventory",
+  "suggestedAction": "Ask the user to change the search parameters",
+  "retryGuidance": "..."
+}
 ```
+
 umesto praznog niza ili izmišljenih rezultata. Alat čak eksplicitno upućuje
 da se NE ponavlja isti poziv sa istim parametrima, nego se ili pita korisnik
 za izmenu, ili se korisniku referira na prethodni rezultat. **Na šta obratiti
@@ -265,6 +295,7 @@ kriterijuma (npr. probati `half_board` umesto `all_inclusive`) pre nego što
 se korisniku kaže da ništa nije nađeno.
 
 ### 4.4 Facilities enum je eksplicitan i strukturiran, uključujući "SKIING"
+
 Za razliku od Expedia `query_text` pristupa (nepredvidiv, sekcija 2.5),
 Booking.com ima `facilities` kao zatvoren enum sa vrednošću `SKIING`
 direktno dostupnom, pored `HOT_TUB_JACUZZI`, `SPA_AND_WELLNESS_CENTRE`,
@@ -274,12 +305,14 @@ direktno dostupnom, pored `HOT_TUB_JACUZZI`, `SPA_AND_WELLNESS_CENTRE`,
 šema alata eksplicitno upozorava na ovu razliku.
 
 ### 4.5 Cena i valuta
+
 Rezultati su vraćeni u RSD (na osnovu `user_country_code: "rs"`) — valuta
 prati parametar korisničke lokacije, ne destinacije. Ako se agregiraju
 rezultati sa drugim provajderima (Expedia vraća USD po defaultu), obavezna
 je konverzija u zajedničku valutu pre poređenja cena između provajdera.
 
 ### 4.6 VAŽNO: `meal_plan` filter sužava kandidate, ali ne garantuje da je usluga uključena u prikazanu cenu
+
 Dodatno testirano pozivom `answer_property_qa_by_ids_v2` (Booking.com alat
 koji odgovara na konkretna pitanja o već pronađenim hotelima) sa pitanjem
 "da li ovaj hotel nudi polupansion i da li je uključen u prikazanu cenu za
@@ -297,6 +330,7 @@ korisniku u UI-ju (npr. "usluga dostupna, cena i tačan paket se potvrđuju
 prilikom rezervacije").
 
 ### 4.7 Gomilanje previše filtera odjednom ne ruši poziv, ali može dati lažno prazan rezultat
+
 Testiran je poziv sa 8 filtera odjednom (`star_rating` + `meal_plan` +
 `facilities` sa 3 vrednosti + `minimum_review_score` + `price` opseg +
 `accommodation_types` + `cancellation_type` + `number_of_rooms`). Za razliku
@@ -312,6 +346,7 @@ programski proba da postepeno ukloni po jedan "meki" filter (npr. prvo
 umesto da odmah zaključi da ništa ne postoji.
 
 ### 4.8 `number_of_rooms` > 1 stvarno menja skup i sastav rezultata
+
 Testirano sa `number_of_rooms: 2`, `number_of_adults: 4` (porodica koja bi
 tražila 2 sobe za 4 odrasla + 2 dece). Vraćen je **potpuno drugačiji skup
 objekata** u odnosu na `number_of_rooms: 1` (uglavnom apartmani/kuće sa
@@ -337,8 +372,10 @@ metodologiji iz sekcije 8, isto kao što je urađeno za Expediju/Novasol/
 Booking.com.
 
 ### 5.1 Osnovna arhitektura i terminologija
+
 HotelX je GraphQL API na jedinstvenom endpoint-u `https://api.travelgate.com`.
 Ključni pojmovi koje agent mora da razlikuje:
+
 - **Seller** — konekcija/nalog preko kog se pristupa jednom ili više
   **Supplier**-a (dobavljača, svaki sa svojim supplier code-om).
 - **Buyer** / **Client** — strana koja poziva API; poziv nosi "traffic tag"
@@ -359,9 +396,11 @@ Ključni pojmovi koje agent mora da razlikuje:
   OTA konektora.
 
 ### 5.2 Obavezan redosled: Search → Quote → Book (ne sme se preskočiti)
+
 Za razliku od Expedia/Booking.com/Novasol konektora testiranih u ovoj
 sesiji (koji vraćaju cenu direktno u rezultatu pretrage, spremnu za
 prikaz), HotelX zahteva **tročlani tok**:
+
 1. **Search** — vraća opcije sa okvirnom cenom/dostupnošću.
 2. **Quote** — obavezan korak pre rezervacije; ponovo validira cenu,
    uslove otkazivanja i dostupnost za tačno izabranu opciju. Cena iz Search
@@ -383,6 +422,7 @@ infrastrukturu (primanje i keširanje push podataka od dobavljača), nije
 podrazumevani slučaj.
 
 ### 5.3 Boards i Categories nisu pravi filteri u Search pozivu
+
 Isti obrazac koji je potvrđen kod Booking.com (4.6 — `meal_plan` znači
 "nudi opciju", ne "garantovano u ceni") ovde je dokumentovan eksplicitno u
 samoj arhitekturi: **Boards** (pansioni/meal plan) i **Categories**
@@ -392,6 +432,7 @@ Boards content upitu **ne garantuje** da će ta opcija biti dostupna u
 konkretnom live Search pozivu za dati datum/hotel.
 
 ### 5.4 Kritičan nalaz: nemapirani board se TIHO gubi iz rezultata
+
 Ovo je ozbiljniji slučaj od bilo čega pronađenog kod OTA konektora u
 sekcijama 2-4. Ako tekst pansiona koji dobavljač vrati **ne može da se
 mapira** na standardizovani FastX kod, ta opcija se **potpuno briše iz
@@ -406,6 +447,7 @@ log kad dobavljač vrati tekst pansiona koji ne postoji u mapnoj tabeli),
 inače se gubi prodaja bez ikakvog vidljivog simptoma.
 
 ### 5.5 Kontrola veličine rezultata: `optionsQuota` i `businessRulesType`
+
 - `optionsQuota` — maksimalan broj opcija po board-u (opseg 1-300,
   podrazumevano 300). Bitno za kontrolu veličine odgovora i latencije kod
   hotela sa mnogo tipova soba/cena.
@@ -415,6 +457,7 @@ inače se gubi prodaja bez ikakvog vidljivog simptoma.
   prikaže "najjeftiniju opciju po kategoriji" ili "sve tipove soba".
 
 ### 5.6 DeltaPrice — tolerancija odstupanja cene između Quote i Book
+
 API podržava mehanizam tolerancije (`amount`/`percent`/`applyBoth`) koji
 definiše koliko cena sme da odstupi između Quote i Book koraka a da se
 rezervacija ipak izvrši (umesto da automatski propadne na svako sitno
@@ -425,6 +468,7 @@ nepotrebno odbijaju zbog sitnih fluktuacija cene, ili se (gore) prihvataju
 rezervacije sa neproverenim velikim odstupanjem cene.
 
 ### 5.7 Look-to-Book (L2B) odnos — komercijalno ograničenje, ne tehnički bag
+
 Za razliku od svih dosad testiranih konektora, B2B ugovoreni pristup nosi
 i **poslovno/ugovorno** ograničenje koje nema tehnički simptom u samom
 odgovoru: dobavljači prate odnos broja pretraga (Search) prema broju
@@ -440,6 +484,7 @@ testiranog u sekcijama 2-4 (tamo je ograničenje samo rate-limit, ne
 poslovni odnos search:book).
 
 ### 5.8 HTTP zaglavlja i timeout semantika
+
 - `Authorization: Apikey xxx` za standardne pozive; `Bearer <JWT>` za
   administrativne/monitoring pozive (JWT se dobija preko
   `query { admin { jwt } }`).
@@ -457,14 +502,14 @@ poslovni odnos search:book).
 
 ## 6. Zbirna tabela: šta nedostaje kod kog provajdera
 
-| Kriterijum | Expedia | Novasol | Booking.com |
-|---|---|---|---|
-| Zvezdice — filter stvarno radi | ✗ (ignoriše se) | N/A (nema koncept) | ✓ potvrđeno |
-| Cena (min/max) — filter stvarno radi | ✗ (ignoriše se) | ✓ potvrđeno | nije posebno testirano u ovoj sesiji |
-| Tip pansiona kao parametar pretrage | ✗ ne postoji u šemi | N/A (nema koncept) | ✓ postoji (`meal_plan`) |
-| Blizina POI (npr. ski staza) kao pravi filter | ✗ (`query_text` nepredvidiv) | delimično (`features` lista specifičnih sadržaja, ne geo-blizina) | ✓ (`facilities: SKIING` kao enum) |
-| Transparentno javljanje kad filter nije zadovoljen | ✗ (tiho ignoriše) | ✓ (`filtersRelaxed`) | ✓ (jasna `not_found` greška sa uputstvom) |
-| Format datuma | `YYYY-MM-DD` | `dd-MM-yyyy` | `YYYY-MM-DD` |
+| Kriterijum                                         | Expedia                      | Novasol                                                           | Booking.com                               |
+| -------------------------------------------------- | ---------------------------- | ----------------------------------------------------------------- | ----------------------------------------- |
+| Zvezdice — filter stvarno radi                     | ✗ (ignoriše se)              | N/A (nema koncept)                                                | ✓ potvrđeno                               |
+| Cena (min/max) — filter stvarno radi               | ✗ (ignoriše se)              | ✓ potvrđeno                                                       | nije posebno testirano u ovoj sesiji      |
+| Tip pansiona kao parametar pretrage                | ✗ ne postoji u šemi          | N/A (nema koncept)                                                | ✓ postoji (`meal_plan`)                   |
+| Blizina POI (npr. ski staza) kao pravi filter      | ✗ (`query_text` nepredvidiv) | delimično (`features` lista specifičnih sadržaja, ne geo-blizina) | ✓ (`facilities: SKIING` kao enum)         |
+| Transparentno javljanje kad filter nije zadovoljen | ✗ (tiho ignoriše)            | ✓ (`filtersRelaxed`)                                              | ✓ (jasna `not_found` greška sa uputstvom) |
+| Format datuma                                      | `YYYY-MM-DD`                 | `dd-MM-yyyy`                                                      | `YYYY-MM-DD`                              |
 
 Za svaki kriterijum obeležen ✗ kod izabranog provajdera, agent mora ili (a)
 filtrirati naknadno na strani aplikacije nad podacima iz odgovora, ili (b)
@@ -521,6 +566,7 @@ tada se ne vidi da li filter uopšte nešto radi).
 (ne samo one za koje se pretpostavlja da su bitni), pozvati alat sa istim
 ostalim parametrima + taj jedan filter, i uporediti skup/broj rezultata sa
 baznim pozivom:
+
 - Isti skup/isti broj — filter se **sumnjivo ignoriše**, potvrditi dodatnim
   testom pre zaključka (npr. probati ekstremnu vrednost filtera, kao što smo
   radili sa `max_nightly_price: 150` na destinaciji gde su sve cene više).

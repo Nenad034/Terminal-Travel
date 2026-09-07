@@ -42,14 +42,18 @@ export class ProcessMapsService {
 
   private findDefinition(key: string): ProcessMapDefinition {
     const definition = REGISTRY.find((d) => d.key === key);
-    if (!definition) throw new NotFoundException(`Procesna mapa "${key}" nije registrovana (M18 spec §9a)`);
+    if (!definition)
+      throw new NotFoundException(`Procesna mapa "${key}" nije registrovana (M18 spec §9a)`);
     return definition;
   }
 
   // M18 spec §9a — broj i vreme poslednjeg zapisa po čvoru, u datom vremenskom prozoru.
   // Čita direktno iz M1 audit loga (isti obrazac kao AiProviderQuotaService), ne duplira
   // podatak — mapa je samo prikaz nad postojećim, nepromenjivim izvorom istine.
-  async live(key: string, windowMinutes: number = DEFAULT_WINDOW_MINUTES): Promise<{ key: string; label: string; nodes: ProcessMapNodeLive[] }> {
+  async live(
+    key: string,
+    windowMinutes: number = DEFAULT_WINDOW_MINUTES,
+  ): Promise<{ key: string; label: string; nodes: ProcessMapNodeLive[] }> {
     const definition = this.findDefinition(key);
     const from = new Date(Date.now() - windowMinutes * 60_000);
 

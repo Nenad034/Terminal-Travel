@@ -33,7 +33,12 @@ export function MyBookingsScreen() {
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={load} />}
       ListEmptyComponent={<Text style={styles.empty}>Nemate rezervacija.</Text>}
       renderItem={({ item }) => (
-        <Pressable style={styles.card} onPress={() => router.push({ pathname: '/(guest)/vaucer/[bookingId]', params: { bookingId: item.id } })}>
+        <Pressable
+          style={styles.card}
+          onPress={() =>
+            router.push({ pathname: '/(guest)/vaucer/[bookingId]', params: { bookingId: item.id } })
+          }
+        >
           <Text style={styles.number}>{item.bookingNumber}</Text>
           <Text style={styles.status}>
             {item.status} — {item.paymentStatus}

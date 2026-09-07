@@ -1,6 +1,6 @@
 # Faza 8 — Bezbednosno očvršćavanje: dnevnik pregleda
 
-*(Master dokument poglavlje 8: "Bezbednosni audit, penetraciono testiranje, DR/backup vežba, revizija usklađenosti sa svim zakonskim rokovima." Izlazni kriterijum: "Sistem prošao nezavisnu proveru pre nego što se smatra dugoročno stabilnim za skaliranje.")*
+_(Master dokument poglavlje 8: "Bezbednosni audit, penetraciono testiranje, DR/backup vežba, revizija usklađenosti sa svim zakonskim rokovima." Izlazni kriterijum: "Sistem prošao nezavisnu proveru pre nego što se smatra dugoročno stabilnim za skaliranje.")_
 
 **Zašto ovaj fajl postoji, ne Nivo 2 specifikacija.** Faza 8 nije modul (M1–M23) — nema svoj Nivo 2 dokument niti "Izlazni kriterijum" čeklistu u tom obliku. Ono što master dokument stvarno traži (nezavisan pen-test, DR vežba nad pravom infrastrukturom, PCI-DSS sertifikacija) zahteva treću stranu i produkcionu infrastrukturu koja namerno još nije izabrana — AI agent to ne može zameniti niti simulirati kao da je urađeno. Ovaj fajl je **dnevnik pregleda koda naspram bezbednosnog baseline-a iz poglavlja 9**, isti princip kao `33-ZAMKE-I-OBAVEZNE-PROVERE.md` (nalaz → provera → status), ne zamena za pravu spoljnu reviziju.
 
@@ -21,6 +21,7 @@ Otkriveno usput dok se radilo na paketiranju (M5 `Itinerary`/§3.0d.6a), ne pose
 Nastavak stavke 1 iz "Otvoreno za dalje" (ispod) — `npm audit fix` (bez `--force`) nije rešavao ništa ni u jednom kanalu (`apps/api`/`apps/panel`/`apps/web`) zbog isprepletenih zavisnosti u monorepo-u; svaka preostala ranjivost je zahtevala skok glavne verzije. Vlasnik odlučio da se krene sa Next.js (veći stvaran rizik — mrežno dostupne ranjivosti SSRF/cache poisoning/DoS u App Router-u koji `apps/panel`/`apps/web` već koriste), NestJS v11→v12 (`apps/api`) ostaje namerno odložen.
 
 **Next.js v14.2 → v16.3.3, React v18.3 → v19.2** (`apps/panel` i `apps/web`, preko `@next/codemod upgrade latest`):
+
 - Ranjivosti: `apps/panel` 9 → 3 preostale, `apps/web` 7 → 1 preostala (`picomatch`, dev-only alat, iza `--force`). `apps/api` namerno netaknut (29 i dalje, odvojen NestJS poduhvat).
 - Codemod automatski: `useFormState` → `useActionState` (67 fajlova `apps/panel`), async `params`/`searchParams` (Next 15+ zahtev), `middleware.ts` → `proxy.ts` preimenovanje (`apps/web`, Next 16 konvencija — funkcionalno identično, provereno uživo: `/en` redirect i `?ref=` kolačić i dalje rade).
 - **Ručne ispravke posle codemod-a** (sve otkrivene i rešene u ovom prolazu, ne ostavljene za kasnije):

@@ -59,7 +59,9 @@ export default function BookingRepsCard({
 
       {items.map((item) => {
         const itemCheckIns = checkIns.filter((c) => c.bookingItemId === item.id);
-        const assignedGuide = item.assignedGuideId ? guidesById.get(item.assignedGuideId) : undefined;
+        const assignedGuide = item.assignedGuideId
+          ? guidesById.get(item.assignedGuideId)
+          : undefined;
         return (
           <div key={item.id} className="rounded-lg border border-border bg-panel p-4">
             <div className="mb-2 text-sm font-semibold text-ink">
@@ -78,7 +80,9 @@ export default function BookingRepsCard({
               <p className="text-xs text-ink-dim">
                 Predstavnik:{' '}
                 {item.assignedGuideId ? (
-                  <span className="text-ink">{namesById[item.assignedGuideId] ?? 'nepoznat korisnik'}</span>
+                  <span className="text-ink">
+                    {namesById[item.assignedGuideId] ?? 'nepoznat korisnik'}
+                  </span>
                 ) : (
                   <span className="text-ink-faint">nije dodeljen</span>
                 )}
@@ -93,8 +97,14 @@ export default function BookingRepsCard({
             {item.assignedGuideId && (
               <dl className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 rounded border border-border bg-panel2 p-2.5 text-xs sm:grid-cols-4">
                 <div>
-                  <dt className="text-[10px] uppercase tracking-wide text-ink-faint">Ime i prezime</dt>
-                  <dd className="text-ink">{assignedGuide?.fullName ?? namesById[item.assignedGuideId] ?? 'nepoznat korisnik'}</dd>
+                  <dt className="text-[10px] uppercase tracking-wide text-ink-faint">
+                    Ime i prezime
+                  </dt>
+                  <dd className="text-ink">
+                    {assignedGuide?.fullName ??
+                      namesById[item.assignedGuideId] ??
+                      'nepoznat korisnik'}
+                  </dd>
                 </div>
                 <div>
                   <dt className="text-[10px] uppercase tracking-wide text-ink-faint">Telefon</dt>
@@ -105,7 +115,9 @@ export default function BookingRepsCard({
                   <dd className="text-ink">{assignedGuide?.email ?? '—'}</dd>
                 </div>
                 <div>
-                  <dt className="text-[10px] uppercase tracking-wide text-ink-faint">Destinacija</dt>
+                  <dt className="text-[10px] uppercase tracking-wide text-ink-faint">
+                    Destinacija
+                  </dt>
                   <dd className="text-ink">{item.destination ?? '—'}</dd>
                 </div>
               </dl>
@@ -117,17 +129,24 @@ export default function BookingRepsCard({
               </div>
               {!canViewCheckIns ? (
                 <p className="text-xs text-ink-faint">
-                  Za prikaz prijava sa terena potrebna je dozvola <code>M9/field-checkin/VIEW</code>.
+                  Za prikaz prijava sa terena potrebna je dozvola <code>M9/field-checkin/VIEW</code>
+                  .
                 </p>
               ) : itemCheckIns.length === 0 ? (
-                <p className="text-xs text-ink-faint">Nijedan putnik još nije prijavljen na destinaciji.</p>
+                <p className="text-xs text-ink-faint">
+                  Nijedan putnik još nije prijavljen na destinaciji.
+                </p>
               ) : (
                 <ul className="space-y-1">
                   {itemCheckIns.map((c) => (
-                    <li key={c.id} className="flex flex-wrap items-center justify-between gap-2 text-xs">
+                    <li
+                      key={c.id}
+                      className="flex flex-wrap items-center justify-between gap-2 text-xs"
+                    >
                       <span className="text-ink">{c.guestName}</span>
                       <span className="text-ink-faint">
-                        {new Date(c.checkedInAt).toLocaleString('sr-RS')} · {namesById[c.checkedInBy] ?? 'nepoznat korisnik'}
+                        {new Date(c.checkedInAt).toLocaleString('sr-RS')} ·{' '}
+                        {namesById[c.checkedInBy] ?? 'nepoznat korisnik'}
                       </span>
                     </li>
                   ))}
@@ -141,8 +160,19 @@ export default function BookingRepsCard({
   );
 }
 
-function AssignForm({ bookingId, item, guides }: { bookingId: string; item: RepItem; guides: { id: string; fullName: string }[] }) {
-  const [state, formAction] = useActionState(assignGuide.bind(null, bookingId, item.id), emptyGuideState);
+function AssignForm({
+  bookingId,
+  item,
+  guides,
+}: {
+  bookingId: string;
+  item: RepItem;
+  guides: { id: string; fullName: string }[];
+}) {
+  const [state, formAction] = useActionState(
+    assignGuide.bind(null, bookingId, item.id),
+    emptyGuideState,
+  );
 
   return (
     <form action={formAction} className="flex flex-wrap items-end gap-2">
@@ -168,7 +198,9 @@ function AssignForm({ bookingId, item, guides }: { bookingId: string; item: RepI
       {state.error && <p className="w-full text-xs text-danger">{state.error}</p>}
       {state.ok && <p className="w-full text-xs text-ok">{state.ok}</p>}
       {guides.length === 0 && (
-        <p className="w-full text-[11px] text-ink-faint">Nema nijednog korisnika sa ulogom VODIC — dodelite je nekome u sekciji Korisnici.</p>
+        <p className="w-full text-[11px] text-ink-faint">
+          Nema nijednog korisnika sa ulogom VODIC — dodelite je nekome u sekciji Korisnici.
+        </p>
       )}
     </form>
   );

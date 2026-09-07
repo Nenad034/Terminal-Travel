@@ -17,7 +17,9 @@ export class ClientAccountsService {
   // M6 spec §7 dopuna — Gost (account_type GUEST) sme da vidi/menja isključivo
   // sopstveni nalog; ownClientAccountId = null znači "nema sopstveni nalog" (npr.
   // interno osoblje), u tom slučaju ownership provera nije primenjiva.
-  private async ownAccountIdIfGuest(actorUserId: string | undefined): Promise<{ isGuest: boolean; ownAccountId: string | null }> {
+  private async ownAccountIdIfGuest(
+    actorUserId: string | undefined,
+  ): Promise<{ isGuest: boolean; ownAccountId: string | null }> {
     if (!actorUserId) return { isGuest: false, ownAccountId: null };
     const identity = await resolveCallerIdentity(this.prisma, actorUserId);
     return { isGuest: identity.accountType === 'GUEST', ownAccountId: identity.ownProfileId };
@@ -39,31 +41,49 @@ export class ClientAccountsService {
   async findMany(filter: { email?: string; taxId?: string }, actorUserId?: string) {
     const { isGuest, ownAccountId } = await this.ownAccountIdIfGuest(actorUserId);
     if (isGuest) {
-      const own = ownAccountId ? await this.prisma.clientAccount.findUnique({ where: { id: ownAccountId } }) : null;
+      const own = ownAccountId
+        ? await this.prisma.clientAccount.findUnique({ where: { id: ownAccountId } })
+        : null;
       return own ? [own] : [];
     }
 
     let scopedIds: string[] | undefined;
     if (actorUserId) {
-      const hasViewAll = await this.permissions.hasPermission(actorUserId, 'M6', 'client-account', 'VIEW_ALL');
+      const hasViewAll = await this.permissions.hasPermission(
+        actorUserId,
+        'M6',
+        'client-account',
+        'VIEW_ALL',
+      );
       if (!hasViewAll) scopedIds = await this.ownClientAccountIdsForStaffScope(actorUserId);
     }
 
     return this.prisma.clientAccount.findMany({
-      where: { email: filter.email, taxId: filter.taxId, id: scopedIds ? { in: scopedIds } : undefined },
+      where: {
+        email: filter.email,
+        taxId: filter.taxId,
+        id: scopedIds ? { in: scopedIds } : undefined,
+      },
       orderBy: { createdAt: 'desc' },
     });
   }
 
   async findOne(id: string, actorUserId?: string) {
     const { isGuest, ownAccountId } = await this.ownAccountIdIfGuest(actorUserId);
-    if (isGuest && id !== ownAccountId) throw new NotFoundException(`ClientAccount ${id} nije pronađen.`);
+    if (isGuest && id !== ownAccountId)
+      throw new NotFoundException(`ClientAccount ${id} nije pronađen.`);
 
     if (!isGuest && actorUserId) {
-      const hasViewAll = await this.permissions.hasPermission(actorUserId, 'M6', 'client-account', 'VIEW_ALL');
+      const hasViewAll = await this.permissions.hasPermission(
+        actorUserId,
+        'M6',
+        'client-account',
+        'VIEW_ALL',
+      );
       if (!hasViewAll) {
         const scopedIds = await this.ownClientAccountIdsForStaffScope(actorUserId);
-        if (!scopedIds.includes(id)) throw new NotFoundException(`ClientAccount ${id} nije pronađen.`);
+        if (!scopedIds.includes(id))
+          throw new NotFoundException(`ClientAccount ${id} nije pronađen.`);
       }
     }
 
@@ -93,7 +113,8 @@ export class ClientAccountsService {
 
   async update(id: string, dto: UpdateClientAccountDto, actorUserId?: string) {
     const existing = await this.findOne(id, actorUserId);
-    const consentChangedToTrue = dto.marketingConsent === true && existing.marketingConsent !== true;
+    const consentChangedToTrue =
+      dto.marketingConsent === true && existing.marketingConsent !== true;
 
     return this.prisma.clientAccount.update({
       where: { id },
@@ -125,7 +146,9 @@ export class ClientAccountsService {
     if (!targetTags || targetTags.length === 0) return consented;
 
     return consented.filter((account) => {
-      const accountTags = Array.isArray(account.tags) ? (account.tags as unknown[]).map(String) : [];
+      const accountTags = Array.isArray(account.tags)
+        ? (account.tags as unknown[]).map(String)
+        : [];
       return targetTags.some((tag) => accountTags.includes(tag));
     });
   }

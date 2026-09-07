@@ -7,7 +7,6 @@ import Icon from '@/components/Icon';
 import EmailMessagesPanel from './EmailMessagesPanel';
 import ThreadActionsPanel from './ThreadActionsPanel';
 
-
 interface EmailMessage {
   id: string;
   direction: 'INBOUND' | 'OUTBOUND';
@@ -41,7 +40,9 @@ interface EmailThreadDetail {
 // nit ne postoji, 403 ako pozivalac nema MailboxAccess za sanduče (bez obzira na ulogu, isti
 // obrazac kao M19 SupplierConversationAccess). Odgovor sada uključuje `mailbox.address`/
 // `mailbox.displayName` (isti proširen payload kao lista niti).
-export default async function EmailThreadDetailPage(props: { params: Promise<{ threadId: string }> }) {
+export default async function EmailThreadDetailPage(props: {
+  params: Promise<{ threadId: string }>;
+}) {
   const params = await props.params;
   const me = await getMe();
   const canReply = hasPermission(me, 'M22', 'email-thread', 'REPLY');
@@ -55,7 +56,10 @@ export default async function EmailThreadDetailPage(props: { params: Promise<{ t
     return (
       <div className="p-6">
         <RegisterTab label="Email nit" />
-        <Link href="/email" className="mb-3 inline-flex items-center gap-1 text-xs text-ink-faint hover:text-ink">
+        <Link
+          href="/email"
+          className="mb-3 inline-flex items-center gap-1 text-xs text-ink-faint hover:text-ink"
+        >
           <Icon name="arrow-left" /> nazad na inbox
         </Link>
         <p className="rounded bg-danger-bg p-3 text-sm text-danger">
@@ -68,7 +72,10 @@ export default async function EmailThreadDetailPage(props: { params: Promise<{ t
   return (
     <div className="p-6">
       <RegisterTab label={thread.subject} />
-      <Link href="/email" className="mb-3 inline-flex items-center gap-1 text-xs text-ink-faint hover:text-ink">
+      <Link
+        href="/email"
+        className="mb-3 inline-flex items-center gap-1 text-xs text-ink-faint hover:text-ink"
+      >
         <Icon name="arrow-left" /> nazad na inbox
       </Link>
 
@@ -76,8 +83,8 @@ export default async function EmailThreadDetailPage(props: { params: Promise<{ t
         <div>
           <h1 className="text-lg font-semibold text-ink">{thread.subject}</h1>
           <p className="text-xs text-ink-faint">
-            {thread.mailbox.displayName || thread.mailbox.address} · {thread.correspondentType} · poslednja poruka{' '}
-            {new Date(thread.lastMessageAt).toLocaleString('sr-RS')}
+            {thread.mailbox.displayName || thread.mailbox.address} · {thread.correspondentType} ·
+            poslednja poruka {new Date(thread.lastMessageAt).toLocaleString('sr-RS')}
           </p>
         </div>
         <StatusBadge status={thread.status} />
@@ -96,20 +103,27 @@ export default async function EmailThreadDetailPage(props: { params: Promise<{ t
           href={`/rezervacije/${thread.relatedBookingId}`}
           className="mb-2 flex items-center gap-1.5 rounded-lg border border-border bg-panel p-3 text-xs hover:border-accent"
         >
-          <Icon name="link" /> vezana rezervacija <span className="text-ink-faint">({thread.relatedBookingId})</span>
+          <Icon name="link" /> vezana rezervacija{' '}
+          <span className="text-ink-faint">({thread.relatedBookingId})</span>
         </Link>
       )}
       {(thread.relatedSupplierManifestId || thread.relatedSupplierChangeNoticeId) && (
         <div className="mb-4 rounded-lg border border-border bg-panel p-3 text-xs text-ink-dim">
-          <Icon name="package" /> najava dobavljača povezana ({thread.relatedSupplierManifestId ? 'najava rezervacije' : 'najava izmene/storna'}) — konačna
-          potvrda ide isključivo kroz M5/supplier-confirmation/CONFIRM (spec §3.1a).
+          <Icon name="package" /> najava dobavljača povezana (
+          {thread.relatedSupplierManifestId ? 'najava rezervacije' : 'najava izmene/storna'}) —
+          konačna potvrda ide isključivo kroz M5/supplier-confirmation/CONFIRM (spec §3.1a).
         </div>
       )}
 
       <div className="grid gap-4 md:grid-cols-2">
         <EmailMessagesPanel threadId={thread.id} messages={thread.messages} canReply={canReply} />
         {(canReply || canConvert) && (
-          <ThreadActionsPanel threadId={thread.id} canReply={canReply} canConvert={canConvert} alreadyConverted={!!thread.convertedToTicketId} />
+          <ThreadActionsPanel
+            threadId={thread.id}
+            canReply={canReply}
+            canConvert={canConvert}
+            alreadyConverted={!!thread.convertedToTicketId}
+          />
         )}
       </div>
     </div>
@@ -117,6 +131,11 @@ export default async function EmailThreadDetailPage(props: { params: Promise<{ t
 }
 
 function StatusBadge({ status }: { status: string }) {
-  const tone = status === 'CLOSED' ? 'text-ink-faint bg-panel2' : status === 'AWAITING_REPLY' ? 'text-warn bg-warn-bg' : 'text-accent-strong bg-accent-soft';
+  const tone =
+    status === 'CLOSED'
+      ? 'text-ink-faint bg-panel2'
+      : status === 'AWAITING_REPLY'
+        ? 'text-warn bg-warn-bg'
+        : 'text-accent-strong bg-accent-soft';
   return <span className={`rounded px-2 py-0.5 text-[11px] font-medium ${tone}`}>{status}</span>;
 }

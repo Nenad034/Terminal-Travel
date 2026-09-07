@@ -10,7 +10,9 @@ export async function GET() {
     return NextResponse.json(result);
   } catch (err) {
     if (err instanceof ApiError) {
-      return NextResponse.json(err.body ?? { message: 'Razgovori nisu dostupni' }, { status: err.status });
+      return NextResponse.json(err.body ?? { message: 'Razgovori nisu dostupni' }, {
+        status: err.status,
+      });
     }
     throw err;
   }

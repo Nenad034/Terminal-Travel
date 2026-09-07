@@ -45,7 +45,9 @@ export class UsersService {
         status: 'ACTIVE',
         ...(role ? { roles: { some: { role: { name: role } } } } : {}),
       },
-      select: role ? { id: true, fullName: true, phone: true, email: true } : { id: true, fullName: true },
+      select: role
+        ? { id: true, fullName: true, phone: true, email: true }
+        : { id: true, fullName: true },
       orderBy: { fullName: 'asc' },
     });
   }
@@ -112,7 +114,11 @@ export class UsersService {
     return { user, inviteToken, emailDelivered: sent.delivered };
   }
 
-  async update(id: string, data: { fullName?: string; phone?: string; branchId?: string | null }, actorId: string) {
+  async update(
+    id: string,
+    data: { fullName?: string; phone?: string; branchId?: string | null },
+    actorId: string,
+  ) {
     const after = await this.prisma.user.update({ where: { id }, data });
     await this.auditLog.write({
       actorType: 'HUMAN',
@@ -131,7 +137,10 @@ export class UsersService {
   async suspend(id: string, actorId: string) {
     const before = await this.prisma.user.findUniqueOrThrow({ where: { id } });
     const after = await this.prisma.user.update({ where: { id }, data: { status: 'SUSPENDED' } });
-    await this.prisma.refreshToken.updateMany({ where: { userId: id, revokedAt: null }, data: { revokedAt: new Date() } });
+    await this.prisma.refreshToken.updateMany({
+      where: { userId: id, revokedAt: null },
+      data: { revokedAt: new Date() },
+    });
 
     await this.auditLog.write({
       actorType: 'HUMAN',
@@ -178,7 +187,11 @@ export class UsersService {
   }
 
   // M1 spec §3.6 — "korisnik ne može menjati sopstvene dozvole (granted_by != user_id)".
-  async createPermissionOverride(userId: string, dto: CreatePermissionOverrideDto, grantedBy: string) {
+  async createPermissionOverride(
+    userId: string,
+    dto: CreatePermissionOverrideDto,
+    grantedBy: string,
+  ) {
     if (grantedBy === userId) {
       throw new BadRequestException('Korisnik ne može menjati sopstvene dozvole');
     }
@@ -206,7 +219,10 @@ export class UsersService {
   }
 
   async listPermissionOverrides(userId: string) {
-    return this.prisma.userPermissionOverride.findMany({ where: { userId }, include: { permission: true } });
+    return this.prisma.userPermissionOverride.findMany({
+      where: { userId },
+      include: { permission: true },
+    });
   }
 
   async deletePermissionOverride(overrideId: string, actorId: string) {

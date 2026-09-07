@@ -19,7 +19,11 @@ export default function EditProductForm({
 }: {
   productId: string;
   translation?: { name: string; description: string; slug: string };
-  destination: { destinationCountry: string; destinationCity: string; destinationArea: string | null };
+  destination: {
+    destinationCountry: string;
+    destinationCity: string;
+    destinationArea: string | null;
+  };
 }) {
   const [state, formAction] = useActionState(updateProduct, initialState);
   const pathname = usePathname();
@@ -45,7 +49,13 @@ export default function EditProductForm({
       </label>
       <label className="text-xs text-ink-faint">
         opis (srpski)
-        <textarea name="description" defaultValue={translation?.description} rows={4} required className="input mt-1" />
+        <textarea
+          name="description"
+          defaultValue={translation?.description}
+          rows={4}
+          required
+          className="input mt-1"
+        />
       </label>
       <label className="text-xs text-ink-faint">
         slug
@@ -53,7 +63,12 @@ export default function EditProductForm({
       </label>
       <label className="text-xs text-ink-faint">
         država odredišta
-        <input name="destinationCountry" defaultValue={destination.destinationCountry} required className="input mt-1" />
+        <input
+          name="destinationCountry"
+          defaultValue={destination.destinationCountry}
+          required
+          className="input mt-1"
+        />
       </label>
       {/* M2 spec §2.1b (4.9.2026) — isti par polja kao NewProductForm: mesto mora biti stvarno
           naselje, regija/poluostrvo (kad postoji) ide odvojeno, ne u isto polje. Ovo je jedino
@@ -61,11 +76,22 @@ export default function EditProductForm({
           ispraviti — ranije nije postojala forma za izmenu ovih polja na postojećem proizvodu. */}
       <label className="text-xs text-ink-faint">
         mesto odredišta
-        <input name="destinationCity" defaultValue={destination.destinationCity} required className="input mt-1" placeholder="Nikiti" />
+        <input
+          name="destinationCity"
+          defaultValue={destination.destinationCity}
+          required
+          className="input mt-1"
+          placeholder="Nikiti"
+        />
       </label>
       <label className="text-xs text-ink-faint">
         regija / poluostrvo (opciono)
-        <input name="destinationArea" defaultValue={destination.destinationArea ?? ''} className="input mt-1" placeholder="Sitonija, Halkidiki" />
+        <input
+          name="destinationArea"
+          defaultValue={destination.destinationArea ?? ''}
+          className="input mt-1"
+          placeholder="Sitonija, Halkidiki"
+        />
       </label>
 
       <SubmitButton />

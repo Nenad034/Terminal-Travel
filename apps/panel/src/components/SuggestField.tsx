@@ -157,7 +157,9 @@ export default function SuggestField({
                 {item.productId && <Icon name="home" className="flex-shrink-0 text-ink-faint" />}
                 <span className="truncate">{item.label}</span>
               </span>
-              {item.hint && <span className="flex-shrink-0 text-[11px] text-ink-faint">{item.hint}</span>}
+              {item.hint && (
+                <span className="flex-shrink-0 text-[11px] text-ink-faint">{item.hint}</span>
+              )}
             </button>
           ))}
         </div>

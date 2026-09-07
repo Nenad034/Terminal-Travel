@@ -18,13 +18,21 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(result);
     }
 
-    const payload = JSON.parse(Buffer.from(result.accessToken.split('.')[1], 'base64url').toString('utf8'));
-    await setSession({ accessToken: result.accessToken, refreshToken: result.refreshToken, userId: payload.sub });
+    const payload = JSON.parse(
+      Buffer.from(result.accessToken.split('.')[1], 'base64url').toString('utf8'),
+    );
+    await setSession({
+      accessToken: result.accessToken,
+      refreshToken: result.refreshToken,
+      userId: payload.sub,
+    });
 
     return NextResponse.json({ ok: true });
   } catch (err) {
     if (err instanceof ApiError) {
-      return NextResponse.json(err.body ?? { message: 'Prijava nije uspela' }, { status: err.status });
+      return NextResponse.json(err.body ?? { message: 'Prijava nije uspela' }, {
+        status: err.status,
+      });
     }
     throw err;
   }

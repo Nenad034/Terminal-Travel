@@ -13,11 +13,13 @@
 Status aktivacije jednog `ModuleAgentActivation` gate-a (M15 spec §3). Zahteva `M15/module-activation/VIEW`.
 
 **Zahtev:**
+
 ```
 GET /api/v1/ai-orchestration/modules/M15_OMNISEARCH/activation
 ```
 
 **Odgovor `200`:**
+
 ```json
 {
   "moduleCode": "M15_OMNISEARCH",
@@ -38,12 +40,14 @@ GET /api/v1/ai-orchestration/modules/M15_OMNISEARCH/activation
 Ljudska potvrda prelaska gate-a u novi status — **uvek Vlasnik ili Direktor**, nikad AI agent (M15 spec §3, §5, §8). Zahteva `M15/module-activation/ACTIVATE`; dodatno, servis odbija poziv ako je pozivalac `account_type = AI_AGENT`, čak i kad bi neka buduća greška dodelila tu dozvolu AI nalogu (odbrana u dubinu).
 
 **Zahtev:**
+
 ```json
 PATCH /api/v1/ai-orchestration/modules/M15_OMNISEARCH/activation
 { "status": "ACTIVATED" }
 ```
 
 **Odgovor `200`:**
+
 ```json
 {
   "moduleCode": "M15_OMNISEARCH",
@@ -64,6 +68,7 @@ PATCH /api/v1/ai-orchestration/modules/M15_OMNISEARCH/activation
 Univerzalna pretraga/AI razgovor za M17 kanal (M15 spec §6.5, §9). Poziva se sa identitetom korisnika koji pretražuje — rezultati nikad ne prekoračuju ono što bi taj korisnik video da je ručno kliktao kroz panel.
 
 **Zahtev:**
+
 ```json
 POST /api/v1/ai-orchestration/omnisearch
 { "query": "TT-2027-000482", "channel": "INTERNAL_PANEL" }
@@ -72,11 +77,15 @@ POST /api/v1/ai-orchestration/omnisearch
 ### Slučaj 1 — modul aktiviran, direktno poklapanje (bez jezičkog modela)
 
 **Odgovor `200`:**
+
 ```json
 {
   "active": true,
   "matchedRoutes": [
-    { "label": "Rezervacija TT-2027-000482 — Ana Petrović", "href": "/rezervacije/pretraga?bookingId=b7e2f1a0-..." }
+    {
+      "label": "Rezervacija TT-2027-000482 — Ana Petrović",
+      "href": "/rezervacije/pretraga?bookingId=b7e2f1a0-..."
+    }
   ],
   "entityResults": [
     {
@@ -92,19 +101,29 @@ POST /api/v1/ai-orchestration/omnisearch
 ### Slučaj 2 — pitanje na prirodnom jeziku, jezički model konfigurisan (ANTHROPIC_API_KEY podešen)
 
 **Zahtev:**
+
 ```json
 { "query": "koje rezervacije čekaju fiskalni dokument", "channel": "INTERNAL_PANEL" }
 ```
 
 **Odgovor `200`:**
+
 ```json
 {
   "active": true,
   "matchedRoutes": [
-    { "label": "Rezervacija TT-2027-000501 — Marko Jovanović", "href": "/rezervacije/pretraga?bookingId=..." }
+    {
+      "label": "Rezervacija TT-2027-000501 — Marko Jovanović",
+      "href": "/rezervacije/pretraga?bookingId=..."
+    }
   ],
   "entityResults": [
-    { "type": "BOOKING", "id": "...", "label": "Rezervacija TT-2027-000501 — Marko Jovanović", "href": "/rezervacije/pretraga?bookingId=..." }
+    {
+      "type": "BOOKING",
+      "id": "...",
+      "label": "Rezervacija TT-2027-000501 — Marko Jovanović",
+      "href": "/rezervacije/pretraga?bookingId=..."
+    }
   ],
   "aiAnswer": "Pronašao sam jednu rezervaciju koja odgovara upitu preko pretrage po imenu — proveri status fiskalnog dokumenta na njenoj stranici."
 }
@@ -113,6 +132,7 @@ POST /api/v1/ai-orchestration/omnisearch
 ### Slučaj 3 — modul NIJE aktiviran (`ModuleAgentActivation.status != ACTIVATED`)
 
 **Odgovor `200`:**
+
 ```json
 { "active": false, "matchedRoutes": [], "entityResults": [] }
 ```
@@ -122,6 +142,7 @@ Namerno `200` sa `active:false`, ne `409`/greška — panel prikazuje smirenu po
 ### Slučaj 4 — pitanje na prirodnom jeziku, ali `ANTHROPIC_API_KEY` nije podešen
 
 **Odgovor `200`:**
+
 ```json
 {
   "active": true,
@@ -134,11 +155,24 @@ Namerno `200` sa `active:false`, ne `409`/greška — panel prikazuje smirenu po
 ### Slučaj 5 — upit koji liči na zahtev za radnju ("otkaži...")
 
 Odgovor uvek vraća link/navigaciju, nikad ne izvršava radnju (M15 spec §6.5.4 tačka 3, registar `omnisearch.query = AUTONOMOUS` ograničen na pronalaženje):
+
 ```json
 {
   "active": true,
-  "matchedRoutes": [{ "label": "Rezervacija TT-2027-000482 — Ana Petrović", "href": "/rezervacije/pretraga?bookingId=..." }],
-  "entityResults": [{ "type": "BOOKING", "id": "...", "label": "Rezervacija TT-2027-000482 — Ana Petrović", "href": "/rezervacije/pretraga?bookingId=..." }],
+  "matchedRoutes": [
+    {
+      "label": "Rezervacija TT-2027-000482 — Ana Petrović",
+      "href": "/rezervacije/pretraga?bookingId=..."
+    }
+  ],
+  "entityResults": [
+    {
+      "type": "BOOKING",
+      "id": "...",
+      "label": "Rezervacija TT-2027-000482 — Ana Petrović",
+      "href": "/rezervacije/pretraga?bookingId=..."
+    }
+  ],
   "aiAnswer": "Pronašao sam zapis na koji se pitanje odnosi. Radnju (otkazivanje/slanje/izmenu) potvrdi ručno na toj stranici — omnisearch samo pronalazi i navigira, nikad ne izvršava radnju."
 }
 ```
@@ -154,10 +188,23 @@ Odgovor uvek vraća link/navigaciju, nikad ne izvršava radnju (M15 spec §6.5.4
 Ceo registar iz spec poglavlja 4. Zahteva `M15/agent-action-type/VIEW`.
 
 **Odgovor `200`:**
+
 ```json
 [
-  { "id": "...", "moduleCode": "M10", "actionCode": "fiscal_document.submit", "tier": "NEVER_AUTONOMOUS", "sourceNote": "M10 poglavlje 6" },
-  { "id": "...", "moduleCode": null, "actionCode": "money.transfer", "tier": "NEVER_AUTONOMOUS", "sourceNote": "poglavlje 7 Master dokumenta" }
+  {
+    "id": "...",
+    "moduleCode": "M10",
+    "actionCode": "fiscal_document.submit",
+    "tier": "NEVER_AUTONOMOUS",
+    "sourceNote": "M10 poglavlje 6"
+  },
+  {
+    "id": "...",
+    "moduleCode": null,
+    "actionCode": "money.transfer",
+    "tier": "NEVER_AUTONOMOUS",
+    "sourceNote": "poglavlje 7 Master dokumenta"
+  }
 ]
 ```
 
@@ -166,9 +213,16 @@ Ceo registar iz spec poglavlja 4. Zahteva `M15/agent-action-type/VIEW`.
 Registruje novu akciju (za budući modul koji uvede novu akciju koju AI agent dodiruje — spec §4 "ne postoji podrazumevani nivo"). Zahteva `M15/agent-action-type/EDIT`.
 
 **Zahtev:**
+
 ```json
-{ "moduleCode": "M3", "actionCode": "novi_primer.akcija", "tier": "PROPOSE_THEN_APPROVE", "sourceNote": "M3 poglavlje X" }
+{
+  "moduleCode": "M3",
+  "actionCode": "novi_primer.akcija",
+  "tier": "PROPOSE_THEN_APPROVE",
+  "sourceNote": "M3 poglavlje X"
+}
 ```
+
 `moduleCode` se izostavlja (ili šalje kao `null`) za "(globalno)" red.
 
 ## PATCH /action-types/:id
@@ -182,15 +236,28 @@ Izmena `tier`/`sourceNote` postojećeg reda. Zahteva `M15/agent-action-type/EDIT
 Agent Inbox (spec §6) — agregovane `PROPOSE_THEN_APPROVE` stavke koje čekaju odobrenje, samo iz izvora za koje pozivalac ima odgovarajuću VIEW dozvolu tog modula. Zahteva `M15/agent-inbox/VIEW`.
 
 **Zahtev:**
+
 ```
 GET /api/v1/ai-orchestration/inbox
 ```
 
 **Odgovor `200`:**
+
 ```json
 [
-  { "moduleCode": "M5", "actionCode": "supplier_manifest.send", "label": "Operativne liste spremne za slanje dobavljaču", "count": 3 },
-  { "moduleCode": "M7", "actionCode": "commission_rebate.apply", "label": "Rabati provizije na čekanju odobrenja", "count": 1 }
+  {
+    "moduleCode": "M5",
+    "actionCode": "supplier_manifest.send",
+    "label": "Operativne liste spremne za slanje dobavljaču",
+    "count": 3
+  },
+  {
+    "moduleCode": "M7",
+    "actionCode": "commission_rebate.apply",
+    "label": "Rabati provizije na čekanju odobrenja",
+    "count": 1
+  }
 ]
 ```
+
 Izvor se u potpunosti izostavlja iz odgovora (ne pojavljuje se ni sa `count: 0`) ako pozivalac nema VIEW dozvolu tog modula; ako dozvolu ima ali trenutno nema stavki na čekanju, izvor se vraća sa `count: 0`.

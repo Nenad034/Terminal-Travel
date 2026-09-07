@@ -1,13 +1,26 @@
 import { randomUUID } from 'crypto';
 import { writeFileSync } from 'fs';
 import { join } from 'path';
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { FactBooking, Prisma } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { PermissionsService } from '../../m1-core-identitet/permissions/permissions.service';
 import { ConversationsService } from '../../m19-komunikaciona-platforma/conversations/conversations.service';
-import { ensureConversationUploadDir, sanitizeAttachmentFileName } from '../../m19-komunikaciona-platforma/conversations/attachment-storage';
-import { generateExcelBuffer, generateHtmlString, generatePdfBuffer, type ReportData } from '../../../common/reports/report-generator';
+import {
+  ensureConversationUploadDir,
+  sanitizeAttachmentFileName,
+} from '../../m19-komunikaciona-platforma/conversations/attachment-storage';
+import {
+  generateExcelBuffer,
+  generateHtmlString,
+  generatePdfBuffer,
+  type ReportData,
+} from '../../../common/reports/report-generator';
 import { getReport, saveReport, type StoredReport } from '../../../common/reports/report-store';
 import { ExportReportDto } from './dto/export-report.dto';
 
@@ -32,7 +45,12 @@ export const REPORT_DATE_FIELDS: ReportDateField[] = ['created', 'stay_from', 's
 export type ReportSegment = 'B2B' | 'B2C' | 'SUBAGENT';
 export const REPORT_SEGMENTS: ReportSegment[] = ['B2B', 'B2C', 'SUBAGENT'];
 
-type PeriodFilter = { from?: string; to?: string; dateField?: ReportDateField; segment?: ReportSegment };
+type PeriodFilter = {
+  from?: string;
+  to?: string;
+  dateField?: ReportDateField;
+  segment?: ReportSegment;
+};
 
 export interface Bucket {
   key: string;
@@ -71,7 +89,12 @@ export const DYNAMIC_DIMENSIONS = [
 ] as const;
 export type DynamicDimension = (typeof DYNAMIC_DIMENSIONS)[number];
 
-export const OCCUPANCY_GROUP_BY = ['room_type', 'board_type', 'stars', 'accommodation_type'] as const;
+export const OCCUPANCY_GROUP_BY = [
+  'room_type',
+  'board_type',
+  'stars',
+  'accommodation_type',
+] as const;
 export type OccupancyGroupBy = (typeof OCCUPANCY_GROUP_BY)[number];
 
 // M13 spec §6/§7 (v1.5 dopuna) — mapiranje `reportKind` (telo `/reports/export`) na `resource`
@@ -100,7 +123,13 @@ export class ReportsService {
   // §4 — Profitabilnost po destinaciji/dobavljaču/kanalu
   // ==========================================================================
   async profitability(
-    filters: PeriodFilter & { destinationCountry?: string; destinationCity?: string; supplierId?: string; providerCode?: string; channel?: string },
+    filters: PeriodFilter & {
+      destinationCountry?: string;
+      destinationCity?: string;
+      supplierId?: string;
+      providerCode?: string;
+      channel?: string;
+    },
   ) {
     const where: Prisma.FactBookingWhereInput = {
       ...this.periodWhere(filters),
@@ -114,7 +143,10 @@ export class ReportsService {
 
     return {
       byDestination: this.bucketize(rows, (r) => `${r.destinationCountry} / ${r.destinationCity}`),
-      bySupplier: this.bucketize(rows, (r) => r.supplierName ?? r.providerCode ?? '(nepoznat dobavljač/provajder)'),
+      bySupplier: this.bucketize(
+        rows,
+        (r) => r.supplierName ?? r.providerCode ?? '(nepoznat dobavljač/provajder)',
+      ),
       byChannel: this.bucketize(rows, (r) => r.channel),
       lastSyncedAt: await this.lastSyncedAt(rows),
     };
@@ -149,7 +181,12 @@ export class ReportsService {
   // §4.1 — Operativna statistika smeštaja
   // ==========================================================================
   async occupancy(
-    filters: PeriodFilter & { destinationCountry?: string; destinationCity?: string; supplierId?: string; groupBy?: OccupancyGroupBy },
+    filters: PeriodFilter & {
+      destinationCountry?: string;
+      destinationCity?: string;
+      supplierId?: string;
+      groupBy?: OccupancyGroupBy;
+    },
   ) {
     const where: Prisma.FactBookingWhereInput = {
       ...this.periodWhere(filters),
@@ -218,7 +255,11 @@ export class ReportsService {
       : [];
     const where: Prisma.FactBookingWhereInput = {
       ...this.periodWhere(filters),
-      ...(types.length === 1 ? { productType: types[0] as never } : types.length > 1 ? { productType: { in: types as never[] } } : {}),
+      ...(types.length === 1
+        ? { productType: types[0] as never }
+        : types.length > 1
+          ? { productType: { in: types as never[] } }
+          : {}),
     };
     const rows = await this.prisma.factBooking.findMany({ where });
     const payments = await this.prisma.factPayment.findMany();
@@ -231,7 +272,11 @@ export class ReportsService {
     return { dimensions, tree, lastSyncedAt: await this.lastSyncedAt(rows) };
   }
 
-  private buildDynamicTree(rows: FactBooking[], dims: DynamicDimension[], paidByBookingId: Map<string, number>): DynamicNode[] {
+  private buildDynamicTree(
+    rows: FactBooking[],
+    dims: DynamicDimension[],
+    paidByBookingId: Map<string, number>,
+  ): DynamicNode[] {
     if (dims.length === 0) return [];
     const [dim, ...rest] = dims;
     const keyFn = this.dynamicKeyFn(dim);
@@ -291,11 +336,17 @@ export class ReportsService {
     const attributed = rows.filter((r) => r.referralContentId !== null);
     const unattributed = rows.filter((r) => r.referralContentId === null);
 
-    const byContent = this.bucketize(attributed, (r) => r.referralContentName ?? r.referralContentId!);
+    const byContent = this.bucketize(
+      attributed,
+      (r) => r.referralContentName ?? r.referralContentId!,
+    );
 
     return {
       byContent,
-      withoutKnownOrigin: { count: unattributed.length, revenue: unattributed.reduce((s, r) => s + r.finalPrice, 0) },
+      withoutKnownOrigin: {
+        count: unattributed.length,
+        revenue: unattributed.reduce((s, r) => s + r.finalPrice, 0),
+      },
       attributedShare: rows.length > 0 ? attributed.length / rows.length : 0,
       lastSyncedAt: await this.lastSyncedAt(rows),
     };
@@ -306,7 +357,10 @@ export class ReportsService {
   // ==========================================================================
   private periodWhere(filters: PeriodFilter): Prisma.FactBookingWhereInput {
     // §4.1 — "aktivne stavke (status != CANCELLED)", primenjeno na sve izveštaje (poglavlje 4).
-    const where: Prisma.FactBookingWhereInput = { status: { not: 'CANCELLED' }, ...this.segmentWhere(filters.segment) };
+    const where: Prisma.FactBookingWhereInput = {
+      status: { not: 'CANCELLED' },
+      ...this.segmentWhere(filters.segment),
+    };
 
     if (!filters.dateField) {
       // Bez eksplicitnog `dateField` — staro ponašanje (preklapanje sa terminom boravka),
@@ -317,7 +371,12 @@ export class ReportsService {
     }
     if (!filters.from && !filters.to) return where;
 
-    const field = filters.dateField === 'created' ? 'bookingDate' : filters.dateField === 'stay_to' ? 'stayTo' : 'stayFrom';
+    const field =
+      filters.dateField === 'created'
+        ? 'bookingDate'
+        : filters.dateField === 'stay_to'
+          ? 'stayTo'
+          : 'stayFrom';
     // `bookingDate` nosi stvaran trenutak (kao M5 `createdAt`) — "do" granica mora zaključno sa
     // krajem tog dana, inače bi isključila skoro sve zapise tog dana (isti razlog kao M5
     // `createdTo`/M1 audit-log `endOfDayIfDateOnly`). `stayFrom`/`stayTo` su čisti kalendarski
@@ -326,7 +385,12 @@ export class ReportsService {
     (where as Record<string, unknown>)[field] = {
       ...(filters.from ? { gte: new Date(filters.from) } : {}),
       ...(filters.to
-        ? { lte: filters.dateField === 'created' ? new Date(`${filters.to}T23:59:59.999Z`) : new Date(filters.to) }
+        ? {
+            lte:
+              filters.dateField === 'created'
+                ? new Date(`${filters.to}T23:59:59.999Z`)
+                : new Date(filters.to),
+          }
         : {}),
     };
     return where;
@@ -353,11 +417,21 @@ export class ReportsService {
     return [...map.values()].sort((a, b) => b.revenue - a.revenue);
   }
 
-  private bucketizeWithNights(rows: FactBooking[], keyFn: (r: FactBooking) => string): (Bucket & { nights: number })[] {
+  private bucketizeWithNights(
+    rows: FactBooking[],
+    keyFn: (r: FactBooking) => string,
+  ): (Bucket & { nights: number })[] {
     const map = new Map<string, Bucket & { nights: number }>();
     for (const r of rows) {
       const key = keyFn(r);
-      const bucket = map.get(key) ?? { key, count: 0, revenue: 0, baseCost: 0, margin: 0, nights: 0 };
+      const bucket = map.get(key) ?? {
+        key,
+        count: 0,
+        revenue: 0,
+        baseCost: 0,
+        margin: 0,
+        nights: 0,
+      };
       bucket.count += 1;
       bucket.revenue += r.finalPrice;
       bucket.baseCost += r.baseCost;
@@ -373,7 +447,10 @@ export class ReportsService {
   // prikaže "nikad" iako je projekcija sveža, samo trenutni filter nema rezultata).
   private async lastSyncedAt(rows: FactBooking[]): Promise<Date | null> {
     if (rows.length > 0) {
-      return rows.reduce((max, r) => (r.lastSyncedAt > max ? r.lastSyncedAt : max), rows[0].lastSyncedAt);
+      return rows.reduce(
+        (max, r) => (r.lastSyncedAt > max ? r.lastSyncedAt : max),
+        rows[0].lastSyncedAt,
+      );
     }
     const latest = await this.prisma.factBooking.findFirst({ orderBy: { lastSyncedAt: 'desc' } });
     return latest?.lastSyncedAt ?? null;
@@ -384,7 +461,10 @@ export class ReportsService {
   // Isti generator/skladište kao M15 §6.9.3 (`common/reports/`), ali dozvola se proverava
   // PROGRAMSKI po `reportKind` iz tela zahteva — ruta sama nema statičnu @RequirePermission.
   // ==========================================================================
-  async exportReport(dto: ExportReportDto, actorUserId: string): Promise<{ id: string; fileName: string }> {
+  async exportReport(
+    dto: ExportReportDto,
+    actorUserId: string,
+  ): Promise<{ id: string; fileName: string }> {
     let buffer: Buffer;
     let mimeType: string;
     let extension: string;
@@ -398,7 +478,9 @@ export class ReportsService {
       extension = 'png';
     } else {
       if (dto.rows === undefined) {
-        throw new BadRequestException('rows je obavezan kad format nije PNG (prazan niz je dozvoljen).');
+        throw new BadRequestException(
+          'rows je obavezan kad format nije PNG (prazan niz je dozvoljen).',
+        );
       }
       const data: ReportData = { title: dto.title, rows: dto.rows };
       if (dto.format === 'EXCEL') {
@@ -418,7 +500,13 @@ export class ReportsService {
 
     // Ista sanitizacija kao M15 §6.9.3 (`\p{L}`/`\p{N}` — čuva slova sa kvakicama).
     const fileName = `${dto.title.replace(/[^\p{L}\p{N}-]+/gu, '_')}.${extension}`;
-    const id = saveReport({ buffer, mimeType, fileName, createdBy: actorUserId, reportKind: dto.reportKind });
+    const id = saveReport({
+      buffer,
+      mimeType,
+      fileName,
+      createdBy: actorUserId,
+      reportKind: dto.reportKind,
+    });
     return { id, fileName };
   }
 
@@ -467,6 +555,11 @@ export class ReportsService {
       path: fullPath,
     } as Express.Multer.File;
 
-    return this.conversations.createMessage(conversationId, { body: `Izveštaj: ${report.fileName}` }, actorUserId, syntheticFile);
+    return this.conversations.createMessage(
+      conversationId,
+      { body: `Izveštaj: ${report.fileName}` },
+      actorUserId,
+      syntheticFile,
+    );
   }
 }

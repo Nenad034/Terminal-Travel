@@ -1,4 +1,11 @@
-import { buildSoapEnvelope, extractDiffgramRows, extractStarRating, firstDefined, parseSoapResponse, soapActionHeader } from './solvex.soap';
+import {
+  buildSoapEnvelope,
+  extractDiffgramRows,
+  extractStarRating,
+  firstDefined,
+  parseSoapResponse,
+  soapActionHeader,
+} from './solvex.soap';
 
 describe('buildSoapEnvelope (M4 spec §5a)', () => {
   it('gradi envelope sa ispravnim namespace-om i redosledom parametara', () => {
@@ -36,17 +43,24 @@ describe('parseSoapResponse', () => {
 
 describe('extractDiffgramRows (M4 spec §5a — najmanje 3 poznata alternativna oblika)', () => {
   it('pronalazi redove direktno na najvišem nivou', () => {
-    const rows = extractDiffgramRows({ HotelService: [{ HotelKey: 1 }, { HotelKey: 2 }] }, ['HotelService']);
+    const rows = extractDiffgramRows({ HotelService: [{ HotelKey: 1 }, { HotelKey: 2 }] }, [
+      'HotelService',
+    ]);
     expect(rows).toHaveLength(2);
   });
 
   it('pronalazi redove unutar diffgram.DocumentElement', () => {
-    const rows = extractDiffgramRows({ diffgram: { DocumentElement: { HotelService: [{ HotelKey: 1 }] } } }, ['HotelService']);
+    const rows = extractDiffgramRows(
+      { diffgram: { DocumentElement: { HotelService: [{ HotelKey: 1 }] } } },
+      ['HotelService'],
+    );
     expect(rows).toHaveLength(1);
   });
 
   it('pronalazi redove unutar NewDataSet', () => {
-    const rows = extractDiffgramRows({ NewDataSet: { HotelService: { HotelKey: 1 } } }, ['HotelService']);
+    const rows = extractDiffgramRows({ NewDataSet: { HotelService: { HotelKey: 1 } } }, [
+      'HotelService',
+    ]);
     expect(rows).toEqual([{ HotelKey: 1 }]); // jedan red se ne parsira kao niz od strane XML parsera
   });
 

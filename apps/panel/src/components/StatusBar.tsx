@@ -38,7 +38,8 @@ export default function StatusBar({
   useEffect(() => {
     if (!messagesOpen) return;
     function onClick(e: MouseEvent) {
-      if (messagesRef.current && !messagesRef.current.contains(e.target as Node)) setMessagesOpen(false);
+      if (messagesRef.current && !messagesRef.current.contains(e.target as Node))
+        setMessagesOpen(false);
     }
     document.addEventListener('mousedown', onClick);
     return () => document.removeEventListener('mousedown', onClick);
@@ -88,7 +89,12 @@ export default function StatusBar({
 
   const email = NAV_ITEMS.find((i) => i.id === 'email');
   const chat = NAV_ITEMS.find((i) => i.id === 'chat');
-  const tz = now?.toLocaleTimeString('sr-RS', { hour: '2-digit', minute: '2-digit', timeZoneName: 'short' }) ?? '';
+  const tz =
+    now?.toLocaleTimeString('sr-RS', {
+      hour: '2-digit',
+      minute: '2-digit',
+      timeZoneName: 'short',
+    }) ?? '';
   const env = process.env.NODE_ENV === 'production' ? 'PRODUKCIJA' : 'TEST';
 
   return (
@@ -103,7 +109,9 @@ export default function StatusBar({
           -translate-y-1/2` (umesto ranijeg `top-0 h-[29px]`) da ostane vertikalno na sredini sad
           više trake. */}
       <button
-        onClick={() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 't', ctrlKey: true }))}
+        onClick={() =>
+          window.dispatchEvent(new KeyboardEvent('keydown', { key: 't', ctrlKey: true }))
+        }
         className="absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center gap-2 rounded-md border border-border bg-panel-2 px-2 py-1 font-mono text-ink-faint hover:border-accent hover:text-ink"
       >
         <Icon name="search" />
@@ -123,7 +131,9 @@ export default function StatusBar({
         {connection === 'ok' ? 'Povezano' : connection === 'down' ? 'Nema veze' : 'Provera...'}
       </span>
 
-      {aiVisible && moduleCode && aiStatus && <span title={`Domenski agent za ${moduleCode}`}>{AI_LABEL[aiStatus]}</span>}
+      {aiVisible && moduleCode && aiStatus && (
+        <span title={`Domenski agent za ${moduleCode}`}>{AI_LABEL[aiStatus]}</span>
+      )}
 
       <span className="flex-1" />
 

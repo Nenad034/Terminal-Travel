@@ -21,17 +21,29 @@ export class SupplierConversationsController {
   }
 
   @Post(':id/access')
-  grantAccess(@Param('id') id: string, @Body() dto: GrantAccessDto, @CurrentUser() user: { userId: string }) {
+  grantAccess(
+    @Param('id') id: string,
+    @Body() dto: GrantAccessDto,
+    @CurrentUser() user: { userId: string },
+  ) {
     return this.supplierConversations.grantAccess(id, dto, user.userId);
   }
 
   @Delete(':id/access/:userId')
-  revokeAccess(@Param('id') id: string, @Param('userId') targetUserId: string, @CurrentUser() user: { userId: string }) {
+  revokeAccess(
+    @Param('id') id: string,
+    @Param('userId') targetUserId: string,
+    @CurrentUser() user: { userId: string },
+  ) {
     return this.supplierConversations.revokeAccess(id, targetUserId, user.userId);
   }
 
   @Post(':id/invite-contact')
-  inviteContact(@Param('id') id: string, @Body() dto: InviteContactDto, @CurrentUser() user: { userId: string }) {
+  inviteContact(
+    @Param('id') id: string,
+    @Body() dto: InviteContactDto,
+    @CurrentUser() user: { userId: string },
+  ) {
     return this.supplierConversations.inviteContact(id, dto, user.userId);
   }
 }

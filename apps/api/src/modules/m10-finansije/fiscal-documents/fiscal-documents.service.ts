@@ -29,20 +29,29 @@ export class FiscalDocumentsService {
     });
     if (existing) return existing;
 
-    const booking = await this.prisma.booking.findUnique({ where: { id: bookingId }, include: { items: true } });
+    const booking = await this.prisma.booking.findUnique({
+      where: { id: bookingId },
+      include: { items: true },
+    });
     if (!booking) throw new NotFoundException(`Booking ${bookingId} nije pronađen.`);
 
     // §2 — izbor tipa dokumenta iz buyer_type, sistem ga bira, ne agent.
-    const documentType: FiscalDocumentType = booking.buyerType === 'PRAVNO_LICE' ? 'SEF_EFAKTURA' : 'ESIR_RACUN';
+    const documentType: FiscalDocumentType =
+      booking.buyerType === 'PRAVNO_LICE' ? 'SEF_EFAKTURA' : 'ESIR_RACUN';
     // §4.4 — vat_calculation_basis iz tip_nastupanja.
-    const vatCalculationBasis: VatCalculationBasis = booking.tipNastupanja === 'ORGANIZATOR' ? 'MARZA' : 'PROVIZIJA';
+    const vatCalculationBasis: VatCalculationBasis =
+      booking.tipNastupanja === 'ORGANIZATOR' ? 'MARZA' : 'PROVIZIJA';
 
     // §4.2/§4.3 — osnovica (marža ili provizija) = prodajna cena − nabavna cena stavki.
     const baseCostSum = booking.items.reduce((sum, item) => sum + item.baseCost, 0);
     const grossBasis = booking.totalPrice - baseCostSum;
     const vatAmount = Math.round((grossBasis * VAT_RATE_PERCENT) / (100 + VAT_RATE_PERCENT));
 
-    const { amountRsd, exchangeRateSnapshotId } = await this.convertToRsd(booking.totalPrice, booking.currency, new Date());
+    const { amountRsd, exchangeRateSnapshotId } = await this.convertToRsd(
+      booking.totalPrice,
+      booking.currency,
+      new Date(),
+    );
 
     const document = await this.prisma.fiscalDocument.create({
       data: {
@@ -75,7 +84,11 @@ export class FiscalDocumentsService {
 
   // §5.1a — KNJIZNO_ODOBRENJE nacrt, bez booking_id, iz M7 CommissionRebate.
   async prepareCreditNoteDraft(dto: CreateCreditNoteDto) {
-    const { amountRsd, exchangeRateSnapshotId } = await this.convertToRsd(dto.amount, dto.currency, new Date());
+    const { amountRsd, exchangeRateSnapshotId } = await this.convertToRsd(
+      dto.amount,
+      dto.currency,
+      new Date(),
+    );
 
     return this.prisma.fiscalDocument.create({
       data: {
@@ -158,7 +171,9 @@ export class FiscalDocumentsService {
   async submit(id: string, actor: { userId: string }) {
     const document = await this.findOne(id);
     if (document.status !== 'DRAFT') {
-      throw new BadRequestException(`FiscalDocument ${id} nije u statusu DRAFT (status: ${document.status}).`);
+      throw new BadRequestException(
+        `FiscalDocument ${id} nije u statusu DRAFT (status: ${document.status}).`,
+      );
     }
 
     // §3 — pre SUBMIT-a, preračunaj amount_rsd po kursu na dan uplate ako je uplata (koja
@@ -177,7 +192,9 @@ export class FiscalDocumentsService {
     // §5.1/§6 — samo SEF_EFAKTURA/KNJIZNO_ODOBRENJE (oba B2B, subagent je pravno lice) imaju
     // koncept prihvatanja; ESIR_RACUN je N/A (poglavlje 5.1).
     const isSefStyle = document.documentType !== 'ESIR_RACUN';
-    const buyerAcceptanceDeadline = isSefStyle ? new Date(now.getTime() + 15 * 24 * 60 * 60 * 1000) : null;
+    const buyerAcceptanceDeadline = isSefStyle
+      ? new Date(now.getTime() + 15 * 24 * 60 * 60 * 1000)
+      : null;
     // M14 spec §3.2 — DRAFT pripremljen preko prepareStornoDraftForBooking (stornoOfDocumentId
     // popunjen) završava slanje u statusu STORNIRANO, ne SUBMITTED — isti krajnji status kao
     // odmah-pošalji storno() ispod, samo dvostepen (DRAFT → ljudska SUBMIT potvrda).
@@ -218,7 +235,10 @@ export class FiscalDocumentsService {
     // modula), zato ide preko Event Bus-a (isti LISTEN/NOTIFY obrazac kao M5 booking.confirmed)
     // — M7EventSubscribersService sluša ovaj događaj i zove CommissionRebatesService.markApplied.
     if (updated.documentType === 'KNJIZNO_ODOBRENJE' && updated.creditedRebateId) {
-      await this.eventBus.emit('M10', 'credit_note.submitted', { creditedRebateId: updated.creditedRebateId, fiscalDocumentId: updated.id });
+      await this.eventBus.emit('M10', 'credit_note.submitted', {
+        creditedRebateId: updated.creditedRebateId,
+        fiscalDocumentId: updated.id,
+      });
     }
 
     return updated;
@@ -262,7 +282,10 @@ export class FiscalDocumentsService {
         buyerNameSnapshot: original.buyerNameSnapshot,
         buyerTaxIdSnapshot: original.buyerTaxIdSnapshot,
         buyerAcceptanceStatus: original.documentType === 'ESIR_RACUN' ? 'N_A' : 'PENDING',
-        buyerAcceptanceDeadline: original.documentType === 'ESIR_RACUN' ? null : new Date(now.getTime() + 15 * 24 * 60 * 60 * 1000),
+        buyerAcceptanceDeadline:
+          original.documentType === 'ESIR_RACUN'
+            ? null
+            : new Date(now.getTime() + 15 * 24 * 60 * 60 * 1000),
         submittedBy: actor.userId,
         submittedAt: now,
         issuedAt: now,
@@ -286,7 +309,9 @@ export class FiscalDocumentsService {
   // §6.2 — DRAFT dokument stariji od 24h bez slanja; poziva se periodično (@Cron u alarms servisu).
   async findStaleDrafts(olderThanHours = 24) {
     const threshold = new Date(Date.now() - olderThanHours * 60 * 60 * 1000);
-    return this.prisma.fiscalDocument.findMany({ where: { status: 'DRAFT', createdAt: { lt: threshold } } });
+    return this.prisma.fiscalDocument.findMany({
+      where: { status: 'DRAFT', createdAt: { lt: threshold } },
+    });
   }
 
   private async convertToRsd(
@@ -310,11 +335,18 @@ export class FiscalDocumentsService {
     amountRsd: number;
     exchangeRateSnapshotId: string | null;
   }) {
-    if (!document.bookingId) return { amountRsd: document.amountRsd, exchangeRateSnapshotId: document.exchangeRateSnapshotId };
+    if (!document.bookingId)
+      return {
+        amountRsd: document.amountRsd,
+        exchangeRateSnapshotId: document.exchangeRateSnapshotId,
+      };
 
     const booking = await this.prisma.booking.findUnique({ where: { id: document.bookingId } });
     if (!booking || booking.paymentStatus !== 'PAID') {
-      return { amountRsd: document.amountRsd, exchangeRateSnapshotId: document.exchangeRateSnapshotId };
+      return {
+        amountRsd: document.amountRsd,
+        exchangeRateSnapshotId: document.exchangeRateSnapshotId,
+      };
     }
 
     const payments = await this.prisma.payment.findMany({
@@ -331,8 +363,16 @@ export class FiscalDocumentsService {
         break;
       }
     }
-    if (!completingPaymentDate) return { amountRsd: document.amountRsd, exchangeRateSnapshotId: document.exchangeRateSnapshotId };
+    if (!completingPaymentDate)
+      return {
+        amountRsd: document.amountRsd,
+        exchangeRateSnapshotId: document.exchangeRateSnapshotId,
+      };
 
-    return this.convertToRsd(document.amountOriginal, document.currencyOriginal, completingPaymentDate);
+    return this.convertToRsd(
+      document.amountOriginal,
+      document.currencyOriginal,
+      completingPaymentDate,
+    );
   }
 }

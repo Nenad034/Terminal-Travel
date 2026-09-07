@@ -68,7 +68,11 @@ export class WebHotelierAdapter implements ProviderAdapter {
 
   private async call(
     path: string,
-    options: { method?: 'GET' | 'POST'; query?: Record<string, string | undefined>; form?: Record<string, string | undefined> } = {},
+    options: {
+      method?: 'GET' | 'POST';
+      query?: Record<string, string | undefined>;
+      form?: Record<string, string | undefined>;
+    } = {},
   ): Promise<any> {
     const url = new URL(`${this.baseUrl}${path}`);
     for (const [key, value] of Object.entries(options.query ?? {})) {
@@ -94,11 +98,18 @@ export class WebHotelierAdapter implements ProviderAdapter {
           signal: controller.signal,
         });
       } else {
-        res = await this.fetchFn(url.toString(), { method: options.method ?? 'GET', headers: authed.headers, signal: controller.signal });
+        res = await this.fetchFn(url.toString(), {
+          method: options.method ?? 'GET',
+          headers: authed.headers,
+          signal: controller.signal,
+        });
       }
     } catch (err) {
       if ((err as Error).name === 'AbortError') {
-        throw new ProviderError('TIMEOUT', `WebHotelier poziv ${path} nije odgovorio u ${this.timeoutMs}ms`);
+        throw new ProviderError(
+          'TIMEOUT',
+          `WebHotelier poziv ${path} nije odgovorio u ${this.timeoutMs}ms`,
+        );
       }
       throw new ProviderError('PROVIDER_UNAVAILABLE', (err as Error).message);
     } finally {
@@ -111,7 +122,10 @@ export class WebHotelierAdapter implements ProviderAdapter {
 
     const body = await res.json().catch(() => null);
     if (!body) {
-      throw new ProviderError('UNKNOWN', `WebHotelier odgovor (HTTP ${res.status}) nije validan JSON`);
+      throw new ProviderError(
+        'UNKNOWN',
+        `WebHotelier odgovor (HTTP ${res.status}) nije validan JSON`,
+      );
     }
 
     // §5b — error_code je uvek prisutan u telu odgovora, HTTP status sam po sebi nije dovoljan.
@@ -120,7 +134,11 @@ export class WebHotelierAdapter implements ProviderAdapter {
       if (errorCode === 'NO_AUTH' || errorCode === 'INVALID_AUTH' || errorCode === 'FORBIDDEN') {
         throw new ProviderError('AUTH_FAILED', body.error_msg ?? errorCode);
       }
-      if (errorCode === 'NO_HOTELS_FOUND' || errorCode === 'NO_AVAILABILITY' || errorCode === 'ALLOT_DEPLETED') {
+      if (
+        errorCode === 'NO_HOTELS_FOUND' ||
+        errorCode === 'NO_AVAILABILITY' ||
+        errorCode === 'ALLOT_DEPLETED'
+      ) {
         throw new ProviderError('NO_AVAILABILITY', body.error_msg ?? errorCode);
       }
       if (errorCode === 'INTERNAL_ERROR') {
@@ -187,7 +205,10 @@ export class WebHotelierAdapter implements ProviderAdapter {
   }
 
   /** §5b tačka 4 — nema poseban "quote" metod; cena/dostupnost se čita iz istog /availability poziva. */
-  async checkAvailabilityAndPrice(externalId: string, stay: StayParams): Promise<AvailabilityQuote> {
+  async checkAvailabilityAndPrice(
+    externalId: string,
+    stay: StayParams,
+  ): Promise<AvailabilityQuote> {
     const { propertyCode, rateId } = this.decodeId(externalId);
     const data = await this.call(`/availability/${propertyCode}`, {
       query: {
@@ -211,7 +232,11 @@ export class WebHotelierAdapter implements ProviderAdapter {
       priceAmount,
       currency: hotel.currency ?? 'EUR',
       availableUnits: rate.remaining ?? 1,
-      cancellationPolicy: this.mapCancellationPolicy(rate.cancellation_fees ?? [], priceAmount, stay.stayFrom),
+      cancellationPolicy: this.mapCancellationPolicy(
+        rate.cancellation_fees ?? [],
+        priceAmount,
+        stay.stayFrom,
+      ),
       // §5b tačka 4 — WebHotelier ne vraća isteka ponude; konzervativan TTL na našoj strani (§9 — tačan broj otvoren).
       quoteExpiresAt: new Date(Date.now() + 15 * 60_000).toISOString(),
     };
@@ -221,10 +246,17 @@ export class WebHotelierAdapter implements ProviderAdapter {
   // isto rešenje kao Solvex IsPercent=false slučaj (§2.1) — fee se izračunava kao procenat od cene.
   private mapCancellationPolicy(fees: WhCancellationFee[], priceAmount: number, checkin: string) {
     return fees.map((f) => {
-      const daysBeforeStay = Math.max(0, Math.floor((Date.parse(checkin) - Date.parse(f.after)) / 86_400_000));
+      const daysBeforeStay = Math.max(
+        0,
+        Math.floor((Date.parse(checkin) - Date.parse(f.after)) / 86_400_000),
+      );
       const feeAmount = Math.round(Number(f.fee ?? 0) * 100);
-      const penaltyPercent = priceAmount > 0 ? Math.round((feeAmount * 100 * 100) / priceAmount) / 100 : 0;
-      return { days_before_stay: daysBeforeStay, refund_percentage: Math.max(0, Math.min(100, 100 - penaltyPercent)) };
+      const penaltyPercent =
+        priceAmount > 0 ? Math.round((feeAmount * 100 * 100) / priceAmount) / 100 : 0;
+      return {
+        days_before_stay: daysBeforeStay,
+        refund_percentage: Math.max(0, Math.min(100, 100 - penaltyPercent)),
+      };
     });
   }
 

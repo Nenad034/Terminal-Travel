@@ -6,12 +6,15 @@ import { PostTripSurveysService } from '../post-trip-surveys/post-trip-surveys.s
 const PRE_DEPARTURE_OFFSETS_DAYS = [7, 3, 1]; // §4.2
 
 function isSameMonthDay(date: Date, reference: Date): boolean {
-  return date.getUTCMonth() === reference.getUTCMonth() && date.getUTCDate() === reference.getUTCDate();
+  return (
+    date.getUTCMonth() === reference.getUTCMonth() && date.getUTCDate() === reference.getUTCDate()
+  );
 }
 
 function isDaysBefore(target: Date, reference: Date, days: number): boolean {
-  const diffMs = Date.UTC(target.getUTCFullYear(), target.getUTCMonth(), target.getUTCDate())
-    - Date.UTC(reference.getUTCFullYear(), reference.getUTCMonth(), reference.getUTCDate());
+  const diffMs =
+    Date.UTC(target.getUTCFullYear(), target.getUTCMonth(), target.getUTCDate()) -
+    Date.UTC(reference.getUTCFullYear(), reference.getUTCMonth(), reference.getUTCDate());
   return Math.round(diffMs / 86_400_000) === days;
 }
 
@@ -41,10 +44,16 @@ export class M6TriggersService {
     ]);
   }
 
-  private async logAutomatedTrigger(clientAccountId: string | null, guestProfileId: string | null, summary: string): Promise<void> {
+  private async logAutomatedTrigger(
+    clientAccountId: string | null,
+    guestProfileId: string | null,
+    summary: string,
+  ): Promise<void> {
     let consent = false;
     if (clientAccountId) {
-      const account = await this.prisma.clientAccount.findUnique({ where: { id: clientAccountId } });
+      const account = await this.prisma.clientAccount.findUnique({
+        where: { id: clientAccountId },
+      });
       consent = account?.marketingConsent ?? false;
     }
     await this.prisma.communicationLog.create({
@@ -63,11 +72,17 @@ export class M6TriggersService {
   // §4.2 — rođendan gosta, godišnje na GuestProfile.date_of_birth.
   async checkBirthdays(): Promise<number> {
     const today = new Date();
-    const guests = await this.prisma.guestProfile.findMany({ where: { linkedClientAccountId: { not: null } } });
+    const guests = await this.prisma.guestProfile.findMany({
+      where: { linkedClientAccountId: { not: null } },
+    });
     let count = 0;
     for (const guest of guests) {
       if (!isSameMonthDay(guest.dateOfBirth, today)) continue;
-      await this.logAutomatedTrigger(guest.linkedClientAccountId, guest.id, `Čestitka za rođendan — ${guest.fullName}.`);
+      await this.logAutomatedTrigger(
+        guest.linkedClientAccountId,
+        guest.id,
+        `Čestitka za rođendan — ${guest.fullName}.`,
+      );
       count++;
     }
     return count;
@@ -94,7 +109,9 @@ export class M6TriggersService {
   // §4.2 — T-7/T-3/T-1 pred boravak, za aktivne potvrđene stavke.
   async checkPreDeparture(): Promise<number> {
     const today = new Date();
-    const horizon = new Date(today.getTime() + Math.max(...PRE_DEPARTURE_OFFSETS_DAYS) * 24 * 60 * 60 * 1000);
+    const horizon = new Date(
+      today.getTime() + Math.max(...PRE_DEPARTURE_OFFSETS_DAYS) * 24 * 60 * 60 * 1000,
+    );
     const items = await this.prisma.bookingItem.findMany({
       where: {
         itemStatus: 'CONFIRMED',
@@ -107,7 +124,11 @@ export class M6TriggersService {
     for (const item of items) {
       const offset = PRE_DEPARTURE_OFFSETS_DAYS.find((d) => isDaysBefore(item.stayFrom, today, d));
       if (offset === undefined) continue;
-      await this.logAutomatedTrigger(item.booking.clientAccountId, null, `Podsetnik pred put (T-${offset}) — rezervacija ${item.bookingId}.`);
+      await this.logAutomatedTrigger(
+        item.booking.clientAccountId,
+        null,
+        `Podsetnik pred put (T-${offset}) — rezervacija ${item.bookingId}.`,
+      );
       count++;
     }
     return count;

@@ -1,4 +1,12 @@
-import { IsBoolean, IsEnum, IsInt, IsNumber, IsOptional, IsString, ValidateIf } from 'class-validator';
+import {
+  IsBoolean,
+  IsEnum,
+  IsInt,
+  IsNumber,
+  IsOptional,
+  IsString,
+  ValidateIf,
+} from 'class-validator';
 import { TouristTaxCollectedBy } from '@prisma/client';
 
 // M3 spec §2.7 — dopuna v1.12, isključivo informativno (vidi ogradu u spec-u §2.7:

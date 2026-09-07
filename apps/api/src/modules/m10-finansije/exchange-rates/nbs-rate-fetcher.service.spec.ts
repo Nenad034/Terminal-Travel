@@ -121,6 +121,8 @@ describe('NbsRateFetcherService.fetchRatesForDate (M10 spec §3.1a)', () => {
 
   it('baca grešku kad stranica vrati HTTP grešku', async () => {
     global.fetch = jest.fn(async () => ({ ok: false, status: 503 })) as any;
-    await expect(service.fetchRatesForDate(new Date('2026-08-28T00:00:00.000Z'))).rejects.toThrow(/503/);
+    await expect(service.fetchRatesForDate(new Date('2026-08-28T00:00:00.000Z'))).rejects.toThrow(
+      /503/,
+    );
   });
 });

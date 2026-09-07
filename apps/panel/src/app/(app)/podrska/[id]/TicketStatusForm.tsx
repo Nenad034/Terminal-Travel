@@ -31,10 +31,20 @@ export default function TicketStatusForm({
   const [selectedStatus, setSelectedStatus] = useState(status);
 
   return (
-    <form action={formAction} className="flex flex-col gap-3 rounded-lg border border-border bg-panel p-4">
-      {state.error && <p className="rounded bg-danger-bg p-2 text-[11px] text-danger">{state.error}</p>}
+    <form
+      action={formAction}
+      className="flex flex-col gap-3 rounded-lg border border-border bg-panel p-4"
+    >
+      {state.error && (
+        <p className="rounded bg-danger-bg p-2 text-[11px] text-danger">{state.error}</p>
+      )}
       <Field label="status">
-        <select name="status" defaultValue={status} onChange={(e) => setSelectedStatus(e.target.value)} className="input">
+        <select
+          name="status"
+          defaultValue={status}
+          onChange={(e) => setSelectedStatus(e.target.value)}
+          className="input"
+        >
           {STATUSES.map((s) => (
             <option key={s} value={s}>
               {s}
@@ -56,8 +66,16 @@ export default function TicketStatusForm({
       </Field>
       {category === 'REKLAMACIJA' && (
         <label className="flex items-center gap-2 text-xs text-ink-dim">
-          <input type="checkbox" name="refundDecision" defaultChecked={refundDecision} className="h-3.5 w-3.5" />
-          odluka o povraćaju novca {selectedStatus === 'RESOLVED' ? '(pri čuvanju sada okida M10 nacrt storno dokumenta)' : ''}
+          <input
+            type="checkbox"
+            name="refundDecision"
+            defaultChecked={refundDecision}
+            className="h-3.5 w-3.5"
+          />
+          odluka o povraćaju novca{' '}
+          {selectedStatus === 'RESOLVED'
+            ? '(pri čuvanju sada okida M10 nacrt storno dokumenta)'
+            : ''}
         </label>
       )}
       <SubmitButton />

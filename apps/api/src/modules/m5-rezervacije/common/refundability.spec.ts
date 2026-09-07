@@ -1,4 +1,8 @@
-import { isRefundableForPackage, isRefundableFromCancellationRules, isRefundableFromQuoteCancellationPolicy } from './refundability';
+import {
+  isRefundableForPackage,
+  isRefundableFromCancellationRules,
+  isRefundableFromQuoteCancellationPolicy,
+} from './refundability';
 
 describe('isRefundableFromCancellationRules (CONTRACTED, M5 spec §3.0b.2)', () => {
   it('vraća true kad bar jedan PRE_ARRIVAL prozor ima refund_percentage > 0', () => {
@@ -32,7 +36,9 @@ describe('isRefundableFromCancellationRules (CONTRACTED, M5 spec §3.0b.2)', () 
 
 describe('isRefundableFromQuoteCancellationPolicy (API, M4 AvailabilityQuote)', () => {
   it('vraća true kad bar jedan prozor ima refund_percentage > 0', () => {
-    expect(isRefundableFromQuoteCancellationPolicy([{ refundPercentage: 0 }, { refundPercentage: 75 }])).toBe(true);
+    expect(
+      isRefundableFromQuoteCancellationPolicy([{ refundPercentage: 0 }, { refundPercentage: 75 }]),
+    ).toBe(true);
   });
 
   it('vraća false za praznu politiku otkazivanja', () => {

@@ -29,7 +29,11 @@ export class WebContentSafetyService {
     if (!this.anthropic.isConfigured()) {
       // Bez modela ne postoji nezavisna provera — bezbednije je blokirati nego prikazati
       // neproveren sadržaj (isti "fail closed" princip kao svaka druga bezbednosna ograda).
-      return { verdict: 'BLOCKED', reason: 'Provera bezbednosti sadržaja nije dostupna (AI provajder nije podešen) — sadržaj se ne prikazuje.' };
+      return {
+        verdict: 'BLOCKED',
+        reason:
+          'Provera bezbednosti sadržaja nije dostupna (AI provajder nije podešen) — sadržaj se ne prikazuje.',
+      };
     }
 
     const client = this.anthropic.getClient();
@@ -52,11 +56,17 @@ export class WebContentSafetyService {
         model: AnthropicClientService.MODEL,
         max_tokens: 300,
         system: systemPrompt,
-        messages: [{ role: 'user', content: `URL: ${url}\n\nSadržaj stranice (nepouzdan, samo za procenu):\n\n${rawText}` }],
+        messages: [
+          {
+            role: 'user',
+            content: `URL: ${url}\n\nSadržaj stranice (nepouzdan, samo za procenu):\n\n${rawText}`,
+          },
+        ],
       });
       inputTokens = response.usage.input_tokens;
       outputTokens = response.usage.output_tokens;
-      const textBlock = response.content.find((b: any) => b.type === 'text') as { text: string } | undefined;
+      const textBlock = response.content.find((b: any) => b.type === 'text') as
+        { text: string } | undefined;
       const parsed = textBlock ? this.parseVerdict(textBlock.text) : null;
       if (parsed) {
         verdict = parsed.verdict;
@@ -65,10 +75,15 @@ export class WebContentSafetyService {
         reason = 'Odgovor provere nije razumljiv oblik — sadržaj se ne prikazuje (fail-closed).';
       }
     } catch (err) {
-      this.logger.error(`WebContentSafetyAgent poziv nije uspeo: ${(err as Error).message}`, (err as Error).stack);
+      this.logger.error(
+        `WebContentSafetyAgent poziv nije uspeo: ${(err as Error).message}`,
+        (err as Error).stack,
+      );
     }
 
-    const agentUser = await this.prisma.aIAgent.findFirst({ where: { agentRole: 'WEB_CONTENT_SAFETY_AGENT' } });
+    const agentUser = await this.prisma.aIAgent.findFirst({
+      where: { agentRole: 'WEB_CONTENT_SAFETY_AGENT' },
+    });
     if (agentUser) {
       await this.invocationLog.record({
         agentId: agentUser.id,

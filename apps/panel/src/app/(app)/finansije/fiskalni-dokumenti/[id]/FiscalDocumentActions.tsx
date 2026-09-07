@@ -32,10 +32,23 @@ export function StornoButton({ id }: { id: string }) {
   );
 }
 
-function Btn({ label, pendingLabel, tone }: { label: string; pendingLabel: string; tone: 'accent' | 'danger' }) {
+function Btn({
+  label,
+  pendingLabel,
+  tone,
+}: {
+  label: string;
+  pendingLabel: string;
+  tone: 'accent' | 'danger';
+}) {
   const { pending } = useFormStatus();
   return (
-    <Button type="submit" disabled={pending} variant={tone === 'accent' ? 'default' : 'destructive'} size="sm">
+    <Button
+      type="submit"
+      disabled={pending}
+      variant={tone === 'accent' ? 'default' : 'destructive'}
+      size="sm"
+    >
       {pending ? pendingLabel : label}
     </Button>
   );

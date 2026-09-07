@@ -50,7 +50,9 @@ export default function Sidebar({
     .filter((i): i is NavItem => Boolean(i));
 
   const selected = !forceShowList
-    ? sectionItems.find((i) => pathname === i.href || (i.href !== '/' && pathname.startsWith(i.href)))
+    ? sectionItems.find(
+        (i) => pathname === i.href || (i.href !== '/' && pathname.startsWith(i.href)),
+      )
     : undefined;
 
   // Kolabovano — TRAKA NESTAJE POTPUNO (23.8.2026, na zahtev vlasnika: "kada uvlacimu levi
@@ -165,8 +167,12 @@ export default function Sidebar({
                         <Icon name="lock" />
                       </span>
                       <span className="flex flex-1 items-center justify-between overflow-hidden whitespace-nowrap">
-                        <span className="truncate text-xs font-medium text-ink-faint">{item.label}</span>
-                        <span className="ml-2 rounded-full bg-panel2 px-1.5 py-0.5 text-[11px] font-mono text-ink-faint">F{item.phase}</span>
+                        <span className="truncate text-xs font-medium text-ink-faint">
+                          {item.label}
+                        </span>
+                        <span className="ml-2 rounded-full bg-panel2 px-1.5 py-0.5 text-[11px] font-mono text-ink-faint">
+                          F{item.phase}
+                        </span>
                       </span>
                     </div>
                   );

@@ -29,7 +29,12 @@ export class ArticlesController {
   @Get()
   @RequirePermission('M23', 'article', 'VIEW')
   async findAll(@CurrentUser() actor: { userId: string }, @Query('lang') lang?: LanguageCode) {
-    const canSeeAllStatuses = await this.permissions.hasPermission(actor.userId, 'M23', 'article', 'EDIT');
+    const canSeeAllStatuses = await this.permissions.hasPermission(
+      actor.userId,
+      'M23',
+      'article',
+      'EDIT',
+    );
     return this.articles.findAll(actor.userId, canSeeAllStatuses, lang);
   }
 
@@ -41,14 +46,27 @@ export class ArticlesController {
 
   @Get(':id')
   @RequirePermission('M23', 'article', 'VIEW')
-  async findOne(@Param('id') id: string, @CurrentUser() actor: { userId: string }, @Query('lang') lang?: LanguageCode) {
-    const canSeeAllStatuses = await this.permissions.hasPermission(actor.userId, 'M23', 'article', 'EDIT');
+  async findOne(
+    @Param('id') id: string,
+    @CurrentUser() actor: { userId: string },
+    @Query('lang') lang?: LanguageCode,
+  ) {
+    const canSeeAllStatuses = await this.permissions.hasPermission(
+      actor.userId,
+      'M23',
+      'article',
+      'EDIT',
+    );
     return this.articles.findOne(id, actor.userId, canSeeAllStatuses, lang);
   }
 
   @Patch(':id')
   @RequirePermission('M23', 'article', 'EDIT')
-  update(@Param('id') id: string, @Body() dto: UpdateArticleDto, @CurrentUser() actor: { userId: string }) {
+  update(
+    @Param('id') id: string,
+    @Body() dto: UpdateArticleDto,
+    @CurrentUser() actor: { userId: string },
+  ) {
     return this.articles.update(id, dto, actor.userId);
   }
 
@@ -66,7 +84,11 @@ export class ArticlesController {
   // direktno — samo priprema/dopunjuje nacrt za odobrenje preko POST .../revisions/:revisionId/approve.
   @Post(':id/research')
   @RequirePermission('M23', 'article', 'EDIT')
-  researchExisting(@Param('id') id: string, @Body() dto: ResearchArticleDto, @CurrentUser() actor: { userId: string }) {
+  researchExisting(
+    @Param('id') id: string,
+    @Body() dto: ResearchArticleDto,
+    @CurrentUser() actor: { userId: string },
+  ) {
     return this.research.researchFromProvidedText(
       {
         articleId: id,

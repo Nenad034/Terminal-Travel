@@ -6,7 +6,6 @@ import RegisterTab from '@/components/RegisterTab';
 import Icon from '@/components/Icon';
 import ChatPanel from './ChatPanel';
 
-
 interface ConversationDetail {
   id: string;
   type: 'DIRECT' | 'GROUP' | 'EXTERNAL_SUPPLIER';
@@ -38,7 +37,9 @@ interface MessageItem {
 // server+klijent split kao apps/panel/src/app/(app)/podrska/[id]/page.tsx + TicketMessagesPanel.tsx.
 // Nevidljivost za ne-učesnike je namerno 404, ne 403 (ConversationsService.assertParticipant,
 // M19 spec §9.2/§9.4) — notFound() ovde prati taj isti obrazac.
-export default async function ConversationPage(props: { params: Promise<{ conversationId: string }> }) {
+export default async function ConversationPage(props: {
+  params: Promise<{ conversationId: string }>;
+}) {
   const params = await props.params;
   const me = await getMe();
   if (!me) notFound();
@@ -46,8 +47,12 @@ export default async function ConversationPage(props: { params: Promise<{ conver
   let conversation: ConversationDetail;
   let messages: MessageItem[] = [];
   try {
-    conversation = await apiFetch<ConversationDetail>(`/chat/conversations/${params.conversationId}`);
-    messages = await apiFetch<MessageItem[]>(`/chat/conversations/${params.conversationId}/messages`);
+    conversation = await apiFetch<ConversationDetail>(
+      `/chat/conversations/${params.conversationId}`,
+    );
+    messages = await apiFetch<MessageItem[]>(
+      `/chat/conversations/${params.conversationId}/messages`,
+    );
   } catch {
     notFound();
   }
@@ -63,7 +68,10 @@ export default async function ConversationPage(props: { params: Promise<{ conver
   );
 
   const others = conversation.participants.filter((p) => p.userId !== me.userId);
-  const title = conversation.type === 'GROUP' ? (conversation.name ?? 'Grupni razgovor') : (others[0]?.user?.fullName ?? 'Direktna poruka');
+  const title =
+    conversation.type === 'GROUP'
+      ? (conversation.name ?? 'Grupni razgovor')
+      : (others[0]?.user?.fullName ?? 'Direktna poruka');
   const backHref = conversation.type === 'EXTERNAL_SUPPLIER' ? '/chat/dobavljaci' : '/chat';
 
   return (
@@ -73,7 +81,10 @@ export default async function ConversationPage(props: { params: Promise<{ conver
     // koja je ostavljala prazan prostor na dnu ekrana.
     <div className="flex h-full flex-col p-6">
       <RegisterTab label={title} />
-      <Link href={backHref} className="mb-3 inline-flex items-center gap-1 text-xs text-ink-faint hover:text-ink">
+      <Link
+        href={backHref}
+        className="mb-3 inline-flex items-center gap-1 text-xs text-ink-faint hover:text-ink"
+      >
         <Icon name="arrow-left" /> nazad na listu
       </Link>
 

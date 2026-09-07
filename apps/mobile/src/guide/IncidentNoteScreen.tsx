@@ -24,7 +24,13 @@ export function IncidentNoteScreen({ bookingId }: { bookingId: string }) {
   async function submit() {
     if (!note.trim()) return;
     setSaving(true);
-    await enqueueIncidentNote({ id: randomUUID(), bookingId, note: note.trim(), severity, createdAt: new Date().toISOString() });
+    await enqueueIncidentNote({
+      id: randomUUID(),
+      bookingId,
+      note: note.trim(),
+      severity,
+      createdAt: new Date().toISOString(),
+    });
     await refreshQueueSize();
     if (isConnected) {
       try {
@@ -45,8 +51,16 @@ export function IncidentNoteScreen({ bookingId }: { bookingId: string }) {
       <Text style={styles.title}>Beleška o problemu</Text>
       <View style={styles.severityRow}>
         {SEVERITIES.map((s) => (
-          <Pressable key={s} style={[styles.severityChip, severity === s && styles.severityChipActive]} onPress={() => setSeverity(s)}>
-            <Text style={[styles.severityChipText, severity === s && styles.severityChipTextActive]}>{SEVERITY_LABELS[s]}</Text>
+          <Pressable
+            key={s}
+            style={[styles.severityChip, severity === s && styles.severityChipActive]}
+            onPress={() => setSeverity(s)}
+          >
+            <Text
+              style={[styles.severityChipText, severity === s && styles.severityChipTextActive]}
+            >
+              {SEVERITY_LABELS[s]}
+            </Text>
           </Pressable>
         ))}
       </View>
@@ -70,11 +84,24 @@ const styles = StyleSheet.create({
   container: { flex: 1, padding: 16, gap: 12 },
   title: { fontSize: 20, fontWeight: '700' },
   severityRow: { flexDirection: 'row', gap: 8 },
-  severityChip: { borderWidth: 1, borderColor: '#ccc', borderRadius: 20, paddingVertical: 8, paddingHorizontal: 14 },
+  severityChip: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 20,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+  },
   severityChipActive: { backgroundColor: '#b00020', borderColor: '#b00020' },
   severityChipText: { color: '#333' },
   severityChipTextActive: { color: '#fff', fontWeight: '600' },
-  textArea: { borderWidth: 1, borderColor: '#ccc', borderRadius: 8, padding: 12, minHeight: 140, textAlignVertical: 'top' },
+  textArea: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 8,
+    padding: 12,
+    minHeight: 140,
+    textAlignVertical: 'top',
+  },
   submitButton: { backgroundColor: '#1a4d8f', borderRadius: 8, padding: 14, alignItems: 'center' },
   submitButtonText: { color: '#fff', fontWeight: '600' },
 });

@@ -1,4 +1,15 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Put, UseGuards, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Put,
+  UseGuards,
+  Query,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { UsersService } from './users.service';
 import { UserPreferencesService } from './user-preferences.service';
@@ -29,7 +40,11 @@ export class UsersController {
   }
 
   @Put('me/preferences/:key')
-  setMyPreference(@Param('key') key: string, @Body('value') value: unknown, @CurrentUser() actor: { userId: string }) {
+  setMyPreference(
+    @Param('key') key: string,
+    @Body('value') value: unknown,
+    @CurrentUser() actor: { userId: string },
+  ) {
     return this.preferences.set(actor.userId, key, value);
   }
 
@@ -78,13 +93,21 @@ export class UsersController {
 
   @Post(':id/roles')
   @RequirePermission('M1', 'user', 'EDIT')
-  assignRole(@Param('id') id: string, @Body('roleId') roleId: string, @CurrentUser() actor: { userId: string }) {
+  assignRole(
+    @Param('id') id: string,
+    @Body('roleId') roleId: string,
+    @CurrentUser() actor: { userId: string },
+  ) {
     return this.users.assignRole(id, roleId, actor.userId);
   }
 
   @Delete(':id/roles/:roleId')
   @RequirePermission('M1', 'user', 'EDIT')
-  removeRole(@Param('id') id: string, @Param('roleId') roleId: string, @CurrentUser() actor: { userId: string }) {
+  removeRole(
+    @Param('id') id: string,
+    @Param('roleId') roleId: string,
+    @CurrentUser() actor: { userId: string },
+  ) {
     return this.users.removeRole(id, roleId, actor.userId);
   }
 
@@ -106,7 +129,10 @@ export class UsersController {
 
   @Delete('permission-overrides/:overrideId')
   @RequirePermission('M1', 'permission-override', 'CREATE')
-  deleteOverride(@Param('overrideId') overrideId: string, @CurrentUser() actor: { userId: string }) {
+  deleteOverride(
+    @Param('overrideId') overrideId: string,
+    @CurrentUser() actor: { userId: string },
+  ) {
     return this.users.deletePermissionOverride(overrideId, actor.userId);
   }
 }

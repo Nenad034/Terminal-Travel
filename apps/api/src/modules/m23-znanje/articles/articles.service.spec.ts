@@ -27,7 +27,12 @@ describe('ArticlesService.publish (M23 spec §6/§9)', () => {
   it('odbija publish ako članak nema nijedan prevod', async () => {
     const { service, prisma } = makeService();
     prisma.aIAgent.findUnique.mockResolvedValue(null);
-    prisma.article.findUnique.mockResolvedValue({ id: 'a1', translations: [], shareToken: null, publishedAt: null });
+    prisma.article.findUnique.mockResolvedValue({
+      id: 'a1',
+      translations: [],
+      shareToken: null,
+      publishedAt: null,
+    });
 
     await expect(service.publish('a1', 'human-1')).rejects.toBeInstanceOf(BadRequestException);
   });

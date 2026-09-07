@@ -31,7 +31,9 @@ describe('M5 §4.6 — interne beleške uz rezervaciju (e2e)', () => {
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
     app = moduleRef.createNestApplication();
     app.setGlobalPrefix('api/v1');
-    app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }));
+    app.useGlobalPipes(
+      new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }),
+    );
     app.useGlobalFilters(new PrismaExceptionFilter());
     await app.init();
     prisma = app.get(PrismaService);
@@ -40,8 +42,10 @@ describe('M5 §4.6 — interne beleške uz rezervaciju (e2e)', () => {
 
   afterAll(async () => {
     // BookingNote ima onDelete: Cascade — briše se sa rezervacijom.
-    if (createdBookingIds.length) await prisma.booking.deleteMany({ where: { id: { in: createdBookingIds } } });
-    if (createdClientAccountIds.length) await prisma.clientAccount.deleteMany({ where: { id: { in: createdClientAccountIds } } });
+    if (createdBookingIds.length)
+      await prisma.booking.deleteMany({ where: { id: { in: createdBookingIds } } });
+    if (createdClientAccountIds.length)
+      await prisma.clientAccount.deleteMany({ where: { id: { in: createdClientAccountIds } } });
     if (createdUserIds.length) {
       await prisma.userRole.deleteMany({ where: { userId: { in: createdUserIds } } });
       await prisma.user.deleteMany({ where: { id: { in: createdUserIds } } });
@@ -64,7 +68,9 @@ describe('M5 §4.6 — interne beleške uz rezervaciju (e2e)', () => {
     });
     createdUserIds.push(user.id);
     const role = await prisma.role.findUniqueOrThrow({ where: { name: roleName } });
-    await prisma.userRole.create({ data: { userId: user.id, roleId: role.id, assignedBy: user.id } });
+    await prisma.userRole.create({
+      data: { userId: user.id, roleId: role.id, assignedBy: user.id },
+    });
     const accessToken = jwt.sign({ sub: user.id, sessionId: 'e2e-test-session' });
     return { user, accessToken };
   }
@@ -112,7 +118,9 @@ describe('M5 §4.6 — interne beleške uz rezervaciju (e2e)', () => {
     expect(created.status).toBe(201);
     expect(created.body.createdBy).toBe(user.id);
 
-    const list = await request(app.getHttpServer()).get(`/api/v1/sales/bookings/${booking.id}/notes`).set(authed(accessToken));
+    const list = await request(app.getHttpServer())
+      .get(`/api/v1/sales/bookings/${booking.id}/notes`)
+      .set(authed(accessToken));
     expect(list.status).toBe(200);
     expect(list.body).toHaveLength(1);
     expect(list.body[0].body).toBe('gost traži sobu na višem spratu');
@@ -122,7 +130,9 @@ describe('M5 §4.6 — interne beleške uz rezervaciju (e2e)', () => {
       .set(authed(accessToken));
     expect(del.status).toBe(200);
 
-    const after = await request(app.getHttpServer()).get(`/api/v1/sales/bookings/${booking.id}/notes`).set(authed(accessToken));
+    const after = await request(app.getHttpServer())
+      .get(`/api/v1/sales/bookings/${booking.id}/notes`)
+      .set(authed(accessToken));
     expect(after.body).toHaveLength(0);
   });
 
@@ -142,7 +152,10 @@ describe('M5 §4.6 — interne beleške uz rezervaciju (e2e)', () => {
     const { user, accessToken } = await createInternalUser(SYSTEM_ROLES.PRODAJNI_AGENT);
     const booking = await createBooking(user.id);
 
-    const prazna = await request(app.getHttpServer()).post(`/api/v1/sales/bookings/${booking.id}/notes`).set(authed(accessToken)).send({ body: '' });
+    const prazna = await request(app.getHttpServer())
+      .post(`/api/v1/sales/bookings/${booking.id}/notes`)
+      .set(authed(accessToken))
+      .send({ body: '' });
     expect(prazna.status).toBe(400);
 
     const preduga = await request(app.getHttpServer())
@@ -153,7 +166,9 @@ describe('M5 §4.6 — interne beleške uz rezervaciju (e2e)', () => {
   });
 
   it('tuđu belešku Prodajni agent ne sme da obriše, Vlasnik sme', async () => {
-    const { user: autor, accessToken: autorToken } = await createInternalUser(SYSTEM_ROLES.PRODAJNI_AGENT);
+    const { user: autor, accessToken: autorToken } = await createInternalUser(
+      SYSTEM_ROLES.PRODAJNI_AGENT,
+    );
     const { accessToken: drugiToken } = await createInternalUser(SYSTEM_ROLES.PRODAJNI_AGENT);
     const { accessToken: vlasnikToken } = await createInternalUser(SYSTEM_ROLES.VLASNIK);
     const booking = await createBooking(autor.id);
@@ -180,7 +195,10 @@ describe('M5 §4.6 — interne beleške uz rezervaciju (e2e)', () => {
     const booking = await createBooking(user.id);
     const druga = await createBooking(user.id);
 
-    const created = await request(app.getHttpServer()).post(`/api/v1/sales/bookings/${booking.id}/notes`).set(authed(accessToken)).send({ body: 'tekst' });
+    const created = await request(app.getHttpServer())
+      .post(`/api/v1/sales/bookings/${booking.id}/notes`)
+      .set(authed(accessToken))
+      .send({ body: 'tekst' });
 
     const res = await request(app.getHttpServer())
       .delete(`/api/v1/sales/bookings/${druga.id}/notes/${created.body.id}`)
@@ -196,9 +214,13 @@ describe('M5 §4.6 — interne beleške uz rezervaciju (e2e)', () => {
       .post(`/api/v1/sales/bookings/${booking.id}/notes`)
       .set(authed(accessToken))
       .send({ body: 'poverljiv sadržaj beleške' });
-    await request(app.getHttpServer()).delete(`/api/v1/sales/bookings/${booking.id}/notes/${created.body.id}`).set(authed(accessToken));
+    await request(app.getHttpServer())
+      .delete(`/api/v1/sales/bookings/${booking.id}/notes/${created.body.id}`)
+      .set(authed(accessToken));
 
-    const entries = await prisma.auditLogEntry.findMany({ where: { resourceType: 'BookingNote', resourceId: created.body.id } });
+    const entries = await prisma.auditLogEntry.findMany({
+      where: { resourceType: 'BookingNote', resourceId: created.body.id },
+    });
     const actions = entries.map((e) => e.action);
     expect(actions).toContain('booking_note.created');
     expect(actions).toContain('booking_note.deleted');

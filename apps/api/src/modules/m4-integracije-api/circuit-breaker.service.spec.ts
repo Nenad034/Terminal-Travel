@@ -94,7 +94,9 @@ describe('CircuitBreakerService (M4 spec §4.1)', () => {
       expect(call.data.circuitState).toBe('OPEN');
       expect(call.data.circuitConsecutiveFailures).toBe(5);
       expect(call.data.circuitOpenedAt).toBeInstanceOf(Date);
-      expect(eventBus.emit).toHaveBeenCalledWith('M4', 'provider_error_spike', { providerCode: 'travelgate' });
+      expect(eventBus.emit).toHaveBeenCalledWith('M4', 'provider_error_spike', {
+        providerCode: 'travelgate',
+      });
     });
 
     it('HALF_OPEN probni poziv koji ne uspe odmah vraća u OPEN, bez čekanja na prag', async () => {
@@ -112,7 +114,9 @@ describe('CircuitBreakerService (M4 spec §4.1)', () => {
       const call = prisma.providerConfig.update.mock.calls[0][0];
       expect(call.data.circuitState).toBe('OPEN');
       expect(call.data.circuitConsecutiveFailures).toBe(5);
-      expect(eventBus.emit).toHaveBeenCalledWith('M4', 'provider_error_spike', { providerCode: 'travelgate' });
+      expect(eventBus.emit).toHaveBeenCalledWith('M4', 'provider_error_spike', {
+        providerCode: 'travelgate',
+      });
     });
   });
 });

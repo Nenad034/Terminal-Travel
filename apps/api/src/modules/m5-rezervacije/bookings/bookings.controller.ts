@@ -1,5 +1,15 @@
 import { parsePagination } from '../../../common/pagination/pagination';
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { BookingsService } from './bookings.service';
 import { CancelBookingDto } from './dto/cancel-booking.dto';
@@ -77,7 +87,8 @@ export class BookingsController {
     // Multiselect (24.8.2026, na zahtev vlasnika) — NestJS `@Query` vraća string kad je
     // parametar prisutan jednom, niz kad je ponovljen (`?status=A&status=B`). Normalizuje se
     // ovde na uvek-niz pre prosleđivanja servisu, koji dalje ne mora da razlikuje oblike.
-    const toArray = (v: string | string[] | undefined): string[] | undefined => (v === undefined ? undefined : Array.isArray(v) ? v : [v]);
+    const toArray = (v: string | string[] | undefined): string[] | undefined =>
+      v === undefined ? undefined : Array.isArray(v) ? v : [v];
     return this.bookings.findAll(
       {
         status: toArray(status),
@@ -140,7 +151,8 @@ export class BookingsController {
     @Query('returnFrom') returnFrom: string | undefined,
     @Query('returnTo') returnTo: string | undefined,
   ) {
-    const toArray = (v: string | string[] | undefined): string[] | undefined => (v === undefined ? undefined : Array.isArray(v) ? v : [v]);
+    const toArray = (v: string | string[] | undefined): string[] | undefined =>
+      v === undefined ? undefined : Array.isArray(v) ? v : [v];
     return this.bookings.calendarSummary(new Date(from), new Date(to), {
       status: toArray(status),
       paymentStatus: toArray(paymentStatus),
@@ -186,7 +198,8 @@ export class BookingsController {
     @Query('returnFrom') returnFrom: string | undefined,
     @Query('returnTo') returnTo: string | undefined,
   ) {
-    const toArray = (v: string | string[] | undefined): string[] | undefined => (v === undefined ? undefined : Array.isArray(v) ? v : [v]);
+    const toArray = (v: string | string[] | undefined): string[] | undefined =>
+      v === undefined ? undefined : Array.isArray(v) ? v : [v];
     return this.bookings.calendarDay(new Date(date), {
       status: toArray(status),
       paymentStatus: toArray(paymentStatus),
@@ -227,7 +240,11 @@ export class BookingsController {
 
   @Post(':id/modify')
   @RequirePermission('M5', 'booking', 'MODIFY')
-  modify(@Param('id') id: string, @Body() dto: ModifyBookingDto, @CurrentUser() actor: { userId: string }) {
+  modify(
+    @Param('id') id: string,
+    @Body() dto: ModifyBookingDto,
+    @CurrentUser() actor: { userId: string },
+  ) {
     return this.bookings.modify(id, dto, actor);
   }
 
@@ -237,7 +254,11 @@ export class BookingsController {
   // otkriva iste podatke (npr. koje su usluge dostupne) koje bi otkrila i sama izmena.
   @Post(':id/modify/preview')
   @RequirePermission('M5', 'booking', 'MODIFY')
-  previewModify(@Param('id') id: string, @Body() dto: ModifyBookingDto, @CurrentUser() actor: { userId: string }) {
+  previewModify(
+    @Param('id') id: string,
+    @Body() dto: ModifyBookingDto,
+    @CurrentUser() actor: { userId: string },
+  ) {
     return this.bookings.previewModify(id, dto, actor);
   }
 
@@ -251,7 +272,11 @@ export class BookingsController {
   // rezervacijama (vlasnikova odluka) — sprovodi `BookingsService.assertInternalPanelOnly`.
   @Post(':id/items')
   @RequirePermission('M5', 'booking', 'MODIFY')
-  addItem(@Param('id') id: string, @Body() dto: AddBookingItemDto, @CurrentUser() actor: { userId: string }) {
+  addItem(
+    @Param('id') id: string,
+    @Body() dto: AddBookingItemDto,
+    @CurrentUser() actor: { userId: string },
+  ) {
     return this.bookings.addItem(id, dto, actor);
   }
 
@@ -259,7 +284,11 @@ export class BookingsController {
   // korak pre potvrde, isti obrazac kao `modify/preview`.
   @Post(':id/items/preview')
   @RequirePermission('M5', 'booking', 'MODIFY')
-  previewAddItem(@Param('id') id: string, @Body() dto: AddBookingItemDto, @CurrentUser() actor: { userId: string }) {
+  previewAddItem(
+    @Param('id') id: string,
+    @Body() dto: AddBookingItemDto,
+    @CurrentUser() actor: { userId: string },
+  ) {
     return this.bookings.previewAddItem(id, dto, actor);
   }
 
@@ -269,7 +298,11 @@ export class BookingsController {
   // ne otkriva ništa što se već ne vidi na samoj stavci.
   @Get(':id/items/:itemId/ancillaries')
   @RequirePermission('M5', 'booking', 'VIEW')
-  listAncillaries(@Param('id') id: string, @Param('itemId') itemId: string, @CurrentUser() actor: { userId: string }) {
+  listAncillaries(
+    @Param('id') id: string,
+    @Param('itemId') itemId: string,
+    @CurrentUser() actor: { userId: string },
+  ) {
     return this.bookings.listAncillariesForItem(id, itemId, actor);
   }
 
@@ -291,19 +324,31 @@ export class BookingsController {
   // definiciji nema u cenovniku (obrazloženje u servisu).
   @Post(':id/items/manual')
   @RequirePermission('M5', 'booking', 'MODIFY')
-  addManualItem(@Param('id') id: string, @Body() dto: AddManualItemDto, @CurrentUser() actor: { userId: string }) {
+  addManualItem(
+    @Param('id') id: string,
+    @Body() dto: AddManualItemDto,
+    @CurrentUser() actor: { userId: string },
+  ) {
     return this.bookings.addManualItem(id, dto, actor);
   }
 
   @Post(':id/cancel')
   @RequirePermission('M5', 'booking', 'CANCEL')
-  cancel(@Param('id') id: string, @Body() dto: CancelBookingDto, @CurrentUser() actor: { userId: string }) {
+  cancel(
+    @Param('id') id: string,
+    @Body() dto: CancelBookingDto,
+    @CurrentUser() actor: { userId: string },
+  ) {
     return this.bookings.cancel(id, dto, actor);
   }
 
   @Patch(':id/payment-status')
   @RequirePermission('M5', 'booking', 'MODIFY')
-  updatePaymentStatus(@Param('id') id: string, @Body() dto: UpdatePaymentStatusDto, @CurrentUser() actor: { userId: string }) {
+  updatePaymentStatus(
+    @Param('id') id: string,
+    @Body() dto: UpdatePaymentStatusDto,
+    @CurrentUser() actor: { userId: string },
+  ) {
     return this.bookings.updatePaymentStatus(id, dto.paymentStatus, actor);
   }
 
@@ -312,7 +357,11 @@ export class BookingsController {
   // izmene rezervacije (booking/MODIFY) — nema poseban ključ, nije eksplicitno tražen u spec.
   @Patch('items/:itemId/assign-guide')
   @RequirePermission('M5', 'booking', 'MODIFY')
-  assignGuide(@Param('itemId') itemId: string, @Body() dto: AssignGuideDto, @CurrentUser() actor: { userId: string }) {
+  assignGuide(
+    @Param('itemId') itemId: string,
+    @Body() dto: AssignGuideDto,
+    @CurrentUser() actor: { userId: string },
+  ) {
     return this.bookings.assignGuide(itemId, dto.assignedGuideId ?? null, actor);
   }
 
@@ -321,7 +370,11 @@ export class BookingsController {
   // (booking/MODIFY), nikad ne dira M6 GuestProfile.
   @Post('items/:itemId/guests')
   @RequirePermission('M5', 'booking', 'MODIFY')
-  addGuest(@Param('itemId') itemId: string, @Body() dto: CreateBookingItemGuestDto, @CurrentUser() actor: { userId: string }) {
+  addGuest(
+    @Param('itemId') itemId: string,
+    @Body() dto: CreateBookingItemGuestDto,
+    @CurrentUser() actor: { userId: string },
+  ) {
     return this.bookings.addGuest(itemId, dto, actor);
   }
 
@@ -338,7 +391,11 @@ export class BookingsController {
 
   @Delete('items/:itemId/guests/:guestId')
   @RequirePermission('M5', 'booking', 'MODIFY')
-  removeGuest(@Param('itemId') itemId: string, @Param('guestId') guestId: string, @CurrentUser() actor: { userId: string }) {
+  removeGuest(
+    @Param('itemId') itemId: string,
+    @Param('guestId') guestId: string,
+    @CurrentUser() actor: { userId: string },
+  ) {
     return this.bookings.removeGuest(itemId, guestId, actor);
   }
 
@@ -346,7 +403,11 @@ export class BookingsController {
   // Vlasnik/Direktor) je u servisu, dozvola ovde samo gate-uje ko sme uopšte da pokuša.
   @Post(':id/transfer-ownership')
   @RequirePermission('M5', 'booking', 'TRANSFER_OWNERSHIP')
-  transferOwnership(@Param('id') id: string, @Body() dto: TransferOwnershipDto, @CurrentUser() actor: { userId: string }) {
+  transferOwnership(
+    @Param('id') id: string,
+    @Body() dto: TransferOwnershipDto,
+    @CurrentUser() actor: { userId: string },
+  ) {
     return this.bookings.transferOwnership(id, dto.newOwnerId, actor);
   }
 
@@ -354,7 +415,11 @@ export class BookingsController {
   // ostali kreiraju PENDING predlog koji primalac mora prihvatiti/odbiti ispod.
   @Post(':id/handoff-requests')
   @RequirePermission('M5', 'booking', 'TRANSFER_ASSIGNMENT')
-  proposeHandoff(@Param('id') id: string, @Body() dto: ProposeHandoffDto, @CurrentUser() actor: { userId: string }) {
+  proposeHandoff(
+    @Param('id') id: string,
+    @Body() dto: ProposeHandoffDto,
+    @CurrentUser() actor: { userId: string },
+  ) {
     return this.bookings.proposeHandoff(id, dto.toUserId, actor);
   }
 
@@ -386,7 +451,11 @@ export class BookingsController {
 
   @Post(':id/voucher/override')
   @RequirePermission('M5', 'voucher', 'OVERRIDE_ISSUE')
-  voucherOverride(@Param('id') id: string, @Body() dto: VoucherOverrideDto, @CurrentUser() actor: { userId: string }) {
+  voucherOverride(
+    @Param('id') id: string,
+    @Body() dto: VoucherOverrideDto,
+    @CurrentUser() actor: { userId: string },
+  ) {
     return this.bookings.voucherOverride(id, dto.reason, actor);
   }
 

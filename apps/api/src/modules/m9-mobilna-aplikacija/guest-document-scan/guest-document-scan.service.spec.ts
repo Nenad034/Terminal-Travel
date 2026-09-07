@@ -48,7 +48,12 @@ describe('GuestDocumentScanService', () => {
       warning: undefined,
     });
     expect(auditLog.write).toHaveBeenCalledWith(
-      expect.objectContaining({ module: 'M9', action: 'guest_document_scan.attempted', actorId: 'user-1', context: { documentDetected: true, hadWarning: false } }),
+      expect.objectContaining({
+        module: 'M9',
+        action: 'guest_document_scan.attempted',
+        actorId: 'user-1',
+        context: { documentDetected: true, hadWarning: false },
+      }),
     );
   });
 

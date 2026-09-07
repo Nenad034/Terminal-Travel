@@ -51,7 +51,9 @@ describe('EventListenerService (Master dokument poglavlje 6 — LISTEN strana Ev
     const handler = jest.fn().mockResolvedValue(undefined);
     service.on('M5', 'booking.confirmed', handler);
 
-    client.__triggerNotification(JSON.stringify({ module: 'M5', event: 'booking.confirmed', payload: { bookingId: 'b1' } }));
+    client.__triggerNotification(
+      JSON.stringify({ module: 'M5', event: 'booking.confirmed', payload: { bookingId: 'b1' } }),
+    );
     await new Promise((r) => setImmediate(r)); // dispatch je async (void poziv)
 
     expect(handler).toHaveBeenCalledWith({ bookingId: 'b1' });
@@ -62,7 +64,9 @@ describe('EventListenerService (Master dokument poglavlje 6 — LISTEN strana Ev
     const handler = jest.fn().mockResolvedValue(undefined);
     service.on('M5', 'booking.cancelled', handler);
 
-    client.__triggerNotification(JSON.stringify({ module: 'M5', event: 'booking.confirmed', payload: {} }));
+    client.__triggerNotification(
+      JSON.stringify({ module: 'M5', event: 'booking.confirmed', payload: {} }),
+    );
     await new Promise((r) => setImmediate(r));
 
     expect(handler).not.toHaveBeenCalled();
@@ -75,7 +79,9 @@ describe('EventListenerService (Master dokument poglavlje 6 — LISTEN strana Ev
     service.on('M5', 'booking.confirmed', handlerA);
     service.on('M5', 'booking.confirmed', handlerB);
 
-    client.__triggerNotification(JSON.stringify({ module: 'M5', event: 'booking.confirmed', payload: {} }));
+    client.__triggerNotification(
+      JSON.stringify({ module: 'M5', event: 'booking.confirmed', payload: {} }),
+    );
     await new Promise((r) => setImmediate(r));
 
     expect(handlerA).toHaveBeenCalled();
@@ -89,7 +95,9 @@ describe('EventListenerService (Master dokument poglavlje 6 — LISTEN strana Ev
     service.on('M5', 'booking.confirmed', failingHandler);
     service.on('M5', 'booking.confirmed', okHandler);
 
-    client.__triggerNotification(JSON.stringify({ module: 'M5', event: 'booking.confirmed', payload: {} }));
+    client.__triggerNotification(
+      JSON.stringify({ module: 'M5', event: 'booking.confirmed', payload: {} }),
+    );
     await new Promise((r) => setImmediate(r));
     await new Promise((r) => setImmediate(r));
 

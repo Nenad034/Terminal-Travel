@@ -20,7 +20,10 @@ export class AgentActionGuard implements CanActivate {
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const required = this.reflector.get<RequiredAgentAction | undefined>(AGENT_ACTION_KEY, context.getHandler());
+    const required = this.reflector.get<RequiredAgentAction | undefined>(
+      AGENT_ACTION_KEY,
+      context.getHandler(),
+    );
     if (!required) return true; // ruta bez @AgentAction — ovaj guard se ne primenjuje
 
     const request = context.switchToHttp().getRequest();

@@ -6,7 +6,11 @@ import { useFilterMode, type FilterDisplayMode } from './FilterModeContext';
 // zadrzite u traci i u prozoru"), ostaju samo dve opcije.
 const OPTIONS: { mode: FilterDisplayMode; label: string; title: string }[] = [
   { mode: 'traka', label: 'traka', title: 'Traka filtera — uvek vidljiva' },
-  { mode: 'prozor', label: 'prozor', title: 'Iskačući prozor — bolji raspored na manjim ekranima (laptop/tablet)' },
+  {
+    mode: 'prozor',
+    label: 'prozor',
+    title: 'Iskačući prozor — bolji raspored na manjim ekranima (laptop/tablet)',
+  },
 ];
 
 // U liniji sa naslovom stranice, iznad trake ikonica (6.9.2026, vlasnikov zahtev) — vidi

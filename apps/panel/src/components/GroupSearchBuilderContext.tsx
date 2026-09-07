@@ -37,7 +37,11 @@ export function GroupSearchBuilderProvider({ children }: { children: React.React
     setStaged([]);
   }
 
-  return <GroupSearchBuilderContext.Provider value={{ staged, stage, unstage, clear }}>{children}</GroupSearchBuilderContext.Provider>;
+  return (
+    <GroupSearchBuilderContext.Provider value={{ staged, stage, unstage, clear }}>
+      {children}
+    </GroupSearchBuilderContext.Provider>
+  );
 }
 
 export function useGroupSearchBuilder() {

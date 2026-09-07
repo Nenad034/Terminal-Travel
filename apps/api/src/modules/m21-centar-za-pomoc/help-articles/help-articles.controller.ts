@@ -45,12 +45,20 @@ export class HelpArticlesController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string, @CurrentUser() actor: { userId: string }, @Query('lang') lang?: LanguageCode) {
+  findOne(
+    @Param('id') id: string,
+    @CurrentUser() actor: { userId: string },
+    @Query('lang') lang?: LanguageCode,
+  ) {
     return this.articles.findOne(id, actor.userId, lang);
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() dto: UpdateHelpArticleDto, @CurrentUser() actor: { userId: string }) {
+  update(
+    @Param('id') id: string,
+    @Body() dto: UpdateHelpArticleDto,
+    @CurrentUser() actor: { userId: string },
+  ) {
     return this.articles.update(id, dto, actor.userId);
   }
 

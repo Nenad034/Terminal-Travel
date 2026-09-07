@@ -20,10 +20,18 @@ export class ClientPaymentSchedulesService {
   // M10 spec §10 dopuna (31.8.2026, M1 §3.9a konvencija) — STAFF bez
   // `M10/client-payment-schedule/VIEW_ALL` vidi samo rasporede čija je rezervacija (M5 Booking)
   // u njegovom vlasništvu/zaduženju.
-  async findAll(filters: { bookingId?: string; depositStatus?: string; balanceStatus?: string }, actorUserId?: string) {
+  async findAll(
+    filters: { bookingId?: string; depositStatus?: string; balanceStatus?: string },
+    actorUserId?: string,
+  ) {
     let scopedToOwnBooking = false;
     if (actorUserId) {
-      const hasViewAll = await this.permissions.hasPermission(actorUserId, 'M10', 'client-payment-schedule', 'VIEW_ALL');
+      const hasViewAll = await this.permissions.hasPermission(
+        actorUserId,
+        'M10',
+        'client-payment-schedule',
+        'VIEW_ALL',
+      );
       scopedToOwnBooking = !hasViewAll;
     }
     return this.prisma.clientPaymentSchedule.findMany({
@@ -31,7 +39,9 @@ export class ClientPaymentSchedulesService {
         bookingId: filters.bookingId,
         depositStatus: filters.depositStatus as any,
         balanceStatus: filters.balanceStatus as any,
-        booking: scopedToOwnBooking ? { OR: [{ ownerId: actorUserId }, { assignedToId: actorUserId }] } : undefined,
+        booking: scopedToOwnBooking
+          ? { OR: [{ ownerId: actorUserId }, { assignedToId: actorUserId }] }
+          : undefined,
       },
     });
   }
@@ -41,19 +51,28 @@ export class ClientPaymentSchedulesService {
     const existing = await this.prisma.clientPaymentSchedule.findUnique({ where: { bookingId } });
     if (existing) return existing;
 
-    const booking = await this.prisma.booking.findUnique({ where: { id: bookingId }, include: { items: true } });
+    const booking = await this.prisma.booking.findUnique({
+      where: { id: bookingId },
+      include: { items: true },
+    });
     if (!booking) return null;
 
     const config = await this.paymentTerms.getActive();
 
     const depositAmount = Math.round((booking.totalPrice * Number(config.depositPercentage)) / 100);
-    const depositDueDate = addDays(booking.confirmedAt ?? new Date(), config.depositDueDaysAfterConfirmation);
+    const depositDueDate = addDays(
+      booking.confirmedAt ?? new Date(),
+      config.depositDueDaysAfterConfirmation,
+    );
 
     const earliestStayFrom = booking.items.reduce<Date | null>((earliest, item) => {
       if (!earliest || item.stayFrom < earliest) return item.stayFrom;
       return earliest;
     }, null);
-    const balanceDueDate = addDays(earliestStayFrom ?? new Date(), -config.balanceDueDaysBeforeStay);
+    const balanceDueDate = addDays(
+      earliestStayFrom ?? new Date(),
+      -config.balanceDueDaysBeforeStay,
+    );
 
     return this.prisma.clientPaymentSchedule.create({
       data: { bookingId, depositAmount, depositDueDate, balanceDueDate },
@@ -71,7 +90,8 @@ export class ClientPaymentSchedulesService {
     const receivedSum = await this.sumReceivedPayments(bookingId);
     const data: { depositStatus?: 'MET'; balanceStatus?: 'MET' } = {};
 
-    if (schedule.depositStatus !== 'MET' && receivedSum >= schedule.depositAmount) data.depositStatus = 'MET';
+    if (schedule.depositStatus !== 'MET' && receivedSum >= schedule.depositAmount)
+      data.depositStatus = 'MET';
     if (schedule.balanceStatus !== 'MET' && booking.paymentStatus === 'PAID') {
       data.balanceStatus = 'MET';
       data.depositStatus = 'MET'; // §5.4.3 — balance MET povlači i deposit MET, bez obzira na redosled uplata
@@ -89,12 +109,31 @@ export class ClientPaymentSchedulesService {
 
     const now = new Date();
     const pending = await this.prisma.clientPaymentSchedule.findMany({
-      where: { OR: [{ depositStatus: { in: ['PENDING', 'OVERDUE'] } }, { balanceStatus: { in: ['PENDING', 'OVERDUE'] } }] },
+      where: {
+        OR: [
+          { depositStatus: { in: ['PENDING', 'OVERDUE'] } },
+          { balanceStatus: { in: ['PENDING', 'OVERDUE'] } },
+        ],
+      },
     });
 
     for (const schedule of pending) {
-      await this.checkOneDeadline(schedule, 'deposit', schedule.depositDueDate, schedule.depositStatus, now, config.escalationDaysAfterDue);
-      await this.checkOneDeadline(schedule, 'balance', schedule.balanceDueDate, schedule.balanceStatus, now, config.escalationDaysAfterDue);
+      await this.checkOneDeadline(
+        schedule,
+        'deposit',
+        schedule.depositDueDate,
+        schedule.depositStatus,
+        now,
+        config.escalationDaysAfterDue,
+      );
+      await this.checkOneDeadline(
+        schedule,
+        'balance',
+        schedule.balanceDueDate,
+        schedule.balanceStatus,
+        now,
+        config.escalationDaysAfterDue,
+      );
     }
   }
 
@@ -120,7 +159,11 @@ export class ClientPaymentSchedulesService {
 
     // §5.4.3 — HealthSignal tipa PAYMENT_DEADLINE_MISSED (M18 još ne postoji kao model,
     // isti obrazac kao M3 low_capacity_critical / M4 provider_error_spike preko Event Bus-a).
-    await this.eventBus.emit('M10', 'payment_deadline_missed', { bookingId: schedule.bookingId, kind, severity });
+    await this.eventBus.emit('M10', 'payment_deadline_missed', {
+      bookingId: schedule.bookingId,
+      kind,
+      severity,
+    });
   }
 
   private async sumReceivedPayments(bookingId: string): Promise<number> {

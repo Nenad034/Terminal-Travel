@@ -6,7 +6,6 @@ import TabLink from '@/components/TabLink';
 import RebateActions from '../RebateActions';
 import { Badge } from '@/components/ui/badge';
 
-
 interface Subagent {
   id: string;
   clientAccountId: string;
@@ -38,7 +37,9 @@ const STATUSES = ['DRAFT', 'APPROVED', 'APPLIED', 'REJECTED'] as const;
 // (GET /subagents/:id/commission-rebates), bez globalne liste — ovaj ekran je tanak
 // agregacioni sloj (M17 spec §2, "ako kompozicija postane složena... sopstveni BFF sloj koji i
 // dalje samo poziva zvanične API-je"), ne novi M7 endpoint ni nova poslovna logika.
-export default async function CommissionRebatesPage(props: { searchParams: Promise<{ status?: string }> }) {
+export default async function CommissionRebatesPage(props: {
+  searchParams: Promise<{ status?: string }>;
+}) {
   const searchParams = await props.searchParams;
   const me = await getMe();
   const canView = hasPermission(me, 'M7', 'commission-rebate', 'VIEW');
@@ -55,13 +56,21 @@ export default async function CommissionRebatesPage(props: { searchParams: Promi
       const subagents = await apiFetch<Subagent[]>('/b2b/subagents');
       const perSubagent = await Promise.all(
         subagents.map(async (s) => {
-          const list = await apiFetch<CommissionRebate[]>(`/b2b/subagents/${s.id}/commission-rebates`).catch(() => []);
-          const account = await apiFetch<ClientAccountSummary>(`/crm/client-accounts/${s.clientAccountId}`).catch(() => null);
-          const name = account ? account.companyName ?? account.fullName ?? s.clientAccountId.slice(0, 8) : s.clientAccountId.slice(0, 8);
+          const list = await apiFetch<CommissionRebate[]>(
+            `/b2b/subagents/${s.id}/commission-rebates`,
+          ).catch(() => []);
+          const account = await apiFetch<ClientAccountSummary>(
+            `/crm/client-accounts/${s.clientAccountId}`,
+          ).catch(() => null);
+          const name = account
+            ? (account.companyName ?? account.fullName ?? s.clientAccountId.slice(0, 8))
+            : s.clientAccountId.slice(0, 8);
           return list.map((r) => ({ ...r, accountName: name }));
         }),
       );
-      rebates = perSubagent.flat().sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      rebates = perSubagent
+        .flat()
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
       if (status) rebates = rebates.filter((r) => r.status === status);
     } catch {
       error = 'Učitavanje rabata nije uspelo.';
@@ -92,21 +101,35 @@ export default async function CommissionRebatesPage(props: { searchParams: Promi
           </div>
 
           <div className="overflow-hidden rounded-lg border border-border">
-            {rebates.length === 0 && <p className="p-4 text-center text-xs text-ink-faint">Nema rabata za izabrani filter.</p>}
+            {rebates.length === 0 && (
+              <p className="p-4 text-center text-xs text-ink-faint">
+                Nema rabata za izabrani filter.
+              </p>
+            )}
             {rebates.map((r) => (
-              <div key={r.id} className="flex items-center justify-between border-b border-border bg-panel px-4 py-3 text-sm last:border-b-0">
+              <div
+                key={r.id}
+                className="flex items-center justify-between border-b border-border bg-panel px-4 py-3 text-sm last:border-b-0"
+              >
                 <div>
-                  <TabLink href={`/b2b/${r.subagentId}`} label={r.accountName} className="font-medium text-ink hover:text-accent">
+                  <TabLink
+                    href={`/b2b/${r.subagentId}`}
+                    label={r.accountName}
+                    className="font-medium text-ink hover:text-accent"
+                  >
                     {r.accountName}
                   </TabLink>
                   <div className="text-xs text-ink-faint">
-                    {r.calculatedAmount.toLocaleString('sr-RS')} {r.currency} · period {new Date(r.periodStart).toLocaleDateString('sr-RS')} –{' '}
+                    {r.calculatedAmount.toLocaleString('sr-RS')} {r.currency} · period{' '}
+                    {new Date(r.periodStart).toLocaleDateString('sr-RS')} –{' '}
                     {new Date(r.periodEnd).toLocaleDateString('sr-RS')}
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
                   <StatusBadge status={r.status} />
-                  {r.status === 'DRAFT' && canApprove && <RebateActions subagentId={r.subagentId} rebateId={r.id} />}
+                  {r.status === 'DRAFT' && canApprove && (
+                    <RebateActions subagentId={r.subagentId} rebateId={r.id} />
+                  )}
                 </div>
               </div>
             ))}
@@ -120,10 +143,11 @@ export default async function CommissionRebatesPage(props: { searchParams: Promi
 function StatusBadge({ status }: { status: string }) {
   if (status === 'APPLIED') return <Badge variant="ok">{status}</Badge>;
   if (status === 'REJECTED') return <Badge variant="danger">{status}</Badge>;
-  if (status === 'APPROVED') return (
-    <Badge variant="secondary" className="text-accent">
-      {status}
-    </Badge>
-  );
+  if (status === 'APPROVED')
+    return (
+      <Badge variant="secondary" className="text-accent">
+        {status}
+      </Badge>
+    );
   return <Badge variant="warn">{status}</Badge>;
 }

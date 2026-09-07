@@ -36,7 +36,10 @@ export class M10AlarmsService {
   async checkStaleFiscalDrafts(): Promise<void> {
     const stale = await this.fiscalDocuments.findStaleDrafts();
     for (const document of stale) {
-      await this.eventBus.emit('M10', 'fiscal_document_draft_stale', { fiscalDocumentId: document.id, bookingId: document.bookingId });
+      await this.eventBus.emit('M10', 'fiscal_document_draft_stale', {
+        fiscalDocumentId: document.id,
+        bookingId: document.bookingId,
+      });
     }
   }
 
@@ -44,7 +47,10 @@ export class M10AlarmsService {
   async checkSupplierObligationsDueSoon(): Promise<void> {
     const dueSoon = await this.supplierObligations.findDueSoon();
     for (const obligation of dueSoon) {
-      await this.eventBus.emit('M10', 'supplier_obligation_due_soon', { supplierObligationId: obligation.id, dueDate: obligation.dueDate });
+      await this.eventBus.emit('M10', 'supplier_obligation_due_soon', {
+        supplierObligationId: obligation.id,
+        dueDate: obligation.dueDate,
+      });
     }
   }
 }

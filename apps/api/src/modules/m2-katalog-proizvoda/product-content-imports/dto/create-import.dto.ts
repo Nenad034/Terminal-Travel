@@ -1,4 +1,13 @@
-import { IsArray, IsEnum, IsIn, IsObject, IsOptional, IsUUID, IsUrl, ValidateIf } from 'class-validator';
+import {
+  IsArray,
+  IsEnum,
+  IsIn,
+  IsObject,
+  IsOptional,
+  IsUUID,
+  IsUrl,
+  ValidateIf,
+} from 'class-validator';
 import { ImportFieldType, ImportOrigin } from '@prisma/client';
 
 class PrefilledFieldDto {

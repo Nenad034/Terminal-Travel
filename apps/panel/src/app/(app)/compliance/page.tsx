@@ -8,7 +8,6 @@ import RetryRegistrationButton from './RetryRegistrationButton';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 
-
 interface TravelGuarantee {
   id: string;
   provider: string;
@@ -44,7 +43,9 @@ interface Registration {
 // M17 spec §4/§7 (Faza 2) — "Compliance (garancija putovanja)", M11 §2/§2.2/§2.3. Izlazni
 // kriterijum M17 Faza 2: "tim vidi status garancije putovanja" — čitanje, radnje ograničene
 // na ono što M11 spec eksplicitno dozvoljava (§2.1 izmena je uvek ljudska, §2.3 retry).
-export default async function CompliancePage(props: { searchParams: Promise<{ status?: string }> }) {
+export default async function CompliancePage(props: {
+  searchParams: Promise<{ status?: string }>;
+}) {
   const searchParams = await props.searchParams;
   const me = await getMe();
   const canView = hasPermission(me, 'M11', 'travel-guarantee', 'VIEW');
@@ -71,7 +72,9 @@ export default async function CompliancePage(props: { searchParams: Promise<{ st
 
     if (canViewRegistrations) {
       const qs = searchParams?.status ? `?status=${encodeURIComponent(searchParams.status)}` : '';
-      registrations = await apiFetch<Registration[]>(`/compliance/travel-guarantee-registrations${qs}`);
+      registrations = await apiFetch<Registration[]>(
+        `/compliance/travel-guarantee-registrations${qs}`,
+      );
     }
   } catch {
     error = 'Nemate dozvolu za uvid u compliance podatke (M11/travel-guarantee/VIEW).';
@@ -107,17 +110,24 @@ export default async function CompliancePage(props: { searchParams: Promise<{ st
                   {guarantee.provider} — polisa <b className="text-ink">{guarantee.policyNumber}</b>
                 </p>
                 <p className="mt-1">
-                  Pokriće: <b className="text-ink">{(guarantee.coverageAmount / 100).toLocaleString('sr-RS')}</b> {guarantee.currency}
+                  Pokriće:{' '}
+                  <b className="text-ink">
+                    {(guarantee.coverageAmount / 100).toLocaleString('sr-RS')}
+                  </b>{' '}
+                  {guarantee.currency}
                 </p>
                 <p className="mt-1">
-                  Važi: {new Date(guarantee.validFrom).toLocaleDateString('sr-RS')} – {new Date(guarantee.validTo).toLocaleDateString('sr-RS')}
+                  Važi: {new Date(guarantee.validFrom).toLocaleDateString('sr-RS')} –{' '}
+                  {new Date(guarantee.validTo).toLocaleDateString('sr-RS')}
                 </p>
                 <div className="mt-2">
                   <StatusBadge status={guarantee.status} />
                 </div>
               </div>
             ) : (
-              <p className="text-xs text-danger">Nijedna garancija putovanja nije uneta u sistem.</p>
+              <p className="text-xs text-danger">
+                Nijedna garancija putovanja nije uneta u sistem.
+              </p>
             )}
           </div>
 
@@ -128,16 +138,20 @@ export default async function CompliancePage(props: { searchParams: Promise<{ st
             {utilization && utilization.travelGuaranteeId ? (
               <div className="text-xs text-ink-dim">
                 <p>
-                  <b className="text-ink">{utilization.utilizationPercent.toFixed(1)}%</b> od pokrića iskorišćeno (
-                  {(utilization.utilizedAmount / 100).toLocaleString('sr-RS')} / {(utilization.coverageAmount / 100).toLocaleString('sr-RS')}{' '}
+                  <b className="text-ink">{utilization.utilizationPercent.toFixed(1)}%</b> od
+                  pokrića iskorišćeno ({(utilization.utilizedAmount / 100).toLocaleString('sr-RS')}{' '}
+                  / {(utilization.coverageAmount / 100).toLocaleString('sr-RS')}{' '}
                   {utilization.currency})
                 </p>
                 {utilization.warningThresholdReached && (
-                  <p className="mt-2 rounded bg-warn-bg px-2 py-1 text-warn">Iskorišćenost je dostigla prag upozorenja (80%) — M11 spec §2.2.</p>
+                  <p className="mt-2 rounded bg-warn-bg px-2 py-1 text-warn">
+                    Iskorišćenost je dostigla prag upozorenja (80%) — M11 spec §2.2.
+                  </p>
                 )}
                 {utilization.inGracePeriod && (
                   <p className="mt-2 rounded bg-danger-bg px-2 py-1 text-danger">
-                    Garancija trenutno nije važeća — sistem je u periodu počeka (15 dana). Obnoviti garanciju hitno.
+                    Garancija trenutno nije važeća — sistem je u periodu počeka (15 dana). Obnoviti
+                    garanciju hitno.
                   </p>
                 )}
               </div>
@@ -165,19 +179,34 @@ export default async function CompliancePage(props: { searchParams: Promise<{ st
             </div>
           </div>
           <div className="overflow-hidden rounded-lg border border-border">
-            {registrations.length === 0 && <p className="p-4 text-center text-xs text-ink-faint">Nema registracija.</p>}
+            {registrations.length === 0 && (
+              <p className="p-4 text-center text-xs text-ink-faint">Nema registracija.</p>
+            )}
             {registrations.map((r) => (
-              <div key={r.id} className="flex items-center justify-between border-b border-border bg-panel px-4 py-3 text-sm last:border-b-0">
+              <div
+                key={r.id}
+                className="flex items-center justify-between border-b border-border bg-panel px-4 py-3 text-sm last:border-b-0"
+              >
                 <div>
-                  <TabLink href={`/rezervacije/${r.bookingId}`} label={`rezervacija ${r.bookingId.slice(0, 8)}…`} className="font-medium text-ink hover:text-accent">
+                  <TabLink
+                    href={`/rezervacije/${r.bookingId}`}
+                    label={`rezervacija ${r.bookingId.slice(0, 8)}…`}
+                    className="font-medium text-ink hover:text-accent"
+                  >
                     rezervacija {r.bookingId.slice(0, 8)}…
                   </TabLink>
-                  {r.cisRegistrationNumber && <div className="text-xs text-ink-faint">CIS broj: {r.cisRegistrationNumber}</div>}
+                  {r.cisRegistrationNumber && (
+                    <div className="text-xs text-ink-faint">
+                      CIS broj: {r.cisRegistrationNumber}
+                    </div>
+                  )}
                   {r.failureReason && <div className="text-xs text-danger">{r.failureReason}</div>}
                 </div>
                 <div className="flex items-center gap-2">
                   <StatusBadge status={r.status} />
-                  {canRetry && (r.status === 'FAILED' || r.status === 'RELEASE_PENDING') && <RetryRegistrationButton id={r.id} />}
+                  {canRetry && (r.status === 'FAILED' || r.status === 'RELEASE_PENDING') && (
+                    <RetryRegistrationButton id={r.id} />
+                  )}
                 </div>
               </div>
             ))}
@@ -189,7 +218,8 @@ export default async function CompliancePage(props: { searchParams: Promise<{ st
 }
 
 function StatusBadge({ status }: { status: string }) {
-  if (['ACTIVE', 'REGISTERED', 'RELEASED'].includes(status)) return <Badge variant="ok">{status}</Badge>;
+  if (['ACTIVE', 'REGISTERED', 'RELEASED'].includes(status))
+    return <Badge variant="ok">{status}</Badge>;
   if (['EXPIRED', 'FAILED'].includes(status)) return <Badge variant="danger">{status}</Badge>;
   return <Badge variant="warn">{status}</Badge>;
 }

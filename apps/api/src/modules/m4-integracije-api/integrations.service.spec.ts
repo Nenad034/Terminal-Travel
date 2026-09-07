@@ -22,7 +22,12 @@ describe('IntegrationsService (M4 spec §2.4/§3.2/§4/§4.1)', () => {
     };
     const registry = { getAdapter: jest.fn().mockReturnValue(adapter) };
     const auditLog = { write: jest.fn() };
-    const service = new IntegrationsService(prisma as any, circuitBreaker as any, registry as any, auditLog as any);
+    const service = new IntegrationsService(
+      prisma as any,
+      circuitBreaker as any,
+      registry as any,
+      auditLog as any,
+    );
     return { service, prisma, circuitBreaker, adapter, auditLog };
   }
 
@@ -33,12 +38,17 @@ describe('IntegrationsService (M4 spec §2.4/§3.2/§4/§4.1)', () => {
       const circuitBreaker = (service as any).circuitBreaker;
       circuitBreaker.canCall.mockResolvedValue({ allowed: false, effectiveState: 'OPEN' });
 
-      await expect(service.search('travelgate', { stayFrom: '2027-01-01', stayTo: '2027-01-02', adults: 2 })).rejects.toThrow(
-        ProviderError,
-      );
+      await expect(
+        service.search('travelgate', { stayFrom: '2027-01-01', stayTo: '2027-01-02', adults: 2 }),
+      ).rejects.toThrow(ProviderError);
       expect(adapter.search).not.toHaveBeenCalled();
       expect(prisma.providerCallLog.create).toHaveBeenCalledWith(
-        expect.objectContaining({ data: expect.objectContaining({ responseStatus: 'CIRCUIT_OPEN', errorCode: 'PROVIDER_UNAVAILABLE' }) }),
+        expect.objectContaining({
+          data: expect.objectContaining({
+            responseStatus: 'CIRCUIT_OPEN',
+            errorCode: 'PROVIDER_UNAVAILABLE',
+          }),
+        }),
       );
     });
   });
@@ -53,7 +63,11 @@ describe('IntegrationsService (M4 spec §2.4/§3.2/§4/§4.1)', () => {
         capabilitiesProfile: { maxResultsPerSearch: 3 },
       });
 
-      const result = await service.search('travelgate', { stayFrom: '2027-01-01', stayTo: '2027-01-02', adults: 2 });
+      const result = await service.search('travelgate', {
+        stayFrom: '2027-01-01',
+        stayTo: '2027-01-02',
+        adults: 2,
+      });
 
       expect(result).toHaveLength(3);
     });
@@ -62,9 +76,16 @@ describe('IntegrationsService (M4 spec §2.4/§3.2/§4/§4.1)', () => {
       const { service, prisma, adapter } = makeService();
       const results = Array.from({ length: 60 }, (_, i) => ({ externalId: String(i) }));
       adapter.search.mockResolvedValue(results);
-      prisma.providerConfig.findUniqueOrThrow.mockResolvedValue({ providerCode: 'travelgate', capabilitiesProfile: {} });
+      prisma.providerConfig.findUniqueOrThrow.mockResolvedValue({
+        providerCode: 'travelgate',
+        capabilitiesProfile: {},
+      });
 
-      const result = await service.search('travelgate', { stayFrom: '2027-01-01', stayTo: '2027-01-02', adults: 2 });
+      const result = await service.search('travelgate', {
+        stayFrom: '2027-01-01',
+        stayTo: '2027-01-02',
+        adults: 2,
+      });
 
       expect(result).toHaveLength(50);
     });
@@ -72,9 +93,16 @@ describe('IntegrationsService (M4 spec §2.4/§3.2/§4/§4.1)', () => {
     it('uspeh poziva circuitBreaker.recordSuccess i upisuje OK log', async () => {
       const { service, prisma, adapter, circuitBreaker } = makeService();
       adapter.search.mockResolvedValue([]);
-      prisma.providerConfig.findUniqueOrThrow.mockResolvedValue({ providerCode: 'travelgate', capabilitiesProfile: {} });
+      prisma.providerConfig.findUniqueOrThrow.mockResolvedValue({
+        providerCode: 'travelgate',
+        capabilitiesProfile: {},
+      });
 
-      await service.search('travelgate', { stayFrom: '2027-01-01', stayTo: '2027-01-02', adults: 2 });
+      await service.search('travelgate', {
+        stayFrom: '2027-01-01',
+        stayTo: '2027-01-02',
+        adults: 2,
+      });
       expect(circuitBreaker.recordSuccess).toHaveBeenCalledWith('travelgate');
     });
   });
@@ -83,11 +111,14 @@ describe('IntegrationsService (M4 spec §2.4/§3.2/§4/§4.1)', () => {
     it('ProviderError propagira sopstven code u log i baca dalje', async () => {
       const { service, prisma, adapter, circuitBreaker } = makeService();
       adapter.search.mockRejectedValue(new ProviderError('RATE_LIMITED', 'previše zahteva'));
-      prisma.providerConfig.findUniqueOrThrow.mockResolvedValue({ providerCode: 'travelgate', capabilitiesProfile: {} });
+      prisma.providerConfig.findUniqueOrThrow.mockResolvedValue({
+        providerCode: 'travelgate',
+        capabilitiesProfile: {},
+      });
 
-      await expect(service.search('travelgate', { stayFrom: '2027-01-01', stayTo: '2027-01-02', adults: 2 })).rejects.toThrow(
-        ProviderError,
-      );
+      await expect(
+        service.search('travelgate', { stayFrom: '2027-01-01', stayTo: '2027-01-02', adults: 2 }),
+      ).rejects.toThrow(ProviderError);
       expect(circuitBreaker.recordFailure).toHaveBeenCalledWith('travelgate');
       expect(prisma.providerCallLog.create).toHaveBeenCalledWith(
         expect.objectContaining({ data: expect.objectContaining({ errorCode: 'RATE_LIMITED' }) }),
@@ -97,9 +128,14 @@ describe('IntegrationsService (M4 spec §2.4/§3.2/§4/§4.1)', () => {
     it('generička greška (ne ProviderError) upisuje error_code=UNKNOWN, ne prazno polje', async () => {
       const { service, prisma, adapter } = makeService();
       adapter.search.mockRejectedValue(new Error('nešto neočekivano'));
-      prisma.providerConfig.findUniqueOrThrow.mockResolvedValue({ providerCode: 'travelgate', capabilitiesProfile: {} });
+      prisma.providerConfig.findUniqueOrThrow.mockResolvedValue({
+        providerCode: 'travelgate',
+        capabilitiesProfile: {},
+      });
 
-      await expect(service.search('travelgate', { stayFrom: '2027-01-01', stayTo: '2027-01-02', adults: 2 })).rejects.toThrow();
+      await expect(
+        service.search('travelgate', { stayFrom: '2027-01-01', stayTo: '2027-01-02', adults: 2 }),
+      ).rejects.toThrow();
       expect(prisma.providerCallLog.create).toHaveBeenCalledWith(
         expect.objectContaining({ data: expect.objectContaining({ errorCode: 'UNKNOWN' }) }),
       );
@@ -109,8 +145,16 @@ describe('IntegrationsService (M4 spec §2.4/§3.2/§4/§4.1)', () => {
   describe('request_summary redakcija (§3.2/§7 Master dokumenta tačka 5)', () => {
     it('uklanja osetljiva polja (npr. guestName) iz request_summary pre upisa', async () => {
       const { service, prisma, adapter, auditLog } = makeService();
-      adapter.confirmBooking.mockResolvedValue({ providerBookingReference: 'X', status: 'CONFIRMED', confirmedPrice: 100, confirmedAt: null });
-      prisma.providerConfig.findUniqueOrThrow.mockResolvedValue({ providerCode: 'travelgate', capabilitiesProfile: {} });
+      adapter.confirmBooking.mockResolvedValue({
+        providerBookingReference: 'X',
+        status: 'CONFIRMED',
+        confirmedPrice: 100,
+        confirmedAt: null,
+      });
+      prisma.providerConfig.findUniqueOrThrow.mockResolvedValue({
+        providerCode: 'travelgate',
+        capabilitiesProfile: {},
+      });
 
       await service.confirmBooking('travelgate', 'ext-1', {
         stay: { stayFrom: '2027-01-01', stayTo: '2027-01-02', adults: 2 },
@@ -118,14 +162,21 @@ describe('IntegrationsService (M4 spec §2.4/§3.2/§4/§4.1)', () => {
         idempotencyKey: 'idem-1',
       });
 
-      expect(auditLog.write).toHaveBeenCalledWith(expect.objectContaining({ action: 'provider_booking.confirmed' }));
+      expect(auditLog.write).toHaveBeenCalledWith(
+        expect.objectContaining({ action: 'provider_booking.confirmed' }),
+      );
     });
   });
 
   describe('idempotentnost confirmBooking (§4)', () => {
     it('vraća sačuvan responseBody iz ranijeg uspešnog poziva bez ponovnog pozivanja adaptera', async () => {
       const { service, prisma, adapter } = makeService();
-      const cachedConfirmation = { providerBookingReference: 'EXT-OLD', status: 'CONFIRMED', confirmedPrice: 500, confirmedAt: '2027-01-01' };
+      const cachedConfirmation = {
+        providerBookingReference: 'EXT-OLD',
+        status: 'CONFIRMED',
+        confirmedPrice: 500,
+        confirmedAt: '2027-01-01',
+      };
       prisma.providerCallLog.findFirst.mockResolvedValue({ responseBody: cachedConfirmation });
 
       const result = await service.confirmBooking('travelgate', 'ext-1', {
@@ -140,9 +191,17 @@ describe('IntegrationsService (M4 spec §2.4/§3.2/§4/§4.1)', () => {
 
     it('bez ranijeg zapisa, poziva adapter i čuva ishod za buduće ponovne pokušaje', async () => {
       const { service, prisma, adapter } = makeService();
-      const confirmation = { providerBookingReference: 'EXT-NEW', status: 'CONFIRMED', confirmedPrice: 100, confirmedAt: null };
+      const confirmation = {
+        providerBookingReference: 'EXT-NEW',
+        status: 'CONFIRMED',
+        confirmedPrice: 100,
+        confirmedAt: null,
+      };
       adapter.confirmBooking.mockResolvedValue(confirmation);
-      prisma.providerConfig.findUniqueOrThrow.mockResolvedValue({ providerCode: 'travelgate', capabilitiesProfile: {} });
+      prisma.providerConfig.findUniqueOrThrow.mockResolvedValue({
+        providerCode: 'travelgate',
+        capabilitiesProfile: {},
+      });
 
       const result = await service.confirmBooking('travelgate', 'ext-1', {
         stay: { stayFrom: '2027-01-01', stayTo: '2027-01-02', adults: 2 },
@@ -151,7 +210,9 @@ describe('IntegrationsService (M4 spec §2.4/§3.2/§4/§4.1)', () => {
       });
 
       expect(result).toEqual(confirmation);
-      const logCall = prisma.providerCallLog.create.mock.calls.find((c: any) => c[0].data.operation === 'BOOK');
+      const logCall = prisma.providerCallLog.create.mock.calls.find(
+        (c: any) => c[0].data.operation === 'BOOK',
+      );
       expect(logCall[0].data.responseBody).toEqual(confirmation);
       expect(logCall[0].data.idempotencyKey).toBe('idem-new');
     });
@@ -160,21 +221,34 @@ describe('IntegrationsService (M4 spec §2.4/§3.2/§4/§4.1)', () => {
   describe('M1 audit log za BOOK/CANCEL (§3.2)', () => {
     it('uspešan cancelBooking piše M1 audit log', async () => {
       const { service, prisma, adapter, auditLog } = makeService();
-      adapter.cancelBooking.mockResolvedValue({ cancelled: true, providerBookingReference: 'EXT-1' });
-      prisma.providerConfig.findUniqueOrThrow.mockResolvedValue({ providerCode: 'travelgate', capabilitiesProfile: {} });
+      adapter.cancelBooking.mockResolvedValue({
+        cancelled: true,
+        providerBookingReference: 'EXT-1',
+      });
+      prisma.providerConfig.findUniqueOrThrow.mockResolvedValue({
+        providerCode: 'travelgate',
+        capabilitiesProfile: {},
+      });
 
       await service.cancelBooking('travelgate', 'EXT-1');
 
-      expect(auditLog.write).toHaveBeenCalledWith(expect.objectContaining({ action: 'provider_booking.cancelled', actorType: 'SYSTEM' }));
+      expect(auditLog.write).toHaveBeenCalledWith(
+        expect.objectContaining({ action: 'provider_booking.cancelled', actorType: 'SYSTEM' }),
+      );
     });
 
     it('neuspešan cancelBooking i dalje piše M1 audit log (cancel_failed)', async () => {
       const { service, prisma, adapter, auditLog } = makeService();
       adapter.cancelBooking.mockRejectedValue(new ProviderError('PROVIDER_UNAVAILABLE', 'x'));
-      prisma.providerConfig.findUniqueOrThrow.mockResolvedValue({ providerCode: 'travelgate', capabilitiesProfile: {} });
+      prisma.providerConfig.findUniqueOrThrow.mockResolvedValue({
+        providerCode: 'travelgate',
+        capabilitiesProfile: {},
+      });
 
       await expect(service.cancelBooking('travelgate', 'EXT-1')).rejects.toThrow();
-      expect(auditLog.write).toHaveBeenCalledWith(expect.objectContaining({ action: 'provider_booking.cancel_failed' }));
+      expect(auditLog.write).toHaveBeenCalledWith(
+        expect.objectContaining({ action: 'provider_booking.cancel_failed' }),
+      );
     });
   });
 });

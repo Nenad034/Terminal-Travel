@@ -10,11 +10,11 @@ Stanje pri pisanju **[izmereno]**: `apps/panel` 190 prijava (101 greška, 89 upo
 
 ## Sažetak
 
-| Gomila | Prijava | Šta je to |
-|---|---|---|
-| **A — mehaničko** | 54 | Ispravke koje ne menjaju ponašanje ekrana. Bezbedno. |
-| **B — stvaran rizik** | 11 | Kod koji može da se pokvari ili već tiho radi pogrešno. |
-| **C — pravilo ne odgovara našoj arhitekturi** | 36 | Alat prijavljuje obrazac koji je kod nas namerno i ispravan. |
+| Gomila                                        | Prijava | Šta je to                                                    |
+| --------------------------------------------- | ------- | ------------------------------------------------------------ |
+| **A — mehaničko**                             | 54      | Ispravke koje ne menjaju ponašanje ekrana. Bezbedno.         |
+| **B — stvaran rizik**                         | 11      | Kod koji može da se pokvari ili već tiho radi pogrešno.      |
+| **C — pravilo ne odgovara našoj arhitekturi** | 36      | Alat prijavljuje obrazac koji je kod nas namerno i ispravan. |
 
 54 + 11 + 36 = 101. Najvažniji red je **B**, i u njemu tri nalaza iste klase kao zamka 7.3 — greška koja je vlasniku uživo oborila ekran.
 
@@ -25,6 +25,7 @@ Stanje pri pisanju **[izmereno]**: `apps/panel` 190 prijava (101 greška, 89 upo
 Ne menjaju ponašanje. Preporuka: **uraditi sve**, u jednom prolazu.
 
 ### A1. `react/no-unescaped-entities` — 29
+
 **[izmereno]** Svih 29 je isti znak: prav navodnik `"` unutar srpskog teksta u JSX-u. Primer, `TerminalPanel.tsx:129`:
 
 ```tsx
@@ -34,6 +35,7 @@ Ne menjaju ponašanje. Preporuka: **uraditi sve**, u jednom prolazu.
 **[procena]** Sam po sebi ne kvari ništa — tekst se ispisuje ispravno. Ali prav navodnik je i **tipografski pogrešan za srpski**: treba „…". Ispravka time rešava dve stvari odjednom, pa je vredi uraditi umesto gasiti pravilo. Zamena sa `&quot;` se **ne** preporučuje — čini srpski tekst u kodu nečitljivim.
 
 ### A2. `react-hooks/static-components` — 18
+
 **[u kodu]** `SortLabel` je definisan **unutar** komponente tabele (`RealBookingsTable.tsx:204`, `BookingsTable.tsx:222`), pa se pri svakom renderu pravi kao nova komponenta.
 
 **[procena]** Posledica je ograničena (`SortLabel` nema sopstveno stanje), ali React je pri svakom renderu demontira i montira ispočetka — nepotreban posao na tabeli koja se osvežava filterima. Ispravka: izdvojiti funkciju izvan komponente i proslediti joj što joj treba kao propove.
@@ -41,14 +43,17 @@ Ne menjaju ponašanje. Preporuka: **uraditi sve**, u jednom prolazu.
 **Napomena [u kodu]:** 9 od tih 18 je u `BookingsTable.tsx`, fajlu koji se **ne renderuje nigde** — živa tabela je `RealBookingsTable.tsx` (utvrđeno 5.9.2026, zamka 8.4). Ako se taj fajl obriše, devet nalaza nestaje bez ijedne izmene koda koji radi. Brisanje je zasebna odluka, ne deo ovog prolaza.
 
 ### A3. `@typescript-eslint/no-explicit-any` — 4
+
 **[izmereno]** Sva četiri u `AiChatBox.tsx` (linije 77, 78, 271, 410). Ispravka: pravi tipovi umesto `any`.
 
 ### A4. `react/no-children-prop` — 2
+
 **[u kodu]** `RealResults.tsx:203` i `:253` prosleđuju `children={quoteDefaults.children}` — gde `children` znači **broj dece na putovanju**, ne React sadržaj. Alat to ne može da zna.
 
 **[procena]** Nije kvar, ali jeste zamka za čitaoca: `children` je rezervisano ime u React-u i svako ko naiđe pretpostavi da je reč o ugnježdenom sadržaju. Preporuka: preimenovati prop u `childrenCount` (ili `brojDece`) svuda gde nosi to značenje.
 
 ### A5. `react-hooks/preserve-manual-memoization` — 1
+
 **[izmereno]** `KatalogSidebarPanel.tsx:148`. React Compiler je odustao od optimizacije te komponente jer ručno pisan `useMemo` ne može da se sačuva. **[procena]** Nije kvar; gubi se optimizacija. Traži pojedinačan pogled, nije mehaničko u strogom smislu — ali je jedan slučaj.
 
 ---
@@ -57,7 +62,8 @@ Ne menjaju ponašanje. Preporuka: **uraditi sve**, u jednom prolazu.
 
 Preporuka: **pregledati jedan po jedan**, ovo je jedini deo gde lint plaća sam sebe.
 
-### B1. `react-hooks/immutability` — 5 (od toga 3 stvarna) — *ista klasa kao zamka 7.3*
+### B1. `react-hooks/immutability` — 5 (od toga 3 stvarna) — _ista klasa kao zamka 7.3_
+
 **[izmereno]** Svih pet nosi istu poruku: „Cannot access variable before it is declared". Ali nisu isti slučaj:
 
 - **Tri stvarna** — `AiDockBottom.tsx:54`, `ResizablePane.tsx:74`, `TerminalPanel.tsx:578`: funkcija `onPointerUp` u svom telu pokazuje na samu sebe.
@@ -68,7 +74,7 @@ Preporuka: **pregledati jedan po jedan**, ovo je jedini deo gde lint plaća sam 
 ```tsx
 const onPointerUp = useCallback(() => {
   window.removeEventListener('pointermove', onPointerMove);
-  window.removeEventListener('pointerup', onPointerUp);   // ← pokazuje na samu sebe
+  window.removeEventListener('pointerup', onPointerUp); // ← pokazuje na samu sebe
 }, [onPointerMove]);
 ```
 
@@ -77,6 +83,7 @@ const onPointerUp = useCallback(() => {
 Ovo je **ista klasa** kao `ReferenceError: Cannot access 'sort' before initialization` (zamka 7.3), koja je vlasniku uživo oborila ekran pretrage. Tada je nije uhvatio nijedan test, jer se okidala tek na više od jednog rezultata. Lint je vidi bez pokretanja.
 
 ### B2. `react-hooks/refs` — 6
+
 **[izmereno]** `ProcessMapView.tsx:50`, `ProductPreviewCard.tsx:59` (×2), `SearchResultsMap.tsx:247`, `:254`, `:257`.
 
 **[u kodu]** Primer, `ProductPreviewCard.tsx:59`: `const detail = cacheRef.current.get(activeId);` — vrednost iz `ref`-a se čita **tokom rendera** i od nje zavisi šta se iscrta.
@@ -90,26 +97,30 @@ Ovo je **ista klasa** kao `ReferenceError: Cannot access 'sort' before initializ
 Preporuka: **ne ispravljati kod**, nego podesiti pravilo — uz obrazloženje upisano u konfiguraciju.
 
 ### C1. `react-hooks/set-state-in-effect` — 32 (od toga 19 legitimnih)
+
 **[u kodu]** Prošao sam kroz sve 32 i razvrstao ih:
 
-| Obrazac | Broj | Ocena |
-|---|---|---|
-| Čitanje stanja iz browsera posle montiranja (`localStorage`, `matchMedia`, `document`, `new Date()`) | 11 | **Ispravno i obavezno.** Ovo je jedini bezbedan način u SSR-u: server i prvi klijentski render moraju biti identični, pa se vrednost sme pročitati tek posle hidratacije. Ranija verzija koja je čitala `localStorage` direktno u `useState` inicijalizatoru je **napravila prijavljenu „Hydration failed" grešku** (21.8.2026) — današnji oblik je ispravka te greške. |
-| Brisanje starog podatka pre novog dohvatanja (`setX(null)` pa `fetch`) | 8 | **Ispravno.** Bez toga ekran drži tuđ podatak dok novi ne stigne. |
-| Izvedeno stanje iz propova (`useEffect(() => setX(f(prop)), [prop])`) | 7 | **Ispravka ranije ocene — vidi „Ispravka" ispod.** Dva su bila stvaran nalaz i ispravljena su; pet nisu. |
-| Ostalo (animacija kucanja, sinhronizacija sa putanjom, zatvaranje forme posle uspeha) | 6 | Traži pojedinačan pogled. |
+| Obrazac                                                                                              | Broj | Ocena                                                                                                                                                                                                                                                                                                                                                                   |
+| ---------------------------------------------------------------------------------------------------- | ---- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Čitanje stanja iz browsera posle montiranja (`localStorage`, `matchMedia`, `document`, `new Date()`) | 11   | **Ispravno i obavezno.** Ovo je jedini bezbedan način u SSR-u: server i prvi klijentski render moraju biti identični, pa se vrednost sme pročitati tek posle hidratacije. Ranija verzija koja je čitala `localStorage` direktno u `useState` inicijalizatoru je **napravila prijavljenu „Hydration failed" grešku** (21.8.2026) — današnji oblik je ispravka te greške. |
+| Brisanje starog podatka pre novog dohvatanja (`setX(null)` pa `fetch`)                               | 8    | **Ispravno.** Bez toga ekran drži tuđ podatak dok novi ne stigne.                                                                                                                                                                                                                                                                                                       |
+| Izvedeno stanje iz propova (`useEffect(() => setX(f(prop)), [prop])`)                                | 7    | **Ispravka ranije ocene — vidi „Ispravka" ispod.** Dva su bila stvaran nalaz i ispravljena su; pet nisu.                                                                                                                                                                                                                                                                |
+| Ostalo (animacija kucanja, sinhronizacija sa putanjom, zatvaranje forme posle uspeha)                | 6    | Traži pojedinačan pogled.                                                                                                                                                                                                                                                                                                                                               |
 
 **Preporuka:** pravilo spustiti sa **greške na upozorenje**, uz komentar u `eslint.config.mjs` koji kaže zašto (19 od 32 su namerni SSR obrasci, alat ih ne razlikuje). Sedam slučajeva izvedenog stanja ispraviti zasebno — to je stvaran, mada blag, nalaz. **Ne** stavljati 19 `eslint-disable` komentara: toliko izuzetaka čini pravilo nečitljivim.
 
 ### C2. `react-hooks/purity` — 3
+
 **[izmereno]** `znanje/page.tsx:158`, `znanje/[id]/page.tsx:93`, `RightPanel.tsx:548` — `Date.now()` pozvan tokom rendera.
 
 **[u kodu]** Reč je o oznakama tipa „osvežavanje dospelo" koje porede rok sa trenutnim vremenom. **[procena]** Formalno render nije čist; praktično se oznaka može zateći nesveža dok se ekran ne osveži iz drugog razloga. Za podsetnik koji ionako gleda dnevni rok — bez posledice. Preporuka: ostaviti, uz komentar; ako se pravilo održi kao greška, utišati tačkasto na ta tri mesta.
 
 ### C3. `@next/next/no-html-link-for-pages` — 1
+
 **[u kodu]** `global-error.tsx:33` koristi običan `<a href="/">` umesto `<Link>`. To je **namerno i već objašnjeno u komentaru na tom mestu**: taj fajl se prikazuje kad padne i sam korenski raspored, gde se na router ne sme računati. Preporuka: `eslint-disable-next-line` sa tim obrazloženjem.
 
 ### C4. Upozorenja (89, van 101 greške)
+
 **[izmereno]** 87 od 89 je `@typescript-eslint/no-unused-vars` i `no-unused-expressions`; preostala 2 su suvišni `eslint-disable` komentari u `ChatPanel.tsx` (pravilo koje gase više ne prijavljuje ništa). Nisu deo ovog razvrstavanja, ali `no-unused-vars` je jeftino pročistiti i vredi ga uraditi uz gomilu A.
 
 ---
@@ -208,7 +219,7 @@ Stanje: **panel 0 grešaka**, 32 upozorenja; **sajt 0 prijava**. Oba `npm run li
 
 **Ispravljeno** u sva tri fajla (`ResizablePane`, `AiDockBottom`, `TerminalPanel`): prethodni `AbortController` se prekida pre nego što se napravi nov, i `pointercancel` se osluškuje uz `pointerup` (pregledač ume sam da prekine pokazivač, i tada `pointerup` nikad ne stigne).
 
-**Zašto provera nije uhvatila.** Skripta napisana uz tu ispravku izvodila je JEDNO uredno prevlačenje — pritisak, pomeranje, otpuštanje — i prošla. Pisana je da potvrdi ono što je izmena htela da uradi, a ne da traži način da je obori; uredan scenario je jedini koji je bio u glavi, jer su izmenu i proveru pisali isti ja u istom trenutku. Zavedeno kao zamka **7.1e**, sa pravilom: *provera koja proverava samo ono što je izmena nameravala nije provera nego ponovljena namera.*
+**Zašto provera nije uhvatila.** Skripta napisana uz tu ispravku izvodila je JEDNO uredno prevlačenje — pritisak, pomeranje, otpuštanje — i prošla. Pisana je da potvrdi ono što je izmena htela da uradi, a ne da traži način da je obori; uredan scenario je jedini koji je bio u glavi, jer su izmenu i proveru pisali isti ja u istom trenutku. Zavedeno kao zamka **7.1e**, sa pravilom: _provera koja proverava samo ono što je izmena nameravala nije provera nego ponovljena namera._
 
 **Trajna provera:** `node tools/provera-prevlacenja.mjs` — četiri slučaja, uključujući dvoklik i otpuštanje na ivici prozora, plus pozitivnu kontrolu da uredno prevlačenje MORA da menja širinu. Sa vraćenom greškom alat prijavljuje 2 od 4 pale provere; sa ispravkom prolaze sve četiri.
 
@@ -218,14 +229,14 @@ Stanje: **panel 0 grešaka**, 32 upozorenja; **sajt 0 prijava**. Oba `npm run li
 
 U prvom razvrstavanju je šest `set-state-in-effect` prijava svrstano u „ostalo — traži pojedinačan pogled" i tako ostalo. Prošao sam kroz svih šest. **Četiri su ispravna i ostaju, dva su prebačena u render.** Broj upozorenja u panelu: 32 → 30.
 
-| Mesto | Šta radi | Ocena |
-|---|---|---|
-| `SearchResultsMap` | `setFailed(...)` u `catch` pri pokretanju mape | **Ostaje.** Rukovanje greškom pri pokretanju spoljnog sistema, ne izvedeno stanje. |
-| `AiChatBox` (animacija kucanja) | čita `prefers-reduced-motion` posle montiranja | **Ostaje.** Isto kao ostalih 11 hidratacijskih slučajeva — vrednost iz pregledača sme se čitati tek posle hidratacije. |
-| `SearchRefreshNotice` | `recordOffers(...)` pa upis rezultata i obaveštavanje konteksta | **Ostaje.** Efekat sa stvarnim sporednim dejstvom (beleženje viđenih cena), ne prepisivanje propa u stanje. |
-| `BookingItemGuestsEditor` | zatvara formu kad serverska akcija uspe | **Ostaje.** Reakcija na rezultat spoljne akcije. Prebacivanje u render dobija samo dosledost, a menja tok koji zavisi od odgovora API-ja — nesrazmeran rizik. |
-| `Shell` | usklađuje aktivnu grupu leve trake sa adresom | **Prebačeno u render.** Sa efektom se posle svake navigacije jednom iscrta STARA grupa pa se odmah zameni — treptaj na ekranu koji se menja desetinama puta dnevno. |
-| `SearchPanel` | skuplja formu kad se promeni upit | **Prebačeno u render.** Isto: forma se prvo iscrta raširena pa se skupi, tačno kad korisnik gleda rezultate. |
+| Mesto                           | Šta radi                                                        | Ocena                                                                                                                                                               |
+| ------------------------------- | --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `SearchResultsMap`              | `setFailed(...)` u `catch` pri pokretanju mape                  | **Ostaje.** Rukovanje greškom pri pokretanju spoljnog sistema, ne izvedeno stanje.                                                                                  |
+| `AiChatBox` (animacija kucanja) | čita `prefers-reduced-motion` posle montiranja                  | **Ostaje.** Isto kao ostalih 11 hidratacijskih slučajeva — vrednost iz pregledača sme se čitati tek posle hidratacije.                                              |
+| `SearchRefreshNotice`           | `recordOffers(...)` pa upis rezultata i obaveštavanje konteksta | **Ostaje.** Efekat sa stvarnim sporednim dejstvom (beleženje viđenih cena), ne prepisivanje propa u stanje.                                                         |
+| `BookingItemGuestsEditor`       | zatvara formu kad serverska akcija uspe                         | **Ostaje.** Reakcija na rezultat spoljne akcije. Prebacivanje u render dobija samo dosledost, a menja tok koji zavisi od odgovora API-ja — nesrazmeran rizik.       |
+| `Shell`                         | usklađuje aktivnu grupu leve trake sa adresom                   | **Prebačeno u render.** Sa efektom se posle svake navigacije jednom iscrta STARA grupa pa se odmah zameni — treptaj na ekranu koji se menja desetinama puta dnevno. |
+| `SearchPanel`                   | skuplja formu kad se promeni upit                               | **Prebačeno u render.** Isto: forma se prvo iscrta raširena pa se skupi, tačno kad korisnik gleda rezultate.                                                        |
 
 **Zamka izbegnuta u `Shell`:** poređenje mora biti sa prethodnom **putanjom**, ne sa prethodnom grupom. `activeGroupId` se namerno menja i ručno — klik na ikonicu u uskoj levoj traci „pregleda" drugu grupu bez navigacije. Da se poredila grupa, taj ručni izbor bi se poništavao pri svakom sledećem renderu.
 
@@ -239,4 +250,3 @@ Po pravilu iz zamke 7.1e, provera je uključila i **neuredan** slučaj, ne samo 
 - `tools/provera-prevlacenja.mjs` i dalje prolazi sve četiri; `npm run qa` svih 8 ekrana; lint 0 grešaka.
 
 **Utrošena dva pokušaja na samu proveru.** Prva verzija je čitala `<a>` linkove iz leve trake i vratila prazno — traka koristi dugmad, ne linkove. Druga je pogodila pogrešan `nav` (usku traku umesto široke) i vratila „€". Oba puta bi zaključak „traka prati adresu: DA" bio besmislen, jer su se poredila dva prazna niza. Isti oblik greške kao kod kataloga jutros — zabeleženo uz zamku 5.25.
-

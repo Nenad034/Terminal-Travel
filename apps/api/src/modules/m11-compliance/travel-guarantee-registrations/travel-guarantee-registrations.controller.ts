@@ -17,7 +17,10 @@ export class TravelGuaranteeRegistrationsController {
 
   @Get()
   @RequirePermission('M11', 'travel-guarantee-registration', 'VIEW')
-  findMany(@Query('status') status: TravelGuaranteeRegistrationStatus | undefined, @Query('bookingId') bookingId: string | undefined) {
+  findMany(
+    @Query('status') status: TravelGuaranteeRegistrationStatus | undefined,
+    @Query('bookingId') bookingId: string | undefined,
+  ) {
     return this.registrations.findMany({ status, bookingId });
   }
 

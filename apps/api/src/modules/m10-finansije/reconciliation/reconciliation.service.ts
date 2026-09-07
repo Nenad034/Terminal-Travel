@@ -22,7 +22,9 @@ export class ReconciliationService {
     private readonly eventBus: EventBusService,
   ) {}
 
-  async findMismatches(staleDays = DEFAULT_PARTIAL_PAYMENT_STALE_DAYS): Promise<ReconciliationMismatch[]> {
+  async findMismatches(
+    staleDays = DEFAULT_PARTIAL_PAYMENT_STALE_DAYS,
+  ): Promise<ReconciliationMismatch[]> {
     const confirmedBookings = await this.prisma.booking.findMany({
       where: { status: 'CONFIRMED' },
       include: { fiscalDocuments: true },
@@ -33,7 +35,9 @@ export class ReconciliationService {
 
     for (const booking of confirmedBookings) {
       const paidSum = await this.sumReceivedPayments(booking.id);
-      const hasActiveFiscalDocument = booking.fiscalDocuments.some((d) => d.status === 'ISSUED' || d.status === 'SUBMITTED');
+      const hasActiveFiscalDocument = booking.fiscalDocuments.some(
+        (d) => d.status === 'ISSUED' || d.status === 'SUBMITTED',
+      );
 
       if (paidSum >= booking.totalPrice && !hasActiveFiscalDocument) {
         mismatches.push({ bookingId: booking.id, reason: 'MISSING_FISCAL_DOCUMENT' });
@@ -41,7 +45,9 @@ export class ReconciliationService {
       }
 
       if (paidSum > 0 && paidSum < booking.totalPrice) {
-        const daysSinceConfirmed = booking.confirmedAt ? (now - booking.confirmedAt.getTime()) / (24 * 60 * 60 * 1000) : 0;
+        const daysSinceConfirmed = booking.confirmedAt
+          ? (now - booking.confirmedAt.getTime()) / (24 * 60 * 60 * 1000)
+          : 0;
         if (daysSinceConfirmed >= staleDays) {
           mismatches.push({ bookingId: booking.id, reason: 'PARTIAL_PAYMENT_STALE' });
         }
@@ -61,7 +67,10 @@ export class ReconciliationService {
   }
 
   private async sumReceivedPayments(bookingId: string): Promise<number> {
-    const result = await this.prisma.payment.aggregate({ where: { bookingId, status: 'RECEIVED' }, _sum: { amount: true } });
+    const result = await this.prisma.payment.aggregate({
+      where: { bookingId, status: 'RECEIVED' },
+      _sum: { amount: true },
+    });
     return result._sum.amount ?? 0;
   }
 }

@@ -5,7 +5,7 @@ description: Terminal Travel modul M11 (Regulatorni modul (Compliance)) — gara
 
 # M11 — Regulatorni modul (Compliance)
 
-Garancija putovanja (YUTA), evidencije za inspekciju. *(eTurista/CIS prijava gostiju i boravišna taksa uklonjene iz obima, avgust 2026 — nadležnost smeštajnog objekta/hotela, ne agencije-touroperatora; v2.0 specifikacije.)*
+Garancija putovanja (YUTA), evidencije za inspekciju. _(eTurista/CIS prijava gostiju i boravišna taksa uklonjene iz obima, avgust 2026 — nadležnost smeštajnog objekta/hotela, ne agencije-touroperatora; v2.0 specifikacije.)_
 
 **Zavisi od:** M1, M5
 

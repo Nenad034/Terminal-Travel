@@ -58,5 +58,7 @@ export function namesMatch(
   lastNameB: string,
   threshold: number = DEFAULT_NAME_SIMILARITY_THRESHOLD,
 ): boolean {
-  return similarity(firstNameA, firstNameB) >= threshold && similarity(lastNameA, lastNameB) >= threshold;
+  return (
+    similarity(firstNameA, firstNameB) >= threshold && similarity(lastNameA, lastNameB) >= threshold
+  );
 }

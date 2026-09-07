@@ -12,7 +12,9 @@ import PeriodQuickFilter from './PeriodQuickFilter';
 const PREFERENCE_KEY = 'saved_views.rezervacije_lista';
 
 function newViewId(): string {
-  return typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `v${Date.now()}${Math.random()}`;
+  return typeof crypto !== 'undefined' && crypto.randomUUID
+    ? crypto.randomUUID()
+    : `v${Date.now()}${Math.random()}`;
 }
 
 // Dugme "Sačuvaj ovu pretragu" (24.8.2026, na zahtev vlasnika, dizajn dok. §5b) — čuva TRENUTNE
@@ -82,7 +84,10 @@ function SaveViewButton() {
             className="mb-2 w-full rounded border border-ink-faint bg-panel px-2 py-1 text-xs text-ink outline-none focus:border-accent"
           />
           <div className="flex justify-end gap-1.5">
-            <button onClick={() => setOpen(false)} className="rounded px-2 py-1 text-[11px] text-ink-faint hover:text-ink">
+            <button
+              onClick={() => setOpen(false)}
+              className="rounded px-2 py-1 text-[11px] text-ink-faint hover:text-ink"
+            >
               Otkaži
             </button>
             <button
@@ -125,7 +130,11 @@ function AddFilteredListButton({ resultCount }: { resultCount: number }) {
     <button
       onClick={add}
       disabled={hasFilteredList}
-      title={hasFilteredList ? 'Već je priložen jedan filtriran prikaz — ukloni ga u AI chat-u da dodaš drugi' : 'Dodaj trenutno filtriranu listu u AI kontekst radi analize'}
+      title={
+        hasFilteredList
+          ? 'Već je priložen jedan filtriran prikaz — ukloni ga u AI chat-u da dodaš drugi'
+          : 'Dodaj trenutno filtriranu listu u AI kontekst radi analize'
+      }
       className="flex h-[29px] items-center gap-1.5 rounded border border-ink-faint px-2 text-xs text-ink-faint hover:border-accent hover:text-accent disabled:cursor-not-allowed disabled:opacity-40"
     >
       <Icon name="sparkle" /> Dodaj u AI kontekst
@@ -145,7 +154,19 @@ function formatDate(d: Date): string {
 // prečica za već postojeći opseg datuma. "Aktivno" stanje se prepoznaje po TAČNOM poklapanju
 // trenutnih query parametara sa izračunatim opsegom (danas → danas+10), klik dok je aktivno
 // uklanja ta dva parametra (isti "toggle" princip kao demo zvona/tip proizvoda dugmad).
-function DateRangeTag({ label, icon, title, fromKey, toKey }: { label: string; icon: string; title: string; fromKey: string; toKey: string }) {
+function DateRangeTag({
+  label,
+  icon,
+  title,
+  fromKey,
+  toKey,
+}: {
+  label: string;
+  icon: string;
+  title: string;
+  fromKey: string;
+  toKey: string;
+}) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -174,7 +195,9 @@ function DateRangeTag({ label, icon, title, fromKey, toKey }: { label: string; i
       onClick={toggle}
       title={title}
       className={`flex h-[26px] items-center gap-1 rounded-full border px-2.5 text-[11px] font-semibold ${
-        active ? 'border-accent bg-accent-soft text-accent-strong' : 'border-ink-faint text-ink-faint hover:border-accent hover:text-ink'
+        active
+          ? 'border-accent bg-accent-soft text-accent-strong'
+          : 'border-ink-faint text-ink-faint hover:border-accent hover:text-ink'
       }`}
     >
       <Icon name={icon} />
@@ -189,7 +212,13 @@ function DateRangeTag({ label, icon, title, fromKey, toKey }: { label: string; i
 // premešteno ovde iz `RealBookingsTable.tsx`) unutar JEDNOG `position: sticky` bloka. Dva odvojena
 // sticky elementa (forma + traka) bi se oba lepila za `top: 0` i preklapala — jedan omotač rešava
 // to bez merenja visine/JS ResizeObserver-a, jer se ceo blok lepi kao jedna celina.
-export default function BookingsListClient({ bookings, filterBar }: { bookings: RealBooking[]; filterBar: React.ReactNode }) {
+export default function BookingsListClient({
+  bookings,
+  filterBar,
+}: {
+  bookings: RealBooking[];
+  filterBar: React.ReactNode;
+}) {
   // Višestruki izbor (dopuna 25.8.2026, na zahtev vlasnika: "omoguciti biranje vise stavki") —
   // ranije je klik na drugu ikonicu ZAMENIO prethodni izbor (`string | null`, jedna vrednost).
   // Sad je to skup izabranih `Product.type` vrednosti — klik DODAJE/UKLANJA tu ikonicu iz skupa,
@@ -223,7 +252,9 @@ export default function BookingsListClient({ bookings, filterBar }: { bookings: 
                   key={p.label}
                   onClick={() =>
                     setProductTypeFilters((cur) =>
-                      active ? cur.filter((t) => !p.types.includes(t)) : [...cur, ...p.types.filter((t) => !cur.includes(t))],
+                      active
+                        ? cur.filter((t) => !p.types.includes(t))
+                        : [...cur, ...p.types.filter((t) => !cur.includes(t))],
                     )
                   }
                   title={`Filtriraj: ${p.label}`}
@@ -236,7 +267,11 @@ export default function BookingsListClient({ bookings, filterBar }: { bookings: 
             <div className="mx-1 h-5 w-px bg-ink-faint/40" />
             <button
               onClick={() => setDemoOnly((v) => !v)}
-              title={demoOnly ? 'Ukloni filter "samo demo zvona"' : 'Prikaži samo redove sa demo zvonom (nije stvaran signal)'}
+              title={
+                demoOnly
+                  ? 'Ukloni filter "samo demo zvona"'
+                  : 'Prikaži samo redove sa demo zvonom (nije stvaran signal)'
+              }
               className={`flex h-[26px] items-center gap-1.5 rounded px-2 text-[11px] ${demoOnly ? 'bg-panel2 text-ink' : 'text-ink-faint hover:bg-panel2'}`}
             >
               <Icon name="bell" /> demo zvona
@@ -252,8 +287,20 @@ export default function BookingsListClient({ bookings, filterBar }: { bookings: 
               baš OVDE, u istu uvek-vidljivu traku kao +10/−10, odvojen razdelnikom kao posebna
               celina (ne u `RealFilterBar.tsx` formu, koja se dugmetom −/+ ispod može sakriti). */}
           <div className="flex flex-1 items-center justify-center gap-1.5">
-            <DateRangeTag label="+10" icon="sign-in" title="Dolasci od danas u narednih 10 dana" fromKey="stayFrom" toKey="stayTo" />
-            <DateRangeTag label="-10" icon="sign-out" title="Odlasci od danas u narednih 10 dana" fromKey="returnFrom" toKey="returnTo" />
+            <DateRangeTag
+              label="+10"
+              icon="sign-in"
+              title="Dolasci od danas u narednih 10 dana"
+              fromKey="stayFrom"
+              toKey="stayTo"
+            />
+            <DateRangeTag
+              label="-10"
+              icon="sign-out"
+              title="Odlasci od danas u narednih 10 dana"
+              fromKey="returnFrom"
+              toKey="returnTo"
+            />
             <div className="mx-1 h-5 w-px bg-ink-faint/40" />
             <PeriodQuickFilter />
           </div>
@@ -273,7 +320,11 @@ export default function BookingsListClient({ bookings, filterBar }: { bookings: 
       </div>
 
       <div className="mt-2">
-        <RealBookingsTable bookings={bookings} productTypeFilters={productTypeFilters} demoOnly={demoOnly} />
+        <RealBookingsTable
+          bookings={bookings}
+          productTypeFilters={productTypeFilters}
+          demoOnly={demoOnly}
+        />
       </div>
     </>
   );

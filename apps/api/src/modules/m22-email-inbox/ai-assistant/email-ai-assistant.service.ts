@@ -65,7 +65,10 @@ export class EmailAiAssistantService {
     const result = await this.buildAssistance(message.body);
 
     if (result.aiSummary) {
-      await this.prisma.emailMessage.update({ where: { id: message.id }, data: { aiSummary: result.aiSummary } });
+      await this.prisma.emailMessage.update({
+        where: { id: message.id },
+        data: { aiSummary: result.aiSummary },
+      });
     }
 
     if (result.draftBody) {
@@ -84,7 +87,9 @@ export class EmailAiAssistantService {
       });
     }
 
-    const agent = await this.prisma.aIAgent.findFirst({ where: { agentRole: 'EMAIL_INBOX_AGENT' } });
+    const agent = await this.prisma.aIAgent.findFirst({
+      where: { agentRole: 'EMAIL_INBOX_AGENT' },
+    });
     await this.auditLog.write({
       actorType: 'AI_AGENT',
       actorId: agent?.userId ?? null,
@@ -92,12 +97,17 @@ export class EmailAiAssistantService {
       action: 'email.summarize-draft',
       resourceType: 'EmailMessage',
       resourceId: message.id,
-      context: { threadId: message.threadId, containsSensitiveTopic: result.containsSensitiveTopic },
+      context: {
+        threadId: message.threadId,
+        containsSensitiveTopic: result.containsSensitiveTopic,
+      },
     });
   }
 
   private async buildAssistance(inboundBody: string): Promise<AssistResult> {
-    const containsSensitiveTopic = SENSITIVE_KEYWORDS.some((kw) => inboundBody.toLowerCase().includes(kw));
+    const containsSensitiveTopic = SENSITIVE_KEYWORDS.some((kw) =>
+      inboundBody.toLowerCase().includes(kw),
+    );
 
     if (!this.anthropic.isConfigured()) {
       return { aiSummary: null, draftBody: null, containsSensitiveTopic };
@@ -111,7 +121,10 @@ export class EmailAiAssistantService {
     }
   }
 
-  private async generateWithAnthropic(inboundBody: string, containsSensitiveTopic: boolean): Promise<AssistResult> {
+  private async generateWithAnthropic(
+    inboundBody: string,
+    containsSensitiveTopic: boolean,
+  ): Promise<AssistResult> {
     const client = this.anthropic.getClient();
 
     // §4 — sistemski prompt eksplicitno instruira model da NIKAD ne formuliše nacrt kao
@@ -134,12 +147,15 @@ export class EmailAiAssistantService {
       messages: [{ role: 'user', content: `Dolazna poruka:\n${inboundBody}` }],
     });
     const latencyMs = Date.now() - startedAt;
-    const textBlock = response.content.find((b: any) => b.type === 'text') as { text: string } | undefined;
+    const textBlock = response.content.find((b: any) => b.type === 'text') as
+      { text: string } | undefined;
     const rawText = textBlock?.text?.trim() ?? '';
 
     const { summary, draft } = parseSummaryAndDraft(rawText);
 
-    const agent = await this.prisma.aIAgent.findFirst({ where: { agentRole: 'EMAIL_INBOX_AGENT' } });
+    const agent = await this.prisma.aIAgent.findFirst({
+      where: { agentRole: 'EMAIL_INBOX_AGENT' },
+    });
     if (agent) {
       await this.invocationLog.record({
         agentId: agent.id,

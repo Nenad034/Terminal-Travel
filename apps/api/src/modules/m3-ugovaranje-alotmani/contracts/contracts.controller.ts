@@ -48,7 +48,11 @@ export class ContractsController {
 
   @Patch(':id')
   @RequirePermission('M3', 'contract', 'EDIT')
-  update(@Param('id') id: string, @Body() dto: UpdateContractDto, @CurrentUser() actor: { userId: string }) {
+  update(
+    @Param('id') id: string,
+    @Body() dto: UpdateContractDto,
+    @CurrentUser() actor: { userId: string },
+  ) {
     return this.contracts.update(id, dto, actor.userId);
   }
 }

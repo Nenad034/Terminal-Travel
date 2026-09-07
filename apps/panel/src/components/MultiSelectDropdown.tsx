@@ -75,7 +75,9 @@ export default function MultiSelectDropdown({
           renderovanje) — ovo je pravi `<form>` GET submit, ne klijentska navigacija; da su
           uklonjeni iz DOM-a dok su zatvoreni, njihove vrednosti se ne bi ni poslale pri
           submit-u (nestali element = nestao parametar), tiho gubeći već izabranu selekciju. */}
-      <div className={`absolute top-full z-30 mt-1 max-h-64 w-56 overflow-y-auto rounded-lg border border-border bg-panel p-1.5 shadow-lg ${open ? '' : 'hidden'}`}>
+      <div
+        className={`absolute top-full z-30 mt-1 max-h-64 w-56 overflow-y-auto rounded-lg border border-border bg-panel p-1.5 shadow-lg ${open ? '' : 'hidden'}`}
+      >
         {checked.size > 0 && (
           <button
             type="button"
@@ -84,9 +86,11 @@ export default function MultiSelectDropdown({
               // (React state), pa bi `requestSubmit()` odmah posle njega video JOŠ NEIZMENJEN
               // DOM (stare markirane čekboksove). Direktna DOM izmena (`.checked = false`) je
               // sinhrona — čita se ispravno pri submit-u koji sledi u istom kliku.
-              ref.current?.querySelectorAll<HTMLInputElement>('input[type="checkbox"]').forEach((i) => {
-                i.checked = false;
-              });
+              ref.current
+                ?.querySelectorAll<HTMLInputElement>('input[type="checkbox"]')
+                .forEach((i) => {
+                  i.checked = false;
+                });
               setChecked(new Set());
               if (autoSubmit) ref.current?.closest('form')?.requestSubmit();
             }}
@@ -96,8 +100,17 @@ export default function MultiSelectDropdown({
           </button>
         )}
         {options.map((o) => (
-          <label key={o.value} className="flex items-center gap-2 rounded px-1.5 py-1 text-xs text-ink-dim hover:bg-panel2">
-            <input type="checkbox" name={name} value={o.value} checked={checked.has(o.value)} onChange={() => toggle(o.value)} />
+          <label
+            key={o.value}
+            className="flex items-center gap-2 rounded px-1.5 py-1 text-xs text-ink-dim hover:bg-panel2"
+          >
+            <input
+              type="checkbox"
+              name={name}
+              value={o.value}
+              checked={checked.has(o.value)}
+              onChange={() => toggle(o.value)}
+            />
             {o.label}
           </label>
         ))}

@@ -37,8 +37,8 @@ export default function ForgotPasswordForm() {
       <div className="flex flex-col gap-3">
         <h1 className="font-mono text-lg">&gt; proverite --postu</h1>
         <p className="rounded bg-ok-bg p-3 text-sm text-ok">
-          Ako nalog sa tom adresom postoji, poslali smo poruku sa linkom za promenu lozinke. Link važi
-          jedan sat.
+          Ako nalog sa tom adresom postoji, poslali smo poruku sa linkom za promenu lozinke. Link
+          važi jedan sat.
         </p>
         <Link href="/prijava" className="text-xs text-ink-faint hover:text-ink">
           ← nazad na prijavu

@@ -15,7 +15,10 @@ export class ArticleSourcesService {
 
   async findAll(articleId: string) {
     await this.assertArticleExists(articleId);
-    return this.prisma.articleSource.findMany({ where: { articleId }, orderBy: { createdAt: 'desc' } });
+    return this.prisma.articleSource.findMany({
+      where: { articleId },
+      orderBy: { createdAt: 'desc' },
+    });
   }
 
   async propose(articleId: string, dto: ProposeSourceDto, actorId: string) {
@@ -39,7 +42,10 @@ export class ArticleSourcesService {
   async approve(articleId: string, sourceId: string, actorId: string) {
     await assertHumanActor(this.prisma, actorId, 'Odobrenje izvora (M23/article-source/APPROVE)');
     const source = await this.prisma.articleSource.findUnique({ where: { id: sourceId } });
-    if (!source || source.articleId !== articleId) throw new NotFoundException(`ArticleSource ${sourceId} nije pronađen za članak ${articleId}.`);
+    if (!source || source.articleId !== articleId)
+      throw new NotFoundException(
+        `ArticleSource ${sourceId} nije pronađen za članak ${articleId}.`,
+      );
 
     const updated = await this.prisma.articleSource.update({
       where: { id: sourceId },
@@ -62,9 +68,15 @@ export class ArticleSourcesService {
   async reject(articleId: string, sourceId: string, actorId: string) {
     await assertHumanActor(this.prisma, actorId, 'Odbijanje izvora (M23/article-source/APPROVE)');
     const source = await this.prisma.articleSource.findUnique({ where: { id: sourceId } });
-    if (!source || source.articleId !== articleId) throw new NotFoundException(`ArticleSource ${sourceId} nije pronađen za članak ${articleId}.`);
+    if (!source || source.articleId !== articleId)
+      throw new NotFoundException(
+        `ArticleSource ${sourceId} nije pronađen za članak ${articleId}.`,
+      );
 
-    const updated = await this.prisma.articleSource.update({ where: { id: sourceId }, data: { status: 'REJECTED' } });
+    const updated = await this.prisma.articleSource.update({
+      where: { id: sourceId },
+      data: { status: 'REJECTED' },
+    });
     await this.auditLog.write({
       actorType: 'HUMAN',
       actorId,

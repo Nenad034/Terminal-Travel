@@ -29,8 +29,20 @@ import { ProductContentImportsModule } from '../m2-katalog-proizvoda/product-con
 // globalnog ConfigService). Nalaz 3.5 (dok. 39, 7.9.2026) — AssistantEngineService je deljena RAG
 // tehnika sa M21 HelpAssistantService.
 @Module({
-  imports: [AuthModule, PermissionsModule, AuditLogModule, M18OperativniNadzorModule, ProductContentImportsModule],
-  controllers: [ArticlesController, ArticleSourcesController, ArticleRevisionsController, KnowledgeAssistantController, PublicKnowledgeController],
+  imports: [
+    AuthModule,
+    PermissionsModule,
+    AuditLogModule,
+    M18OperativniNadzorModule,
+    ProductContentImportsModule,
+  ],
+  controllers: [
+    ArticlesController,
+    ArticleSourcesController,
+    ArticleRevisionsController,
+    KnowledgeAssistantController,
+    PublicKnowledgeController,
+  ],
   providers: [
     ArticlesService,
     ArticleSourcesService,

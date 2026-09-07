@@ -35,7 +35,11 @@ export class QuotesController {
   // M5 spec §4/§11 — POST /quotes/:id/confirm: pokreće tok Ponuda → Rezervacija.
   @Post(':id/confirm')
   @RequirePermission('M5', 'booking', 'CREATE')
-  confirm(@Param('id') id: string, @Body() dto: ConfirmQuoteDto, @CurrentUser() actor: { userId: string }) {
+  confirm(
+    @Param('id') id: string,
+    @Body() dto: ConfirmQuoteDto,
+    @CurrentUser() actor: { userId: string },
+  ) {
     return this.bookings.confirmQuote(id, dto, actor);
   }
 }

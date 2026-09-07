@@ -23,7 +23,13 @@ const initialState: FormState = { error: null };
  * Na kartici **Finansije** dugme ostaje puno i istaknuto — tamo jeste glavna radnja, pa se
  * podrazumevano ponašanje ne menja. Ista komponenta, dve težine po kontekstu.
  */
-export default function PrepareFiscalDocumentButton({ bookingId, quiet }: { bookingId: string; quiet?: boolean }) {
+export default function PrepareFiscalDocumentButton({
+  bookingId,
+  quiet,
+}: {
+  bookingId: string;
+  quiet?: boolean;
+}) {
   const boundAction = prepareFiscalDocument.bind(null, bookingId);
   const [state, formAction] = useActionState(boundAction, initialState);
   return (
@@ -39,7 +45,11 @@ export default function PrepareFiscalDocumentButton({ bookingId, quiet }: { book
 
 function SubmitButton({ quiet }: { quiet?: boolean }) {
   const { pending } = useFormStatus();
-  const label = pending ? 'Pripremam…' : quiet ? 'Fiskalni dokument →' : 'Pripremi/prikaži fiskalni dokument';
+  const label = pending
+    ? 'Pripremam…'
+    : quiet
+      ? 'Fiskalni dokument →'
+      : 'Pripremi/prikaži fiskalni dokument';
   return (
     <Button
       type="submit"
@@ -48,7 +58,11 @@ function SubmitButton({ quiet }: { quiet?: boolean }) {
       variant={quiet ? 'ghost' : 'default'}
       // `accent-strong`, ne `accent` — tiho dugme dobija `panel-2` kao podlogu na hover, gde
       // `accent` pada ispod AA praga (tvrdo pravilo §2a).
-      className={quiet ? 'h-auto px-1.5 py-0.5 text-[11px] font-normal text-accent-strong hover:underline' : undefined}
+      className={
+        quiet
+          ? 'h-auto px-1.5 py-0.5 text-[11px] font-normal text-accent-strong hover:underline'
+          : undefined
+      }
     >
       {label}
     </Button>

@@ -15,7 +15,10 @@ export class CommissionRebatesService {
   ) {}
 
   async findMany(subagentId: string): Promise<CommissionRebate[]> {
-    return this.prisma.commissionRebate.findMany({ where: { subagentId }, orderBy: { createdAt: 'desc' } });
+    return this.prisma.commissionRebate.findMany({
+      where: { subagentId },
+      orderBy: { createdAt: 'desc' },
+    });
   }
 
   async findOneOrThrow(id: string): Promise<CommissionRebate> {
@@ -67,7 +70,9 @@ export class CommissionRebatesService {
   async approve(id: string, actor: { userId: string }): Promise<CommissionRebate> {
     const rebate = await this.findOneOrThrow(id);
     if (rebate.status !== 'DRAFT') {
-      throw new BadRequestException(`CommissionRebate ${id} nije u statusu DRAFT (status: ${rebate.status}).`);
+      throw new BadRequestException(
+        `CommissionRebate ${id} nije u statusu DRAFT (status: ${rebate.status}).`,
+      );
     }
 
     const now = new Date();
@@ -98,7 +103,9 @@ export class CommissionRebatesService {
   async markApplied(id: string): Promise<CommissionRebate> {
     const rebate = await this.findOneOrThrow(id);
     if (rebate.status !== 'APPROVED') {
-      throw new BadRequestException(`CommissionRebate ${id} nije u statusu APPROVED (status: ${rebate.status}).`);
+      throw new BadRequestException(
+        `CommissionRebate ${id} nije u statusu APPROVED (status: ${rebate.status}).`,
+      );
     }
 
     const updated = await this.prisma.commissionRebate.update({
@@ -122,10 +129,15 @@ export class CommissionRebatesService {
   async reject(id: string, reason: string, actor: { userId: string }): Promise<CommissionRebate> {
     const rebate = await this.findOneOrThrow(id);
     if (rebate.status !== 'DRAFT') {
-      throw new BadRequestException(`CommissionRebate ${id} nije u statusu DRAFT (status: ${rebate.status}).`);
+      throw new BadRequestException(
+        `CommissionRebate ${id} nije u statusu DRAFT (status: ${rebate.status}).`,
+      );
     }
 
-    const updated = await this.prisma.commissionRebate.update({ where: { id }, data: { status: 'REJECTED' } });
+    const updated = await this.prisma.commissionRebate.update({
+      where: { id },
+      data: { status: 'REJECTED' },
+    });
 
     await this.auditLog.write({
       actorType: 'HUMAN',

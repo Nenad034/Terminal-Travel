@@ -74,8 +74,13 @@ async function doRefresh(refreshToken: string): Promise<SessionData | null> {
       cache: 'no-store',
     });
     if (!res.ok) return null;
-    const { accessToken, refreshToken: newRefreshToken } = (await res.json()) as { accessToken: string; refreshToken: string };
-    const payload = JSON.parse(Buffer.from(accessToken.split('.')[1], 'base64url').toString('utf8'));
+    const { accessToken, refreshToken: newRefreshToken } = (await res.json()) as {
+      accessToken: string;
+      refreshToken: string;
+    };
+    const payload = JSON.parse(
+      Buffer.from(accessToken.split('.')[1], 'base64url').toString('utf8'),
+    );
     const next: SessionData = { accessToken, refreshToken: newRefreshToken, userId: payload.sub };
     try {
       await setSession(next);
@@ -164,7 +169,12 @@ export async function apiFetchMultipart<T>(path: string, formData: FormData): Pr
   async function doFetch(accessToken: string | null): Promise<Response> {
     const headers: Record<string, string> = {};
     if (accessToken) headers['Authorization'] = `Bearer ${accessToken}`;
-    return fetch(`${API_BASE_URL}${path}`, { method: 'POST', headers, body: formData, cache: 'no-store' });
+    return fetch(`${API_BASE_URL}${path}`, {
+      method: 'POST',
+      headers,
+      body: formData,
+      cache: 'no-store',
+    });
   }
 
   // Isti mrežna-greška popravak kao apiFetch iznad — vidi komentar tamo.

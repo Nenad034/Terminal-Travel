@@ -54,7 +54,10 @@ export default function FiltersModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+      onClick={onClose}
+    >
       <div
         className="max-h-[85vh] w-full max-w-lg overflow-hidden rounded-lg border border-border bg-panel shadow-lg"
         onClick={(e) => e.stopPropagation()}
@@ -74,7 +77,11 @@ export default function FiltersModal({
             {(Object.keys(COLUMN_LABELS) as ColumnKey[]).map((key) => (
               <label key={key} className="flex flex-col gap-1">
                 <span className="text-ink-faint">{COLUMN_LABELS[key]}</span>
-                <input value={columnFilters[key]} onChange={(e) => onColumnFilterChange(key, e.target.value)} className={inputClass} />
+                <input
+                  value={columnFilters[key]}
+                  onChange={(e) => onColumnFilterChange(key, e.target.value)}
+                  className={inputClass}
+                />
               </label>
             ))}
           </div>
@@ -83,7 +90,11 @@ export default function FiltersModal({
           <div className="mb-2 grid grid-cols-2 gap-2">
             <label className="flex flex-col gap-1">
               <span className="text-ink-faint">Poslovnica</span>
-              <select value={extraFilters.branch} onChange={(e) => setExtra('branch', e.target.value)} className={inputClass}>
+              <select
+                value={extraFilters.branch}
+                onChange={(e) => setExtra('branch', e.target.value)}
+                className={inputClass}
+              >
                 <option value="">sve</option>
                 {BRANCHES.map((b) => (
                   <option key={b} value={b}>
@@ -94,7 +105,11 @@ export default function FiltersModal({
             </label>
             <label className="flex flex-col gap-1">
               <span className="text-ink-faint">User (zadužen)</span>
-              <select value={extraFilters.assignedUser} onChange={(e) => setExtra('assignedUser', e.target.value)} className={inputClass}>
+              <select
+                value={extraFilters.assignedUser}
+                onChange={(e) => setExtra('assignedUser', e.target.value)}
+                className={inputClass}
+              >
                 <option value="">svi</option>
                 {USERS.map((u) => (
                   <option key={u} value={u}>
@@ -105,11 +120,21 @@ export default function FiltersModal({
             </label>
             <label className="flex flex-col gap-1">
               <span className="text-ink-faint">Dobavljač</span>
-              <input value={extraFilters.supplierName} onChange={(e) => setExtra('supplierName', e.target.value)} placeholder="pretraži..." className={inputClass} />
+              <input
+                value={extraFilters.supplierName}
+                onChange={(e) => setExtra('supplierName', e.target.value)}
+                placeholder="pretraži..."
+                className={inputClass}
+              />
             </label>
             <label className="flex flex-col gap-1">
               <span className="text-ink-faint">Partner (subagent/firma)</span>
-              <input value={extraFilters.partnerName} onChange={(e) => setExtra('partnerName', e.target.value)} placeholder="pretraži..." className={inputClass} />
+              <input
+                value={extraFilters.partnerName}
+                onChange={(e) => setExtra('partnerName', e.target.value)}
+                placeholder="pretraži..."
+                className={inputClass}
+              />
             </label>
           </div>
           <p className="text-[11px] italic text-ink-faint">Dodavaćemo još filtera po potrebi.</p>

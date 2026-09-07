@@ -92,7 +92,10 @@ export default function NotificationStack() {
       }
       if (cancelled || !token) return;
 
-      socket = io(`${WS_ORIGIN}/ws/chat`, { auth: { token }, transports: ['websocket', 'polling'] });
+      socket = io(`${WS_ORIGIN}/ws/chat`, {
+        auth: { token },
+        transports: ['websocket', 'polling'],
+      });
       socket.on('message.new', async (message: MessageItem) => {
         if (seenIds.current.has(message.id)) return;
         // Ako još ne znamo id "Obaveštenja" razgovora (nije postojao pri konekciji), ponovo
@@ -150,12 +153,21 @@ export default function NotificationStack() {
         >
           <div className="mb-1 flex items-start justify-between gap-2">
             <span className="font-medium text-ink">{item.title}</span>
-            <button onClick={() => dismiss(item.id)} title="Zatvori" className="flex-shrink-0 text-ink-faint hover:text-danger">
+            <button
+              onClick={() => dismiss(item.id)}
+              title="Zatvori"
+              className="flex-shrink-0 text-ink-faint hover:text-danger"
+            >
               <Icon name="close" />
             </button>
           </div>
-          {item.detail && <p className="mb-2 line-clamp-3 font-mono text-[11px] text-ink-faint">{item.detail}</p>}
-          <button onClick={() => openConversation(item.conversationId)} className="flex items-center gap-1 text-[11px] font-medium text-accent hover:text-accent-strong">
+          {item.detail && (
+            <p className="mb-2 line-clamp-3 font-mono text-[11px] text-ink-faint">{item.detail}</p>
+          )}
+          <button
+            onClick={() => openConversation(item.conversationId)}
+            className="flex items-center gap-1 text-[11px] font-medium text-accent hover:text-accent-strong"
+          >
             Otvori razgovor <Icon name="arrow-right" />
           </button>
         </div>

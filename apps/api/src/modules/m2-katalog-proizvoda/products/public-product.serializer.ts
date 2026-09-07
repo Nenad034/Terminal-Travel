@@ -13,7 +13,8 @@ export function toPublicProduct<
     sourceExternalId: unknown;
   },
 >(product: T): Omit<T, 'sourceType' | 'sourceContractId' | 'sourceProvider' | 'sourceExternalId'> {
-  const { sourceType, sourceContractId, sourceProvider, sourceExternalId, ...publicFields } = product;
+  const { sourceType, sourceContractId, sourceProvider, sourceExternalId, ...publicFields } =
+    product;
   void sourceType;
   void sourceContractId;
   void sourceProvider;

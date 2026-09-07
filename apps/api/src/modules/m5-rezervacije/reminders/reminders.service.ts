@@ -42,12 +42,18 @@ export class RemindersService {
   // u COMPLETED i emituje booking.completed (M6 §4.3 post-trip anketa je pretplatnik).
   async completeFinishedBookings() {
     const candidates = await this.prisma.booking.findMany({
-      where: { status: { in: ['CONFIRMED', 'MODIFIED'] }, items: { none: { itemStatus: { not: 'CANCELLED' }, stayTo: { gt: new Date() } } } },
+      where: {
+        status: { in: ['CONFIRMED', 'MODIFIED'] },
+        items: { none: { itemStatus: { not: 'CANCELLED' }, stayTo: { gt: new Date() } } },
+      },
       select: { id: true, bookingNumber: true },
     });
     for (const b of candidates) {
       await this.prisma.booking.update({ where: { id: b.id }, data: { status: 'COMPLETED' } });
-      await this.eventBus.emit('M5', 'booking.completed', { bookingId: b.id, bookingNumber: b.bookingNumber });
+      await this.eventBus.emit('M5', 'booking.completed', {
+        bookingId: b.id,
+        bookingNumber: b.bookingNumber,
+      });
     }
     return candidates.length;
   }
@@ -55,11 +61,18 @@ export class RemindersService {
   // §6.1, alarm 1 — neplaćena rezervacija sa izdatim vaučerom (override).
   async checkUnpaidWithVoucherOverride() {
     const bookings = await this.prisma.booking.findMany({
-      where: { voucherOverrideApprovedBy: { not: null }, paymentStatus: { not: 'PAID' }, status: { not: 'CANCELLED' } },
+      where: {
+        voucherOverrideApprovedBy: { not: null },
+        paymentStatus: { not: 'PAID' },
+        status: { not: 'CANCELLED' },
+      },
       select: { id: true, bookingNumber: true, paymentStatus: true },
     });
     for (const b of bookings) {
-      await this.eventBus.emit('M5', 'reminder.unpaid_with_voucher_override', { bookingId: b.id, bookingNumber: b.bookingNumber });
+      await this.eventBus.emit('M5', 'reminder.unpaid_with_voucher_override', {
+        bookingId: b.id,
+        bookingNumber: b.bookingNumber,
+      });
     }
     return bookings.length;
   }
@@ -68,11 +81,19 @@ export class RemindersService {
   async checkOpenSupplierConfirmations() {
     const threshold = new Date(Date.now() - SUPPLIER_CONFIRMATION_THRESHOLD_HOURS * 60 * 60 * 1000);
     const items = await this.prisma.bookingItem.findMany({
-      where: { itemStatus: 'PENDING_SUPPLIER_CONFIRMATION', announcedAt: { lte: threshold }, supplierConfirmedAt: null },
+      where: {
+        itemStatus: 'PENDING_SUPPLIER_CONFIRMATION',
+        announcedAt: { lte: threshold },
+        supplierConfirmedAt: null,
+      },
       select: { id: true, bookingId: true, productId: true },
     });
     for (const item of items) {
-      await this.eventBus.emit('M5', 'reminder.open_supplier_confirmation', { bookingItemId: item.id, bookingId: item.bookingId, productId: item.productId });
+      await this.eventBus.emit('M5', 'reminder.open_supplier_confirmation', {
+        bookingItemId: item.id,
+        bookingId: item.bookingId,
+        productId: item.productId,
+      });
     }
     return items.length;
   }
@@ -84,8 +105,14 @@ export class RemindersService {
       select: { id: true, bookingNumber: true },
     });
     for (const b of bookings) {
-      this.logger.error(`Vaučer nedostaje za rezervaciju ${b.bookingNumber} uprkos punoj uplati (M5 spec §6.1) — sistemska greška.`);
-      await this.eventBus.emit('M5', 'reminder.voucher_missing_despite_paid', { bookingId: b.id, bookingNumber: b.bookingNumber, severity: 'CRITICAL' });
+      this.logger.error(
+        `Vaučer nedostaje za rezervaciju ${b.bookingNumber} uprkos punoj uplati (M5 spec §6.1) — sistemska greška.`,
+      );
+      await this.eventBus.emit('M5', 'reminder.voucher_missing_despite_paid', {
+        bookingId: b.id,
+        bookingNumber: b.bookingNumber,
+        severity: 'CRITICAL',
+      });
     }
     return bookings.length;
   }
@@ -94,24 +121,43 @@ export class RemindersService {
   async checkUnannouncedBeforeStay() {
     const horizon = new Date(Date.now() + UNANNOUNCED_STAY_THRESHOLD_DAYS * 24 * 60 * 60 * 1000);
     const items = await this.prisma.bookingItem.findMany({
-      where: { sourceType: 'CONTRACTED', itemStatus: 'CONFIRMED', announcedAt: null, stayFrom: { lte: horizon, gte: new Date() } },
+      where: {
+        sourceType: 'CONTRACTED',
+        itemStatus: 'CONFIRMED',
+        announcedAt: null,
+        stayFrom: { lte: horizon, gte: new Date() },
+      },
       select: { id: true, bookingId: true, stayFrom: true },
     });
     for (const item of items) {
-      await this.eventBus.emit('M5', 'reminder.unannounced_before_stay', { bookingItemId: item.id, bookingId: item.bookingId, stayFrom: item.stayFrom, severity: 'HIGH' });
+      await this.eventBus.emit('M5', 'reminder.unannounced_before_stay', {
+        bookingItemId: item.id,
+        bookingId: item.bookingId,
+        stayFrom: item.stayFrom,
+        severity: 'HIGH',
+      });
     }
     return items.length;
   }
 
   // §6.1, alarm 5 — najava bez potvrde dobavljača (problem #2), niži prioritet.
   async checkAnnouncedWithoutSupplierConfirmation() {
-    const threshold = new Date(Date.now() - ANNOUNCED_WITHOUT_CONFIRMATION_THRESHOLD_DAYS * 24 * 60 * 60 * 1000);
+    const threshold = new Date(
+      Date.now() - ANNOUNCED_WITHOUT_CONFIRMATION_THRESHOLD_DAYS * 24 * 60 * 60 * 1000,
+    );
     const items = await this.prisma.bookingItem.findMany({
-      where: { announcedAt: { lte: threshold }, supplierConfirmedAt: null, itemStatus: { not: 'CANCELLED' } },
+      where: {
+        announcedAt: { lte: threshold },
+        supplierConfirmedAt: null,
+        itemStatus: { not: 'CANCELLED' },
+      },
       select: { id: true, bookingId: true },
     });
     for (const item of items) {
-      await this.eventBus.emit('M5', 'reminder.announced_without_confirmation', { bookingItemId: item.id, bookingId: item.bookingId });
+      await this.eventBus.emit('M5', 'reminder.announced_without_confirmation', {
+        bookingItemId: item.id,
+        bookingId: item.bookingId,
+      });
     }
     return items.length;
   }

@@ -59,7 +59,14 @@ export class AuditLogService {
   // broj i redovi ne dođu iz dva različita trenutka (inače „prikazano 50 od 1.240" ume da laže
   // dok neko drugi upisuje — a ovde se upisuje neprestano).
   async find(
-    filter: { module?: string; actorId?: string; actions?: string[]; q?: string; from?: Date; to?: Date },
+    filter: {
+      module?: string;
+      actorId?: string;
+      actions?: string[];
+      q?: string;
+      from?: Date;
+      to?: Date;
+    },
     pagination?: PaginationQueryDto,
   ): Promise<Paginated<Prisma.AuditLogEntryGetPayload<Record<string, never>>>> {
     const where: Prisma.AuditLogEntryWhereInput = {

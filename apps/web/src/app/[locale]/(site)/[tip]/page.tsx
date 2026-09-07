@@ -6,7 +6,6 @@ import { apiFetch } from '@/lib/api-client';
 import type { PublicProduct } from '@/lib/types';
 import { slugToType, typeToSlug } from '@/lib/categories';
 
-
 // M8 spec §5.1 — SEOMeta, dopuna avgust 2026: naslov po kategoriji/jeziku.
 export async function generateMetadata({
   params,
@@ -43,12 +42,17 @@ export default async function CategoryPage({
   const breadcrumbLd = {
     '@context': 'https://schema.org',
     '@type': 'BreadcrumbList',
-    itemListElement: [{ '@type': 'ListItem', position: 1, name: t(type), item: `/${locale}/${tip}` }],
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: t(type), item: `/${locale}/${tip}` },
+    ],
   };
 
   return (
     <div>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }} />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }}
+      />
       <h1 className="mb-6 text-2xl font-semibold text-ink">{t(type)}</h1>
 
       {filtered.length === 0 ? (

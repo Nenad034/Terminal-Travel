@@ -1,5 +1,15 @@
 import { Type } from 'class-transformer';
-import { ArrayMinSize, IsArray, IsIn, IsInt, IsOptional, IsString, Min, ValidateIf, ValidateNested } from 'class-validator';
+import {
+  ArrayMinSize,
+  IsArray,
+  IsIn,
+  IsInt,
+  IsOptional,
+  IsString,
+  Min,
+  ValidateIf,
+  ValidateNested,
+} from 'class-validator';
 import { CheckDetailDto } from './check-detail.dto';
 
 // M10 spec §5.2 — ručan unos prijema uplate; CARD (webhook) ide isključivo kroz /payments/card/*,
@@ -26,7 +36,9 @@ export class RecordPaymentDto {
   @IsOptional()
   reference?: string;
 
-  @ValidateIf((dto: RecordPaymentDto) => dto.method === 'BANK_TRANSFER' || dto.method === 'CARD_MANUAL')
+  @ValidateIf(
+    (dto: RecordPaymentDto) => dto.method === 'BANK_TRANSFER' || dto.method === 'CARD_MANUAL',
+  )
   @IsString()
   bankId?: string;
 

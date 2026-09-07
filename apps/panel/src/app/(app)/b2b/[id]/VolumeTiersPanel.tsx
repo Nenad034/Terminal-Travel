@@ -27,7 +27,13 @@ interface VolumeTier {
 // prolaza — kreiranje novog ranga sa ispravnim vrednostima je uobičajen put i dovoljno za
 // izlazni kriterijum (M7 §12 stavka o automatskom podizanju provizije); izmena/brisanje ostaje
 // otvoreno ako se pokaže potreba (isti princip kao ostatak M17 — nema koda bez stvarne potrebe).
-export default function VolumeTiersPanel({ subagentId, tiers }: { subagentId: string; tiers: VolumeTier[] }) {
+export default function VolumeTiersPanel({
+  subagentId,
+  tiers,
+}: {
+  subagentId: string;
+  tiers: VolumeTier[];
+}) {
   const [showForm, setShowForm] = useState(false);
   const boundAction = createVolumeTier.bind(null, subagentId);
   const [state, formAction] = useActionState(boundAction, initialState);
@@ -38,27 +44,46 @@ export default function VolumeTiersPanel({ subagentId, tiers }: { subagentId: st
         <div className="flex items-center gap-1.5 text-sm font-semibold text-ink">
           <Icon name="milestone" className="text-accent" /> Pragovi obima (obimski bonus)
         </div>
-        <Button type="button" onClick={() => setShowForm((v) => !v)} variant="link" size="sm" className="h-auto p-0">
+        <Button
+          type="button"
+          onClick={() => setShowForm((v) => !v)}
+          variant="link"
+          size="sm"
+          className="h-auto p-0"
+        >
           {showForm ? 'zatvori' : '+ novi prag'}
         </Button>
       </div>
 
       {tiers.length === 0 ? (
-        <p className="text-xs text-ink-faint">Nema definisanih pragova — subagent ostaje na osnovnoj proviziji.</p>
+        <p className="text-xs text-ink-faint">
+          Nema definisanih pragova — subagent ostaje na osnovnoj proviziji.
+        </p>
       ) : (
         <div className="flex flex-col gap-1">
           {tiers
             .slice()
             .sort((a, b) => b.rank - a.rank)
             .map((t) => (
-              <div key={t.id} className="flex items-center justify-between rounded bg-panel2 px-2 py-1.5 text-xs text-ink-dim">
+              <div
+                key={t.id}
+                className="flex items-center justify-between rounded bg-panel2 px-2 py-1.5 text-xs text-ink-dim"
+              >
                 <span>
                   rang {t.rank} · {t.thresholdMetric} ≥ {t.thresholdValue} / {t.thresholdPeriod}
                 </span>
                 <span className="text-ink">
-                  {t.resultingCommissionPercentage != null ? `${t.resultingCommissionPercentage}%` : ''}
-                  {t.resultingCommissionFixedAmount != null ? ` +${t.resultingCommissionFixedAmount} ${t.resultingCommissionCurrency ?? ''}` : ''}
-                  {t.retroactive && <span className="ml-2 rounded bg-warn-bg px-1.5 py-0.5 text-[11px] text-warn">retroaktivno</span>}
+                  {t.resultingCommissionPercentage != null
+                    ? `${t.resultingCommissionPercentage}%`
+                    : ''}
+                  {t.resultingCommissionFixedAmount != null
+                    ? ` +${t.resultingCommissionFixedAmount} ${t.resultingCommissionCurrency ?? ''}`
+                    : ''}
+                  {t.retroactive && (
+                    <span className="ml-2 rounded bg-warn-bg px-1.5 py-0.5 text-[11px] text-warn">
+                      retroaktivno
+                    </span>
+                  )}
                 </span>
               </div>
             ))}
@@ -66,7 +91,10 @@ export default function VolumeTiersPanel({ subagentId, tiers }: { subagentId: st
       )}
 
       {showForm && (
-        <form action={formAction} className="mt-3 flex flex-wrap items-end gap-2 border-t border-border pt-3">
+        <form
+          action={formAction}
+          className="mt-3 flex flex-wrap items-end gap-2 border-t border-border pt-3"
+        >
           <label className="text-xs text-ink-faint">
             rang
             <input name="rank" type="number" required className="input mt-1 w-16" />
@@ -89,15 +117,34 @@ export default function VolumeTiersPanel({ subagentId, tiers }: { subagentId: st
           </label>
           <label className="text-xs text-ink-faint">
             prag („ako“)
-            <input name="thresholdValue" type="number" min={0} step="0.01" required className="input mt-1 w-28" />
+            <input
+              name="thresholdValue"
+              type="number"
+              min={0}
+              step="0.01"
+              required
+              className="input mt-1 w-28"
+            />
           </label>
           <label className="text-xs text-ink-faint">
             nova provizija % („onda“)
-            <input name="resultingCommissionPercentage" type="number" min={0} max={100} step="0.01" className="input mt-1 w-24" />
+            <input
+              name="resultingCommissionPercentage"
+              type="number"
+              min={0}
+              max={100}
+              step="0.01"
+              className="input mt-1 w-24"
+            />
           </label>
           <label className="text-xs text-ink-faint">
             fiksan iznos („onda“, opciono)
-            <input name="resultingCommissionFixedAmount" type="number" step="0.01" className="input mt-1 w-24" />
+            <input
+              name="resultingCommissionFixedAmount"
+              type="number"
+              step="0.01"
+              className="input mt-1 w-24"
+            />
           </label>
           <label className="text-xs text-ink-faint">
             valuta fiksnog iznosa

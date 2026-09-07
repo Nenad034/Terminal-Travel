@@ -36,11 +36,16 @@ function LinkBookingForm({ threadId }: { threadId: string }) {
   const boundAction = linkBooking.bind(null, threadId);
   const [state, formAction] = useActionState(boundAction, initialState);
   return (
-    <form action={formAction} className="flex flex-col gap-2 rounded-lg border border-border bg-panel p-4">
+    <form
+      action={formAction}
+      className="flex flex-col gap-2 rounded-lg border border-border bg-panel p-4"
+    >
       <div className="flex items-center gap-1.5 text-xs font-semibold text-ink">
         <Icon name="link" className="text-accent" /> Poveži rezervaciju
       </div>
-      {state.error && <p className="rounded bg-danger-bg p-2 text-[11px] text-danger">{state.error}</p>}
+      {state.error && (
+        <p className="rounded bg-danger-bg p-2 text-[11px] text-danger">{state.error}</p>
+      )}
       <input name="bookingId" required placeholder="Booking UUID (M5)" className="input" />
       <SubmitButton label="poveži rezervaciju" pendingLabel="Povezujem…" />
     </form>
@@ -51,17 +56,25 @@ function LinkSupplierAnnouncementForm({ threadId }: { threadId: string }) {
   const boundAction = linkSupplierAnnouncement.bind(null, threadId);
   const [state, formAction] = useActionState(boundAction, initialState);
   return (
-    <form action={formAction} className="flex flex-col gap-2 rounded-lg border border-border bg-panel p-4">
+    <form
+      action={formAction}
+      className="flex flex-col gap-2 rounded-lg border border-border bg-panel p-4"
+    >
       <div className="flex items-center gap-1.5 text-xs font-semibold text-ink">
         <Icon name="package" className="text-accent" /> Poveži najavu dobavljača
       </div>
-      {state.error && <p className="rounded bg-danger-bg p-2 text-[11px] text-danger">{state.error}</p>}
+      {state.error && (
+        <p className="rounded bg-danger-bg p-2 text-[11px] text-danger">{state.error}</p>
+      )}
       <select name="announcementType" className="input">
         <option value="SUPPLIER_MANIFEST">najava rezervacije (SupplierManifest)</option>
         <option value="SUPPLIER_CHANGE_NOTICE">najava izmene/storna (SupplierChangeNotice)</option>
       </select>
       <input name="announcementId" required placeholder="UUID (M5)" className="input" />
-      <p className="text-xs text-ink-faint">Upisuje samo vezu na niti — konačna potvrda ostaje isključivo M5/supplier-confirmation/CONFIRM (spec §3.1a).</p>
+      <p className="text-xs text-ink-faint">
+        Upisuje samo vezu na niti — konačna potvrda ostaje isključivo
+        M5/supplier-confirmation/CONFIRM (spec §3.1a).
+      </p>
       <SubmitButton label="poveži najavu" pendingLabel="Povezujem…" />
     </form>
   );
@@ -71,12 +84,19 @@ function ConvertToTicketForm({ threadId }: { threadId: string }) {
   const boundAction = convertToTicket.bind(null, threadId);
   const [state, formAction] = useActionState(boundAction, initialState);
   return (
-    <form action={formAction} className="flex flex-col gap-2 rounded-lg border border-border bg-panel p-4">
+    <form
+      action={formAction}
+      className="flex flex-col gap-2 rounded-lg border border-border bg-panel p-4"
+    >
       <div className="flex items-center gap-1.5 text-xs font-semibold text-ink">
         <Icon name="comment-discussion" className="text-accent" /> Pretvori u tiket
       </div>
-      {state.error && <p className="rounded bg-danger-bg p-2 text-[11px] text-danger">{state.error}</p>}
-      <p className="text-xs text-ink-faint">Otvara M14 tiket (channel=EMAIL) i vezuje ga za ovu nit (spec §5).</p>
+      {state.error && (
+        <p className="rounded bg-danger-bg p-2 text-[11px] text-danger">{state.error}</p>
+      )}
+      <p className="text-xs text-ink-faint">
+        Otvara M14 tiket (channel=EMAIL) i vezuje ga za ovu nit (spec §5).
+      </p>
       <SubmitButton label="pretvori u tiket" pendingLabel="Konvertujem…" />
     </form>
   );

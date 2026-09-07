@@ -13,7 +13,9 @@ export function resolveTranslation<T extends { languageCode: LanguageCode }>(
 }
 
 /** M2 spec §2.2 — sr i en su obavezni pre DRAFT → ACTIVE. */
-export function hasRequiredTranslationsForPublish(translations: Pick<ProductTranslation, 'languageCode'>[]): boolean {
+export function hasRequiredTranslationsForPublish(
+  translations: Pick<ProductTranslation, 'languageCode'>[],
+): boolean {
   const langs = new Set(translations.map((t) => t.languageCode));
   return langs.has('sr') && langs.has('en');
 }

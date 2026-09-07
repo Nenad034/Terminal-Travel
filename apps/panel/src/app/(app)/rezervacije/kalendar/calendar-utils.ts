@@ -55,12 +55,29 @@ export interface CalendarFiltersShape {
 }
 
 const FILTER_KEYS: (keyof CalendarFiltersShape)[] = [
-  'status', 'paymentStatus', 'tipNastupanja', 'buyerName', 'bookingNumber', 'currency',
-  'createdFrom', 'createdTo', 'productType', 'productId', 'productName', 'destinationCity', 'destinationCountry', 'hasTravelGuarantee',
-  'stayFrom', 'stayTo', 'returnFrom', 'returnTo',
+  'status',
+  'paymentStatus',
+  'tipNastupanja',
+  'buyerName',
+  'bookingNumber',
+  'currency',
+  'createdFrom',
+  'createdTo',
+  'productType',
+  'productId',
+  'productName',
+  'destinationCity',
+  'destinationCountry',
+  'hasTravelGuarantee',
+  'stayFrom',
+  'stayTo',
+  'returnFrom',
+  'returnTo',
 ];
 
-export function extractFilters(searchParams: Record<string, string | string[] | undefined>): CalendarFiltersShape {
+export function extractFilters(
+  searchParams: Record<string, string | string[] | undefined>,
+): CalendarFiltersShape {
   const out: CalendarFiltersShape = {};
   for (const key of FILTER_KEYS) {
     const v = searchParams[key];
@@ -84,7 +101,12 @@ export function filtersToQueryParams(filters: CalendarFiltersShape): URLSearchPa
 
 // Gradi href ka istoj `/rezervacije/kalendar` ruti sa view/date + svi trenutni filteri, uz
 // eventualne izmene (npr. samo `date` menja prev/next, samo `view` menja prekidač prikaza).
-export function buildHref(view: CalendarView, date: string, filters: CalendarFiltersShape, overrides: Partial<{ view: CalendarView; date: string }> = {}): string {
+export function buildHref(
+  view: CalendarView,
+  date: string,
+  filters: CalendarFiltersShape,
+  overrides: Partial<{ view: CalendarView; date: string }> = {},
+): string {
   const params = filtersToQueryParams(filters);
   params.set('view', overrides.view ?? view);
   params.set('date', overrides.date ?? date);

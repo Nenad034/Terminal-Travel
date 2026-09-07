@@ -40,7 +40,9 @@ describe('PermissionsGuard (M1 spec §3.6 — provera prava uvek uživo nad bazo
     const permissions = { hasPermission: jest.fn().mockResolvedValue(false) };
     const guard = new PermissionsGuard(reflector, permissions as any);
 
-    await expect(guard.canActivate(makeContext({ user: { userId: 'u1' } }))).rejects.toThrow(ForbiddenException);
+    await expect(guard.canActivate(makeContext({ user: { userId: 'u1' } }))).rejects.toThrow(
+      ForbiddenException,
+    );
     expect(permissions.hasPermission).toHaveBeenCalledWith('u1', 'M1', 'user', 'DELETE');
   });
 

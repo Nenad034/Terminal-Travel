@@ -6,7 +6,6 @@ import NewChannelForm from './NewChannelForm';
 import ChannelStatusForm from './ChannelStatusForm';
 import { Badge } from '@/components/ui/badge';
 
-
 interface ChannelConfig {
   channelCode: string;
   displayName: string;
@@ -38,18 +37,32 @@ export default async function KanaliPage() {
 
       {!error && (
         <div className="mb-4 flex flex-col gap-2">
-          {channels.length === 0 && <p className="rounded-lg border border-border bg-panel p-4 text-center text-xs text-ink-faint">Nema konfigurisanih kanala.</p>}
+          {channels.length === 0 && (
+            <p className="rounded-lg border border-border bg-panel p-4 text-center text-xs text-ink-faint">
+              Nema konfigurisanih kanala.
+            </p>
+          )}
           {channels.map((c) => (
-            <div key={c.channelCode} className="rounded-lg border border-border bg-panel p-3 text-sm">
+            <div
+              key={c.channelCode}
+              className="rounded-lg border border-border bg-panel p-3 text-sm"
+            >
               <div className="mb-2 flex items-center justify-between">
                 <div>
                   <div className="font-medium text-ink">
-                    {c.displayName} <span className="text-[11px] text-ink-faint">({c.channelCode})</span>
+                    {c.displayName}{' '}
+                    <span className="text-[11px] text-ink-faint">({c.channelCode})</span>
                   </div>
                 </div>
                 <StatusBadge status={c.status} />
               </div>
-              {canEdit && <ChannelStatusForm channelCode={c.channelCode} displayName={c.displayName} status={c.status} />}
+              {canEdit && (
+                <ChannelStatusForm
+                  channelCode={c.channelCode}
+                  displayName={c.displayName}
+                  status={c.status}
+                />
+              )}
             </div>
           ))}
         </div>

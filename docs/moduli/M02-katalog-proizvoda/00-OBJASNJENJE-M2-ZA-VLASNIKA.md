@@ -112,4 +112,4 @@ Uz ispravku je dodat test koji to proverava, i posebno je provereno da svih osam
 
 ---
 
-*Za tehničke detalje (tačna imena polja, redosled provera, API pozivi) vidi `03-SPECIFIKACIJA-M2-KATALOG-PROIZVODA.md` u istom folderu i `docs/api/M2-katalog-proizvoda.md` — ovaj dokument je namerno pojednostavljen, ne zamenjuje ih.*
+_Za tehničke detalje (tačna imena polja, redosled provera, API pozivi) vidi `03-SPECIFIKACIJA-M2-KATALOG-PROIZVODA.md` u istom folderu i `docs/api/M2-katalog-proizvoda.md` — ovaj dokument je namerno pojednostavljen, ne zamenjuje ih._

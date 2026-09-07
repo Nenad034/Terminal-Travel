@@ -19,7 +19,9 @@ export interface AccessTokenPayload {
  * koji IMA `sessionId` i NEMA `type` — svaka buduća vrsta tokena mora nositi `type` i
  * time automatski ostaje van pristupnih putanja.
  */
-export function assertAccessTokenPayload(payload: AccessTokenPayload & { type?: string }): AccessTokenPayload {
+export function assertAccessTokenPayload(
+  payload: AccessTokenPayload & { type?: string },
+): AccessTokenPayload {
   if (payload.type !== undefined || typeof payload.sessionId !== 'string' || !payload.sessionId) {
     throw new UnauthorizedException('Nevažeći ili istekao token');
   }

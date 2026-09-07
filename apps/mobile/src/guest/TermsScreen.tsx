@@ -36,14 +36,22 @@ export function TermsScreen(params: Params) {
               productId: params.productId,
               stayFrom: params.stayFrom,
               stayTo: params.stayTo,
-              occupancy: { adults: Number(params.adults) || 2, children: Number(params.children) || 0 },
+              occupancy: {
+                adults: Number(params.adults) || 2,
+                children: Number(params.children) || 0,
+              },
             },
           ],
         },
       });
-      router.push({ pathname: '/(guest)/placanje', params: { quoteId: quote.id, buyerName: params.buyerName } });
+      router.push({
+        pathname: '/(guest)/placanje',
+        params: { quoteId: quote.id, buyerName: params.buyerName },
+      });
     } catch {
-      setError('Ponuda nije mogla da se kreira (cena je možda istekla) — pokušajte pretragu ponovo.');
+      setError(
+        'Ponuda nije mogla da se kreira (cena je možda istekla) — pokušajte pretragu ponovo.',
+      );
     } finally {
       setPending(false);
     }
@@ -54,8 +62,9 @@ export function TermsScreen(params: Params) {
       <Text style={styles.title}>Uslovi putovanja</Text>
       <ScrollView style={styles.termsBox}>
         <Text style={styles.termsText}>
-          Ugovor o organizovanju putovanja/posredovanju sastavlja se automatski po potvrdi rezervacije i sadrži: podatke agencije,
-          cenu, itinerar, uslove otkazivanja, garanciju putovanja i dinamiku plaćanja. Pun tekst dobijate uz potvrdu rezervacije.
+          Ugovor o organizovanju putovanja/posredovanju sastavlja se automatski po potvrdi
+          rezervacije i sadrži: podatke agencije, cenu, itinerar, uslove otkazivanja, garanciju
+          putovanja i dinamiku plaćanja. Pun tekst dobijate uz potvrdu rezervacije.
         </Text>
       </ScrollView>
       {error && <Text style={styles.error}>{error}</Text>}
@@ -63,8 +72,16 @@ export function TermsScreen(params: Params) {
         <View style={[styles.checkbox, accepted && styles.checkboxChecked]} />
         <Text style={styles.checkboxLabel}>Prihvatam uslove putovanja.</Text>
       </Pressable>
-      <Pressable style={[styles.button, !accepted && styles.buttonDisabled]} disabled={!accepted || pending} onPress={submit}>
-        {pending ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Prihvatam i nastavljam</Text>}
+      <Pressable
+        style={[styles.button, !accepted && styles.buttonDisabled]}
+        disabled={!accepted || pending}
+        onPress={submit}
+      >
+        {pending ? (
+          <ActivityIndicator color="#fff" />
+        ) : (
+          <Text style={styles.buttonText}>Prihvatam i nastavljam</Text>
+        )}
       </Pressable>
     </View>
   );

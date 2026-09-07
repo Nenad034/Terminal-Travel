@@ -28,11 +28,20 @@ export async function assignGuide(
   const assignedGuideId = raw === '' ? null : raw;
 
   try {
-    await apiFetch(`/sales/bookings/items/${bookingItemId}/assign-guide`, { method: 'PATCH', body: { assignedGuideId } });
+    await apiFetch(`/sales/bookings/items/${bookingItemId}/assign-guide`, {
+      method: 'PATCH',
+      body: { assignedGuideId },
+    });
   } catch (err) {
-    return { error: err instanceof ApiError ? extractMessage(err) : 'Dodela predstavnika nije uspela.', ok: null };
+    return {
+      error: err instanceof ApiError ? extractMessage(err) : 'Dodela predstavnika nije uspela.',
+      ok: null,
+    };
   }
 
   revalidatePath(`/rezervacije/${bookingId}`);
-  return { error: null, ok: assignedGuideId ? 'Predstavnik je dodeljen.' : 'Predstavnik je uklonjen sa stavke.' };
+  return {
+    error: null,
+    ok: assignedGuideId ? 'Predstavnik je dodeljen.' : 'Predstavnik je uklonjen sa stavke.',
+  };
 }

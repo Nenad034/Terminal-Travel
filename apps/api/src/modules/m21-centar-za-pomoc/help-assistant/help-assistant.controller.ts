@@ -27,7 +27,11 @@ export class HelpAssistantController {
   }
 
   @Post('questions/:id/feedback')
-  feedback(@Param('id') id: string, @Body() dto: FeedbackQuestionDto, @CurrentUser() actor: { userId: string }) {
+  feedback(
+    @Param('id') id: string,
+    @Body() dto: FeedbackQuestionDto,
+    @CurrentUser() actor: { userId: string },
+  ) {
     return this.assistant.feedback(id, dto.wasHelpful, actor.userId);
   }
 
@@ -45,6 +49,9 @@ export class HelpAssistantController {
     @Query('page') page?: string,
     @Query('limit') limit?: string,
   ) {
-    return this.assistant.findQuestionLog({ audienceContext, confidence }, parsePagination(page, limit));
+    return this.assistant.findQuestionLog(
+      { audienceContext, confidence },
+      parsePagination(page, limit),
+    );
   }
 }

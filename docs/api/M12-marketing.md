@@ -18,6 +18,7 @@
 Lista/kalendar — sortirano po `scheduledPublishAt` (rastuće). Query (svi opcioni): `type` (`BLOG_POST`|`SOCIAL_POST`|`EMAIL_NEWSLETTER`|`BANNER`|`STATIC_PAGE`), `status` (`DRAFT`|`PENDING_APPROVAL`|`APPROVED`|`PUBLISHED`), `channel` (`M8_SITE`|`FACEBOOK`|`INSTAGRAM`|`EMAIL`|`MOBILE_PUSH`), `slug`.
 
 **Odgovor `200`:**
+
 ```json
 [
   {
@@ -35,7 +36,13 @@ Lista/kalendar — sortirano po `scheduledPublishAt` (rastuće). Query (svi opci
     "approvedBy": null,
     "publishedAt": null,
     "translations": [
-      { "languageCode": "sr", "title": "Novo u ponudi: Hotel Kopaonik", "body": "...", "translationSource": "AI_GENERATED", "isReviewed": false }
+      {
+        "languageCode": "sr",
+        "title": "Novo u ponudi: Hotel Kopaonik",
+        "body": "...",
+        "translationSource": "AI_GENERATED",
+        "isReviewed": false
+      }
     ]
   }
 ]
@@ -46,6 +53,7 @@ Lista/kalendar — sortirano po `scheduledPublishAt` (rastuće). Query (svi opci
 Ručno kreiranje (uvek `generatedBy: HUMAN`, `status: DRAFT`). Zahteva `M12/content/CREATE_DRAFT`.
 
 **Telo:**
+
 ```json
 {
   "type": "STATIC_PAGE",
@@ -57,6 +65,7 @@ Ručno kreiranje (uvek `generatedBy: HUMAN`, `status: DRAFT`). Zahteva `M12/cont
   "scheduledPublishAt": null
 }
 ```
+
 `slug` je obavezan za `STATIC_PAGE`/`BLOG_POST` (400 ako nedostaje) i mora biti jedinstven (409 ako je zauzet). `trackingCode` se generiše automatski — klijent ga ne šalje.
 
 **Odgovor `201`** — kreiran `ContentPiece` (isti oblik kao stavka liste iznad).
@@ -74,6 +83,7 @@ Izmena nacrta — dozvoljena samo dok je status `DRAFT`/`PENDING_APPROVAL` (`400
 Ljudsko odobrenje — nepovratna granica ka javnoj objavi. Zahteva `M12/content/APPROVE_PUBLISH` (nikad dodeljeno AI agentu).
 
 Pravila:
+
 - Sadržaj mora imati bar jedan prevod (`400` ako nema).
 - Ako je `containsAiGeneratedMedia: true`, bar jedan prevod mora sadržati prepoznatljiv marker transparentnosti (npr. "generisano uz pomoć veštačke inteligencije") u `body` — `400` ako nedostaje (YUTA preporuka, poglavlje 3c specifikacije).
 - `BANNER` vezan za konkretan `productId` sa `containsAiGeneratedMedia: true` se uvek odbija (`400`) — sintetički AI vizual se ne koristi kao zamena za stvarni prikaz konkretne usluge.
@@ -90,8 +100,15 @@ Lista prevoda (`ContentTranslation`, jedan red po jeziku).
 Upsert jednog prevoda (isti obrazac kao M2 proizvodi). Zahteva `M12/content/CREATE_DRAFT`.
 
 **Telo:**
+
 ```json
-{ "languageCode": "sr", "title": "Naslov", "body": "Telo objave.", "translationSource": "MANUAL", "isReviewed": true }
+{
+  "languageCode": "sr",
+  "title": "Naslov",
+  "body": "Telo objave.",
+  "translationSource": "MANUAL",
+  "isReviewed": true
+}
 ```
 
 ---
@@ -107,9 +124,15 @@ Lista `ChannelConfig` — kredencijali (`authConfigEncrypted`) se **nikad** ne v
 Kreira konfiguraciju kanala. Zahteva `M12/channel-config/EDIT`.
 
 **Telo:**
+
 ```json
-{ "channelCode": "FACEBOOK", "displayName": "Terminal Travel Facebook", "authConfig": { "pageId": "...", "accessToken": "..." } }
+{
+  "channelCode": "FACEBOOK",
+  "displayName": "Terminal Travel Facebook",
+  "authConfig": { "pageId": "...", "accessToken": "..." }
+}
 ```
+
 `authConfig` se enkriptuje pre upisa (isti obrazac kao M4 `ProviderConfig.authConfigEncrypted`). `M8_SITE`/`MOBILE_PUSH` ne zahtevaju `authConfig` (nemaju sopstveni adapter).
 
 ### GET /marketing/channels/:code / PATCH /marketing/channels/:code
@@ -121,6 +144,7 @@ Uvid/izmena po `channelCode`. `PATCH` prima `displayName`, `authConfig`, `status
 ## Distribucioni tok (interno, ne API)
 
 Kad se sadržaj objavi (`publish`), svaki kanal iz `targetChannels` se obrađuje:
+
 - **M8_SITE** — nema poseban korak; sadržaj je dostupan čim je `PUBLISHED` preko `GET /content`.
 - **FACEBOOK / INSTAGRAM** — mock adapter (loguje objavu; tačan izbor mreža/pravi API čeka potvrdu, spec poglavlje 9).
 - **EMAIL** — šalje se preko M6 `ClientAccountsService.findMarketingRecipients` isključivo `ClientAccount` zapisima sa `marketingConsent: true`; ako je `targetTags` popunjeno, skup se dodatno suzi (nikad ne proširi).

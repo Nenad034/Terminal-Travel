@@ -125,9 +125,11 @@ function ReportCard({ report }: { report: NonNullable<Turn['report']> }) {
           )}
         </div>
       </div>
-      {sentTo && <span className="flex items-center gap-1 text-ok">
-        <Icon name="check" /> Poslato u „{sentTo}“
-      </span>}
+      {sentTo && (
+        <span className="flex items-center gap-1 text-ok">
+          <Icon name="check" /> Poslato u „{sentTo}“
+        </span>
+      )}
       {error && <span className="text-danger">{error}</span>}
     </div>
   );
@@ -172,7 +174,9 @@ function WebFetchApprovalCard({
     return (
       <div className="mt-1 flex items-center gap-1.5 text-ink-faint">
         <Icon name={decision === 'approved' ? 'check' : 'close'} />
-        {decision === 'approved' ? 'Odobreno — sadržaj preuzet i proveren.' : 'Odbijeno — ništa nije preuzeto.'}
+        {decision === 'approved'
+          ? 'Odobreno — sadržaj preuzet i proveren.'
+          : 'Odbijeno — ništa nije preuzeto.'}
       </div>
     );
   }
@@ -216,7 +220,15 @@ export interface TerminalPaneHandle {
 // TEK NA KLIK preko `getText()`, nikad iz zastarelog snapshot-a napravljenog pri poslednjem
 // renderu roditelja (bitno jer roditelj `TerminalPanel` ne mora da se ponovo renderuje svaki
 // put kad se PROMENI sadržaj razgovora unutar `TerminalPane`, samo kad postane prazan/neprazan).
-function CopyAllButton({ getText, title, className = '' }: { getText: () => string; title: string; className?: string }) {
+function CopyAllButton({
+  getText,
+  title,
+  className = '',
+}: {
+  getText: () => string;
+  title: string;
+  className?: string;
+}) {
   const [copied, setCopied] = useState(false);
   return (
     <button
@@ -242,8 +254,10 @@ function CopyAllButton({ getText, title, className = '' }: { getText: () => stri
 // uz `SPLIT_KEY` iznad). `ref` izlaže samo ono što roditelj (`TerminalPanel`) treba za ZAJEDNIČKO
 // dugme "Kopiraj ceo razgovor" u zaglavlju kad NIJE podeljen — kad JESTE podeljen, svaki panel
 // dobija sopstveno dugme (niže), roditeljski `ref`-ovi se tad ne koriste.
-const TerminalPane = forwardRef<TerminalPaneHandle, { showOwnHeader?: boolean; onTurnsChange?: (hasTurns: boolean) => void }>(
-  function TerminalPane({ showOwnHeader = false, onTurnsChange }, ref) {
+const TerminalPane = forwardRef<
+  TerminalPaneHandle,
+  { showOwnHeader?: boolean; onTurnsChange?: (hasTurns: boolean) => void }
+>(function TerminalPane({ showOwnHeader = false, onTurnsChange }, ref) {
   const [turns, setTurns] = useState<Turn[]>([]);
   const [input, setInput] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -298,8 +312,13 @@ const TerminalPane = forwardRef<TerminalPaneHandle, { showOwnHeader?: boolean; o
     // Istorija (23.8.2026, na zahtev vlasnika — "ai agent gubi kontekst") — pošalji dosadašnje
     // tekstualne odgovore da agent razume reference tipa "te rezervacije" na prethodno pitanje.
     // Samo tura sa stvarnim odgovorom (ne učitavanje/greška/predlog na čekanju) ima šta da doprinese.
-    const history = turns.filter((t) => t.answer && !t.loading).map((t) => ({ question: t.question, answer: t.answer! }));
-    setTurns((t) => [...t, { question, contextLabel: sentContext, loading: true, inactive: false }]);
+    const history = turns
+      .filter((t) => t.answer && !t.loading)
+      .map((t) => ({ question: t.question, answer: t.answer! }));
+    setTurns((t) => [
+      ...t,
+      { question, contextLabel: sentContext, loading: true, inactive: false },
+    ]);
 
     const query = sentContext ? `[Kontekst: ${sentContext}] ${question}` : question;
     try {
@@ -321,7 +340,11 @@ const TerminalPane = forwardRef<TerminalPaneHandle, { showOwnHeader?: boolean; o
         const next = [...t];
         const last = next[next.length - 1];
         if (res.status === 401) {
-          next[next.length - 1] = { ...last, loading: false, error: 'Sesija je istekla — osveži stranicu i prijavi se ponovo.' };
+          next[next.length - 1] = {
+            ...last,
+            loading: false,
+            error: 'Sesija je istekla — osveži stranicu i prijavi se ponovo.',
+          };
           return next;
         }
         if (!data.active) {
@@ -342,7 +365,11 @@ const TerminalPane = forwardRef<TerminalPaneHandle, { showOwnHeader?: boolean; o
     } catch {
       setTurns((t) => {
         const next = [...t];
-        next[next.length - 1] = { ...next[next.length - 1], loading: false, error: 'Zahtev nije uspeo — pokušaj ponovo.' };
+        next[next.length - 1] = {
+          ...next[next.length - 1],
+          loading: false,
+          error: 'Zahtev nije uspeo — pokušaj ponovo.',
+        };
         return next;
       });
     }
@@ -359,14 +386,27 @@ const TerminalPane = forwardRef<TerminalPaneHandle, { showOwnHeader?: boolean; o
       {showOwnHeader && (
         <div className="flex h-[22px] flex-shrink-0 items-center justify-end border-b border-ink-faint/40 px-2">
           {turns.length > 0 && (
-            <CopyButton text={buildFullTranscriptText()} alwaysVisible title="Kopiraj ceo razgovor ovog panela" className="text-ink-faint hover:text-ink" />
+            <CopyButton
+              text={buildFullTranscriptText()}
+              alwaysVisible
+              title="Kopiraj ceo razgovor ovog panela"
+              className="text-ink-faint hover:text-ink"
+            />
           )}
         </div>
       )}
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-3 py-2">
-        {turns.length === 0 && <p className="text-ink-faint">Postavi pitanje o poslovanju — npr. „šta je danas prodato“, „lista nenaplaćenih aranžmana“.</p>}
+        {turns.length === 0 && (
+          <p className="text-ink-faint">
+            Postavi pitanje o poslovanju — npr. „šta je danas prodato“, „lista nenaplaćenih
+            aranžmana“.
+          </p>
+        )}
         {turns.map((t, i) => (
-          <div key={i} className={`group flex flex-col gap-1 py-2 ${i > 0 ? 'border-t border-ink-faint/40' : ''}`}>
+          <div
+            key={i}
+            className={`group flex flex-col gap-1 py-2 ${i > 0 ? 'border-t border-ink-faint/40' : ''}`}
+          >
             <div className="flex items-start justify-between gap-2">
               <span className="flex items-center gap-1.5 text-accent">
                 $ <span className="text-ink">{t.question}</span>
@@ -380,7 +420,9 @@ const TerminalPane = forwardRef<TerminalPaneHandle, { showOwnHeader?: boolean; o
                 <Icon name="close" />
               </button>
             </div>
-            {t.contextLabel && <div className="text-[11px] italic text-ink-faint">kontekst: {t.contextLabel}</div>}
+            {t.contextLabel && (
+              <div className="text-[11px] italic text-ink-faint">kontekst: {t.contextLabel}</div>
+            )}
             {t.loading ? (
               <span className="flex items-center gap-2 text-ink-faint">
                 <Icon name="loading" className="animate-spin" /> obrađujem...
@@ -401,7 +443,12 @@ const TerminalPane = forwardRef<TerminalPaneHandle, { showOwnHeader?: boolean; o
                     onDecide={(decision, answer, links) =>
                       setTurns((prev) => {
                         const next = [...prev];
-                        next[i] = { ...next[i], webFetchDecision: decision, answer: answer || next[i].answer, links: links ?? next[i].links };
+                        next[i] = {
+                          ...next[i],
+                          webFetchDecision: decision,
+                          answer: answer || next[i].answer,
+                          links: links ?? next[i].links,
+                        };
                         return next;
                       })
                     }
@@ -445,7 +492,11 @@ const TerminalPane = forwardRef<TerminalPaneHandle, { showOwnHeader?: boolean; o
         <div className="mx-3 mt-2 flex items-center gap-1.5 self-start rounded-full border border-accent bg-accent-soft px-2 py-0.5 text-[11px] text-ink">
           <Icon name="link" />
           {context}
-          <button onClick={() => setContext(null)} title="Ukloni kontekst" className="ml-0.5 hover:text-danger">
+          <button
+            onClick={() => setContext(null)}
+            title="Ukloni kontekst"
+            className="ml-0.5 hover:text-danger"
+          >
             <Icon name="close" />
           </button>
         </div>
@@ -471,7 +522,11 @@ const TerminalPane = forwardRef<TerminalPaneHandle, { showOwnHeader?: boolean; o
             plusMenuPos &&
             createPortal(
               <div
-                style={{ top: plusMenuPos.top, left: plusMenuPos.left, transform: 'translateY(-100%)' }}
+                style={{
+                  top: plusMenuPos.top,
+                  left: plusMenuPos.left,
+                  transform: 'translateY(-100%)',
+                }}
                 className="fixed z-50 max-h-64 w-56 overflow-y-auto rounded-lg border border-border bg-panel py-1 text-xs shadow-lg"
               >
                 {NAV_ITEMS.map((item) => (
@@ -622,7 +677,10 @@ export default function TerminalPanel({ onClose }: { onClose: () => void }) {
   };
 
   return (
-    <div className="flex flex-shrink-0 flex-col overflow-hidden bg-panel font-mono text-xs" style={{ height }}>
+    <div
+      className="flex flex-shrink-0 flex-col overflow-hidden bg-panel font-mono text-xs"
+      style={{ height }}
+    >
       <div
         onPointerDown={onPointerDown}
         onDoubleClick={resetHeight}
@@ -635,16 +693,25 @@ export default function TerminalPanel({ onClose }: { onClose: () => void }) {
         </span>
         <div className="flex items-center gap-2">
           {!split && pane1HasTurns && (
-            <CopyAllButton getText={() => paneRef.current?.getTranscriptText() ?? ''} title="Kopiraj ceo razgovor" />
+            <CopyAllButton
+              getText={() => paneRef.current?.getTranscriptText() ?? ''}
+              title="Kopiraj ceo razgovor"
+            />
           )}
           <button
             onClick={toggleSplit}
-            title={split ? 'Spoji terminal nazad u jedan' : 'Podeli terminal na dva nezavisna panela'}
+            title={
+              split ? 'Spoji terminal nazad u jedan' : 'Podeli terminal na dva nezavisna panela'
+            }
             className={`flex h-[20px] w-[20px] items-center justify-center rounded ${split ? 'text-accent' : 'text-ink-faint hover:text-ink'}`}
           >
             <Icon name="split-horizontal" />
           </button>
-          <button onClick={onClose} title="Zatvori terminal" className="text-ink-faint hover:text-ink">
+          <button
+            onClick={onClose}
+            title="Zatvori terminal"
+            className="text-ink-faint hover:text-ink"
+          >
             <Icon name="close" />
           </button>
         </div>

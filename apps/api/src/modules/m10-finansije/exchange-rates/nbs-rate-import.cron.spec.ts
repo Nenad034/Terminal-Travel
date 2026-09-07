@@ -4,7 +4,9 @@ describe('NbsRateImportCron (M10 spec §11)', () => {
   function makeCron() {
     const exchangeRates: any = {
       importFromNbs: jest.fn(),
-      backfillMissingRates: jest.fn().mockResolvedValue({ popunjeno: 0, preskoceno: 0, neuspelo: 0 }),
+      backfillMissingRates: jest
+        .fn()
+        .mockResolvedValue({ popunjeno: 0, preskoceno: 0, neuspelo: 0 }),
     };
     const eventBus: any = { emit: jest.fn() };
     const cron = new NbsRateImportCron(exchangeRates, eventBus);

@@ -33,7 +33,9 @@ describe('M14 — izlazni kriterijum (e2e)', () => {
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
     app = moduleRef.createNestApplication();
     app.setGlobalPrefix('api/v1');
-    app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }));
+    app.useGlobalPipes(
+      new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }),
+    );
     app.useGlobalFilters(new PrismaExceptionFilter());
     await app.init();
     prisma = app.get(PrismaService);
@@ -52,8 +54,10 @@ describe('M14 — izlazni kriterijum (e2e)', () => {
       await prisma.postTripSurvey.deleteMany({ where: { bookingId: { in: createdBookingIds } } });
       await prisma.booking.deleteMany({ where: { id: { in: createdBookingIds } } });
     }
-    if (createdSubagentIds.length) await prisma.subagent.deleteMany({ where: { id: { in: createdSubagentIds } } });
-    if (createdClientAccountIds.length) await prisma.clientAccount.deleteMany({ where: { id: { in: createdClientAccountIds } } });
+    if (createdSubagentIds.length)
+      await prisma.subagent.deleteMany({ where: { id: { in: createdSubagentIds } } });
+    if (createdClientAccountIds.length)
+      await prisma.clientAccount.deleteMany({ where: { id: { in: createdClientAccountIds } } });
     if (createdUserIds.length) {
       await prisma.userRole.deleteMany({ where: { userId: { in: createdUserIds } } });
       await prisma.user.deleteMany({ where: { id: { in: createdUserIds } } });
@@ -72,7 +76,9 @@ describe('M14 — izlazni kriterijum (e2e)', () => {
     });
     createdUserIds.push(user.id);
     const role = await prisma.role.findUniqueOrThrow({ where: { name: roleName } });
-    await prisma.userRole.create({ data: { userId: user.id, roleId: role.id, assignedBy: user.id } });
+    await prisma.userRole.create({
+      data: { userId: user.id, roleId: role.id, assignedBy: user.id },
+    });
     const accessToken = jwt.sign({ sub: user.id, sessionId: 'e2e-test-session' });
     return { user, accessToken };
   }
@@ -101,7 +107,9 @@ describe('M14 — izlazni kriterijum (e2e)', () => {
     });
     createdUserIds.push(user.id);
     const role = await prisma.role.findUniqueOrThrow({ where: { name: SYSTEM_ROLES.GOST } });
-    await prisma.userRole.create({ data: { userId: user.id, roleId: role.id, assignedBy: user.id } });
+    await prisma.userRole.create({
+      data: { userId: user.id, roleId: role.id, assignedBy: user.id },
+    });
     const accessToken = jwt.sign({ sub: user.id, sessionId: 'e2e-test-session' });
     return { user, account, accessToken };
   }
@@ -117,7 +125,13 @@ describe('M14 — izlazni kriterijum (e2e)', () => {
     });
     createdClientAccountIds.push(account.id);
     const subagent = await prisma.subagent.create({
-      data: { clientAccountId: account.id, status: 'ACTIVE', commissionPercentage: 10, creditLimit: 100000, creditLimitCurrency: 'EUR' },
+      data: {
+        clientAccountId: account.id,
+        status: 'ACTIVE',
+        commissionPercentage: 10,
+        creditLimit: 100000,
+        creditLimitCurrency: 'EUR',
+      },
     });
     createdSubagentIds.push(subagent.id);
     const user = await prisma.user.create({
@@ -130,13 +144,20 @@ describe('M14 — izlazni kriterijum (e2e)', () => {
       },
     });
     createdUserIds.push(user.id);
-    const role = await prisma.role.findUniqueOrThrow({ where: { name: SYSTEM_ROLES.SUBAGENT_ADMIN } });
-    await prisma.userRole.create({ data: { userId: user.id, roleId: role.id, assignedBy: user.id } });
+    const role = await prisma.role.findUniqueOrThrow({
+      where: { name: SYSTEM_ROLES.SUBAGENT_ADMIN },
+    });
+    await prisma.userRole.create({
+      data: { userId: user.id, roleId: role.id, assignedBy: user.id },
+    });
     const accessToken = jwt.sign({ sub: user.id, sessionId: 'e2e-test-session' });
     return { user, account, subagent, accessToken };
   }
 
-  async function createBooking(clientAccountId: string, overrides: Partial<{ totalPrice: number; currency: string }> = {}) {
+  async function createBooking(
+    clientAccountId: string,
+    overrides: Partial<{ totalPrice: number; currency: string }> = {},
+  ) {
     const booking = await prisma.booking.create({
       data: {
         bookingNumber: `TT-M14-E2E-${testRunId}-${Math.random().toString(36).slice(2)}`,
@@ -165,16 +186,25 @@ describe('M14 — izlazni kriterijum (e2e)', () => {
       const created = await request(app.getHttpServer())
         .post('/api/v1/helpdesk/tickets')
         .set(authed(accessToken))
-        .send({ requesterType: 'GUEST', subject: 'Pitanje o rezervaciji', category: 'REZERVACIJA', channel: 'SITE_FORM' });
+        .send({
+          requesterType: 'GUEST',
+          subject: 'Pitanje o rezervaciji',
+          category: 'REZERVACIJA',
+          channel: 'SITE_FORM',
+        });
       expect(created.status).toBe(201);
       createdTicketIds.push(created.body.id);
       expect(created.body.requesterClientAccountId).toBe(account.id); // prepisano na sopstveni nalog, ignoriše telo
 
-      const own = await request(app.getHttpServer()).get(`/api/v1/helpdesk/tickets/${created.body.id}`).set(authed(accessToken));
+      const own = await request(app.getHttpServer())
+        .get(`/api/v1/helpdesk/tickets/${created.body.id}`)
+        .set(authed(accessToken));
       expect(own.status).toBe(200);
       expect(own.body.status).toBe('OPEN');
 
-      const forbidden = await request(app.getHttpServer()).get(`/api/v1/helpdesk/tickets/${created.body.id}`).set(authed(otherAccessToken));
+      const forbidden = await request(app.getHttpServer())
+        .get(`/api/v1/helpdesk/tickets/${created.body.id}`)
+        .set(authed(otherAccessToken));
       expect(forbidden.status).toBe(404); // tuđ tiket — nikad 403 (ne otkriva postojanje)
     });
 
@@ -184,12 +214,19 @@ describe('M14 — izlazni kriterijum (e2e)', () => {
       const created = await request(app.getHttpServer())
         .post('/api/v1/helpdesk/tickets')
         .set(authed(accessToken))
-        .send({ requesterType: 'SUBAGENT', subject: 'Pitanje o proviziji', category: 'PLACANJE', channel: 'B2B_PORTAL' });
+        .send({
+          requesterType: 'SUBAGENT',
+          subject: 'Pitanje o proviziji',
+          category: 'PLACANJE',
+          channel: 'B2B_PORTAL',
+        });
       expect(created.status).toBe(201);
       createdTicketIds.push(created.body.id);
       expect(created.body.requesterClientAccountId).toBe(account.id);
 
-      const list = await request(app.getHttpServer()).get('/api/v1/helpdesk/tickets').set(authed(accessToken));
+      const list = await request(app.getHttpServer())
+        .get('/api/v1/helpdesk/tickets')
+        .set(authed(accessToken));
       expect(list.status).toBe(200);
       expect(list.body.map((t: any) => t.id)).toContain(created.body.id);
     });
@@ -203,7 +240,12 @@ describe('M14 — izlazni kriterijum (e2e)', () => {
       const ticket = await request(app.getHttpServer())
         .post('/api/v1/helpdesk/tickets')
         .set(authed(guestToken))
-        .send({ requesterType: 'GUEST', subject: 'Test interna beleška', category: 'DRUGO', channel: 'SITE_FORM' });
+        .send({
+          requesterType: 'GUEST',
+          subject: 'Test interna beleška',
+          category: 'DRUGO',
+          channel: 'SITE_FORM',
+        });
       createdTicketIds.push(ticket.body.id);
 
       await request(app.getHttpServer())
@@ -211,29 +253,43 @@ describe('M14 — izlazni kriterijum (e2e)', () => {
         .set(authed(staffToken))
         .send({ senderType: 'STAFF', body: 'Interna beleška — ne za gosta', isInternalNote: true });
 
-      const seenByStaff = await request(app.getHttpServer()).get(`/api/v1/helpdesk/tickets/${ticket.body.id}/messages`).set(authed(staffToken));
+      const seenByStaff = await request(app.getHttpServer())
+        .get(`/api/v1/helpdesk/tickets/${ticket.body.id}/messages`)
+        .set(authed(staffToken));
       expect(seenByStaff.body.some((m: any) => m.isInternalNote)).toBe(true);
 
-      const seenByGuest = await request(app.getHttpServer()).get(`/api/v1/helpdesk/tickets/${ticket.body.id}/messages`).set(authed(guestToken));
+      const seenByGuest = await request(app.getHttpServer())
+        .get(`/api/v1/helpdesk/tickets/${ticket.body.id}/messages`)
+        .set(authed(guestToken));
       expect(seenByGuest.body.some((m: any) => m.isInternalNote)).toBe(false);
     });
   });
 
   describe('§4/§7 — AI nacrt koji pominje cenu/obavezu ne može biti poslat bez ljudskog naloga', () => {
     it('AI_DRAFT poruka ima sent_by=null pri kreiranju; POST .../send je jedini put', async () => {
-      const { accessToken: staffToken, user: staff } = await createInternalUser(SYSTEM_ROLES.VLASNIK);
+      const { accessToken: staffToken, user: staff } = await createInternalUser(
+        SYSTEM_ROLES.VLASNIK,
+      );
       const { accessToken: guestToken } = await createGuestUser();
 
       const ticket = await request(app.getHttpServer())
         .post('/api/v1/helpdesk/tickets')
         .set(authed(guestToken))
-        .send({ requesterType: 'GUEST', subject: 'Pitanje o povraćaju novca', category: 'PLACANJE', channel: 'SITE_FORM' });
+        .send({
+          requesterType: 'GUEST',
+          subject: 'Pitanje o povraćaju novca',
+          category: 'PLACANJE',
+          channel: 'SITE_FORM',
+        });
       createdTicketIds.push(ticket.body.id);
 
       const draft = await request(app.getHttpServer())
         .post(`/api/v1/helpdesk/tickets/${ticket.body.id}/messages`)
         .set(authed(staffToken))
-        .send({ senderType: 'AI_DRAFT', body: 'Nacrt: povraćaj od 100 EUR biće izvršen u roku od 14 dana.' });
+        .send({
+          senderType: 'AI_DRAFT',
+          body: 'Nacrt: povraćaj od 100 EUR biće izvršen u roku od 14 dana.',
+        });
       expect(draft.status).toBe(201);
       expect(draft.body.sentBy).toBeNull();
 
@@ -264,11 +320,23 @@ describe('M14 — izlazni kriterijum (e2e)', () => {
       const created = await request(app.getHttpServer())
         .post('/api/v1/helpdesk/tickets')
         .set(authed(accessToken))
-        .send({ requesterType: 'GUEST', relatedBookingId: booking.id, subject: 'Pitanje o mojoj rezervaciji', category: 'REZERVACIJA', channel: 'SITE_FORM' });
+        .send({
+          requesterType: 'GUEST',
+          relatedBookingId: booking.id,
+          subject: 'Pitanje o mojoj rezervaciji',
+          category: 'REZERVACIJA',
+          channel: 'SITE_FORM',
+        });
       createdTicketIds.push(created.body.id);
 
-      const detail = await request(app.getHttpServer()).get(`/api/v1/helpdesk/tickets/${created.body.id}`).set(authed(accessToken));
-      expect(detail.body.relatedBooking).toMatchObject({ id: booking.id, bookingNumber: booking.bookingNumber, status: 'CONFIRMED' });
+      const detail = await request(app.getHttpServer())
+        .get(`/api/v1/helpdesk/tickets/${created.body.id}`)
+        .set(authed(accessToken));
+      expect(detail.body.relatedBooking).toMatchObject({
+        id: booking.id,
+        bookingNumber: booking.bookingNumber,
+        status: 'CONFIRMED',
+      });
     });
   });
 
@@ -278,12 +346,19 @@ describe('M14 — izlazni kriterijum (e2e)', () => {
       const created = await request(app.getHttpServer())
         .post('/api/v1/helpdesk/tickets')
         .set(authed(accessToken))
-        .send({ requesterType: 'GUEST', subject: 'Reklamacija na uslugu', category: 'REKLAMACIJA', channel: 'SITE_FORM' });
+        .send({
+          requesterType: 'GUEST',
+          subject: 'Reklamacija na uslugu',
+          category: 'REKLAMACIJA',
+          channel: 'SITE_FORM',
+        });
       createdTicketIds.push(created.body.id);
 
       const createdAt = new Date(created.body.createdAt);
       const deadline = new Date(created.body.zzpResponseDeadline);
-      const diffDays = Math.round((deadline.getTime() - createdAt.getTime()) / (24 * 60 * 60 * 1000));
+      const diffDays = Math.round(
+        (deadline.getTime() - createdAt.getTime()) / (24 * 60 * 60 * 1000),
+      );
       expect(diffDays).toBe(8);
       expect(created.body.zzpEscalatedAt).toBeNull();
     });
@@ -293,13 +368,21 @@ describe('M14 — izlazni kriterijum (e2e)', () => {
       const created = await request(app.getHttpServer())
         .post('/api/v1/helpdesk/tickets')
         .set(authed(accessToken))
-        .send({ requesterType: 'GUEST', subject: 'Reklamacija — bez odgovora', category: 'REKLAMACIJA', channel: 'SITE_FORM' });
+        .send({
+          requesterType: 'GUEST',
+          subject: 'Reklamacija — bez odgovora',
+          category: 'REKLAMACIJA',
+          channel: 'SITE_FORM',
+        });
       createdTicketIds.push(created.body.id);
       void account;
 
       // Simulira protok 6 dana (createdAt unazad) — direktno preko Prisma, ista tehnika kao
       // M10 stale-drafts test (nema smisla čekati stvaran protok vremena u e2e testu.
-      await prisma.ticket.update({ where: { id: created.body.id }, data: { createdAt: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000) } });
+      await prisma.ticket.update({
+        where: { id: created.body.id },
+        data: { createdAt: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000) },
+      });
 
       const emitted: any[] = [];
       // ne postoji direktan način da presretnemo eventBus.emit u e2e (pravi Postgres LISTEN/NOTIFY),
@@ -319,7 +402,12 @@ describe('M14 — izlazni kriterijum (e2e)', () => {
       const created = await request(app.getHttpServer())
         .post('/api/v1/helpdesk/tickets')
         .set(authed(guestToken))
-        .send({ requesterType: 'GUEST', subject: 'Reklamacija — sa odgovorom', category: 'REKLAMACIJA', channel: 'SITE_FORM' });
+        .send({
+          requesterType: 'GUEST',
+          subject: 'Reklamacija — sa odgovorom',
+          category: 'REKLAMACIJA',
+          channel: 'SITE_FORM',
+        });
       createdTicketIds.push(created.body.id);
 
       await request(app.getHttpServer())
@@ -327,7 +415,10 @@ describe('M14 — izlazni kriterijum (e2e)', () => {
         .set(authed(staffToken))
         .send({ senderType: 'STAFF', body: 'Primili smo vašu reklamaciju, rešavamo.' });
 
-      await prisma.ticket.update({ where: { id: created.body.id }, data: { createdAt: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000) } });
+      await prisma.ticket.update({
+        where: { id: created.body.id },
+        data: { createdAt: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000) },
+      });
       await m14Alarms.checkZzpEscalations();
 
       const after = await prisma.ticket.findUniqueOrThrow({ where: { id: created.body.id } });
@@ -338,7 +429,9 @@ describe('M14 — izlazni kriterijum (e2e)', () => {
   describe('§3.2 — rešavanje reklamacije uz povraćaj automatski priprema DRAFT storno u M10', () => {
     it('PATCH status=RESOLVED + refund_decision=true emituje ticket.resolved_with_refund; M10 priprema DRAFT storno; slanje i dalje zahteva SUBMIT', async () => {
       const { accessToken: guestToken, account } = await createGuestUser();
-      const { accessToken: staffToken, user: staff } = await createInternalUser(SYSTEM_ROLES.VLASNIK);
+      const { accessToken: staffToken, user: staff } = await createInternalUser(
+        SYSTEM_ROLES.VLASNIK,
+      );
       const booking = await createBooking(account.id, { totalPrice: 15000, currency: 'RSD' });
 
       // Original poslat fiskalni dokument (M10 §6) — preduslov za storno nacrt.
@@ -365,7 +458,13 @@ describe('M14 — izlazni kriterijum (e2e)', () => {
       const ticket = await request(app.getHttpServer())
         .post('/api/v1/helpdesk/tickets')
         .set(authed(guestToken))
-        .send({ requesterType: 'GUEST', relatedBookingId: booking.id, subject: 'Reklamacija sa povraćajem', category: 'REKLAMACIJA', channel: 'SITE_FORM' });
+        .send({
+          requesterType: 'GUEST',
+          relatedBookingId: booking.id,
+          subject: 'Reklamacija sa povraćajem',
+          category: 'REKLAMACIJA',
+          channel: 'SITE_FORM',
+        });
       createdTicketIds.push(ticket.body.id);
 
       const resolved = await request(app.getHttpServer())
@@ -378,13 +477,17 @@ describe('M14 — izlazni kriterijum (e2e)', () => {
 
       await new Promise((resolve) => setTimeout(resolve, 500)); // async LISTEN/NOTIFY, isti obrazac kao M7/M10 e2e
 
-      const stornoDraft = await prisma.fiscalDocument.findFirst({ where: { stornoOfDocumentId: original.id, status: 'DRAFT' } });
+      const stornoDraft = await prisma.fiscalDocument.findFirst({
+        where: { stornoOfDocumentId: original.id, status: 'DRAFT' },
+      });
       expect(stornoDraft).not.toBeNull();
       createdFiscalDocumentIds.push(stornoDraft!.id);
       expect(stornoDraft!.bookingId).toBe(booking.id);
 
       // Slanje i dalje zahteva ljudsku SUBMIT potvrdu — nije se samo od sebe poslalo.
-      const beforeSubmitCount = await prisma.fiscalDocument.count({ where: { status: 'STORNIRANO' } });
+      const beforeSubmitCount = await prisma.fiscalDocument.count({
+        where: { status: 'STORNIRANO' },
+      });
       expect(beforeSubmitCount).toBe(0);
     });
 
@@ -413,10 +516,15 @@ describe('M14 — izlazni kriterijum (e2e)', () => {
       });
       createdFiscalDocumentIds.push(original.id);
 
-      await eventBus.emit('M14', 'ticket.resolved_with_refund', { ticketId: 'e2e-direct-event', relatedBookingId: booking.id });
+      await eventBus.emit('M14', 'ticket.resolved_with_refund', {
+        ticketId: 'e2e-direct-event',
+        relatedBookingId: booking.id,
+      });
       await new Promise((resolve) => setTimeout(resolve, 500));
 
-      const stornoDraft = await prisma.fiscalDocument.findFirst({ where: { stornoOfDocumentId: original.id, status: 'DRAFT' } });
+      const stornoDraft = await prisma.fiscalDocument.findFirst({
+        where: { stornoOfDocumentId: original.id, status: 'DRAFT' },
+      });
       expect(stornoDraft).not.toBeNull();
       createdFiscalDocumentIds.push(stornoDraft!.id);
     });

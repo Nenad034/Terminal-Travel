@@ -14,7 +14,12 @@ import { EventBusModule } from '../../../common/events/event-bus.module';
 @Module({
   imports: [AuthModule, AuditLogModule, PermissionsModule, EventBusModule],
   controllers: [IntegrationsController],
-  providers: [IntegrationsService, CircuitBreakerService, ProviderRegistryService, DictionaryCacheService],
+  providers: [
+    IntegrationsService,
+    CircuitBreakerService,
+    ProviderRegistryService,
+    DictionaryCacheService,
+  ],
   exports: [IntegrationsService, ProviderRegistryService],
 })
 export class IntegrationsModule {}

@@ -13,7 +13,9 @@ const prisma = new PrismaClient();
 async function main() {
   console.log('--- uklanjanje MOCK liste rezervacija ---');
 
-  const bookings = await prisma.booking.findMany({ where: { bookingNumber: { startsWith: MOCK_MARKER } } });
+  const bookings = await prisma.booking.findMany({
+    where: { bookingNumber: { startsWith: MOCK_MARKER } },
+  });
   if (!bookings.length) {
     console.log('Ništa za brisanje.');
     return;
@@ -21,7 +23,10 @@ async function main() {
   const ids = bookings.map((b) => b.id);
   const clientAccountIds = [...new Set(bookings.map((b) => b.clientAccountId))];
 
-  const items = await prisma.bookingItem.findMany({ where: { bookingId: { in: ids } }, select: { id: true } });
+  const items = await prisma.bookingItem.findMany({
+    where: { bookingId: { in: ids } },
+    select: { id: true },
+  });
   const itemIds = items.map((i) => i.id);
 
   await prisma.bookingItemGuest.deleteMany({ where: { bookingItemId: { in: itemIds } } });
@@ -29,7 +34,9 @@ async function main() {
   await prisma.bookingNote.deleteMany({ where: { bookingId: { in: ids } } });
   await prisma.bookingItem.deleteMany({ where: { bookingId: { in: ids } } });
   await prisma.booking.deleteMany({ where: { id: { in: ids } } });
-  await prisma.guestProfile.deleteMany({ where: { linkedClientAccountId: { in: clientAccountIds } } });
+  await prisma.guestProfile.deleteMany({
+    where: { linkedClientAccountId: { in: clientAccountIds } },
+  });
   await prisma.clientAccount.deleteMany({ where: { id: { in: clientAccountIds } } });
 
   console.log(`Obrisano: ${bookings.length} rezervacija. Katalog/dobavljači nisu dirani.`);

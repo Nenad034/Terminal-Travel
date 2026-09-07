@@ -39,10 +39,17 @@ describe('ProductsService', () => {
 
       expect(prisma.product.create).toHaveBeenCalledWith(
         expect.objectContaining({
-          data: expect.objectContaining({ sourceType: 'CONTRACTED', status: 'DRAFT', cacheStatus: 'N_A', createdBy: 'actor-1' }),
+          data: expect.objectContaining({
+            sourceType: 'CONTRACTED',
+            status: 'DRAFT',
+            cacheStatus: 'N_A',
+            createdBy: 'actor-1',
+          }),
         }),
       );
-      expect(auditLog.write).toHaveBeenCalledWith(expect.objectContaining({ action: 'product.created', module: 'M2' }));
+      expect(auditLog.write).toHaveBeenCalledWith(
+        expect.objectContaining({ action: 'product.created', module: 'M2' }),
+      );
       expect(result).toBe(created);
     });
   });
@@ -55,8 +62,13 @@ describe('ProductsService', () => {
 
       const result = await service.archive('p1', 'actor-1');
 
-      expect(prisma.product.update).toHaveBeenCalledWith({ where: { id: 'p1' }, data: { status: 'ARCHIVED' } });
-      expect(auditLog.write).toHaveBeenCalledWith(expect.objectContaining({ action: 'product.archived' }));
+      expect(prisma.product.update).toHaveBeenCalledWith({
+        where: { id: 'p1' },
+        data: { status: 'ARCHIVED' },
+      });
+      expect(auditLog.write).toHaveBeenCalledWith(
+        expect.objectContaining({ action: 'product.archived' }),
+      );
       expect(result.status).toBe('ARCHIVED');
     });
   });
@@ -75,7 +87,9 @@ describe('ProductsService', () => {
       const call = prisma.productTranslation.upsert.mock.calls[0][0];
       expect(call.create.translationSource).toBe('MANUAL');
       expect(call.create.isReviewed).toBe(true);
-      expect(auditLog.write).toHaveBeenCalledWith(expect.objectContaining({ action: 'product_translation.upserted' }));
+      expect(auditLog.write).toHaveBeenCalledWith(
+        expect.objectContaining({ action: 'product_translation.upserted' }),
+      );
     });
   });
 
@@ -91,21 +105,46 @@ describe('ProductsService', () => {
 
     it('uspešan prelaz DRAFT → ACTIVE sa sr+en emituje product.published na Event Bus', async () => {
       const { service, prisma, eventBus, auditLog } = makeService();
-      prisma.product.findUniqueOrThrow.mockResolvedValue({ id: 'p1', status: 'DRAFT', visibleChannels: [] });
-      prisma.productTranslation.findMany.mockResolvedValue([{ languageCode: 'sr' }, { languageCode: 'en' }]);
-      prisma.product.update.mockResolvedValue({ id: 'p1', status: 'ACTIVE', visibleChannels: ['B2C_SITE'] });
+      prisma.product.findUniqueOrThrow.mockResolvedValue({
+        id: 'p1',
+        status: 'DRAFT',
+        visibleChannels: [],
+      });
+      prisma.productTranslation.findMany.mockResolvedValue([
+        { languageCode: 'sr' },
+        { languageCode: 'en' },
+      ]);
+      prisma.product.update.mockResolvedValue({
+        id: 'p1',
+        status: 'ACTIVE',
+        visibleChannels: ['B2C_SITE'],
+      });
 
-      const result = await service.publish('p1', { visibleChannels: ['B2C_SITE'] as any }, 'actor-1');
+      const result = await service.publish(
+        'p1',
+        { visibleChannels: ['B2C_SITE'] as any },
+        'actor-1',
+      );
 
       expect(eventBus.emit).toHaveBeenCalledWith('M2', 'product.published', { productId: 'p1' });
-      expect(auditLog.write).toHaveBeenCalledWith(expect.objectContaining({ action: 'product.published' }));
+      expect(auditLog.write).toHaveBeenCalledWith(
+        expect.objectContaining({ action: 'product.published' }),
+      );
       expect(result.status).toBe('ACTIVE');
     });
 
     it('kad je proizvod već ACTIVE, samo menja visible_channels bez ponovnog event emitovanja', async () => {
       const { service, prisma, eventBus } = makeService();
-      prisma.product.findUniqueOrThrow.mockResolvedValue({ id: 'p1', status: 'ACTIVE', visibleChannels: ['B2C_SITE'] });
-      prisma.product.update.mockResolvedValue({ id: 'p1', status: 'ACTIVE', visibleChannels: ['B2B_PORTAL'] });
+      prisma.product.findUniqueOrThrow.mockResolvedValue({
+        id: 'p1',
+        status: 'ACTIVE',
+        visibleChannels: ['B2C_SITE'],
+      });
+      prisma.product.update.mockResolvedValue({
+        id: 'p1',
+        status: 'ACTIVE',
+        visibleChannels: ['B2B_PORTAL'],
+      });
 
       await service.publish('p1', { visibleChannels: ['B2B_PORTAL'] as any }, 'actor-1');
 
@@ -138,7 +177,10 @@ describe('ProductsService', () => {
         {
           id: 'p1',
           attributes: { room_types: [{ code: 'STD' }] },
-          translations: [{ languageCode: 'sr', name: 'Srpski' }, { languageCode: 'en', name: 'English' }],
+          translations: [
+            { languageCode: 'sr', name: 'Srpski' },
+            { languageCode: 'en', name: 'English' },
+          ],
         },
       ]);
 
@@ -177,7 +219,9 @@ describe('ProductsService', () => {
       const result = await service.findAllPublic('B2C_SITE' as any);
 
       expect(prisma.product.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({ where: { status: 'ACTIVE', visibleChannels: { has: 'B2C_SITE' } } }),
+        expect.objectContaining({
+          where: { status: 'ACTIVE', visibleChannels: { has: 'B2C_SITE' } },
+        }),
       );
       expect(result[0]).not.toHaveProperty('sourceContractId');
       expect(result[0]).not.toHaveProperty('sourceType');
@@ -189,7 +233,9 @@ describe('ProductsService', () => {
 
       await expect(service.findOnePublic('p1', 'B2C_SITE' as any)).rejects.toThrow();
       expect(prisma.product.findFirstOrThrow).toHaveBeenCalledWith(
-        expect.objectContaining({ where: { id: 'p1', status: 'ACTIVE', visibleChannels: { has: 'B2C_SITE' } } }),
+        expect.objectContaining({
+          where: { id: 'p1', status: 'ACTIVE', visibleChannels: { has: 'B2C_SITE' } },
+        }),
       );
     });
   });

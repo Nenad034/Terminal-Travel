@@ -7,10 +7,29 @@
 export type CalendarView = 'month' | 'week' | 'day';
 
 export const MONTHS_SR = [
-  'januar', 'februar', 'mart', 'april', 'maj', 'jun', 'jul', 'avgust', 'septembar', 'oktobar', 'novembar', 'decembar',
+  'januar',
+  'februar',
+  'mart',
+  'april',
+  'maj',
+  'jun',
+  'jul',
+  'avgust',
+  'septembar',
+  'oktobar',
+  'novembar',
+  'decembar',
 ];
 export const WEEKDAYS_SHORT_SR = ['pon', 'uto', 'sre', 'čet', 'pet', 'sub', 'ned'];
-export const WEEKDAYS_LONG_SR = ['ponedeljak', 'utorak', 'sreda', 'četvrtak', 'petak', 'subota', 'nedelja'];
+export const WEEKDAYS_LONG_SR = [
+  'ponedeljak',
+  'utorak',
+  'sreda',
+  'četvrtak',
+  'petak',
+  'subota',
+  'nedelja',
+];
 
 function pad(n: number): string {
   return String(n).padStart(2, '0');

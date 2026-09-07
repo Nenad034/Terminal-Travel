@@ -32,7 +32,10 @@ export interface RateLine {
   agePricing: AgePricingEntry[];
 }
 
-const PRICE_BASIS_LABELS: Record<PriceBasis, string> = { PER_ROOM_PER_NIGHT: 'po sobi/noć', PER_PERSON_PER_NIGHT: 'po osobi/noć' };
+const PRICE_BASIS_LABELS: Record<PriceBasis, string> = {
+  PER_ROOM_PER_NIGHT: 'po sobi/noć',
+  PER_PERSON_PER_NIGHT: 'po osobi/noć',
+};
 
 // M3 spec §2.4/§2.4a. Napomena: backend PUT ovde uvek KREIRA novu stavku (contract-periods.
 // service.ts upsertRateLine — nema izmene/brisanja postojeće po ID-ju), pa panel prati isti
@@ -40,7 +43,17 @@ const PRICE_BASIS_LABELS: Record<PriceBasis, string> = { PER_ROOM_PER_NIGHT: 'po
 // uzrasnoj kategoriji, §2.4a) je van obima ovog prolaza — RateLine se kreira sa osnovnom cenom,
 // dopuna uzrasnih cena po redu ostaje API-only dok se pokaže potreba (isti princip kao svaki
 // drugi "beleži se kao poznat gap, ne rešava se u ovom prolazu").
-export default function RateLinesPanel({ contractId, periodId, rateLines, canEdit }: { contractId: string; periodId: string; rateLines: RateLine[]; canEdit: boolean }) {
+export default function RateLinesPanel({
+  contractId,
+  periodId,
+  rateLines,
+  canEdit,
+}: {
+  contractId: string;
+  periodId: string;
+  rateLines: RateLine[];
+  canEdit: boolean;
+}) {
   const [showForm, setShowForm] = useState(false);
   const boundAction = addRateLine.bind(null, contractId, periodId);
   const [state, formAction] = useActionState(boundAction, initialState);
@@ -57,7 +70,9 @@ export default function RateLinesPanel({ contractId, periodId, rateLines, canEdi
         )}
       </div>
 
-      {rateLines.length === 0 && <p className="text-xs text-ink-faint">Nijedna cenovna stavka još nije uneta.</p>}
+      {rateLines.length === 0 && (
+        <p className="text-xs text-ink-faint">Nijedna cenovna stavka još nije uneta.</p>
+      )}
 
       <div className="flex flex-col gap-1.5 text-xs">
         {rateLines.map((r) => (
@@ -74,7 +89,10 @@ export default function RateLinesPanel({ contractId, periodId, rateLines, canEdi
               <div className="mt-1 flex flex-wrap gap-1">
                 {r.agePricing.map((ap, i) => (
                   <Badge key={i} variant="outline">
-                    {ap.ageCategory}: {ap.pricingMode === 'PERCENTAGE_OF_BASE_PRICE' ? `${ap.percentage}%` : `${ap.flatPrice}`}
+                    {ap.ageCategory}:{' '}
+                    {ap.pricingMode === 'PERCENTAGE_OF_BASE_PRICE'
+                      ? `${ap.percentage}%`
+                      : `${ap.flatPrice}`}
                   </Badge>
                 ))}
               </div>
@@ -84,17 +102,37 @@ export default function RateLinesPanel({ contractId, periodId, rateLines, canEdi
       </div>
 
       {showForm && canEdit && (
-        <form action={formAction} className="mt-4 flex flex-col gap-3 border-t border-border pt-4 text-xs">
+        <form
+          action={formAction}
+          className="mt-4 flex flex-col gap-3 border-t border-border pt-4 text-xs"
+        >
           {state.error && <p className="rounded bg-danger-bg p-2 text-danger">{state.error}</p>}
           <Field label="Tip usluge (board type)">
-            <input name="boardType" required className="input" placeholder="npr. polupansion, all-inclusive" />
+            <input
+              name="boardType"
+              required
+              className="input"
+              placeholder="npr. polupansion, all-inclusive"
+            />
           </Field>
           <Field label="Popunjenost na koju se cena odnosi">
-            <input name="occupancy" required className="input" placeholder="npr. odrasla osoba u dvokrevetnoj" />
+            <input
+              name="occupancy"
+              required
+              className="input"
+              placeholder="npr. odrasla osoba u dvokrevetnoj"
+            />
           </Field>
           <Field label="Osnova cene">
             <input type="hidden" name="priceBasis" value={priceBasis} />
-            <ButtonGroup value={priceBasis} onChange={setPriceBasis} options={(Object.keys(PRICE_BASIS_LABELS) as PriceBasis[]).map((v) => ({ value: v, label: PRICE_BASIS_LABELS[v] }))} />
+            <ButtonGroup
+              value={priceBasis}
+              onChange={setPriceBasis}
+              options={(Object.keys(PRICE_BASIS_LABELS) as PriceBasis[]).map((v) => ({
+                value: v,
+                label: PRICE_BASIS_LABELS[v],
+              }))}
+            />
           </Field>
           <div className="grid grid-cols-2 gap-3">
             <Field label="Cena (u najmanjoj jedinici valute ugovora)">

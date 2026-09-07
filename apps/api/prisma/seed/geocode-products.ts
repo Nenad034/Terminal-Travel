@@ -21,7 +21,8 @@ const prisma = new PrismaClient();
 
 const NOMINATIM = 'https://nominatim.openstreetmap.org/search';
 /** Pravila Nominatim-a traže prepoznatljiv User-Agent sa kontaktom. */
-const USER_AGENT = 'TerminalTravel/1.0 (interni katalog putovanja; kontakt: nenad.tomic1403@gmail.com)';
+const USER_AGENT =
+  'TerminalTravel/1.0 (interni katalog putovanja; kontakt: nenad.tomic1403@gmail.com)';
 /** Pravila traže najviše 1 poziv u sekundi — 1100ms ostavlja rezervu. */
 const DELAY_MS = 1100;
 
@@ -148,7 +149,9 @@ export async function geocodeProducts(opts: { dryRun: boolean; force: boolean })
     },
   });
 
-  console.log(`Proizvoda za obradu: ${products.length}${opts.dryRun ? ' (PROBNI REŽIM — ništa se ne upisuje)' : ''}\n`);
+  console.log(
+    `Proizvoda za obradu: ${products.length}${opts.dryRun ? ' (PROBNI REŽIM — ništa se ne upisuje)' : ''}\n`,
+  );
 
   let done = 0;
   let missed = 0;
@@ -189,20 +192,27 @@ export async function geocodeProducts(opts: { dryRun: boolean; force: boolean })
       console.log(`  PROMAŠAJ  ${label}`);
       continue;
     }
-    console.log(`  ${exact ? 'TAČNO   ' : 'GRAD    '}  ${label}  ->  ${hit.lat.toFixed(5)}, ${hit.lng.toFixed(5)}`);
+    console.log(
+      `  ${exact ? 'TAČNO   ' : 'GRAD    '}  ${label}  ->  ${hit.lat.toFixed(5)}, ${hit.lng.toFixed(5)}`,
+    );
 
     if (!opts.dryRun) {
-      await prisma.product.update({ where: { id: p.id }, data: { geoLat: hit.lat, geoLng: hit.lng } });
+      await prisma.product.update({
+        where: { id: p.id },
+        data: { geoLat: hit.lat, geoLng: hit.lng },
+      });
     }
     done++;
     if (exact) exactCount++;
   }
 
   console.log(
-    `\nGotovo: ${done} popunjeno — ${exactCount} tačna tačka objekta, ${done - exactCount} tačka mesta; ${missed} bez pogotka.`
+    `\nGotovo: ${done} popunjeno — ${exactCount} tačna tačka objekta, ${done - exactCount} tačka mesta; ${missed} bez pogotka.`,
   );
   if (missed > 0) {
-    console.log('Proizvodi bez pogotka ostaju bez koordinata — ispravljaju se ručno u katalogu, ne pogađaju se.');
+    console.log(
+      'Proizvodi bez pogotka ostaju bez koordinata — ispravljaju se ručno u katalogu, ne pogađaju se.',
+    );
   }
 }
 

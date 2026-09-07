@@ -7,5 +7,7 @@
 // uvoz, pa je bezbedan i za server i za klijent stranu.
 export function PresenceDot({ status }: { status: 'ONLINE' | 'AWAY' | 'OFFLINE' | null }) {
   const tone = status === 'ONLINE' ? 'bg-ok' : status === 'AWAY' ? 'bg-warn' : 'bg-ink-faint';
-  return <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${tone}`} title={status ?? 'nepoznato'} />;
+  return (
+    <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${tone}`} title={status ?? 'nepoznato'} />
+  );
 }

@@ -27,10 +27,15 @@ export class EmailMockAdapter implements DistributionChannelAdapter {
     for (const recipient of this.recipients) {
       this.logger.log(`[mock]   -> ${recipient.email}`);
     }
-    return { externalPostId: `MOCK-EMAIL-${content.contentPieceId}`, publishedAt: new Date().toISOString() };
+    return {
+      externalPostId: `MOCK-EMAIL-${content.contentPieceId}`,
+      publishedAt: new Date().toISOString(),
+    };
   }
 
   async unpublish(externalPostId: string): Promise<void> {
-    this.logger.log(`[mock] EMAIL "objava" ${externalPostId} nema pojam unpublish (već poslati mejlovi) — no-op.`);
+    this.logger.log(
+      `[mock] EMAIL "objava" ${externalPostId} nema pojam unpublish (već poslati mejlovi) — no-op.`,
+    );
   }
 }

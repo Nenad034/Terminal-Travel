@@ -33,20 +33,30 @@ export default async function PoslovnicePage() {
       <RegisterTab label="Poslovnice" />
       <h1 className="mb-1 text-lg font-semibold text-ink">Poslovnice</h1>
       <p className="mb-4 text-xs text-ink-faint">
-        TT može imati jednu ili više poslovnica. Rezervacija nasleđuje poslovnicu zaposlenog koji je kreira, u trenutku kreiranja.
+        TT može imati jednu ili više poslovnica. Rezervacija nasleđuje poslovnicu zaposlenog koji je
+        kreira, u trenutku kreiranja.
       </p>
 
       {error && <p className="rounded bg-danger-bg p-3 text-sm text-danger">{error}</p>}
 
       {!error && (
         <div className="max-w-xl rounded-lg border border-border bg-panel p-4">
-          {branches.length === 0 && <p className="text-xs text-ink-faint">Nijedna poslovnica još nije dodata.</p>}
+          {branches.length === 0 && (
+            <p className="text-xs text-ink-faint">Nijedna poslovnica još nije dodata.</p>
+          )}
           {canManage
-            ? branches.map((b) => <BranchRow key={b.id} id={b.id} name={b.name} active={b.active} />)
+            ? branches.map((b) => (
+                <BranchRow key={b.id} id={b.id} name={b.name} active={b.active} />
+              ))
             : branches.map((b) => (
-                <div key={b.id} className="flex items-center justify-between border-b border-border py-2 text-xs last:border-0">
+                <div
+                  key={b.id}
+                  className="flex items-center justify-between border-b border-border py-2 text-xs last:border-0"
+                >
                   <span>{b.name}</span>
-                  <span className={b.active ? 'text-ok' : 'text-ink-faint'}>{b.active ? 'aktivna' : 'neaktivna'}</span>
+                  <span className={b.active ? 'text-ok' : 'text-ink-faint'}>
+                    {b.active ? 'aktivna' : 'neaktivna'}
+                  </span>
                 </div>
               ))}
 
@@ -56,7 +66,9 @@ export default async function PoslovnicePage() {
             </div>
           )}
           {!canManage && !canCreate && (
-            <p className="mt-3 text-xs text-ink-faint">Nemate dozvolu za izmenu poslovnica (M1/branch/EDIT ili CREATE).</p>
+            <p className="mt-3 text-xs text-ink-faint">
+              Nemate dozvolu za izmenu poslovnica (M1/branch/EDIT ili CREATE).
+            </p>
           )}
         </div>
       )}

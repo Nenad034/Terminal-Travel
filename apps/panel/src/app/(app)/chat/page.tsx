@@ -7,7 +7,6 @@ import TabLink from '@/components/TabLink';
 import NewConversationForm from './NewConversationForm';
 import { PresenceDot } from './PresenceDot';
 
-
 interface ConversationSummary {
   id: string;
   type: 'DIRECT' | 'GROUP' | 'EXTERNAL_SUPPLIER';
@@ -20,7 +19,10 @@ interface ConversationSummary {
 
 interface ConversationDetail {
   id: string;
-  participants: { userId: string; user: { id: string; fullName: string; accountType: string } | null }[];
+  participants: {
+    userId: string;
+    user: { id: string; fullName: string; accountType: string } | null;
+  }[];
 }
 
 interface PresenceEntry {
@@ -49,7 +51,8 @@ export default async function ChatPage() {
   try {
     conversations = await apiFetch<ConversationSummary[]>('/chat/conversations');
   } catch {
-    error = 'Nemate pristup razgovorima (M19/conversation/VIEW ili niste učesnik nijednog razgovora).';
+    error =
+      'Nemate pristup razgovorima (M19/conversation/VIEW ili niste učesnik nijednog razgovora).';
   }
 
   let presence: PresenceEntry[] = [];
@@ -76,13 +79,17 @@ export default async function ChatPage() {
       }
     }),
   );
-  const detailById = new Map(details.filter((d): d is ConversationDetail => d !== null).map((d) => [d.id, d]));
+  const detailById = new Map(
+    details.filter((d): d is ConversationDetail => d !== null).map((d) => [d.id, d]),
+  );
 
   let staffUsers: StaffUser[] = [];
   if (canCreate) {
     try {
       const users = await apiFetch<StaffUser[]>('/iam/users');
-      staffUsers = users.filter((u) => u.accountType === 'STAFF' && u.id !== me?.userId && u.status === 'ACTIVE');
+      staffUsers = users.filter(
+        (u) => u.accountType === 'STAFF' && u.id !== me?.userId && u.status === 'ACTIVE',
+      );
     } catch {
       // nema M1/user/VIEW — forma za novi razgovor se jednostavno ne prikazuje ispod
     }
@@ -99,7 +106,8 @@ export default async function ChatPage() {
           href="/chat/dobavljaci"
           className="flex items-center gap-1.5 rounded border border-border px-3 py-1.5 text-xs font-medium text-ink-dim hover:border-accent hover:text-ink"
         >
-          <Icon name="globe" /> razgovori sa dobavljačima{supplierCount > 0 ? ` (${supplierCount})` : ''}
+          <Icon name="globe" /> razgovori sa dobavljačima
+          {supplierCount > 0 ? ` (${supplierCount})` : ''}
         </Link>
       </div>
 
@@ -113,7 +121,9 @@ export default async function ChatPage() {
 
       {!error && (
         <div className="overflow-hidden rounded-lg border border-border">
-          {internal.length === 0 && <p className="p-4 text-center text-xs text-ink-faint">Nema razgovora.</p>}
+          {internal.length === 0 && (
+            <p className="p-4 text-center text-xs text-ink-faint">Nema razgovora.</p>
+          )}
           {internal.map((c) => {
             const detail = detailById.get(c.id);
             const others = (detail?.participants ?? []).filter((p) => p.userId !== me?.userId);
@@ -121,8 +131,11 @@ export default async function ChatPage() {
               c.type === 'GROUP'
                 ? (c.name ?? 'Grupni razgovor')
                 : (others[0]?.user?.fullName ?? 'Direktna poruka');
-            const unread = c.lastMessage ? new Date(c.lastMessage.sentAt) > new Date(c.lastReadAt) : false;
-            const otherStatus = c.type === 'DIRECT' ? presenceByUser.get(others[0]?.userId ?? '') : null;
+            const unread = c.lastMessage
+              ? new Date(c.lastMessage.sentAt) > new Date(c.lastReadAt)
+              : false;
+            const otherStatus =
+              c.type === 'DIRECT' ? presenceByUser.get(others[0]?.userId ?? '') : null;
 
             return (
               <TabLink
@@ -136,14 +149,21 @@ export default async function ChatPage() {
                     {c.type === 'DIRECT' && <PresenceDot status={otherStatus ?? null} />}
                     {c.type === 'GROUP' && <Icon name="organization" className="text-ink-faint" />}
                     <span className="truncate">{title}</span>
-                    {unread && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-accent" title="nepročitano" />}
+                    {unread && (
+                      <span
+                        className="h-1.5 w-1.5 shrink-0 rounded-full bg-accent"
+                        title="nepročitano"
+                      />
+                    )}
                   </div>
                   <div className="mt-0.5 truncate text-xs text-ink-faint">
                     {c.lastMessage ? (c.lastMessage.body ?? '(poruka obrisana)') : 'Nema poruka.'}
                   </div>
                 </div>
                 {c.lastMessage && (
-                  <div className="ml-3 shrink-0 text-[11px] text-ink-faint">{new Date(c.lastMessage.sentAt).toLocaleString('sr-RS')}</div>
+                  <div className="ml-3 shrink-0 text-[11px] text-ink-faint">
+                    {new Date(c.lastMessage.sentAt).toLocaleString('sr-RS')}
+                  </div>
                 )}
               </TabLink>
             );

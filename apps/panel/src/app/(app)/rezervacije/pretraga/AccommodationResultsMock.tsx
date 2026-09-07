@@ -79,7 +79,27 @@ function offerTotal(offer: MockOffer): number {
 const MOCK_HOTELS: MockHotel[] = [
   {
     id: 'mock-h1',
-    amenities: ['BEACH_UNDER_100M', 'BEACH_PEBBLE', 'POOL_OUTDOOR', 'POOL_KIDS', 'WIFI_FREE', 'PARKING', 'SPA_WELLNESS', 'GYM', 'RESTAURANT', 'ROOM_SERVICE', 'AC', 'TV', 'MINIBAR', 'BALCONY', 'SEA_VIEW', 'FAMILY_FRIENDLY', 'FREE_CANCELLATION', 'NON_SMOKING', 'RECEPTION_24H'],
+    amenities: [
+      'BEACH_UNDER_100M',
+      'BEACH_PEBBLE',
+      'POOL_OUTDOOR',
+      'POOL_KIDS',
+      'WIFI_FREE',
+      'PARKING',
+      'SPA_WELLNESS',
+      'GYM',
+      'RESTAURANT',
+      'ROOM_SERVICE',
+      'AC',
+      'TV',
+      'MINIBAR',
+      'BALCONY',
+      'SEA_VIEW',
+      'FAMILY_FRIENDLY',
+      'FREE_CANCELLATION',
+      'NON_SMOKING',
+      'RECEPTION_24H',
+    ],
     name: 'Hotel Riviera',
     stars: 5,
     city: 'Budva',
@@ -88,15 +108,55 @@ const MOCK_HOTELS: MockHotel[] = [
     lng: 18.84,
     image: 'https://picsum.photos/seed/riviera/320/200',
     offers: [
-      { id: 'h1-o1', roomTypeName: 'Standard soba', boardType: 'BB', currency: 'EUR', isRefundable: false, rooms: [{ adults: 2, children: 0, price: 45600 }] },
-      { id: 'h1-o2', roomTypeName: 'Standard soba', boardType: 'HB', currency: 'EUR', isRefundable: true, rooms: [{ adults: 2, children: 0, price: 52300 }] },
-      { id: 'h1-o3', roomTypeName: 'Deluxe soba, pogled na more', boardType: 'HB', currency: 'EUR', isRefundable: true, rooms: [{ adults: 2, children: 0, price: 68900 }] },
-      { id: 'h1-o4', roomTypeName: 'Deluxe soba, pogled na more', boardType: 'AI', currency: 'EUR', isRefundable: false, rooms: [{ adults: 2, children: 0, price: 81200 }] },
+      {
+        id: 'h1-o1',
+        roomTypeName: 'Standard soba',
+        boardType: 'BB',
+        currency: 'EUR',
+        isRefundable: false,
+        rooms: [{ adults: 2, children: 0, price: 45600 }],
+      },
+      {
+        id: 'h1-o2',
+        roomTypeName: 'Standard soba',
+        boardType: 'HB',
+        currency: 'EUR',
+        isRefundable: true,
+        rooms: [{ adults: 2, children: 0, price: 52300 }],
+      },
+      {
+        id: 'h1-o3',
+        roomTypeName: 'Deluxe soba, pogled na more',
+        boardType: 'HB',
+        currency: 'EUR',
+        isRefundable: true,
+        rooms: [{ adults: 2, children: 0, price: 68900 }],
+      },
+      {
+        id: 'h1-o4',
+        roomTypeName: 'Deluxe soba, pogled na more',
+        boardType: 'AI',
+        currency: 'EUR',
+        isRefundable: false,
+        rooms: [{ adults: 2, children: 0, price: 81200 }],
+      },
     ],
   },
   {
     id: 'mock-h2',
-    amenities: ['BEACH_OVER_500M', 'WIFI_FREE', 'PARKING', 'RESTAURANT', 'AC', 'TV', 'BALCONY', 'SEA_VIEW', 'PETS_ALLOWED', 'PAY_AT_PROPERTY', 'NON_SMOKING'],
+    amenities: [
+      'BEACH_OVER_500M',
+      'WIFI_FREE',
+      'PARKING',
+      'RESTAURANT',
+      'AC',
+      'TV',
+      'BALCONY',
+      'SEA_VIEW',
+      'PETS_ALLOWED',
+      'PAY_AT_PROPERTY',
+      'NON_SMOKING',
+    ],
     name: 'Hotel Panorama',
     stars: 4,
     city: 'Kotor',
@@ -105,7 +165,14 @@ const MOCK_HOTELS: MockHotel[] = [
     lng: 18.7712,
     image: 'https://picsum.photos/seed/panorama/320/200',
     offers: [
-      { id: 'h2-o1', roomTypeName: 'Dvokrevetna soba', boardType: 'BB', currency: 'EUR', isRefundable: false, rooms: [{ adults: 2, children: 0, price: 38900 }] },
+      {
+        id: 'h2-o1',
+        roomTypeName: 'Dvokrevetna soba',
+        boardType: 'BB',
+        currency: 'EUR',
+        isRefundable: false,
+        rooms: [{ adults: 2, children: 0, price: 38900 }],
+      },
       // Primer sa dve RAZLIČITE sobe u istoj ponudi (tačan slučaj koji je vlasnik opisao: "1
       // sobu za 2 odrasle i 2. sobu za 2 odrasle osobe i dete od 10 godina").
       {
@@ -123,7 +190,19 @@ const MOCK_HOTELS: MockHotel[] = [
   },
   {
     id: 'mock-h3',
-    amenities: ['BEACH_UNDER_50M', 'BEACH_SAND', 'WIFI_FREE', 'RESTAURANT', 'AC', 'TV', 'KITCHENETTE', 'BALCONY', 'SEA_VIEW', 'FAMILY_FRIENDLY', 'PAY_AT_PROPERTY'],
+    amenities: [
+      'BEACH_UNDER_50M',
+      'BEACH_SAND',
+      'WIFI_FREE',
+      'RESTAURANT',
+      'AC',
+      'TV',
+      'KITCHENETTE',
+      'BALCONY',
+      'SEA_VIEW',
+      'FAMILY_FRIENDLY',
+      'PAY_AT_PROPERTY',
+    ],
     name: 'Hotel Adriatic',
     stars: 3,
     city: 'Petrovac',
@@ -132,14 +211,49 @@ const MOCK_HOTELS: MockHotel[] = [
     lng: 18.9439,
     image: 'https://picsum.photos/seed/adriatic/320/200',
     offers: [
-      { id: 'h3-o1', roomTypeName: 'Standard soba', boardType: 'BB', currency: 'EUR', isRefundable: false, rooms: [{ adults: 2, children: 0, price: 29900 }] },
-      { id: 'h3-o2', roomTypeName: 'Standard soba', boardType: 'HB', currency: 'EUR', isRefundable: true, rooms: [{ adults: 2, children: 0, price: 34500 }] },
-      { id: 'h3-o3', roomTypeName: 'Porodična soba', boardType: 'UAI', currency: 'EUR', isRefundable: true, rooms: [{ adults: 2, children: 2, childrenAges: [7, 9], price: 99900 }] },
+      {
+        id: 'h3-o1',
+        roomTypeName: 'Standard soba',
+        boardType: 'BB',
+        currency: 'EUR',
+        isRefundable: false,
+        rooms: [{ adults: 2, children: 0, price: 29900 }],
+      },
+      {
+        id: 'h3-o2',
+        roomTypeName: 'Standard soba',
+        boardType: 'HB',
+        currency: 'EUR',
+        isRefundable: true,
+        rooms: [{ adults: 2, children: 0, price: 34500 }],
+      },
+      {
+        id: 'h3-o3',
+        roomTypeName: 'Porodična soba',
+        boardType: 'UAI',
+        currency: 'EUR',
+        isRefundable: true,
+        rooms: [{ adults: 2, children: 2, childrenAges: [7, 9], price: 99900 }],
+      },
     ],
   },
   {
     id: 'mock-h4',
-    amenities: ['BEACH_UNDER_250M', 'BEACH_PEBBLE', 'POOL_OUTDOOR', 'WIFI_FREE', 'PARKING', 'RESTAURANT', 'AIRPORT_SHUTTLE', 'AC', 'TV', 'BALCONY', 'MOUNTAIN_VIEW', 'FREE_CANCELLATION', 'NON_SMOKING'],
+    amenities: [
+      'BEACH_UNDER_250M',
+      'BEACH_PEBBLE',
+      'POOL_OUTDOOR',
+      'WIFI_FREE',
+      'PARKING',
+      'RESTAURANT',
+      'AIRPORT_SHUTTLE',
+      'AC',
+      'TV',
+      'BALCONY',
+      'MOUNTAIN_VIEW',
+      'FREE_CANCELLATION',
+      'NON_SMOKING',
+    ],
     name: 'Hotel Maslina',
     stars: 4,
     city: 'Tivat',
@@ -147,11 +261,39 @@ const MOCK_HOTELS: MockHotel[] = [
     lat: 42.43,
     lng: 18.6963,
     image: 'https://picsum.photos/seed/maslina/320/200',
-    offers: [{ id: 'h4-o1', roomTypeName: 'Standard soba', boardType: 'BB', currency: 'EUR', isRefundable: true, rooms: [{ adults: 2, children: 0, price: 41200 }] }],
+    offers: [
+      {
+        id: 'h4-o1',
+        roomTypeName: 'Standard soba',
+        boardType: 'BB',
+        currency: 'EUR',
+        isRefundable: true,
+        rooms: [{ adults: 2, children: 0, price: 41200 }],
+      },
+    ],
   },
   {
     id: 'mock-h5',
-    amenities: ['BEACH_UNDER_500M', 'BEACH_ROCK', 'BEACH_PRIVATE', 'POOL_INDOOR', 'POOL_HEATED', 'WIFI_FREE', 'PARKING', 'SPA_WELLNESS', 'GYM', 'RESTAURANT', 'ROOM_SERVICE', 'RECEPTION_24H', 'AC', 'TV', 'MINIBAR', 'SEA_VIEW', 'ADULTS_ONLY', 'FREE_CANCELLATION'],
+    amenities: [
+      'BEACH_UNDER_500M',
+      'BEACH_ROCK',
+      'BEACH_PRIVATE',
+      'POOL_INDOOR',
+      'POOL_HEATED',
+      'WIFI_FREE',
+      'PARKING',
+      'SPA_WELLNESS',
+      'GYM',
+      'RESTAURANT',
+      'ROOM_SERVICE',
+      'RECEPTION_24H',
+      'AC',
+      'TV',
+      'MINIBAR',
+      'SEA_VIEW',
+      'ADULTS_ONLY',
+      'FREE_CANCELLATION',
+    ],
     name: 'Hotel Sunset',
     stars: 5,
     city: 'Herceg Novi',
@@ -160,8 +302,22 @@ const MOCK_HOTELS: MockHotel[] = [
     lng: 18.5375,
     image: 'https://picsum.photos/seed/sunset/320/200',
     offers: [
-      { id: 'h5-o1', roomTypeName: 'Superior soba', boardType: 'HB', currency: 'EUR', isRefundable: true, rooms: [{ adults: 2, children: 0, price: 59900 }] },
-      { id: 'h5-o2', roomTypeName: 'Suite', boardType: 'AI', currency: 'EUR', isRefundable: false, rooms: [{ adults: 2, children: 0, price: 112000 }] },
+      {
+        id: 'h5-o1',
+        roomTypeName: 'Superior soba',
+        boardType: 'HB',
+        currency: 'EUR',
+        isRefundable: true,
+        rooms: [{ adults: 2, children: 0, price: 59900 }],
+      },
+      {
+        id: 'h5-o2',
+        roomTypeName: 'Suite',
+        boardType: 'AI',
+        currency: 'EUR',
+        isRefundable: false,
+        rooms: [{ adults: 2, children: 0, price: 112000 }],
+      },
     ],
   },
   {
@@ -170,7 +326,18 @@ const MOCK_HOTELS: MockHotel[] = [
     // da pokaže. Filter koji ne može da radi gori je od filtera kog nema — isti razlog zbog kog
     // su mock hoteli istog dana dobili i `amenities`.
     id: 'mock-h6',
-    amenities: ['BEACH_UNDER_500M', 'BEACH_SAND', 'WIFI_FREE', 'PARKING', 'AC', 'TV', 'BALCONY', 'PETS_ALLOWED', 'FAMILY_FRIENDLY', 'PAY_AT_PROPERTY'],
+    amenities: [
+      'BEACH_UNDER_500M',
+      'BEACH_SAND',
+      'WIFI_FREE',
+      'PARKING',
+      'AC',
+      'TV',
+      'BALCONY',
+      'PETS_ALLOWED',
+      'FAMILY_FRIENDLY',
+      'PAY_AT_PROPERTY',
+    ],
     name: 'Vila Jadran',
     stars: 2,
     city: 'Sutomore',
@@ -179,8 +346,22 @@ const MOCK_HOTELS: MockHotel[] = [
     lng: 19.045,
     image: 'https://picsum.photos/seed/jadran/320/200',
     offers: [
-      { id: 'h6-o1', roomTypeName: 'Dvokrevetna soba', boardType: 'BB', currency: 'EUR', isRefundable: false, rooms: [{ adults: 2, children: 0, price: 18400 }] },
-      { id: 'h6-o2', roomTypeName: 'Studio apartman', boardType: 'BB', currency: 'EUR', isRefundable: true, rooms: [{ adults: 2, children: 1, childrenAges: [6], price: 24900 }] },
+      {
+        id: 'h6-o1',
+        roomTypeName: 'Dvokrevetna soba',
+        boardType: 'BB',
+        currency: 'EUR',
+        isRefundable: false,
+        rooms: [{ adults: 2, children: 0, price: 18400 }],
+      },
+      {
+        id: 'h6-o2',
+        roomTypeName: 'Studio apartman',
+        boardType: 'BB',
+        currency: 'EUR',
+        isRefundable: true,
+        rooms: [{ adults: 2, children: 1, childrenAges: [6], price: 24900 }],
+      },
     ],
   },
 ];
@@ -197,7 +378,10 @@ function formatDateRange(stayFrom?: string, stayTo?: string): string {
 
 function roomLineLabel(r: MockRoomLine): string {
   const parts = [`${r.adults} odrasl${r.adults === 1 ? 'a' : 'e'}`];
-  if (r.children > 0) parts.push(`${r.children} det${r.children === 1 ? 'e' : 'ece'}${r.childrenAges?.length ? ` (${r.childrenAges.join(', ')}g)` : ''}`);
+  if (r.children > 0)
+    parts.push(
+      `${r.children} det${r.children === 1 ? 'e' : 'ece'}${r.childrenAges?.length ? ` (${r.childrenAges.join(', ')}g)` : ''}`,
+    );
   return parts.join(' + ');
 }
 
@@ -224,7 +408,8 @@ export default function AccommodationResultsMock({
   // Filteri se čitaju iz ŽIVOG stanja, ne iz adrese (vlasnikova odluka 3.9.2026 — klik na filter
   // deluje odmah, bez poziva serveru; obrazloženje u `SearchFiltersContext.tsx`).
   const filters = useSearchFilters();
-  const { priceMin, priceMax, availability, refundable, boardTypes, amenityTags, stars } = commonFiltersFrom(filters);
+  const { priceMin, priceMax, availability, refundable, boardTypes, amenityTags, stars } =
+    commonFiltersFrom(filters);
 
   // M5 spec §3.0h.8 — okvir mape filtrira i mock, isto kao što na pravom putu filtrira
   // `GET /search`. Bez ovoga bi "pretraži dok pomeram mapu" radilo samo na jednom od dva puta,
@@ -242,25 +427,31 @@ export default function AccommodationResultsMock({
     // jednu kategoriju, pa bi „2 zvezdice + 3 zvezdice" po I-logici uvek dalo nula (§3.0c.3c).
     .filter((h) => amenitiesMatch(h.amenities, amenityTags) && starsMatch(h.stars, stars))
     .map((h) => ({
-    ...h,
-    offers: h.offers
-      .filter((o) =>
-        // Mock ponuda nema `availabilityStatus` — sve su „odmah potvrda", pa filter dostupnosti
-        // sme da je odbaci samo kad se traži nešto drugo.
-        offerMatches(
-          { finalPrice: offerTotal(o), availabilityStatus: 'AVAILABLE', boardType: o.boardType, isRefundable: o.isRefundable },
-          { priceMin, priceMax, availability, refundable, boardTypes },
-        ),
-      )
-      .sort((a, b) => offerTotal(a) - offerTotal(b)),
-  }))
+      ...h,
+      offers: h.offers
+        .filter((o) =>
+          // Mock ponuda nema `availabilityStatus` — sve su „odmah potvrda", pa filter dostupnosti
+          // sme da je odbaci samo kad se traži nešto drugo.
+          offerMatches(
+            {
+              finalPrice: offerTotal(o),
+              availabilityStatus: 'AVAILABLE',
+              boardType: o.boardType,
+              isRefundable: o.isRefundable,
+            },
+            { priceMin, priceMax, availability, refundable, boardTypes },
+          ),
+        )
+        .sort((a, b) => offerTotal(a) - offerTotal(b)),
+    }))
     .filter((h) => h.offers.length > 0)
     // M5 spec §3.0g.8 — redosled bira korisnik (SortBar.tsx). Ponude UNUTAR hotela ostaju
     // poređane po ceni rastuće bez obzira na izbor: tu se bira soba, ne hotel.
     .sort((a, b) => {
       if (sort === 'PRICE_DESC') return offerTotal(b.offers[0]) - offerTotal(a.offers[0]);
       if (sort === 'NAME_ASC') return compareName(a.name, b.name);
-      if (sort === 'STARS_DESC') return b.stars - a.stars || offerTotal(a.offers[0]) - offerTotal(b.offers[0]);
+      if (sort === 'STARS_DESC')
+        return b.stars - a.stars || offerTotal(a.offers[0]) - offerTotal(b.offers[0]);
       return offerTotal(a.offers[0]) - offerTotal(b.offers[0]);
     });
 
@@ -301,7 +492,13 @@ export default function AccommodationResultsMock({
     });
   }
 
-  const shared = { stayFrom, stayTo, selectedKeys: new Set(items.map((i) => i.key)), selectionKey, onSelect: select };
+  const shared = {
+    stayFrom,
+    stayTo,
+    selectedKeys: new Set(items.map((i) => i.key)),
+    selectionKey,
+    onSelect: select,
+  };
 
   // M5 spec §3.0h — mapa umesto liste. Tačke se grade iz VEĆ FILTRIRANIH hotela, ne iz sirovog
   // mock niza: mapa mora da pokazuje isto što i lista, inače filter i mapa pričaju različitu
@@ -313,32 +510,32 @@ export default function AccommodationResultsMock({
       // ispod svoje prirodne visine i kolona bi probila dno.
       <div className="flex min-h-0 flex-1 flex-col">
         <div className="mb-3 shrink-0 rounded-lg border border-warn bg-warn-bg px-3 py-2 text-xs text-warn">
-          MOCK — hardkodovani hoteli. Tačke su stvarne koordinate tih gradova, na nivou mesta
-          (isti nivo tačnosti kao pravi katalog danas, M5 §3.0h.2).
+          MOCK — hardkodovani hoteli. Tačke su stvarne koordinate tih gradova, na nivou mesta (isti
+          nivo tačnosti kao pravi katalog danas, M5 §3.0h.2).
         </div>
         <div className="flex min-h-0 flex-1 flex-col">
-        <SearchResultsMap
-          points={sortedHotels.map((h) => ({
-            id: h.id,
-            name: h.name,
-            lat: h.lat,
-            lng: h.lng,
-            price: offerTotal(h.offers[0]),
-            currency: h.offers[0].currency,
-            // Baner na klik (§3.0h.7) prikazuje isto što i kartica u listi — inače mapa i lista
-            // pričaju različitu priču o istom hotelu.
-            stars: h.stars,
-            city: h.city,
-            country: h.country,
-            image: h.image,
-            boardLabel: boardTypeDisplay(h.offers[0].boardType),
-          }))}
-          // "dodaj u izbor" iz banera radi isto što i dugme u listi — ide u desni panel.
-          onSelect={(id) => {
-            const hotel = sortedHotels.find((h) => h.id === id);
-            if (hotel) select(hotel, hotel.offers[0]);
-          }}
-        />
+          <SearchResultsMap
+            points={sortedHotels.map((h) => ({
+              id: h.id,
+              name: h.name,
+              lat: h.lat,
+              lng: h.lng,
+              price: offerTotal(h.offers[0]),
+              currency: h.offers[0].currency,
+              // Baner na klik (§3.0h.7) prikazuje isto što i kartica u listi — inače mapa i lista
+              // pričaju različitu priču o istom hotelu.
+              stars: h.stars,
+              city: h.city,
+              country: h.country,
+              image: h.image,
+              boardLabel: boardTypeDisplay(h.offers[0].boardType),
+            }))}
+            // "dodaj u izbor" iz banera radi isto što i dugme u listi — ide u desni panel.
+            onSelect={(id) => {
+              const hotel = sortedHotels.find((h) => h.id === id);
+              if (hotel) select(hotel, hotel.offers[0]);
+            }}
+          />
         </div>
       </div>
     );
@@ -347,7 +544,9 @@ export default function AccommodationResultsMock({
   return (
     <div>
       <div className="mb-3 flex items-center justify-between rounded-lg border border-warn bg-warn-bg px-3 py-2 text-xs text-warn">
-        <span>MOCK — hardkodovani hoteli, čeka potvrdu izgleda pre prave žice na `GET /search`.</span>
+        <span>
+          MOCK — hardkodovani hoteli, čeka potvrdu izgleda pre prave žice na `GET /search`.
+        </span>
         <div className="flex flex-shrink-0 items-center gap-1">
           <button
             onClick={() => setView('grid')}
@@ -373,7 +572,9 @@ export default function AccommodationResultsMock({
             const shown = isOpen ? hotel.offers : hotel.offers.slice(0, 1);
             return (
               <div key={hotel.id} className={isOpen ? 'col-span-full' : undefined}>
-                <div className={`grid gap-3 ${isOpen ? 'grid-cols-5 rounded-lg border-2 border-accent p-3' : ''}`}>
+                <div
+                  className={`grid gap-3 ${isOpen ? 'grid-cols-5 rounded-lg border-2 border-accent p-3' : ''}`}
+                >
                   {shown.map((offer, idx) => (
                     <GridBanner
                       key={offer.id}
@@ -396,7 +597,10 @@ export default function AccommodationResultsMock({
             const isOpen = expanded.has(hotel.id);
             const rest = hotel.offers.slice(1);
             return (
-              <div key={hotel.id} className={isOpen ? 'overflow-hidden rounded-lg border-2 border-accent' : ''}>
+              <div
+                key={hotel.id}
+                className={isOpen ? 'overflow-hidden rounded-lg border-2 border-accent' : ''}
+              >
                 <ListRow
                   hotel={hotel}
                   offer={hotel.offers[0]}
@@ -406,7 +610,10 @@ export default function AccommodationResultsMock({
                   onToggle={() => toggle(hotel.id)}
                   primary
                 />
-                {isOpen && rest.map((offer) => <ListRow key={offer.id} hotel={hotel} offer={offer} {...shared} />)}
+                {isOpen &&
+                  rest.map((offer) => (
+                    <ListRow key={offer.id} hotel={hotel} offer={offer} {...shared} />
+                  ))}
               </div>
             );
           })}
@@ -449,7 +656,18 @@ function RoomBreakdown({ offer }: { offer: MockOffer }) {
   );
 }
 
-function GridBanner({ hotel, offer, stayFrom, stayTo, selectedKeys, selectionKey, onSelect, showToggle, expanded, onToggle }: BannerProps) {
+function GridBanner({
+  hotel,
+  offer,
+  stayFrom,
+  stayTo,
+  selectedKeys,
+  selectionKey,
+  onSelect,
+  showToggle,
+  expanded,
+  onToggle,
+}: BannerProps) {
   const selected = selectedKeys.has(selectionKey(hotel, offer));
   return (
     <button
@@ -465,7 +683,9 @@ function GridBanner({ hotel, offer, stayFrom, stayTo, selectedKeys, selectionKey
       <div className="flex flex-1 flex-col p-2.5">
         <div className="mb-0.5 flex items-center gap-1.5">
           <span className="truncate text-xs font-medium text-ink">{hotel.name}</span>
-          <span className="flex-shrink-0 rounded bg-panel2 px-1 py-0.5 text-[11px] font-semibold text-warn">{hotel.stars}*</span>
+          <span className="flex-shrink-0 rounded bg-panel2 px-1 py-0.5 text-[11px] font-semibold text-warn">
+            {hotel.stars}*
+          </span>
         </div>
         <div className="mb-1.5 truncate text-xs text-ink-faint">
           {hotel.country}, {hotel.city}
@@ -509,7 +729,19 @@ function GridBanner({ hotel, offer, stayFrom, stayTo, selectedKeys, selectionKey
   );
 }
 
-function ListRow({ hotel, offer, stayFrom, stayTo, selectedKeys, selectionKey, onSelect, showToggle, expanded, onToggle, primary }: BannerProps) {
+function ListRow({
+  hotel,
+  offer,
+  stayFrom,
+  stayTo,
+  selectedKeys,
+  selectionKey,
+  onSelect,
+  showToggle,
+  expanded,
+  onToggle,
+  primary,
+}: BannerProps) {
   const selected = selectedKeys.has(selectionKey(hotel, offer));
   return (
     <button
@@ -545,12 +777,20 @@ function ListRow({ hotel, offer, stayFrom, stayTo, selectedKeys, selectionKey, o
       {/* Manja slika SAMO u prvom (najpovoljnijem) redu — ostali otvoreni redovi bez slike. */}
       {primary && (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={hotel.image} alt={hotel.name} className="h-10 w-14 flex-shrink-0 rounded object-cover" />
+        <img
+          src={hotel.image}
+          alt={hotel.name}
+          className="h-10 w-14 flex-shrink-0 rounded object-cover"
+        />
       )}
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5">
           <span className="truncate font-medium text-ink">{hotel.name}</span>
-          {primary && <span className="flex-shrink-0 rounded bg-panel2 px-1.5 py-0.5 text-[11px] font-semibold text-warn">{hotel.stars}*</span>}
+          {primary && (
+            <span className="flex-shrink-0 rounded bg-panel2 px-1.5 py-0.5 text-[11px] font-semibold text-warn">
+              {hotel.stars}*
+            </span>
+          )}
         </div>
         <div className="truncate text-[11px] text-ink-faint">
           {hotel.country}, {hotel.city} · {offer.roomTypeName} · {boardTypeDisplay(offer.boardType)}

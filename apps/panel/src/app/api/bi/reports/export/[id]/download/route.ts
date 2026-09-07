@@ -16,7 +16,10 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   });
 
   if (!res.ok || !res.body) {
-    return NextResponse.json({ message: 'Izveštaj je istekao ili ne postoji.' }, { status: res.status || 404 });
+    return NextResponse.json(
+      { message: 'Izveštaj je istekao ili ne postoji.' },
+      { status: res.status || 404 },
+    );
   }
 
   const headers = new Headers();

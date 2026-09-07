@@ -24,7 +24,13 @@ export default function RetryRegistrationButton({ id }: { id: string }) {
 function SubmitButton() {
   const { pending } = useFormStatus();
   return (
-    <Button type="submit" disabled={pending} variant="outline" size="sm" className="h-auto px-2 py-1 text-[11px]">
+    <Button
+      type="submit"
+      disabled={pending}
+      variant="outline"
+      size="sm"
+      className="h-auto px-2 py-1 text-[11px]"
+    >
       {pending ? 'Pokušavam…' : 'Ponovi'}
     </Button>
   );

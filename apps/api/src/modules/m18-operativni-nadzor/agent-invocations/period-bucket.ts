@@ -1,7 +1,10 @@
 import { QuotaPeriod } from '@prisma/client';
 
 /** M18 spec §6.4/§6.5 — granice tekućeg perioda (DAILY/WEEKLY/MONTHLY), UTC, uvek pun dan/nedelja/mesec. */
-export function periodBounds(period: QuotaPeriod, at: Date = new Date()): { start: Date; end: Date } {
+export function periodBounds(
+  period: QuotaPeriod,
+  at: Date = new Date(),
+): { start: Date; end: Date } {
   const start = new Date(Date.UTC(at.getUTCFullYear(), at.getUTCMonth(), at.getUTCDate()));
 
   if (period === 'DAILY') {

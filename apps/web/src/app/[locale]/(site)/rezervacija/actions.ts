@@ -70,11 +70,14 @@ export async function payByCardAction(formData: FormData): Promise<void> {
   const buyerName = String(formData.get('buyerName'));
 
   try {
-    const initiated = await apiFetch<{ gatewayTransactionId: string }>('/finance/payments/card/initiate', {
-      method: 'POST',
-      body: { quoteId, idempotencyKey: `${quoteId}-card` },
-      auth: false,
-    });
+    const initiated = await apiFetch<{ gatewayTransactionId: string }>(
+      '/finance/payments/card/initiate',
+      {
+        method: 'POST',
+        body: { quoteId, idempotencyKey: `${quoteId}-card` },
+        auth: false,
+      },
+    );
 
     // M10 spec §12 — stvaran platni provajder još nije izabran; mock gateway nema
     // hostovanu formu (initiate ne vraća redirectUrl) niti stvaran webhook poziv od
@@ -91,7 +94,11 @@ export async function payByCardAction(formData: FormData): Promise<void> {
       .digest('hex');
     const booking = await apiFetch<{ bookingId: string }>('/finance/payments/card/webhook', {
       method: 'POST',
-      body: { gatewayTransactionId: initiated.gatewayTransactionId, buyerName, buyerType: 'FIZICKO_LICE' },
+      body: {
+        gatewayTransactionId: initiated.gatewayTransactionId,
+        buyerName,
+        buyerType: 'FIZICKO_LICE',
+      },
       headers: { 'x-payment-webhook-signature': signature },
       auth: false,
     });
@@ -99,7 +106,9 @@ export async function payByCardAction(formData: FormData): Promise<void> {
     redirect(`/${locale}/rezervacija/potvrda?bookingId=${booking.bookingId}&nacin=card`);
   } catch (err) {
     if (err instanceof ApiError) {
-      redirect(`/${locale}/rezervacija/placanje?quoteId=${quoteId}&buyerName=${encodeURIComponent(buyerName)}&greska=1`);
+      redirect(
+        `/${locale}/rezervacija/placanje?quoteId=${quoteId}&buyerName=${encodeURIComponent(buyerName)}&greska=1`,
+      );
     }
     throw err;
   }

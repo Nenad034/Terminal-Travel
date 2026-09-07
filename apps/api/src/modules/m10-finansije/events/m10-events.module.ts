@@ -8,7 +8,13 @@ import { SupplierObligationsModule } from '../supplier-obligations/supplier-obli
 import { ReconciliationModule } from '../reconciliation/reconciliation.module';
 
 @Module({
-  imports: [EventBusModule, FiscalDocumentsModule, PaymentTermsModule, SupplierObligationsModule, ReconciliationModule],
+  imports: [
+    EventBusModule,
+    FiscalDocumentsModule,
+    PaymentTermsModule,
+    SupplierObligationsModule,
+    ReconciliationModule,
+  ],
   providers: [M10EventSubscribersService, M10AlarmsService],
 })
 export class M10EventsModule {}

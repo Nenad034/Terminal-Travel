@@ -11,7 +11,9 @@ import type {
 // isti princip kao MockFiscalizationGatewayAdapter (M10) i MockCisGatewayAdapter (M11).
 @Injectable()
 export class MockContractDocumentGeneratorAdapter implements ContractDocumentGeneratorAdapter {
-  async generate(request: ContractDocumentGenerateRequest): Promise<ContractDocumentGenerateResult> {
+  async generate(
+    request: ContractDocumentGenerateRequest,
+  ): Promise<ContractDocumentGenerateResult> {
     return { documentUrl: `mock://client-contracts/${request.contractType}-${randomUUID()}.pdf` };
   }
 }

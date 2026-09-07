@@ -25,7 +25,9 @@ describe('SearchService (M5 spec §3.0b/§11)', () => {
     destinationCountry: 'Grčka',
     destinationCity: 'Rodos',
     media: [],
-    attributes: { roomTypes: [{ code: 'STD', capacityAdults: 4, capacityChildren: 2, name: 'Standard' }] },
+    attributes: {
+      roomTypes: [{ code: 'STD', capacityAdults: 4, capacityChildren: 2, name: 'Standard' }],
+    },
     translations: [{ languageCode: 'sr', name: 'Hotel Sunce', description: 'Opis hotela' }],
   };
 
@@ -59,7 +61,17 @@ describe('SearchService (M5 spec §3.0b/§11)', () => {
         allotmentMode: 'ON_REQUEST',
         totalCapacity: null,
         unitsSold: 0,
-        rateLines: [{ id: 'rl1', price: 10000, priceBasis: 'PER_ROOM_PER_NIGHT', occupancy: 'dvokrevetna', cribFeePerNight: null, boardType: 'BB', agePricing: [] }],
+        rateLines: [
+          {
+            id: 'rl1',
+            price: 10000,
+            priceBasis: 'PER_ROOM_PER_NIGHT',
+            occupancy: 'dvokrevetna',
+            cribFeePerNight: null,
+            boardType: 'BB',
+            agePricing: [],
+          },
+        ],
         cancellationRules: [],
       },
     ]);
@@ -80,7 +92,17 @@ describe('SearchService (M5 spec §3.0b/§11)', () => {
         allotmentMode: 'FIXED',
         totalCapacity: 10,
         unitsSold: 0,
-        rateLines: [{ id: 'rl1', price: 10000, priceBasis: 'PER_ROOM_PER_NIGHT', occupancy: 'dvokrevetna', cribFeePerNight: null, boardType: 'BB', agePricing: [] }],
+        rateLines: [
+          {
+            id: 'rl1',
+            price: 10000,
+            priceBasis: 'PER_ROOM_PER_NIGHT',
+            occupancy: 'dvokrevetna',
+            cribFeePerNight: null,
+            boardType: 'BB',
+            agePricing: [],
+          },
+        ],
         cancellationRules: [],
       },
     ]);
@@ -93,7 +115,14 @@ describe('SearchService (M5 spec §3.0b/§11)', () => {
 
   it('ne vraća API ponudu sa availableUnits=0', async () => {
     const { service, prisma, integrations } = makeService();
-    const apiProduct = { ...baseProduct, sourceType: 'API', sourceContractId: null, sourceContract: null, sourceProvider: 'travelgate', sourceExternalId: 'ext1' };
+    const apiProduct = {
+      ...baseProduct,
+      sourceType: 'API',
+      sourceContractId: null,
+      sourceContract: null,
+      sourceProvider: 'travelgate',
+      sourceExternalId: 'ext1',
+    };
     prisma.product.findMany.mockResolvedValue([apiProduct]);
     integrations.checkAvailabilityAndPrice.mockResolvedValue({
       externalId: 'ext1',
@@ -104,13 +133,24 @@ describe('SearchService (M5 spec §3.0b/§11)', () => {
       quoteExpiresAt: new Date().toISOString(),
     });
 
-    const results = await service.search({ channel: 'B2C_SITE', stayFrom: '2027-01-10', stayTo: '2027-01-15' });
+    const results = await service.search({
+      channel: 'B2C_SITE',
+      stayFrom: '2027-01-10',
+      stayTo: '2027-01-15',
+    });
     expect(results).toHaveLength(0);
   });
 
   it('vraća API ponudu sa quote_expires_at kad je dostupna', async () => {
     const { service, prisma, integrations, markupRules } = makeService();
-    const apiProduct = { ...baseProduct, sourceType: 'API', sourceContractId: null, sourceContract: null, sourceProvider: 'travelgate', sourceExternalId: 'ext1' };
+    const apiProduct = {
+      ...baseProduct,
+      sourceType: 'API',
+      sourceContractId: null,
+      sourceContract: null,
+      sourceProvider: 'travelgate',
+      sourceExternalId: 'ext1',
+    };
     prisma.product.findMany.mockResolvedValue([apiProduct]);
     const expiresAt = new Date(Date.now() + 60_000).toISOString();
     integrations.checkAvailabilityAndPrice.mockResolvedValue({
@@ -123,7 +163,11 @@ describe('SearchService (M5 spec §3.0b/§11)', () => {
     });
     markupRules.resolveForApi.mockResolvedValue({ percentage: 20, fixedAmount: null });
 
-    const results = await service.search({ channel: 'B2C_SITE', stayFrom: '2027-01-10', stayTo: '2027-01-15' });
+    const results = await service.search({
+      channel: 'B2C_SITE',
+      stayFrom: '2027-01-10',
+      stayTo: '2027-01-15',
+    });
     expect(results[0].offers[0].quoteExpiresAt).toBe(expiresAt);
     expect(results[0].offers[0].finalPrice).toBe(6000);
   });
@@ -141,8 +185,20 @@ describe('SearchService (M5 spec §3.0b/§11)', () => {
           allotmentMode: 'FIXED',
           totalCapacity: 10,
           unitsSold: 0,
-          rateLines: [{ id: 'rl1', price: 10000, priceBasis: 'PER_ROOM_PER_NIGHT', occupancy: 'dvokrevetna', cribFeePerNight: null, boardType: 'BB', agePricing: [] }],
-          cancellationRules: [{ ruleType: 'PRE_ARRIVAL', daysBeforeStay: 10, refundPercentage: 50 }],
+          rateLines: [
+            {
+              id: 'rl1',
+              price: 10000,
+              priceBasis: 'PER_ROOM_PER_NIGHT',
+              occupancy: 'dvokrevetna',
+              cribFeePerNight: null,
+              boardType: 'BB',
+              agePricing: [],
+            },
+          ],
+          cancellationRules: [
+            { ruleType: 'PRE_ARRIVAL', daysBeforeStay: 10, refundPercentage: 50 },
+          ],
         },
       ]);
       markupRules.resolveForContracted.mockResolvedValue({ percentage: 10, fixedAmount: null });
@@ -161,7 +217,17 @@ describe('SearchService (M5 spec §3.0b/§11)', () => {
           allotmentMode: 'FIXED',
           totalCapacity: 10,
           unitsSold: 0,
-          rateLines: [{ id: 'rl1', price: 10000, priceBasis: 'PER_ROOM_PER_NIGHT', occupancy: 'dvokrevetna', cribFeePerNight: null, boardType: 'BB', agePricing: [] }],
+          rateLines: [
+            {
+              id: 'rl1',
+              price: 10000,
+              priceBasis: 'PER_ROOM_PER_NIGHT',
+              occupancy: 'dvokrevetna',
+              cribFeePerNight: null,
+              boardType: 'BB',
+              agePricing: [],
+            },
+          ],
           cancellationRules: [],
         },
       ]);
@@ -173,7 +239,14 @@ describe('SearchService (M5 spec §3.0b/§11)', () => {
 
     it('API — true kad checkAvailabilityAndPrice vrati bar jedan prozor sa refund_percentage > 0', async () => {
       const { service, prisma, integrations, markupRules } = makeService();
-      const apiProduct = { ...baseProduct, sourceType: 'API', sourceContractId: null, sourceContract: null, sourceProvider: 'travelgate', sourceExternalId: 'ext1' };
+      const apiProduct = {
+        ...baseProduct,
+        sourceType: 'API',
+        sourceContractId: null,
+        sourceContract: null,
+        sourceProvider: 'travelgate',
+        sourceExternalId: 'ext1',
+      };
       prisma.product.findMany.mockResolvedValue([apiProduct]);
       integrations.checkAvailabilityAndPrice.mockResolvedValue({
         externalId: 'ext1',
@@ -185,13 +258,24 @@ describe('SearchService (M5 spec §3.0b/§11)', () => {
       });
       markupRules.resolveForApi.mockResolvedValue({ percentage: 20, fixedAmount: null });
 
-      const results = await service.search({ channel: 'B2C_SITE', stayFrom: '2027-01-10', stayTo: '2027-01-15' });
+      const results = await service.search({
+        channel: 'B2C_SITE',
+        stayFrom: '2027-01-10',
+        stayTo: '2027-01-15',
+      });
       expect(results[0].offers[0].isRefundable).toBe(true);
     });
 
     it('API — false kad je cancellationPolicy prazna (bez pravila)', async () => {
       const { service, prisma, integrations, markupRules } = makeService();
-      const apiProduct = { ...baseProduct, sourceType: 'API', sourceContractId: null, sourceContract: null, sourceProvider: 'travelgate', sourceExternalId: 'ext1' };
+      const apiProduct = {
+        ...baseProduct,
+        sourceType: 'API',
+        sourceContractId: null,
+        sourceContract: null,
+        sourceProvider: 'travelgate',
+        sourceExternalId: 'ext1',
+      };
       prisma.product.findMany.mockResolvedValue([apiProduct]);
       integrations.checkAvailabilityAndPrice.mockResolvedValue({
         externalId: 'ext1',
@@ -203,7 +287,11 @@ describe('SearchService (M5 spec §3.0b/§11)', () => {
       });
       markupRules.resolveForApi.mockResolvedValue({ percentage: 20, fixedAmount: null });
 
-      const results = await service.search({ channel: 'B2C_SITE', stayFrom: '2027-01-10', stayTo: '2027-01-15' });
+      const results = await service.search({
+        channel: 'B2C_SITE',
+        stayFrom: '2027-01-10',
+        stayTo: '2027-01-15',
+      });
       expect(results[0].offers[0].isRefundable).toBe(false);
     });
   });
@@ -245,7 +333,12 @@ describe('SearchService (M5 spec §3.0b/§11)', () => {
       mockAvailable(integrations);
       markupRules.resolveForApi.mockResolvedValue({ percentage: 0, fixedAmount: null });
 
-      const results = await service.search({ channel: 'B2C_SITE', stayFrom: '2027-01-10', stayTo: '2027-01-15', cabinClass: 'BUSINESS' });
+      const results = await service.search({
+        channel: 'B2C_SITE',
+        stayFrom: '2027-01-10',
+        stayTo: '2027-01-15',
+        cabinClass: 'BUSINESS',
+      });
       expect(results.map((r) => r.productId)).toEqual(['biz']);
     });
 
@@ -258,7 +351,12 @@ describe('SearchService (M5 spec §3.0b/§11)', () => {
       mockAvailable(integrations);
       markupRules.resolveForApi.mockResolvedValue({ percentage: 0, fixedAmount: null });
 
-      const results = await service.search({ channel: 'B2C_SITE', stayFrom: '2027-01-10', stayTo: '2027-01-15', minDriverAge: 21 });
+      const results = await service.search({
+        channel: 'B2C_SITE',
+        stayFrom: '2027-01-10',
+        stayTo: '2027-01-15',
+        minDriverAge: 21,
+      });
       expect(results.map((r) => r.productId)).toEqual(['noMin']); // 21 < 25, needs25 isključen; proizvod bez atributa uvek prolazi
     });
 
@@ -272,20 +370,36 @@ describe('SearchService (M5 spec §3.0b/§11)', () => {
       mockAvailable(integrations);
       markupRules.resolveForApi.mockResolvedValue({ percentage: 0, fixedAmount: null });
 
-      const results = await service.search({ channel: 'B2C_SITE', stayFrom: '2027-01-10', stayTo: '2027-01-15', originCity: 'Beograd' });
+      const results = await service.search({
+        channel: 'B2C_SITE',
+        stayFrom: '2027-01-10',
+        stayTo: '2027-01-15',
+        originCity: 'Beograd',
+      });
       expect(results.map((r) => r.productId)).toEqual(['bg']);
     });
 
     it('originCity (TRANSPORT/RENT_A_CAR) — poklapa attributes.pickup_location, ne route', async () => {
       const { service, prisma, integrations, markupRules } = makeService();
       prisma.product.findMany.mockResolvedValue([
-        { ...apiProduct('bg', { transport_mode: 'RENT_A_CAR', pickup_location: 'Beograd' }), type: 'TRANSPORT' },
-        { ...apiProduct('ny', { transport_mode: 'RENT_A_CAR', pickup_location: 'Novi Sad' }), type: 'TRANSPORT' },
+        {
+          ...apiProduct('bg', { transport_mode: 'RENT_A_CAR', pickup_location: 'Beograd' }),
+          type: 'TRANSPORT',
+        },
+        {
+          ...apiProduct('ny', { transport_mode: 'RENT_A_CAR', pickup_location: 'Novi Sad' }),
+          type: 'TRANSPORT',
+        },
       ]);
       mockAvailable(integrations);
       markupRules.resolveForApi.mockResolvedValue({ percentage: 0, fixedAmount: null });
 
-      const results = await service.search({ channel: 'B2C_SITE', stayFrom: '2027-01-10', stayTo: '2027-01-15', originCity: 'Beograd' });
+      const results = await service.search({
+        channel: 'B2C_SITE',
+        stayFrom: '2027-01-10',
+        stayTo: '2027-01-15',
+        originCity: 'Beograd',
+      });
       expect(results.map((r) => r.productId)).toEqual(['bg']);
     });
 
@@ -298,20 +412,32 @@ describe('SearchService (M5 spec §3.0b/§11)', () => {
       mockAvailable(integrations);
       markupRules.resolveForApi.mockResolvedValue({ percentage: 0, fixedAmount: null });
 
-      const results = await service.search({ channel: 'B2C_SITE', stayFrom: '2027-01-10', stayTo: '2027-01-15', durationNights: 7 });
+      const results = await service.search({
+        channel: 'B2C_SITE',
+        stayFrom: '2027-01-10',
+        stayTo: '2027-01-15',
+        durationNights: 7,
+      });
       expect(results.map((r) => r.productId)).toEqual(['7n']);
     });
 
     it('cabinType (CRUISE) — poklapa ako BILO KOJA stavka cabin_types[] ima traženu kategoriju', async () => {
       const { service, prisma, integrations, markupRules } = makeService();
       prisma.product.findMany.mockResolvedValue([
-        apiProduct('withBalcony', { cabin_types: [{ category: 'INTERIOR' }, { category: 'BALCONY' }] }),
+        apiProduct('withBalcony', {
+          cabin_types: [{ category: 'INTERIOR' }, { category: 'BALCONY' }],
+        }),
         apiProduct('onlyInterior', { cabin_types: [{ category: 'INTERIOR' }] }),
       ]);
       mockAvailable(integrations);
       markupRules.resolveForApi.mockResolvedValue({ percentage: 0, fixedAmount: null });
 
-      const results = await service.search({ channel: 'B2C_SITE', stayFrom: '2027-01-10', stayTo: '2027-01-15', cabinType: 'BALCONY' });
+      const results = await service.search({
+        channel: 'B2C_SITE',
+        stayFrom: '2027-01-10',
+        stayTo: '2027-01-15',
+        cabinType: 'BALCONY',
+      });
       expect(results.map((r) => r.productId)).toEqual(['withBalcony']);
     });
   });
@@ -333,7 +459,13 @@ describe('SearchService (M5 spec §3.0b/§11)', () => {
     };
 
     function departure(departureIso: string, returnIso: string) {
-      return { id: 'd1', productId: 'pkg1', departureDate: new Date(departureIso), returnDate: new Date(returnIso), status: 'ACTIVE' };
+      return {
+        id: 'd1',
+        productId: 'pkg1',
+        departureDate: new Date(departureIso),
+        returnDate: new Date(returnIso),
+        status: 'ACTIVE',
+      };
     }
     // Tačkasti sastojak (let) — jedan dan, flat cena, isti obrazac kao svaka druga ne-paket
     // CONTRACTED FLIGHT stavka (bez množenja noćenjima).
@@ -346,7 +478,17 @@ describe('SearchService (M5 spec §3.0b/§11)', () => {
         unitsSold: 0,
         stayFrom: new Date(stayFromIso),
         stayTo: new Date(stayFromIso),
-        rateLines: [{ id: 'frl1', price: 20000, priceBasis: 'PER_PERSON_PER_NIGHT', occupancy: null, cribFeePerNight: null, boardType: null, agePricing: [] }],
+        rateLines: [
+          {
+            id: 'frl1',
+            price: 20000,
+            priceBasis: 'PER_PERSON_PER_NIGHT',
+            occupancy: null,
+            cribFeePerNight: null,
+            boardType: null,
+            agePricing: [],
+          },
+        ],
         cancellationRules: [],
       };
     }
@@ -361,17 +503,45 @@ describe('SearchService (M5 spec §3.0b/§11)', () => {
         unitsSold: 0,
         stayFrom: new Date(stayFromIso),
         stayTo: new Date(stayToIso),
-        rateLines: [{ id: 'hrl1', price: 5000, priceBasis: 'PER_ROOM_PER_NIGHT', occupancy: 'dvokrevetna', cribFeePerNight: null, boardType: 'AI', agePricing: [] }],
+        rateLines: [
+          {
+            id: 'hrl1',
+            price: 5000,
+            priceBasis: 'PER_ROOM_PER_NIGHT',
+            occupancy: 'dvokrevetna',
+            cribFeePerNight: null,
+            boardType: 'AI',
+            agePricing: [],
+          },
+        ],
         cancellationRules: [],
       };
     }
-    const flightComponent = { id: 'flight1', type: 'FLIGHT', sourceType: 'CONTRACTED', sourceContractId: 'fc1', sourceContract: { id: 'fc1', supplierId: 's1', currency: 'EUR' }, attributes: {} };
-    const hotelComponent = { id: 'hotel1', type: 'ACCOMMODATION', sourceType: 'CONTRACTED', sourceContractId: 'hc1', sourceContract: { id: 'hc1', supplierId: 's2', currency: 'EUR' }, attributes: { roomTypes: [{ code: 'STD', capacityAdults: 4, capacityChildren: 2 }] } };
+    const flightComponent = {
+      id: 'flight1',
+      type: 'FLIGHT',
+      sourceType: 'CONTRACTED',
+      sourceContractId: 'fc1',
+      sourceContract: { id: 'fc1', supplierId: 's1', currency: 'EUR' },
+      attributes: {},
+    };
+    const hotelComponent = {
+      id: 'hotel1',
+      type: 'ACCOMMODATION',
+      sourceType: 'CONTRACTED',
+      sourceContractId: 'hc1',
+      sourceContract: { id: 'hc1', supplierId: 's2', currency: 'EUR' },
+      attributes: { roomTypes: [{ code: 'STD', capacityAdults: 4, capacityChildren: 2 }] },
+    };
 
     it('vraća ponudu za termin definisan NA paketu (PackageDeparture), ne presekom perioda sastojaka', async () => {
       const { service, prisma, markupRules } = makeService();
-      prisma.product.findMany.mockResolvedValueOnce([packageProduct]).mockResolvedValueOnce([flightComponent, hotelComponent]);
-      prisma.packageDeparture.findMany.mockResolvedValueOnce([departure('2027-09-03', '2027-09-10')]);
+      prisma.product.findMany
+        .mockResolvedValueOnce([packageProduct])
+        .mockResolvedValueOnce([flightComponent, hotelComponent]);
+      prisma.packageDeparture.findMany.mockResolvedValueOnce([
+        departure('2027-09-03', '2027-09-10'),
+      ]);
       prisma.contractPeriod.findMany
         .mockResolvedValueOnce([flightPeriod('2027-09-03')])
         .mockResolvedValueOnce([hotelPeriod('2027-09-03', '2027-09-10')]);
@@ -386,8 +556,12 @@ describe('SearchService (M5 spec §3.0b/§11)', () => {
 
     it('cena ponude je zbir cena sastojaka: let flat (bez noćenja), hotel po duration_days paketa (ne po dužini sopstvenog perioda)', async () => {
       const { service, prisma, markupRules } = makeService();
-      prisma.product.findMany.mockResolvedValueOnce([packageProduct]).mockResolvedValueOnce([flightComponent, hotelComponent]);
-      prisma.packageDeparture.findMany.mockResolvedValueOnce([departure('2027-09-03', '2027-09-10')]);
+      prisma.product.findMany
+        .mockResolvedValueOnce([packageProduct])
+        .mockResolvedValueOnce([flightComponent, hotelComponent]);
+      prisma.packageDeparture.findMany.mockResolvedValueOnce([
+        departure('2027-09-03', '2027-09-10'),
+      ]);
       // Hotelski period namerno pokriva CEO SEZONU (ne jedan tačan 7-dnevni termin) — dokazuje
       // da cena i dalje koristi duration_days paketa (7 noćenja), ne dužinu ovog perioda (~92 dana).
       prisma.contractPeriod.findMany
@@ -405,11 +579,22 @@ describe('SearchService (M5 spec §3.0b/§11)', () => {
 
     it('is_refundable za paket — najstroži sastojak odlučuje (vlasnikova odluka 1.9.2026)', async () => {
       const { service, prisma, markupRules } = makeService();
-      prisma.product.findMany.mockResolvedValueOnce([packageProduct]).mockResolvedValueOnce([flightComponent, hotelComponent]);
-      prisma.packageDeparture.findMany.mockResolvedValueOnce([departure('2027-09-03', '2027-09-10')]);
+      prisma.product.findMany
+        .mockResolvedValueOnce([packageProduct])
+        .mockResolvedValueOnce([flightComponent, hotelComponent]);
+      prisma.packageDeparture.findMany.mockResolvedValueOnce([
+        departure('2027-09-03', '2027-09-10'),
+      ]);
       prisma.contractPeriod.findMany
         .mockResolvedValueOnce([{ ...flightPeriod('2027-09-03'), cancellationRules: [] }]) // let: bez pravila => nerefundabilan
-        .mockResolvedValueOnce([{ ...hotelPeriod('2027-09-03', '2027-09-10'), cancellationRules: [{ ruleType: 'PRE_ARRIVAL', daysBeforeStay: 10, refundPercentage: 100 }] }]); // hotel: refundabilan
+        .mockResolvedValueOnce([
+          {
+            ...hotelPeriod('2027-09-03', '2027-09-10'),
+            cancellationRules: [
+              { ruleType: 'PRE_ARRIVAL', daysBeforeStay: 10, refundPercentage: 100 },
+            ],
+          },
+        ]); // hotel: refundabilan
       markupRules.resolveForContracted.mockResolvedValue({ percentage: 0, fixedAmount: null });
 
       const results = await service.search({ channel: 'B2C_SITE', type: ['PACKAGE'] });
@@ -420,7 +605,9 @@ describe('SearchService (M5 spec §3.0b/§11)', () => {
 
     it('paket bez ijednog ACTIVE PackageDeparture termina se ne prikazuje (ne izvodi termin iz sastojaka)', async () => {
       const { service, prisma } = makeService();
-      prisma.product.findMany.mockResolvedValueOnce([packageProduct]).mockResolvedValueOnce([flightComponent, hotelComponent]);
+      prisma.product.findMany
+        .mockResolvedValueOnce([packageProduct])
+        .mockResolvedValueOnce([flightComponent, hotelComponent]);
       prisma.packageDeparture.findMany.mockResolvedValueOnce([]); // nijedan termin definisan na paketu
 
       const results = await service.search({ channel: 'B2C_SITE', type: ['PACKAGE'] });
@@ -430,10 +617,16 @@ describe('SearchService (M5 spec §3.0b/§11)', () => {
 
     it('sastojak koji ne pokriva prozor termina čini ceo termin nedostupnim (SOLD_OUT princip)', async () => {
       const { service, prisma, markupRules } = makeService();
-      prisma.product.findMany.mockResolvedValueOnce([packageProduct]).mockResolvedValueOnce([flightComponent, hotelComponent]);
-      prisma.packageDeparture.findMany.mockResolvedValueOnce([departure('2027-09-03', '2027-09-10')]);
+      prisma.product.findMany
+        .mockResolvedValueOnce([packageProduct])
+        .mockResolvedValueOnce([flightComponent, hotelComponent]);
+      prisma.packageDeparture.findMany.mockResolvedValueOnce([
+        departure('2027-09-03', '2027-09-10'),
+      ]);
       // hotel nema NIJEDAN period koji pokriva ovaj termin.
-      prisma.contractPeriod.findMany.mockResolvedValueOnce([flightPeriod('2027-09-03')]).mockResolvedValueOnce([]);
+      prisma.contractPeriod.findMany
+        .mockResolvedValueOnce([flightPeriod('2027-09-03')])
+        .mockResolvedValueOnce([]);
       markupRules.resolveForContracted.mockResolvedValue({ percentage: 0, fixedAmount: null });
 
       const results = await service.search({ channel: 'B2C_SITE', type: ['PACKAGE'] });
@@ -442,14 +635,22 @@ describe('SearchService (M5 spec §3.0b/§11)', () => {
 
     it('poštuje tačan traženi datum (stayFrom) — filtrira PackageDeparture, ne period sastojaka', async () => {
       const { service, prisma, markupRules } = makeService();
-      prisma.product.findMany.mockResolvedValueOnce([packageProduct]).mockResolvedValueOnce([flightComponent, hotelComponent]);
-      prisma.packageDeparture.findMany.mockResolvedValueOnce([departure('2027-09-10', '2027-09-17')]);
+      prisma.product.findMany
+        .mockResolvedValueOnce([packageProduct])
+        .mockResolvedValueOnce([flightComponent, hotelComponent]);
+      prisma.packageDeparture.findMany.mockResolvedValueOnce([
+        departure('2027-09-10', '2027-09-17'),
+      ]);
       prisma.contractPeriod.findMany
         .mockResolvedValueOnce([flightPeriod('2027-09-10')])
         .mockResolvedValueOnce([hotelPeriod('2027-09-10', '2027-09-17')]);
       markupRules.resolveForContracted.mockResolvedValue({ percentage: 0, fixedAmount: null });
 
-      const results = await service.search({ channel: 'B2C_SITE', type: ['PACKAGE'], stayFrom: '2027-09-10' });
+      const results = await service.search({
+        channel: 'B2C_SITE',
+        type: ['PACKAGE'],
+        stayFrom: '2027-09-10',
+      });
 
       expect(results[0].offers).toHaveLength(1);
       expect(results[0].offers[0].packageDepartureDate).toBe('2027-09-10');
@@ -457,14 +658,34 @@ describe('SearchService (M5 spec §3.0b/§11)', () => {
 
     it('meša CONTRACTED (mora pokriti prozor) i API (cenjen uživo za isti prozor) sastojak', async () => {
       const { service, prisma, markupRules, integrations } = makeService();
-      const transferComponent = { id: 'transfer1', type: 'TRANSFER', sourceType: 'API', sourceContractId: null, sourceContract: null, sourceProvider: 'p1', sourceExternalId: 'ext1', attributes: {} };
-      prisma.product.findMany.mockResolvedValueOnce([packageProduct]).mockResolvedValueOnce([hotelComponent, transferComponent]);
-      prisma.packageDeparture.findMany.mockResolvedValueOnce([departure('2027-09-03', '2027-09-10')]);
-      prisma.contractPeriod.findMany.mockResolvedValueOnce([hotelPeriod('2027-09-03', '2027-09-10')]);
+      const transferComponent = {
+        id: 'transfer1',
+        type: 'TRANSFER',
+        sourceType: 'API',
+        sourceContractId: null,
+        sourceContract: null,
+        sourceProvider: 'p1',
+        sourceExternalId: 'ext1',
+        attributes: {},
+      };
+      prisma.product.findMany
+        .mockResolvedValueOnce([packageProduct])
+        .mockResolvedValueOnce([hotelComponent, transferComponent]);
+      prisma.packageDeparture.findMany.mockResolvedValueOnce([
+        departure('2027-09-03', '2027-09-10'),
+      ]);
+      prisma.contractPeriod.findMany.mockResolvedValueOnce([
+        hotelPeriod('2027-09-03', '2027-09-10'),
+      ]);
       markupRules.resolveForContracted.mockResolvedValue({ percentage: 0, fixedAmount: 0 });
       markupRules.resolveForApi.mockResolvedValue({ percentage: 0, fixedAmount: 0 });
       integrations.checkAvailabilityAndPrice.mockResolvedValue({
-        externalId: 'ext1', priceAmount: 3000, currency: 'EUR', availableUnits: 2, cancellationPolicy: [], quoteExpiresAt: null,
+        externalId: 'ext1',
+        priceAmount: 3000,
+        currency: 'EUR',
+        availableUnits: 2,
+        cancellationPolicy: [],
+        quoteExpiresAt: null,
       });
 
       const results = await service.search({ channel: 'B2C_SITE', type: ['PACKAGE'] });
@@ -481,14 +702,32 @@ describe('SearchService (M5 spec §3.0b/§11)', () => {
 
     it('nema značaja KOJI sastojak je fiksan — let fiksan + hotel dinamičan radi isto kao obrnuto', async () => {
       const { service, prisma, markupRules, integrations } = makeService();
-      const dynamicHotel = { id: 'hotel1', type: 'ACCOMMODATION', sourceType: 'API', sourceContractId: null, sourceContract: null, sourceProvider: 'p2', sourceExternalId: 'ext2', attributes: {} };
-      prisma.product.findMany.mockResolvedValueOnce([packageProduct]).mockResolvedValueOnce([flightComponent, dynamicHotel]);
-      prisma.packageDeparture.findMany.mockResolvedValueOnce([departure('2027-09-03', '2027-09-10')]);
+      const dynamicHotel = {
+        id: 'hotel1',
+        type: 'ACCOMMODATION',
+        sourceType: 'API',
+        sourceContractId: null,
+        sourceContract: null,
+        sourceProvider: 'p2',
+        sourceExternalId: 'ext2',
+        attributes: {},
+      };
+      prisma.product.findMany
+        .mockResolvedValueOnce([packageProduct])
+        .mockResolvedValueOnce([flightComponent, dynamicHotel]);
+      prisma.packageDeparture.findMany.mockResolvedValueOnce([
+        departure('2027-09-03', '2027-09-10'),
+      ]);
       prisma.contractPeriod.findMany.mockResolvedValueOnce([flightPeriod('2027-09-03')]);
       markupRules.resolveForContracted.mockResolvedValue({ percentage: 0, fixedAmount: 0 });
       markupRules.resolveForApi.mockResolvedValue({ percentage: 0, fixedAmount: 0 });
       integrations.checkAvailabilityAndPrice.mockResolvedValue({
-        externalId: 'ext2', priceAmount: 4000, currency: 'EUR', availableUnits: 2, cancellationPolicy: [], quoteExpiresAt: null,
+        externalId: 'ext2',
+        priceAmount: 4000,
+        currency: 'EUR',
+        availableUnits: 2,
+        cancellationPolicy: [],
+        quoteExpiresAt: null,
       });
 
       const results = await service.search({ channel: 'B2C_SITE', type: ['PACKAGE'] });
@@ -501,13 +740,33 @@ describe('SearchService (M5 spec §3.0b/§11)', () => {
 
     it('termin postaje nedostupan ako API sastojak nema dostupnih jedinica za taj datum', async () => {
       const { service, prisma, markupRules, integrations } = makeService();
-      const transferComponent = { id: 'transfer1', type: 'TRANSFER', sourceType: 'API', sourceContractId: null, sourceContract: null, sourceProvider: 'p1', sourceExternalId: 'ext1', attributes: {} };
-      prisma.product.findMany.mockResolvedValueOnce([packageProduct]).mockResolvedValueOnce([hotelComponent, transferComponent]);
-      prisma.packageDeparture.findMany.mockResolvedValueOnce([departure('2027-09-03', '2027-09-10')]);
-      prisma.contractPeriod.findMany.mockResolvedValueOnce([hotelPeriod('2027-09-03', '2027-09-10')]);
+      const transferComponent = {
+        id: 'transfer1',
+        type: 'TRANSFER',
+        sourceType: 'API',
+        sourceContractId: null,
+        sourceContract: null,
+        sourceProvider: 'p1',
+        sourceExternalId: 'ext1',
+        attributes: {},
+      };
+      prisma.product.findMany
+        .mockResolvedValueOnce([packageProduct])
+        .mockResolvedValueOnce([hotelComponent, transferComponent]);
+      prisma.packageDeparture.findMany.mockResolvedValueOnce([
+        departure('2027-09-03', '2027-09-10'),
+      ]);
+      prisma.contractPeriod.findMany.mockResolvedValueOnce([
+        hotelPeriod('2027-09-03', '2027-09-10'),
+      ]);
       markupRules.resolveForContracted.mockResolvedValue({ percentage: 0, fixedAmount: 0 });
       integrations.checkAvailabilityAndPrice.mockResolvedValue({
-        externalId: 'ext1', priceAmount: 3000, currency: 'EUR', availableUnits: 0, cancellationPolicy: [], quoteExpiresAt: null,
+        externalId: 'ext1',
+        priceAmount: 3000,
+        currency: 'EUR',
+        availableUnits: 0,
+        cancellationPolicy: [],
+        quoteExpiresAt: null,
       });
 
       const results = await service.search({ channel: 'B2C_SITE', type: ['PACKAGE'] });
@@ -517,8 +776,12 @@ describe('SearchService (M5 spec §3.0b/§11)', () => {
 
     it('toleriše 1 dan razlike na granici perioda — let u 23:30 sleće posle ponoći (§3.0d.6)', async () => {
       const { service, prisma, markupRules } = makeService();
-      prisma.product.findMany.mockResolvedValueOnce([packageProduct]).mockResolvedValueOnce([flightComponent, hotelComponent]);
-      prisma.packageDeparture.findMany.mockResolvedValueOnce([departure('2027-09-03', '2027-09-10')]);
+      prisma.product.findMany
+        .mockResolvedValueOnce([packageProduct])
+        .mockResolvedValueOnce([flightComponent, hotelComponent]);
+      prisma.packageDeparture.findMany.mockResolvedValueOnce([
+        departure('2027-09-03', '2027-09-10'),
+      ]);
       // Let poleće 3.9. uveče; hotelski period počinje "4.9." u sistemu jer se stiže posle
       // ponoći — NIJE isti kalendarski dan kao termin paketa, ali je unutar ±1 dana tolerancije.
       prisma.contractPeriod.findMany
@@ -544,8 +807,19 @@ describe('SearchService (M5 spec §3.0b/§11)', () => {
           guide_language: 'sr',
           optional_products: ['excursion1'],
           daily_program: [
-            { day_number: 1, title: 'Beograd — Tbilisi', description: 'Let i transfer do hotela.', meals: ['DINNER'], overnight_product_id: 'hotel1' },
-            { day_number: 2, title: 'Manastiri Sanahin i Haghpat, jezero Sevan', description: 'Prelazak u Jermeniju.', meals: ['BREAKFAST', 'LUNCH'] },
+            {
+              day_number: 1,
+              title: 'Beograd — Tbilisi',
+              description: 'Let i transfer do hotela.',
+              meals: ['DINNER'],
+              overnight_product_id: 'hotel1',
+            },
+            {
+              day_number: 2,
+              title: 'Manastiri Sanahin i Haghpat, jezero Sevan',
+              description: 'Prelazak u Jermeniju.',
+              meals: ['BREAKFAST', 'LUNCH'],
+            },
           ],
         },
       };
@@ -566,7 +840,11 @@ describe('SearchService (M5 spec §3.0b/§11)', () => {
           .mockResolvedValueOnce([hotelPeriod('2027-09-03', '2027-09-10')]);
         markupRules.resolveForContracted.mockResolvedValue({ percentage: 0, fixedAmount: null });
 
-        const results = await service.search({ channel: 'B2C_SITE', type: ['PACKAGE'], hasExpertGuide: true });
+        const results = await service.search({
+          channel: 'B2C_SITE',
+          type: ['PACKAGE'],
+          hasExpertGuide: true,
+        });
 
         expect(results.map((r) => r.productId)).toEqual(['pkg2']);
       });
@@ -594,8 +872,12 @@ describe('SearchService (M5 spec §3.0b/§11)', () => {
 
       it('SearchResultProduct nosi hasExpertGuide/guideLanguage/dailyProgram/optionalProductIds za "Putovanja"', async () => {
         const { service, prisma, markupRules } = makeService();
-        prisma.product.findMany.mockResolvedValueOnce([guidedProduct]).mockResolvedValueOnce([flightComponent, hotelComponent]);
-        prisma.packageDeparture.findMany.mockResolvedValueOnce([departure('2027-09-03', '2027-09-10')]);
+        prisma.product.findMany
+          .mockResolvedValueOnce([guidedProduct])
+          .mockResolvedValueOnce([flightComponent, hotelComponent]);
+        prisma.packageDeparture.findMany.mockResolvedValueOnce([
+          departure('2027-09-03', '2027-09-10'),
+        ]);
         prisma.contractPeriod.findMany
           .mockResolvedValueOnce([flightPeriod('2027-09-03')])
           .mockResolvedValueOnce([hotelPeriod('2027-09-03', '2027-09-10')]);
@@ -607,15 +889,31 @@ describe('SearchService (M5 spec §3.0b/§11)', () => {
         expect(results[0].guideLanguage).toBe('sr');
         expect(results[0].optionalProductIds).toEqual(['excursion1']);
         expect(results[0].dailyProgram).toEqual([
-          { dayNumber: 1, title: 'Beograd — Tbilisi', description: 'Let i transfer do hotela.', meals: ['DINNER'], overnightProductId: 'hotel1' },
-          { dayNumber: 2, title: 'Manastiri Sanahin i Haghpat, jezero Sevan', description: 'Prelazak u Jermeniju.', meals: ['BREAKFAST', 'LUNCH'], overnightProductId: null },
+          {
+            dayNumber: 1,
+            title: 'Beograd — Tbilisi',
+            description: 'Let i transfer do hotela.',
+            meals: ['DINNER'],
+            overnightProductId: 'hotel1',
+          },
+          {
+            dayNumber: 2,
+            title: 'Manastiri Sanahin i Haghpat, jezero Sevan',
+            description: 'Prelazak u Jermeniju.',
+            meals: ['BREAKFAST', 'LUNCH'],
+            overnightProductId: null,
+          },
         ]);
       });
 
       it('obična PACKAGE (bez has_expert_guide) ima hasExpertGuide/guideLanguage/dailyProgram/optionalProductIds = null', async () => {
         const { service, prisma, markupRules } = makeService();
-        prisma.product.findMany.mockResolvedValueOnce([packageProduct]).mockResolvedValueOnce([flightComponent, hotelComponent]);
-        prisma.packageDeparture.findMany.mockResolvedValueOnce([departure('2027-09-03', '2027-09-10')]);
+        prisma.product.findMany
+          .mockResolvedValueOnce([packageProduct])
+          .mockResolvedValueOnce([flightComponent, hotelComponent]);
+        prisma.packageDeparture.findMany.mockResolvedValueOnce([
+          departure('2027-09-03', '2027-09-10'),
+        ]);
         prisma.contractPeriod.findMany
           .mockResolvedValueOnce([flightPeriod('2027-09-03')])
           .mockResolvedValueOnce([hotelPeriod('2027-09-03', '2027-09-10')]);
@@ -638,8 +936,22 @@ describe('SearchService (M5 spec §3.0b/§11)', () => {
       prisma.product.findMany.mockResolvedValue([baseProduct]);
       prisma.contractPeriod.findMany.mockResolvedValue([
         {
-          id: 'period1', roomType: 'STD', allotmentMode: 'FIXED', totalCapacity: 10, unitsSold: 0,
-          rateLines: [{ id: 'rl1', price: 10000, priceBasis: 'PER_ROOM_PER_NIGHT', occupancy: 'dvokrevetna', cribFeePerNight: null, boardType: 'BB', agePricing: [] }],
+          id: 'period1',
+          roomType: 'STD',
+          allotmentMode: 'FIXED',
+          totalCapacity: 10,
+          unitsSold: 0,
+          rateLines: [
+            {
+              id: 'rl1',
+              price: 10000,
+              priceBasis: 'PER_ROOM_PER_NIGHT',
+              occupancy: 'dvokrevetna',
+              cribFeePerNight: null,
+              boardType: 'BB',
+              agePricing: [],
+            },
+          ],
           cancellationRules: [],
         },
       ]);
@@ -657,8 +969,22 @@ describe('SearchService (M5 spec §3.0b/§11)', () => {
       prisma.product.findMany.mockResolvedValue([baseProduct]);
       prisma.contractPeriod.findMany.mockResolvedValue([
         {
-          id: 'period1', roomType: 'STD', allotmentMode: 'FIXED', totalCapacity: 10, unitsSold: 0,
-          rateLines: [{ id: 'rl1', price: 10000, priceBasis: 'PER_ROOM_PER_NIGHT', occupancy: 'dvokrevetna', cribFeePerNight: null, boardType: 'BB', agePricing: [] }],
+          id: 'period1',
+          roomType: 'STD',
+          allotmentMode: 'FIXED',
+          totalCapacity: 10,
+          unitsSold: 0,
+          rateLines: [
+            {
+              id: 'rl1',
+              price: 10000,
+              priceBasis: 'PER_ROOM_PER_NIGHT',
+              occupancy: 'dvokrevetna',
+              cribFeePerNight: null,
+              boardType: 'BB',
+              agePricing: [],
+            },
+          ],
           cancellationRules: [],
         },
       ]);
@@ -675,7 +1001,11 @@ describe('SearchService (M5 spec §3.0b/§11)', () => {
     it('vraća destinacije čiji DestinationProfile.activities[] sadrži traženu aktivnost', async () => {
       const { service, prisma } = makeService();
       prisma.destinationProfile.findMany.mockResolvedValue([
-        { destinationCountry: 'Austrija', destinationCity: 'Bad Klajnkirhajm', activities: ['CYCLING'] },
+        {
+          destinationCountry: 'Austrija',
+          destinationCity: 'Bad Klajnkirhajm',
+          activities: ['CYCLING'],
+        },
       ]);
       prisma.product.findMany.mockResolvedValue([]);
 
@@ -697,12 +1027,23 @@ describe('SearchService (M5 spec §3.0b/§11)', () => {
       ]);
       prisma.product.findMany
         .mockResolvedValueOnce([{ attributes: { activity_type: 'HIKING' } }])
-        .mockResolvedValueOnce([{ attributes: { activity_type: 'HIKING' } }, { attributes: { activity_type: 'HIKING' } }]);
+        .mockResolvedValueOnce([
+          { attributes: { activity_type: 'HIKING' } },
+          { attributes: { activity_type: 'HIKING' } },
+        ]);
 
       const results = await service.suggestDestinationsByActivity('HIKING', 'B2C_SITE');
 
-      expect(results[0]).toEqual({ destinationCountry: 'Crna Gora', destinationCity: 'Žabljak', excursionCount: 2 });
-      expect(results[1]).toEqual({ destinationCountry: 'Srbija', destinationCity: 'Zlatibor', excursionCount: 1 });
+      expect(results[0]).toEqual({
+        destinationCountry: 'Crna Gora',
+        destinationCity: 'Žabljak',
+        excursionCount: 2,
+      });
+      expect(results[1]).toEqual({
+        destinationCountry: 'Srbija',
+        destinationCity: 'Zlatibor',
+        excursionCount: 1,
+      });
     });
 
     it('vraća praznu listu kad nijedna destinacija ne podržava traženu aktivnost', async () => {

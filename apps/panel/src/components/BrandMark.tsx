@@ -38,11 +38,17 @@ export function BrandLogoFull({ heightPx }: { heightPx: number }) {
   return (
     <span className="flex flex-shrink-0 items-center">
       <TSymbol heightPx={heightPx} />
-      <span className="font-brand truncate font-bold tracking-wide" style={{ ...textStyle, fontSize: heightPx * 0.7 }}>
+      <span
+        className="font-brand truncate font-bold tracking-wide"
+        style={{ ...textStyle, fontSize: heightPx * 0.7 }}
+      >
         erminal
       </span>
       <TSymbol heightPx={heightPx} className="ml-1.5" />
-      <span className="font-brand truncate font-bold tracking-wide" style={{ ...textStyle, fontSize: heightPx * 0.7 }}>
+      <span
+        className="font-brand truncate font-bold tracking-wide"
+        style={{ ...textStyle, fontSize: heightPx * 0.7 }}
+      >
         ravel
       </span>
     </span>

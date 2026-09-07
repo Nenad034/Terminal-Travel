@@ -15,10 +15,20 @@ describe('ReferenceMatcherService (M22 spec §3.1a)', () => {
     const { service, prisma } = makeService();
     prisma.supplierManifest.findUnique.mockResolvedValue({ id: 'sm-1' });
 
-    const result = await service.match('Potvrda [REF: TT-000123]', 'telo poruke', 'hotel@dobavljac.rs');
+    const result = await service.match(
+      'Potvrda [REF: TT-000123]',
+      'telo poruke',
+      'hotel@dobavljac.rs',
+    );
 
-    expect(result).toEqual({ matchType: 'EXACT_REFERENCE', relatedSupplierManifestId: 'sm-1', relatedSupplierChangeNoticeId: null });
-    expect(prisma.supplierManifest.findUnique).toHaveBeenCalledWith({ where: { referenceCode: 'TT-000123' } });
+    expect(result).toEqual({
+      matchType: 'EXACT_REFERENCE',
+      relatedSupplierManifestId: 'sm-1',
+      relatedSupplierChangeNoticeId: null,
+    });
+    expect(prisma.supplierManifest.findUnique).toHaveBeenCalledWith({
+      where: { referenceCode: 'TT-000123' },
+    });
   });
 
   it('izvlači referencu iz tela poruke ako nije u naslovu, poklapa SupplierChangeNotice', async () => {
@@ -26,9 +36,17 @@ describe('ReferenceMatcherService (M22 spec §3.1a)', () => {
     prisma.supplierManifest.findUnique.mockResolvedValue(null);
     prisma.supplierChangeNotice.findUnique.mockResolvedValue({ id: 'scn-1' });
 
-    const result = await service.match('Re: pitanje', 'U vezi promene [ref: tt-000999] hvala', 'x@y.rs');
+    const result = await service.match(
+      'Re: pitanje',
+      'U vezi promene [ref: tt-000999] hvala',
+      'x@y.rs',
+    );
 
-    expect(result).toEqual({ matchType: 'EXACT_REFERENCE', relatedSupplierManifestId: null, relatedSupplierChangeNoticeId: 'scn-1' });
+    expect(result).toEqual({
+      matchType: 'EXACT_REFERENCE',
+      relatedSupplierManifestId: null,
+      relatedSupplierChangeNoticeId: 'scn-1',
+    });
   });
 
   it('bez tačne reference, fuzzy fallback po domenu -> FUZZY_SUGGESTION, jasno drugačiji matchType', async () => {
@@ -52,6 +70,10 @@ describe('ReferenceMatcherService (M22 spec §3.1a)', () => {
 
     const result = await service.match('Bez reference', 'telo', 'nepoznat@negde.rs');
 
-    expect(result).toEqual({ matchType: 'NONE', relatedSupplierManifestId: null, relatedSupplierChangeNoticeId: null });
+    expect(result).toEqual({
+      matchType: 'NONE',
+      relatedSupplierManifestId: null,
+      relatedSupplierChangeNoticeId: null,
+    });
   });
 });

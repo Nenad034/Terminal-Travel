@@ -9,7 +9,6 @@ import SourceActions from './SourceActions';
 import ProposeSourceForm from './ProposeSourceForm';
 import { Badge } from '@/components/ui/badge';
 
-
 interface ArticleSource {
   id: string;
   url: string;
@@ -48,7 +47,10 @@ export default async function IzvoriPage(props: { params: Promise<{ id: string }
   return (
     <div className="p-6">
       <RegisterTab label={`Izvori — ${article.translation?.title ?? params.id.slice(0, 8)}`} />
-      <Link href={`/znanje/${params.id}`} className="mb-3 inline-flex items-center gap-1 text-xs text-ink-faint hover:text-ink">
+      <Link
+        href={`/znanje/${params.id}`}
+        className="mb-3 inline-flex items-center gap-1 text-xs text-ink-faint hover:text-ink"
+      >
         <Icon name="arrow-left" /> nazad na članak
       </Link>
 
@@ -57,9 +59,16 @@ export default async function IzvoriPage(props: { params: Promise<{ id: string }
       <ArticleTabs id={params.id} active="izvori" />
 
       <div className="mb-4 flex flex-col gap-2">
-        {sources.length === 0 && <p className="rounded-lg border border-border bg-panel p-4 text-center text-xs text-ink-faint">Nema predloženih izvora.</p>}
+        {sources.length === 0 && (
+          <p className="rounded-lg border border-border bg-panel p-4 text-center text-xs text-ink-faint">
+            Nema predloženih izvora.
+          </p>
+        )}
         {sources.map((s) => (
-          <div key={s.id} className="flex items-start justify-between gap-3 rounded-lg border border-border bg-panel p-3 text-xs">
+          <div
+            key={s.id}
+            className="flex items-start justify-between gap-3 rounded-lg border border-border bg-panel p-3 text-xs"
+          >
             <div className="min-w-0">
               <div className="flex items-center gap-2">
                 <span className="truncate font-medium text-ink">{s.url}</span>
@@ -67,10 +76,13 @@ export default async function IzvoriPage(props: { params: Promise<{ id: string }
               </div>
               <div className="mt-1 text-[11px] text-ink-faint">
                 {s.sourceType} · dodato {new Date(s.createdAt).toLocaleString('sr-RS')}
-                {s.approvedBy && ` · odobrio ${s.approvedBy} (${s.approvedAt ? new Date(s.approvedAt).toLocaleString('sr-RS') : ''})`}
+                {s.approvedBy &&
+                  ` · odobrio ${s.approvedBy} (${s.approvedAt ? new Date(s.approvedAt).toLocaleString('sr-RS') : ''})`}
               </div>
             </div>
-            {canApprove && s.status === 'CANDIDATE' && <SourceActions articleId={params.id} sourceId={s.id} />}
+            {canApprove && s.status === 'CANDIDATE' && (
+              <SourceActions articleId={params.id} sourceId={s.id} />
+            )}
           </div>
         ))}
       </div>

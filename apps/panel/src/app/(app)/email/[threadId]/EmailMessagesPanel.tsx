@@ -26,7 +26,15 @@ interface EmailMessage {
 // nacrt nikad nema `sentBy` pri kreiranju (§4) — jedini put je "pošalji" dugme ovde (POST
 // .../messages/:messageId/send, ljudska potvrda). `aiSummary` se prikazuje samo za INBOUND
 // poruke (§2.4 — popunjeno kad AI sažme sadržaj dolazne poruke).
-export default function EmailMessagesPanel({ threadId, messages, canReply }: { threadId: string; messages: EmailMessage[]; canReply: boolean }) {
+export default function EmailMessagesPanel({
+  threadId,
+  messages,
+  canReply,
+}: {
+  threadId: string;
+  messages: EmailMessage[];
+  canReply: boolean;
+}) {
   return (
     <div className="rounded-lg border border-border bg-panel p-4">
       <div className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-ink">
@@ -68,7 +76,8 @@ export default function EmailMessagesPanel({ threadId, messages, canReply }: { t
                   // Ovo je vidljiva polovina nalaza 1.2: dok isporuke nema, ekran to KAŽE, umesto
                   // da ćuti i ostavi utisak da je dobavljač obavešten.
                   <p className="mt-1 flex items-center gap-1 text-[11px] text-warn">
-                    <Icon name="warning" /> čeka slanje — {m.sentBy} je pokušao, poruka još nije otišla
+                    <Icon name="warning" /> čeka slanje — {m.sentBy} je pokušao, poruka još nije
+                    otišla
                   </p>
                 )
               )}
@@ -96,8 +105,16 @@ function NewMessageForm({ threadId }: { threadId: string }) {
 
   return (
     <form action={formAction} className="flex flex-col gap-2 border-t border-border pt-3">
-      {state.error && <p className="rounded bg-danger-bg p-2 text-[11px] text-danger">{state.error}</p>}
-      <textarea name="body" required rows={3} placeholder="odgovor korespondentu" className="input" />
+      {state.error && (
+        <p className="rounded bg-danger-bg p-2 text-[11px] text-danger">{state.error}</p>
+      )}
+      <textarea
+        name="body"
+        required
+        rows={3}
+        placeholder="odgovor korespondentu"
+        className="input"
+      />
       <label className="flex items-center gap-2 text-[11px] text-ink-dim">
         <input type="checkbox" name="send" className="h-3.5 w-3.5" />
         pošalji odmah (bez ovoga ostaje nacrt do potvrde)
@@ -118,7 +135,15 @@ function SubmitButton() {
 
 // `retry` (5.9.2026) — ista ruta, drugačija reč: poruka koju je neko već pokušao da pošalje
 // nije nacrt koji čeka odobrenje, nego pokušaj koji nije prošao (dok. 39 nalaz 1.2).
-function SendDraftButton({ threadId, messageId, retry }: { threadId: string; messageId: string; retry?: boolean }) {
+function SendDraftButton({
+  threadId,
+  messageId,
+  retry,
+}: {
+  threadId: string;
+  messageId: string;
+  retry?: boolean;
+}) {
   const boundAction = sendEmailDraft.bind(null, threadId, messageId);
   const [state, formAction] = useActionState(boundAction, initialState);
   return (
@@ -132,7 +157,13 @@ function SendDraftButton({ threadId, messageId, retry }: { threadId: string; mes
 function SendSubmit({ retry }: { retry?: boolean }) {
   const { pending } = useFormStatus();
   return (
-    <Button type="submit" disabled={pending} variant="outline" size="sm" className="h-auto border-accent px-2 py-0.5 text-accent-strong hover:bg-accent-soft">
+    <Button
+      type="submit"
+      disabled={pending}
+      variant="outline"
+      size="sm"
+      className="h-auto border-accent px-2 py-0.5 text-accent-strong hover:bg-accent-soft"
+    >
       {pending ? 'Šaljem…' : retry ? 'pošalji ponovo' : 'pošalji'}
     </Button>
   );

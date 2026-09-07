@@ -9,7 +9,13 @@ const initialState: FormState = { error: null };
 
 // M23 spec §2.3/§4b/§8 — POST .../sources/:sourceId/approve|reject, zahteva
 // M23/article-source/APPROVE, nikad AI (assertHumanActor sprovodi na nivou koda).
-export default function SourceActions({ articleId, sourceId }: { articleId: string; sourceId: string }) {
+export default function SourceActions({
+  articleId,
+  sourceId,
+}: {
+  articleId: string;
+  sourceId: string;
+}) {
   const approveAction = reviewSource.bind(null, articleId, sourceId, 'approve');
   const rejectAction = reviewSource.bind(null, articleId, sourceId, 'reject');
   const [approveState, approveFormAction] = useActionState(approveAction, initialState);
@@ -43,7 +49,13 @@ function ApproveBtn() {
 function RejectBtn() {
   const { pending } = useFormStatus();
   return (
-    <Button type="submit" disabled={pending} variant="outline" size="sm" className="hover:border-danger hover:text-danger">
+    <Button
+      type="submit"
+      disabled={pending}
+      variant="outline"
+      size="sm"
+      className="hover:border-danger hover:text-danger"
+    >
       {pending ? 'Odbijam…' : 'odbij'}
     </Button>
   );

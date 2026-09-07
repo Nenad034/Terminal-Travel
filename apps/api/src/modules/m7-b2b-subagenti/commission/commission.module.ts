@@ -16,7 +16,13 @@ import { ClientAccountsModule } from '../../m6-crm/client-accounts/client-accoun
 // FiscalDocumentsModule (M10) i ClientAccountsModule (M6) su uvezeni radi FiscalDocumentBridgeService
 // (M10 spec §5.1a) — smer M7→M10/M6, nikad obrnuto (vidi napomenu u fiscal-document-bridge.service.ts).
 @Module({
-  imports: [AuditLogModule, AuthModule, PermissionsModule, FiscalDocumentsModule, ClientAccountsModule],
+  imports: [
+    AuditLogModule,
+    AuthModule,
+    PermissionsModule,
+    FiscalDocumentsModule,
+    ClientAccountsModule,
+  ],
   controllers: [CommissionController],
   providers: [
     CommissionAuthorityService,

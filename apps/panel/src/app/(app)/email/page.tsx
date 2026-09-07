@@ -7,7 +7,6 @@ import TabLink from '@/components/TabLink';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 
-
 interface EmailThread {
   id: string;
   mailboxId: string;
@@ -29,11 +28,9 @@ const CORRESPONDENT_TYPES = ['GUEST', 'SUBAGENT', 'SUPPLIER', 'OTHER'];
 // `mailbox.displayName` (čisto proširenje payload-a već autorizovanog upita — pozivalac već ima
 // MailboxAccess na svako sanduče koje ovde vidi), pa se GET /email/mailboxes (M22/mailbox/VIEW,
 // Vlasnik/Direktor) više ne mora pozivati samo da bi se ime sandučeta prikazalo.
-export default async function EmailInboxPage(
-  props: {
-    searchParams: Promise<{ mailboxId?: string; status?: string; correspondentType?: string }>;
-  }
-) {
+export default async function EmailInboxPage(props: {
+  searchParams: Promise<{ mailboxId?: string; status?: string; correspondentType?: string }>;
+}) {
   const searchParams = await props.searchParams;
   const me = await getMe();
   const canManageMailboxes = hasPermission(me, 'M22', 'mailbox', 'VIEW');
@@ -43,7 +40,8 @@ export default async function EmailInboxPage(
   try {
     threads = await apiFetch<EmailThread[]>('/email/threads');
   } catch {
-    error = 'Nemate pristup nijednoj niti (M22/email-thread/VIEW, ili nemate MailboxAccess ni za jedno sanduče — spec §2.2).';
+    error =
+      'Nemate pristup nijednoj niti (M22/email-thread/VIEW, ili nemate MailboxAccess ni za jedno sanduče — spec §2.2).';
   }
 
   const mailboxMap = new Map(threads.map((t) => [t.mailboxId, t.mailbox]));
@@ -95,7 +93,11 @@ export default async function EmailInboxPage(
               </option>
             ))}
           </select>
-          <select name="correspondentType" defaultValue={searchParams?.correspondentType ?? ''} className="input">
+          <select
+            name="correspondentType"
+            defaultValue={searchParams?.correspondentType ?? ''}
+            className="input"
+          >
             <option value="">svi tipovi korespondenta</option>
             {CORRESPONDENT_TYPES.map((c) => (
               <option key={c} value={c}>
@@ -124,7 +126,9 @@ export default async function EmailInboxPage(
 
       {!error && (
         <div className="overflow-hidden rounded-lg border border-border">
-          {filtered.length === 0 && <p className="p-4 text-center text-xs text-ink-faint">Nema niti.</p>}
+          {filtered.length === 0 && (
+            <p className="p-4 text-center text-xs text-ink-faint">Nema niti.</p>
+          )}
           {filtered.map((t) => (
             <TabLink
               key={t.id}
@@ -142,7 +146,8 @@ export default async function EmailInboxPage(
                   )}
                 </div>
                 <div className="text-xs text-ink-faint">
-                  {mailboxLabel(t.mailboxId)} · {t.correspondentType} · {new Date(t.lastMessageAt).toLocaleString('sr-RS')}
+                  {mailboxLabel(t.mailboxId)} · {t.correspondentType} ·{' '}
+                  {new Date(t.lastMessageAt).toLocaleString('sr-RS')}
                 </div>
               </div>
               <StatusBadge status={t.status} />
@@ -155,11 +160,12 @@ export default async function EmailInboxPage(
 }
 
 function StatusBadge({ status }: { status: string }) {
-  if (status === 'CLOSED') return (
-    <Badge variant="secondary" className="text-ink-faint">
-      {status}
-    </Badge>
-  );
+  if (status === 'CLOSED')
+    return (
+      <Badge variant="secondary" className="text-ink-faint">
+        {status}
+      </Badge>
+    );
   if (status === 'AWAITING_REPLY') return <Badge variant="warn">{status}</Badge>;
   return (
     <Badge variant="secondary" className="bg-accent-soft text-accent-strong">

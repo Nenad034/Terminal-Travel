@@ -71,7 +71,11 @@ export function LoginScreen({ onSuccess }: { onSuccess: (role: string) => void }
           autoFocus
         />
         <Pressable style={styles.button} onPress={onMfaSubmit} disabled={pending}>
-          {pending ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Potvrdi</Text>}
+          {pending ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.buttonText}>Potvrdi</Text>
+          )}
         </Pressable>
       </View>
     );
@@ -91,9 +95,19 @@ export function LoginScreen({ onSuccess }: { onSuccess: (role: string) => void }
         keyboardType="email-address"
         autoFocus
       />
-      <TextInput style={styles.input} value={password} onChangeText={setPassword} placeholder="lozinka" secureTextEntry />
+      <TextInput
+        style={styles.input}
+        value={password}
+        onChangeText={setPassword}
+        placeholder="lozinka"
+        secureTextEntry
+      />
       <Pressable style={styles.button} onPress={onCredentialsSubmit} disabled={pending}>
-        {pending ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Prijavi se</Text>}
+        {pending ? (
+          <ActivityIndicator color="#fff" />
+        ) : (
+          <Text style={styles.buttonText}>Prijavi se</Text>
+        )}
       </Pressable>
       <Pressable onPress={() => router.push('/registracija')}>
         <Text style={styles.link}>Nemate nalog? Registrujte se</Text>
@@ -107,7 +121,13 @@ const styles = StyleSheet.create({
   title: { fontSize: 24, fontWeight: '700' },
   hint: { color: '#666', marginBottom: 8 },
   input: { borderWidth: 1, borderColor: '#ccc', borderRadius: 8, padding: 12, fontSize: 16 },
-  button: { backgroundColor: '#1a4d8f', borderRadius: 8, padding: 14, alignItems: 'center', marginTop: 8 },
+  button: {
+    backgroundColor: '#1a4d8f',
+    borderRadius: 8,
+    padding: 14,
+    alignItems: 'center',
+    marginTop: 8,
+  },
   buttonText: { color: '#fff', fontWeight: '600', fontSize: 16 },
   error: { color: '#b00020' },
   link: { textAlign: 'center', color: '#1a4d8f', marginTop: 12 },

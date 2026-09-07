@@ -22,15 +22,22 @@ export class SupplierDraftService {
     private readonly invocationLog: AgentInvocationLogService,
   ) {}
 
-  async draftReply(conversationId: string, dto: DraftReplyDto, actorUserId: string): Promise<{ draft: string | null; note?: string }> {
-    const conversation = await this.prisma.conversation.findUnique({ where: { id: conversationId } });
+  async draftReply(
+    conversationId: string,
+    dto: DraftReplyDto,
+    actorUserId: string,
+  ): Promise<{ draft: string | null; note?: string }> {
+    const conversation = await this.prisma.conversation.findUnique({
+      where: { id: conversationId },
+    });
     if (!conversation || conversation.type !== 'EXTERNAL_SUPPLIER') {
       throw new NotFoundException(`EXTERNAL_SUPPLIER razgovor ${conversationId} nije pronađen.`);
     }
     const participant = await this.prisma.conversationParticipant.findUnique({
       where: { conversationId_userId: { conversationId, userId: actorUserId } },
     });
-    if (!participant) throw new ForbiddenException('Nemate pristup ovom razgovoru (SupplierConversationAccess).');
+    if (!participant)
+      throw new ForbiddenException('Nemate pristup ovom razgovoru (SupplierConversationAccess).');
 
     const messages = await this.prisma.message.findMany({
       where: { conversationId, deletedAt: null },
@@ -44,7 +51,10 @@ export class SupplierDraftService {
     }
 
     if (!this.anthropic.isConfigured()) {
-      return { draft: null, note: 'AI nacrt trenutno nije dostupan (ANTHROPIC_API_KEY nije podešen na serveru).' };
+      return {
+        draft: null,
+        note: 'AI nacrt trenutno nije dostupan (ANTHROPIC_API_KEY nije podešen na serveru).',
+      };
     }
 
     try {
@@ -91,10 +101,13 @@ export class SupplierDraftService {
       system: systemPrompt,
       messages: [{ role: 'user', content: userPrompt }],
     });
-    const textBlock = response.content.find((b: any) => b.type === 'text') as { text: string } | undefined;
+    const textBlock = response.content.find((b: any) => b.type === 'text') as
+      { text: string } | undefined;
     const draft = textBlock?.text ?? '';
 
-    const agent = await this.prisma.aIAgent.findFirst({ where: { agentRole: 'SUPPLIER_DRAFT_AGENT' } });
+    const agent = await this.prisma.aIAgent.findFirst({
+      where: { agentRole: 'SUPPLIER_DRAFT_AGENT' },
+    });
     if (agent) {
       await this.invocationLog.record({
         agentId: agent.id,

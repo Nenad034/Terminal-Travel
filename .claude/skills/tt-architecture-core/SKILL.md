@@ -20,16 +20,16 @@ Za rad **unutar** jednog već specifikovanog modula (npr. "dodaj polje u M5 reze
 
 ## Šta pročitati u `docs/00-MASTER-ARHITEKTURA.md`
 
-| Poglavlje | Sadržaj | Kad je bitno |
-| :---- | :---- | :---- |
-| 1. Vizija i obim | Strateški kontekst, šta dokument NIJE | Orijentacija novog agenta |
-| 2. Poslovni pojmovnik | Domain glossary | Kad termin nije jasan iz konteksta |
-| 3. Pet vodećih principa | Jedan izvor istine, moduli su granice, provajderi su adapteri, determinizam pre autonomije, sve se revidira | **Uvek** kad zadatak prelazi granicu jednog modula |
-| 4. Mapa modula | Tabela M1–M21, zavisnosti | Kad treba proveriti zavisnost (i onda učitaj `tt-m<broj>-*` odgovarajućeg modula) |
-| 5. Referentna arhitektura | Dijagram slojeva, ko sme da zove koga | Kad zadatak dodaje novu integraciju ili kanal |
-| 7. Model upravljanja AI agentima (M15) | Pravila ovlašćenja za AI agente kroz ceo sistem | Svaki put kad AI agent dobija izvršnu ulogu, ne samo asistivnu |
-| 8. Fazni plan | Faza 0 → Faza 7, redosled izgradnje | Pre nego što predložiš da se nešto gradi van reda |
-| 9. Bezbednosni i regulatorni baseline | Lični/zdravstveni podaci, EU lokacija, zakonska usklađenost | Svaki modul koji dodiruje podatke o gostima ili plaćanje |
+| Poglavlje                              | Sadržaj                                                                                                     | Kad je bitno                                                                      |
+| :------------------------------------- | :---------------------------------------------------------------------------------------------------------- | :-------------------------------------------------------------------------------- |
+| 1. Vizija i obim                       | Strateški kontekst, šta dokument NIJE                                                                       | Orijentacija novog agenta                                                         |
+| 2. Poslovni pojmovnik                  | Domain glossary                                                                                             | Kad termin nije jasan iz konteksta                                                |
+| 3. Pet vodećih principa                | Jedan izvor istine, moduli su granice, provajderi su adapteri, determinizam pre autonomije, sve se revidira | **Uvek** kad zadatak prelazi granicu jednog modula                                |
+| 4. Mapa modula                         | Tabela M1–M21, zavisnosti                                                                                   | Kad treba proveriti zavisnost (i onda učitaj `tt-m<broj>-*` odgovarajućeg modula) |
+| 5. Referentna arhitektura              | Dijagram slojeva, ko sme da zove koga                                                                       | Kad zadatak dodaje novu integraciju ili kanal                                     |
+| 7. Model upravljanja AI agentima (M15) | Pravila ovlašćenja za AI agente kroz ceo sistem                                                             | Svaki put kad AI agent dobija izvršnu ulogu, ne samo asistivnu                    |
+| 8. Fazni plan                          | Faza 0 → Faza 7, redosled izgradnje                                                                         | Pre nego što predložiš da se nešto gradi van reda                                 |
+| 9. Bezbednosni i regulatorni baseline  | Lični/zdravstveni podaci, EU lokacija, zakonska usklađenost                                                 | Svaki modul koji dodiruje podatke o gostima ili plaćanje                          |
 
 ## Tvrdo pravilo (iz CLAUDE.md)
 

@@ -14,10 +14,13 @@ export async function GET(_req: NextRequest, props: { params: Promise<{ attachme
   const session = await getSession();
   if (!session) return NextResponse.json({ message: 'Nema aktivne sesije' }, { status: 401 });
 
-  const res = await fetch(`${API_BASE_URL}/chat/conversations/attachments/${params.attachmentId}/download`, {
-    headers: { Authorization: `Bearer ${session.accessToken}` },
-    cache: 'no-store',
-  });
+  const res = await fetch(
+    `${API_BASE_URL}/chat/conversations/attachments/${params.attachmentId}/download`,
+    {
+      headers: { Authorization: `Bearer ${session.accessToken}` },
+      cache: 'no-store',
+    },
+  );
 
   if (!res.ok || !res.body) {
     return NextResponse.json({ message: 'Prilog nije pronađen.' }, { status: res.status || 404 });

@@ -1,4 +1,13 @@
-import { IsArray, IsBoolean, IsDateString, IsEnum, IsInt, IsNumber, IsOptional, ValidateIf } from 'class-validator';
+import {
+  IsArray,
+  IsBoolean,
+  IsDateString,
+  IsEnum,
+  IsInt,
+  IsNumber,
+  IsOptional,
+  ValidateIf,
+} from 'class-validator';
 import { OfferDiscountType, PricelistOfferType } from '@prisma/client';
 
 // M3 spec §2.4b — dopuna v1.12. `PUT` uvek KREIRA novi red (isti obrazac kao UpsertRateLineDto).

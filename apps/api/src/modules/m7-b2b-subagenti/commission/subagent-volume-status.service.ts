@@ -1,5 +1,11 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { CommissionVolumeMetric, CommissionVolumePeriod, CommissionVolumeTier, Subagent, SubagentVolumeStatus } from '@prisma/client';
+import {
+  CommissionVolumeMetric,
+  CommissionVolumePeriod,
+  CommissionVolumeTier,
+  Subagent,
+  SubagentVolumeStatus,
+} from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { AuditLogService } from '../../m1-core-identitet/audit-log/audit-log.service';
 import { CommissionRebatesService } from './commission-rebates.service';
@@ -31,7 +37,10 @@ export class SubagentVolumeStatusService {
   }
 
   async get(subagentId: string) {
-    const status = await this.prisma.subagentVolumeStatus.findUnique({ where: { subagentId }, include: { currentTier: true } });
+    const status = await this.prisma.subagentVolumeStatus.findUnique({
+      where: { subagentId },
+      include: { currentTier: true },
+    });
     if (status) return status;
 
     // Nema još nijednog preračuna — efektivna provizija je osnovna (§3.1: "inače Subagent.
@@ -60,7 +69,10 @@ export class SubagentVolumeStatusService {
   // Poziva se iz M7EventSubscribersService na booking.confirmed/booking.cancelled.
   async recalculate(subagentId: string): Promise<SubagentVolumeStatus> {
     const subagent = await this.findSubagentOrThrow(subagentId);
-    const tiers = await this.prisma.commissionVolumeTier.findMany({ where: { subagentId }, orderBy: { rank: 'desc' } });
+    const tiers = await this.prisma.commissionVolumeTier.findMany({
+      where: { subagentId },
+      orderBy: { rank: 'desc' },
+    });
     const now = new Date();
 
     let matchedTier: CommissionVolumeTier | null = null;
@@ -75,7 +87,12 @@ export class SubagentVolumeStatusService {
     } else {
       for (const tier of tiers) {
         const bounds = this.periodBounds(tier.thresholdPeriod, now);
-        const value = await this.computeMetric(subagent.clientAccountId, tier.thresholdMetric, bounds.start, bounds.end);
+        const value = await this.computeMetric(
+          subagent.clientAccountId,
+          tier.thresholdMetric,
+          bounds.start,
+          bounds.end,
+        );
         if (value >= Number(tier.thresholdValue)) {
           matchedTier = tier;
           metricValue = value;
@@ -87,7 +104,12 @@ export class SubagentVolumeStatusService {
       if (!matchedTier) {
         const lowest = tiers[tiers.length - 1];
         const bounds = this.periodBounds(lowest.thresholdPeriod, now);
-        metricValue = await this.computeMetric(subagent.clientAccountId, lowest.thresholdMetric, bounds.start, bounds.end);
+        metricValue = await this.computeMetric(
+          subagent.clientAccountId,
+          lowest.thresholdMetric,
+          bounds.start,
+          bounds.end,
+        );
         periodStart = bounds.start;
         periodEnd = bounds.end;
       }
@@ -125,7 +147,14 @@ export class SubagentVolumeStatusService {
     // §3.2 — retroaktivni rabat: SAMO na prelazak (tierChanged) ka novom tier-u koji je
     // retroactive=true, usred perioda (postoji prethodno stanje, tj. nije prvi preračun).
     if (tierChanged && matchedTier?.retroactive && existing) {
-      await this.maybeCreateRetroactiveRebate(subagent.clientAccountId, subagentId, matchedTier, existing, periodStart!, periodEnd!);
+      await this.maybeCreateRetroactiveRebate(
+        subagent.clientAccountId,
+        subagentId,
+        matchedTier,
+        existing,
+        periodStart!,
+        periodEnd!,
+      );
     }
 
     // §3 ograda dopuna — ako roditeljev obimski bonus istekne i njegova efektivna provizija
@@ -138,10 +167,18 @@ export class SubagentVolumeStatusService {
   // §3.1 ograda dopuna — upozorenje se upisuje kao append-only audit log zapis (actorType SYSTEM),
   // NE menja Subagent.commission_percentage deteta — princip #4 Master dokumenta (determinizam
   // pre autonomije): tiho menjanje već dogovorene provizije bez ljudske odluke nije prihvatljivo.
-  private async warnIfChildrenExceedNewCeiling(subagentId: string, newEffectiveCeiling: number): Promise<void> {
-    const children = await this.prisma.subagent.findMany({ where: { parentSubagentId: subagentId } });
+  private async warnIfChildrenExceedNewCeiling(
+    subagentId: string,
+    newEffectiveCeiling: number,
+  ): Promise<void> {
+    const children = await this.prisma.subagent.findMany({
+      where: { parentSubagentId: subagentId },
+    });
     for (const child of children) {
-      if (child.commissionPercentage != null && Number(child.commissionPercentage) > newEffectiveCeiling) {
+      if (
+        child.commissionPercentage != null &&
+        Number(child.commissionPercentage) > newEffectiveCeiling
+      ) {
         await this.auditLog.write({
           actorType: 'SYSTEM',
           module: 'M7',
@@ -152,7 +189,8 @@ export class SubagentVolumeStatusService {
             parentSubagentId: subagentId,
             childCommissionPercentage: Number(child.commissionPercentage),
             parentNewEffectiveCommissionPercentage: newEffectiveCeiling,
-            message: 'Roditeljeva efektivna provizija je pala ispod već postavljene provizije deteta — potreban ljudski pregled (M7 spec §3.1).',
+            message:
+              'Roditeljeva efektivna provizija je pala ispod već postavljene provizije deteta — potreban ljudski pregled (M7 spec §3.1).',
           },
         });
       }
@@ -168,7 +206,9 @@ export class SubagentVolumeStatusService {
     periodEnd: Date,
   ): Promise<void> {
     const previousTier = previousStatus.currentTierId
-      ? await this.prisma.commissionVolumeTier.findUnique({ where: { id: previousStatus.currentTierId } })
+      ? await this.prisma.commissionVolumeTier.findUnique({
+          where: { id: previousStatus.currentTierId },
+        })
       : null;
 
     const bookings = await this.prisma.booking.findMany({
@@ -187,7 +227,10 @@ export class SubagentVolumeStatusService {
     const newFixed = Number(newTier.resultingCommissionFixedAmount ?? 0);
     const oldFixed = Number(previousTier?.resultingCommissionFixedAmount ?? 0);
 
-    const percentagePart = bookings.reduce((sum, b) => sum + (b.totalPrice * (newPercentage - oldPercentage)) / 100, 0);
+    const percentagePart = bookings.reduce(
+      (sum, b) => sum + (b.totalPrice * (newPercentage - oldPercentage)) / 100,
+      0,
+    );
     const fixedPart = bookings.length * (newFixed - oldFixed);
     const rebateAmount = Math.round(percentagePart + fixedPart);
 
@@ -207,7 +250,9 @@ export class SubagentVolumeStatusService {
     if (period === 'CALENDAR_QUARTER') {
       const quarterStartMonth = Math.floor(now.getUTCMonth() / 3) * 3;
       const start = new Date(Date.UTC(now.getUTCFullYear(), quarterStartMonth, 1));
-      const end = new Date(Date.UTC(now.getUTCFullYear(), quarterStartMonth + 3, 0, 23, 59, 59, 999));
+      const end = new Date(
+        Date.UTC(now.getUTCFullYear(), quarterStartMonth + 3, 0, 23, 59, 59, 999),
+      );
       return { start, end };
     }
     if (period === 'ROLLING_12_MONTHS') {
@@ -220,7 +265,12 @@ export class SubagentVolumeStatusService {
     };
   }
 
-  private async computeMetric(clientAccountId: string, metric: CommissionVolumeMetric, since: Date, until: Date): Promise<number> {
+  private async computeMetric(
+    clientAccountId: string,
+    metric: CommissionVolumeMetric,
+    since: Date,
+    until: Date,
+  ): Promise<number> {
     const bookingWhere = {
       clientAccountId,
       status: { not: 'CANCELLED' as const },
@@ -231,7 +281,10 @@ export class SubagentVolumeStatusService {
       return this.prisma.booking.count({ where: bookingWhere });
     }
     if (metric === 'TOTAL_SALES_RSD') {
-      const agg = await this.prisma.booking.aggregate({ where: { ...bookingWhere, currency: 'RSD' }, _sum: { totalPrice: true } });
+      const agg = await this.prisma.booking.aggregate({
+        where: { ...bookingWhere, currency: 'RSD' },
+        _sum: { totalPrice: true },
+      });
       return agg._sum.totalPrice ?? 0;
     }
     // NIGHT_COUNT
@@ -239,6 +292,10 @@ export class SubagentVolumeStatusService {
       where: { itemStatus: { not: 'CANCELLED' }, booking: bookingWhere },
       select: { stayFrom: true, stayTo: true },
     });
-    return items.reduce((sum, i) => sum + Math.max(0, Math.round((i.stayTo.getTime() - i.stayFrom.getTime()) / 86_400_000)), 0);
+    return items.reduce(
+      (sum, i) =>
+        sum + Math.max(0, Math.round((i.stayTo.getTime() - i.stayFrom.getTime()) / 86_400_000)),
+      0,
+    );
   }
 }

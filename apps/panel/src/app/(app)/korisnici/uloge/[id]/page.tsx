@@ -53,7 +53,9 @@ export default async function UlogaPage({ params }: { params: Promise<{ id: stri
   if (error || !role) {
     return (
       <div className="p-6">
-        <p className="rounded bg-danger-bg p-3 text-sm text-danger">{error ?? 'Uloga nije pronađena.'}</p>
+        <p className="rounded bg-danger-bg p-3 text-sm text-danger">
+          {error ?? 'Uloga nije pronađena.'}
+        </p>
       </div>
     );
   }
@@ -65,8 +67,8 @@ export default async function UlogaPage({ params }: { params: Promise<{ id: stri
           <h1 className="text-lg font-semibold text-ink">{role.name}</h1>
           <p className="text-xs text-ink-dim">{role.description}</p>
           <p className="mt-1 text-[11px] text-ink-faint">
-            {role._count.userRoles} {role._count.userRoles === 1 ? 'nosilac' : 'nosilaca'} · izmena važi odmah, bez
-            ponovne prijave
+            {role._count.userRoles} {role._count.userRoles === 1 ? 'nosilac' : 'nosilaca'} · izmena
+            važi odmah, bez ponovne prijave
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -75,7 +77,10 @@ export default async function UlogaPage({ params }: { params: Promise<{ id: stri
               sistemska
             </Badge>
           )}
-          <Link href="/korisnici/uloge" className="flex items-center gap-1.5 text-xs text-ink-faint hover:text-ink">
+          <Link
+            href="/korisnici/uloge"
+            className="flex items-center gap-1.5 text-xs text-ink-faint hover:text-ink"
+          >
             <Icon name="arrow-left" /> nazad na uloge
           </Link>
         </div>
@@ -83,7 +88,8 @@ export default async function UlogaPage({ params }: { params: Promise<{ id: stri
 
       {!canEdit && (
         <p className="mb-3 rounded border border-border bg-panel2 p-3 text-xs text-ink-dim">
-          Vidite dozvole ove uloge, ali ih ne možete menjati — za izmenu je potrebna dozvola M1/role/EDIT.
+          Vidite dozvole ove uloge, ali ih ne možete menjati — za izmenu je potrebna dozvola
+          M1/role/EDIT.
         </p>
       )}
 

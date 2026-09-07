@@ -4,6 +4,7 @@
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj, uz izuzetak tačno navedenih mesta gde tačan protokol treba potvrditi pred implementaciju
 **Status:** Implementirano (avgust 2026) — vidi poglavlje 9 za tačan obim; API dokumentacija u `docs/api/M16-mcp-distribucija.md`, objašnjenje za vlasnika u `00-OBJASNJENJE-M16-ZA-VLASNIKA.md` (isti folder)
 **Verzija:** 1.6 — dopuna poglavlja 3.1/10: vlasnikova odluka da ručno `READ_WRITE` odobrenje Vlasnika/Direktora ostaje tvrdo pravilo za početak, uz zabeležen budući pravac labavljenja/ukidanja po MCP alatu i po klijentu (22.8.2026, nije spec, samo zabeležen pravac); v1.5 — dopuna poglavlja 10 (Otvoreno za dalje): `MCPClientRegistration` vezan za konkretnog subagenta, sa M7 cenovnikom/kreditnim limitom umesto B2C cene (22.8.2026, na zahtev vlasnika, strateško pitanje o budućem poslovanju — nije prošlo arhitektonsku proveru); v1.4 — M17 panel ekran `/mcp` dodat (22.8.2026) — lista/registracija/aktivacija/READ_WRITE odobrenje/suspendovanje MCP klijenata sad ima UI (`docs/moduli/M17-interni-panel/11-SPECIFIKACIJA-M17-INTERNI-PANEL.md` v1.73), nijedna izmena API ugovora iz poglavlja 8; v1.3 — dopuna poglavlja 10 (Otvoreno za dalje) o granularnim novčanim limitima po MCP klijentu, povodom analize Phocuswright izveštaja 2026 (22.8.2026, nije spec, čeka mehanizam agentskog plaćanja); v1.2 — implementacija (avgust 2026): protokol potvrđen naspram zvanične specifikacije 2026-07-28 (poglavlje 1.1) neposredno pre pisanja koda — stateless, JSON-RPC 2.0, `@modelcontextprotocol/server`/`@modelcontextprotocol/node` v2 (nova zavisnost, potvrđeno vlasnikom preko AskUserQuestion). Ključne implementacione odluke:
+
 - **Identitet MCP klijenta u postojećem sistemu.** `MCPClientRegistration` pri prelasku `PENDING→ACTIVE` (`POST /mcp-admin/clients/:id/activate`, implementaciona dopuna — spec tabela poglavlja 7 nije imala dozvolu za ovaj korak, dodato `M16/mcp-client/MANAGE`) atomski kreira prateći `ClientAccount` (`LEGAL_ENTITY`) i `User` (`account_type = AI_AGENT`, M1 šema — polje je postojalo od ranije, nikad ožičeno) — isti "sopstveni pool rezervacija" obrazac kao `SUBAGENT_CONTACT` (M7), ne izolacija po pojedinačnom putniku. M5 `resolveApiContext`/`QuotesService.create` dobili malu dopunu da prepoznaju `AI_AGENT` (isto B2C maskiranje, `bookings.service.ts`/`quotes.service.ts`) — vidi M5 spec dopunu.
 - **Kredencijal (poglavlje 3.1 `credentials_encrypted`).** Implementiran kao SHA-256 heš (isti obrazac kao `RefreshToken`/`PasswordResetToken`, `hashToken()`), ne reverzibilna enkripcija — server samo poredi predati Bearer token, nikad ga ne mora ponovo poslati spoljnoj strani. Plaintext kredencijal se vraća tačno jednom, u `POST /mcp-admin/clients` odgovoru.
 - **Autorizacija (poglavlje 5/10, "otvoreno pitanje").** Prvi prolaz: jednostavan unapred-deljen ključ (Bearer = kredencijal iznad), potvrđeno vlasnikom kao svesna odluka. MCP spec 2026-07-28 tretira autorizaciju kao OPCIONU — pun OAuth 2.1 authorization server (dinamička registracija klijenta, PKCE, RFC9728/8414 discovery) je sam po sebi višenedeljni projekat odvojen od poslovne vrednosti (M2/M5 pristup) i ostaje otvorena stavka (dole).
@@ -28,13 +29,13 @@ MCP je 28.7.2026. objavio najveću reviziju specifikacije do sad (Dodatak A Mast
 
 ## 2. Šta se izlaže
 
-| MCP alat (tool) | Interni API iza njega | Napomena |
-| :---- | :---- | :---- |
-| `search_products` | M5 `/search` | isti rezultati, ista već primenjena marža, kao i na M8 |
-| `create_quote` | M5 `/quotes` | |
-| `confirm_booking` | M5 `/quotes/:id/confirm` | zahteva potpune podatke gosta — vidi poglavlje 4 |
-| `get_booking_status` | M5 `/bookings/:id` | |
-| `cancel_booking` | M5 `/bookings/:id/cancel` | |
+| MCP alat (tool)      | Interni API iza njega     | Napomena                                               |
+| :------------------- | :------------------------ | :----------------------------------------------------- |
+| `search_products`    | M5 `/search`              | isti rezultati, ista već primenjena marža, kao i na M8 |
+| `create_quote`       | M5 `/quotes`              |                                                        |
+| `confirm_booking`    | M5 `/quotes/:id/confirm`  | zahteva potpune podatke gosta — vidi poglavlje 4       |
+| `get_booking_status` | M5 `/bookings/:id`        |                                                        |
+| `cancel_booking`     | M5 `/bookings/:id/cancel` |                                                        |
 
 Nema direktnog izlaganja M3/M4 — spoljni AI agent nikad ne vidi ugovore, alotmane, niti direktno zove Travelgate (isto pravilo kao poglavlje 5 Master dokumenta za M8/M9).
 
@@ -43,15 +44,16 @@ Nema direktnog izlaganja M3/M4 — spoljni AI agent nikad ne vidi ugovore, alotm
 ## 3. Registracija i autorizacija eksternih MCP klijenata
 
 ### 3.1 `MCPClientRegistration`
-| Polje | Tip | Napomena |
-| :---- | :---- | :---- |
-| id | UUID (PK) | |
-| client_name | string | npr. "ChatGPT (OpenAI)", "Google", "Sabre MindTrip" |
-| credentials_encrypted | string | isti obrazac kao `ProviderConfig.auth_config_encrypted` u M4 |
-| access_level | enum: `READ_ONLY`, `READ_WRITE` | `READ_WRITE` (potvrda rezervacije) zahteva poslovni dogovor sa tim platformom — nije automatska dodela |
-| status | enum: `PENDING`, `ACTIVE`, `SUSPENDED` | |
-| rate_limit_per_minute | integer | zaštita od zloupotrebe (poglavlje 5) |
-| created_at | timestamp | |
+
+| Polje                 | Tip                                    | Napomena                                                                                               |
+| :-------------------- | :------------------------------------- | :----------------------------------------------------------------------------------------------------- |
+| id                    | UUID (PK)                              |                                                                                                        |
+| client_name           | string                                 | npr. "ChatGPT (OpenAI)", "Google", "Sabre MindTrip"                                                    |
+| credentials_encrypted | string                                 | isti obrazac kao `ProviderConfig.auth_config_encrypted` u M4                                           |
+| access_level          | enum: `READ_ONLY`, `READ_WRITE`        | `READ_WRITE` (potvrda rezervacije) zahteva poslovni dogovor sa tim platformom — nije automatska dodela |
+| status                | enum: `PENDING`, `ACTIVE`, `SUSPENDED` |                                                                                                        |
+| rate_limit_per_minute | integer                                | zaštita od zloupotrebe (poglavlje 5)                                                                   |
+| created_at            | timestamp                              |                                                                                                        |
 
 Novi MCP klijent počinje kao `PENDING`/`READ_ONLY` — prelazak na `READ_WRITE` (mogućnost stvarne rezervacije, dakle stvarnog novca) zahteva ručno odobrenje Vlasnika/Direktora, isti princip opreza kao odobravanje novog subagenta u M7.
 
@@ -81,11 +83,11 @@ Standardi za "agentski" (agentic commerce) plaćanje — kako spoljni AI agent p
 
 ## 7. Dozvole (registruju se u M1 katalog dozvola)
 
-| Dozvola | Podrazumevana dodela po ulozi |
-| :---- | :---- |
-| `M16/mcp-client/VIEW` | Vlasnik, Direktor |
-| `M16/mcp-client/MANAGE` | Vlasnik, Direktor — registracija/aktivacija/suspendovanje klijenta (implementaciona dopuna avgust 2026 — bez ove dozvole niko ne bi mogao ni da registruje prvog MCP klijenta) |
-| `M16/mcp-client/APPROVE_READ_WRITE` | Vlasnik, Direktor — **nikad automatski**, isti princip kao odobravanje subagenta (M7) |
+| Dozvola                             | Podrazumevana dodela po ulozi                                                                                                                                                  |
+| :---------------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `M16/mcp-client/VIEW`               | Vlasnik, Direktor                                                                                                                                                              |
+| `M16/mcp-client/MANAGE`             | Vlasnik, Direktor — registracija/aktivacija/suspendovanje klijenta (implementaciona dopuna avgust 2026 — bez ove dozvole niko ne bi mogao ni da registruje prvog MCP klijenta) |
+| `M16/mcp-client/APPROVE_READ_WRITE` | Vlasnik, Direktor — **nikad automatski**, isti princip kao odobravanje subagenta (M7)                                                                                          |
 
 ---
 

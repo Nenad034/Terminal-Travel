@@ -1,4 +1,9 @@
-import { ForbiddenException, UnauthorizedException, BadRequestException, ConflictException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  UnauthorizedException,
+  BadRequestException,
+  ConflictException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as argon2 from 'argon2';
 import { authenticator } from 'otplib';
@@ -48,8 +53,18 @@ describe('AuthService', () => {
     const eventBus = { emit: jest.fn().mockResolvedValue(undefined) };
     // MailerService bez podešenog SMTP-a nikad ne baca i ne dira poslovnu logiku (common/mail)
     // — u unit testovima je dovoljan mok koji beleži da li je poziv uopšte napravljen.
-    const mailer = { send: jest.fn().mockResolvedValue({ delivered: false }), panelBaseUrl: () => 'http://localhost:3100', isConfigured: () => false };
-    const service = new AuthService(prisma as any, jwt, auditLog as any, eventBus as any, mailer as any);
+    const mailer = {
+      send: jest.fn().mockResolvedValue({ delivered: false }),
+      panelBaseUrl: () => 'http://localhost:3100',
+      isConfigured: () => false,
+    };
+    const service = new AuthService(
+      prisma as any,
+      jwt,
+      auditLog as any,
+      eventBus as any,
+      mailer as any,
+    );
     return { service, prisma, auditLog, eventBus, mailer };
   }
 
@@ -63,14 +78,22 @@ describe('AuthService', () => {
       prisma.user.findUnique.mockResolvedValue({ id: 'postojeci' });
 
       await expect(
-        service.register({ email: 'gost@tt.rs', password: 'lozinka1234567', fullName: 'Gost Gostić' }),
+        service.register({
+          email: 'gost@tt.rs',
+          password: 'lozinka1234567',
+          fullName: 'Gost Gostić',
+        }),
       ).rejects.toThrow(ConflictException);
     });
 
     it('kreira User sa account_type GUEST i status ACTIVE, emituje user.registered.guest, izdaje tokene', async () => {
       const { service, prisma, eventBus } = makeService();
       prisma.user.findUnique.mockResolvedValue(null);
-      prisma.user.create.mockResolvedValue({ id: 'novi-gost', email: 'gost@tt.rs', fullName: 'Gost Gostić' });
+      prisma.user.create.mockResolvedValue({
+        id: 'novi-gost',
+        email: 'gost@tt.rs',
+        fullName: 'Gost Gostić',
+      });
 
       const result = await service.register({
         email: 'gost@tt.rs',
@@ -80,10 +103,18 @@ describe('AuthService', () => {
 
       expect(prisma.user.create).toHaveBeenCalledWith(
         expect.objectContaining({
-          data: expect.objectContaining({ accountType: 'GUEST', status: 'ACTIVE', email: 'gost@tt.rs' }),
+          data: expect.objectContaining({
+            accountType: 'GUEST',
+            status: 'ACTIVE',
+            email: 'gost@tt.rs',
+          }),
         }),
       );
-      expect(eventBus.emit).toHaveBeenCalledWith('M1', 'user.registered.guest', expect.objectContaining({ userId: 'novi-gost' }));
+      expect(eventBus.emit).toHaveBeenCalledWith(
+        'M1',
+        'user.registered.guest',
+        expect.objectContaining({ userId: 'novi-gost' }),
+      );
       expect(result).toHaveProperty('accessToken');
       expect(result).toHaveProperty('refreshToken');
     });
@@ -91,9 +122,17 @@ describe('AuthService', () => {
     it('dodeljuje GOST ulogu novom gostu (assignedBy = sopstveni id)', async () => {
       const { service, prisma } = makeService();
       prisma.user.findUnique.mockResolvedValue(null);
-      prisma.user.create.mockResolvedValue({ id: 'novi-gost', email: 'gost@tt.rs', fullName: 'Gost Gostić' });
+      prisma.user.create.mockResolvedValue({
+        id: 'novi-gost',
+        email: 'gost@tt.rs',
+        fullName: 'Gost Gostić',
+      });
 
-      await service.register({ email: 'gost@tt.rs', password: 'lozinka1234567', fullName: 'Gost Gostić' });
+      await service.register({
+        email: 'gost@tt.rs',
+        password: 'lozinka1234567',
+        fullName: 'Gost Gostić',
+      });
 
       expect(prisma.userRole.create).toHaveBeenCalledWith({
         data: { userId: 'novi-gost', roleId: 'role-gost', assignedBy: 'novi-gost' },
@@ -106,7 +145,9 @@ describe('AuthService', () => {
       const { service, prisma } = makeService();
       prisma.user.findUnique.mockResolvedValue(null);
 
-      await expect(service.login('nepostojeci@tt.rs', 'lozinka123456', null)).rejects.toThrow(UnauthorizedException);
+      await expect(service.login('nepostojeci@tt.rs', 'lozinka123456', null)).rejects.toThrow(
+        UnauthorizedException,
+      );
     });
 
     it('baca ForbiddenException kad je nalog trenutno zaključan', async () => {
@@ -117,14 +158,18 @@ describe('AuthService', () => {
         passwordHash: 'x',
       });
 
-      await expect(service.login('user@tt.rs', 'lozinka123456', null)).rejects.toThrow(ForbiddenException);
+      await expect(service.login('user@tt.rs', 'lozinka123456', null)).rejects.toThrow(
+        ForbiddenException,
+      );
     });
 
     it('baca ForbiddenException kad nalog čeka aktivaciju (nema password_hash)', async () => {
       const { service, prisma } = makeService();
       prisma.user.findUnique.mockResolvedValue({ id: 'u1', lockedUntil: null, passwordHash: null });
 
-      await expect(service.login('user@tt.rs', 'lozinka123456', null)).rejects.toThrow(ForbiddenException);
+      await expect(service.login('user@tt.rs', 'lozinka123456', null)).rejects.toThrow(
+        ForbiddenException,
+      );
     });
 
     it('pogrešna lozinka: povećava brojač neuspešnih pokušaja i piše audit log, ne zaključava pre praga', async () => {
@@ -138,13 +183,17 @@ describe('AuthService', () => {
         status: 'ACTIVE',
       });
 
-      await expect(service.login('user@tt.rs', 'pogresna-lozinka', null)).rejects.toThrow(UnauthorizedException);
+      await expect(service.login('user@tt.rs', 'pogresna-lozinka', null)).rejects.toThrow(
+        UnauthorizedException,
+      );
 
       expect(prisma.user.update).toHaveBeenCalledWith({
         where: { id: 'u1' },
         data: { failedLoginAttempts: 3, lockedUntil: null },
       });
-      expect(auditLog.write).toHaveBeenCalledWith(expect.objectContaining({ action: 'auth.login_failed' }));
+      expect(auditLog.write).toHaveBeenCalledWith(
+        expect.objectContaining({ action: 'auth.login_failed' }),
+      );
     });
 
     it('peti uzastopni neuspeh zaključava nalog na 15 minuta i piše audit log "user.locked" (M1 spec §5)', async () => {
@@ -158,7 +207,9 @@ describe('AuthService', () => {
         status: 'ACTIVE',
       });
 
-      await expect(service.login('user@tt.rs', 'pogresna-lozinka', '1.2.3.4')).rejects.toThrow(UnauthorizedException);
+      await expect(service.login('user@tt.rs', 'pogresna-lozinka', '1.2.3.4')).rejects.toThrow(
+        UnauthorizedException,
+      );
 
       const updateCall = prisma.user.update.mock.calls[0][0];
       expect(updateCall.data.failedLoginAttempts).toBe(0);
@@ -182,7 +233,9 @@ describe('AuthService', () => {
         status: 'SUSPENDED',
       });
 
-      await expect(service.login('user@tt.rs', 'ispravna-lozinka-12', null)).rejects.toThrow(ForbiddenException);
+      await expect(service.login('user@tt.rs', 'ispravna-lozinka-12', null)).rejects.toThrow(
+        ForbiddenException,
+      );
     });
 
     // M1 spec §5 (dopuna 4.9.2026) — pravilo "ne može proći bez 2FA" ostaje; menja se SAMO
@@ -263,20 +316,26 @@ describe('AuthService', () => {
         where: { id: 'u1' },
         data: { failedLoginAttempts: 0, lockedUntil: null },
       });
-      expect(auditLog.write).toHaveBeenCalledWith(expect.objectContaining({ action: 'auth.login_success' }));
+      expect(auditLog.write).toHaveBeenCalledWith(
+        expect.objectContaining({ action: 'auth.login_success' }),
+      );
     });
   });
 
   describe('verifyMfa', () => {
     it('odbija nevažeći/istekao mfaToken', async () => {
       const { service } = makeService();
-      await expect(service.verifyMfa('nije-pravi-jwt', '123456', null, null)).rejects.toThrow(UnauthorizedException);
+      await expect(service.verifyMfa('nije-pravi-jwt', '123456', null, null)).rejects.toThrow(
+        UnauthorizedException,
+      );
     });
 
     it('odbija token koji nije tipa mfa_pending (npr. iznova poslat access token)', async () => {
       const { service } = makeService();
       const wrongTypeToken = jwt.sign({ sub: 'u1', type: 'access' });
-      await expect(service.verifyMfa(wrongTypeToken, '123456', null, null)).rejects.toThrow(UnauthorizedException);
+      await expect(service.verifyMfa(wrongTypeToken, '123456', null, null)).rejects.toThrow(
+        UnauthorizedException,
+      );
     });
 
     it('odbija kad korisnik nema podešen mfaSecretEncrypted', async () => {
@@ -284,16 +343,23 @@ describe('AuthService', () => {
       const mfaToken = jwt.sign({ sub: 'u1', type: 'mfa_pending' });
       prisma.user.findUniqueOrThrow.mockResolvedValue({ id: 'u1', mfaSecretEncrypted: null });
 
-      await expect(service.verifyMfa(mfaToken, '123456', null, null)).rejects.toThrow(ForbiddenException);
+      await expect(service.verifyMfa(mfaToken, '123456', null, null)).rejects.toThrow(
+        ForbiddenException,
+      );
     });
 
     it('odbija pogrešan TOTP kod', async () => {
       const { service, prisma } = makeService();
       const secret = authenticator.generateSecret();
       const mfaToken = jwt.sign({ sub: 'u1', type: 'mfa_pending' });
-      prisma.user.findUniqueOrThrow.mockResolvedValue({ id: 'u1', mfaSecretEncrypted: encryptSecret(secret) });
+      prisma.user.findUniqueOrThrow.mockResolvedValue({
+        id: 'u1',
+        mfaSecretEncrypted: encryptSecret(secret),
+      });
 
-      await expect(service.verifyMfa(mfaToken, '000000', null, null)).rejects.toThrow(UnauthorizedException);
+      await expect(service.verifyMfa(mfaToken, '000000', null, null)).rejects.toThrow(
+        UnauthorizedException,
+      );
     });
 
     it('prihvata ispravan TOTP kod i izdaje access+refresh tokene', async () => {
@@ -301,7 +367,10 @@ describe('AuthService', () => {
       const secret = authenticator.generateSecret();
       const validCode = authenticator.generate(secret);
       const mfaToken = jwt.sign({ sub: 'u1', type: 'mfa_pending' });
-      prisma.user.findUniqueOrThrow.mockResolvedValue({ id: 'u1', mfaSecretEncrypted: encryptSecret(secret) });
+      prisma.user.findUniqueOrThrow.mockResolvedValue({
+        id: 'u1',
+        mfaSecretEncrypted: encryptSecret(secret),
+      });
 
       const result = await service.verifyMfa(mfaToken, validCode, '1.2.3.4', 'jest-agent');
 
@@ -320,7 +389,9 @@ describe('AuthService', () => {
         mfaSecretEncrypted: encryptSecret(secret),
       });
 
-      await expect(service.verifyMfa(mfaToken, '000000', null, null)).rejects.toThrow(ForbiddenException);
+      await expect(service.verifyMfa(mfaToken, '000000', null, null)).rejects.toThrow(
+        ForbiddenException,
+      );
     });
 
     it('pogrešan TOTP kod piše audit log "auth.mfa_failed" i uvećava isti brojač kao pogrešna lozinka (M1 spec §5, dopunjeno 29.8.2026)', async () => {
@@ -334,7 +405,9 @@ describe('AuthService', () => {
         mfaSecretEncrypted: encryptSecret(secret),
       });
 
-      await expect(service.verifyMfa(mfaToken, '000000', '1.2.3.4', null)).rejects.toThrow(UnauthorizedException);
+      await expect(service.verifyMfa(mfaToken, '000000', '1.2.3.4', null)).rejects.toThrow(
+        UnauthorizedException,
+      );
 
       expect(prisma.user.update).toHaveBeenCalledWith({
         where: { id: 'u1' },
@@ -356,12 +429,16 @@ describe('AuthService', () => {
         mfaSecretEncrypted: encryptSecret(secret),
       });
 
-      await expect(service.verifyMfa(mfaToken, '000000', '1.2.3.4', null)).rejects.toThrow(UnauthorizedException);
+      await expect(service.verifyMfa(mfaToken, '000000', '1.2.3.4', null)).rejects.toThrow(
+        UnauthorizedException,
+      );
 
       const updateCall = prisma.user.update.mock.calls[0][0];
       expect(updateCall.data.failedLoginAttempts).toBe(0);
       expect(updateCall.data.lockedUntil).toBeInstanceOf(Date);
-      expect(auditLog.write).toHaveBeenCalledWith(expect.objectContaining({ action: 'user.locked' }));
+      expect(auditLog.write).toHaveBeenCalledWith(
+        expect.objectContaining({ action: 'user.locked' }),
+      );
     });
 
     it('uspešan MFA kod resetuje brojač neuspešnih pokušaja (isti obrazac kao uspešna lozinka)', async () => {
@@ -390,7 +467,9 @@ describe('AuthService', () => {
       const { service, prisma } = makeService();
       prisma.refreshToken.findFirst.mockResolvedValue(null);
 
-      await expect(service.refresh('nepostojeci', null, null)).rejects.toThrow(UnauthorizedException);
+      await expect(service.refresh('nepostojeci', null, null)).rejects.toThrow(
+        UnauthorizedException,
+      );
     });
 
     it('odbija opozvan refresh token', async () => {
@@ -509,7 +588,9 @@ describe('AuthService', () => {
       const { service, prisma } = makeService();
       prisma.passwordResetToken.findFirst.mockResolvedValue(null);
 
-      await expect(service.resetPassword('token', 'nova-lozinka-12')).rejects.toThrow(BadRequestException);
+      await expect(service.resetPassword('token', 'nova-lozinka-12')).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('odbija već iskorišćen token', async () => {
@@ -521,7 +602,9 @@ describe('AuthService', () => {
         expiresAt: new Date(Date.now() + 60_000),
       });
 
-      await expect(service.resetPassword('token', 'nova-lozinka-12')).rejects.toThrow(BadRequestException);
+      await expect(service.resetPassword('token', 'nova-lozinka-12')).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('odbija istekao token', async () => {
@@ -533,7 +616,9 @@ describe('AuthService', () => {
         expiresAt: new Date(Date.now() - 60_000),
       });
 
-      await expect(service.resetPassword('token', 'nova-lozinka-12')).rejects.toThrow(BadRequestException);
+      await expect(service.resetPassword('token', 'nova-lozinka-12')).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('validan token: menja lozinku, označava token kao iskorišćen, opoziva sve sesije, piše audit log', async () => {
@@ -548,7 +633,9 @@ describe('AuthService', () => {
       await service.resetPassword('token', 'nova-lozinka-12');
 
       expect(prisma.$transaction).toHaveBeenCalled();
-      expect(auditLog.write).toHaveBeenCalledWith(expect.objectContaining({ action: 'auth.password_reset' }));
+      expect(auditLog.write).toHaveBeenCalledWith(
+        expect.objectContaining({ action: 'auth.password_reset' }),
+      );
     });
   });
 
@@ -561,7 +648,9 @@ describe('AuthService', () => {
     it('odbija nevažeći/istekao/iskorišćen link', async () => {
       const { service, prisma } = makeService();
       prisma.passwordResetToken.findFirst.mockResolvedValue(null);
-      await expect(service.activateAccount('token', 'nova-lozinka-12')).rejects.toThrow(BadRequestException);
+      await expect(service.activateAccount('token', 'nova-lozinka-12')).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('validan link postavlja lozinku, prelazi nalog u ACTIVE i piše audit log', async () => {
@@ -576,7 +665,9 @@ describe('AuthService', () => {
       await service.activateAccount('token', 'nova-lozinka-12');
 
       expect(prisma.$transaction).toHaveBeenCalled();
-      expect(auditLog.write).toHaveBeenCalledWith(expect.objectContaining({ action: 'user.activated' }));
+      expect(auditLog.write).toHaveBeenCalledWith(
+        expect.objectContaining({ action: 'user.activated' }),
+      );
     });
   });
 
@@ -592,7 +683,9 @@ describe('AuthService', () => {
       const codesArg = prisma.mfaRecoveryCode.createMany.mock.calls[0][0].data;
       expect(codesArg).toHaveLength(10);
       // rezervni kodovi se čuvaju hešovani, ne sirovi
-      expect(codesArg.every((c: { codeHash: string }) => !result.recoveryCodes.includes(c.codeHash))).toBe(true);
+      expect(
+        codesArg.every((c: { codeHash: string }) => !result.recoveryCodes.includes(c.codeHash)),
+      ).toBe(true);
 
       const updateCall = prisma.user.update.mock.calls[0][0];
       expect(updateCall.data.mfaSecretEncrypted).not.toContain('secret'); // enkriptovan, ne plain
@@ -603,27 +696,42 @@ describe('AuthService', () => {
       const { service, prisma } = makeService();
       prisma.user.findUniqueOrThrow.mockResolvedValue({ id: 'u1', mfaSecretEncrypted: null });
 
-      await expect(service.confirmMfaEnrollment('u1', '123456')).rejects.toThrow(BadRequestException);
+      await expect(service.confirmMfaEnrollment('u1', '123456')).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('confirmMfaEnrollment odbija pogrešan kod', async () => {
       const { service, prisma } = makeService();
       const secret = authenticator.generateSecret();
-      prisma.user.findUniqueOrThrow.mockResolvedValue({ id: 'u1', mfaSecretEncrypted: encryptSecret(secret) });
+      prisma.user.findUniqueOrThrow.mockResolvedValue({
+        id: 'u1',
+        mfaSecretEncrypted: encryptSecret(secret),
+      });
 
-      await expect(service.confirmMfaEnrollment('u1', '000000')).rejects.toThrow(UnauthorizedException);
+      await expect(service.confirmMfaEnrollment('u1', '000000')).rejects.toThrow(
+        UnauthorizedException,
+      );
     });
 
     it('confirmMfaEnrollment sa ispravnim kodom uključuje mfaEnabled i piše audit log', async () => {
       const { service, prisma, auditLog } = makeService();
       const secret = authenticator.generateSecret();
       const validCode = authenticator.generate(secret);
-      prisma.user.findUniqueOrThrow.mockResolvedValue({ id: 'u1', mfaSecretEncrypted: encryptSecret(secret) });
+      prisma.user.findUniqueOrThrow.mockResolvedValue({
+        id: 'u1',
+        mfaSecretEncrypted: encryptSecret(secret),
+      });
 
       await service.confirmMfaEnrollment('u1', validCode);
 
-      expect(prisma.user.update).toHaveBeenCalledWith({ where: { id: 'u1' }, data: { mfaEnabled: true } });
-      expect(auditLog.write).toHaveBeenCalledWith(expect.objectContaining({ action: 'auth.mfa_enabled' }));
+      expect(prisma.user.update).toHaveBeenCalledWith({
+        where: { id: 'u1' },
+        data: { mfaEnabled: true },
+      });
+      expect(auditLog.write).toHaveBeenCalledWith(
+        expect.objectContaining({ action: 'auth.mfa_enabled' }),
+      );
     });
   });
 });

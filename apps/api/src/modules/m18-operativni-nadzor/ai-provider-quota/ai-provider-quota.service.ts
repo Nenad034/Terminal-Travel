@@ -15,7 +15,9 @@ export class AiProviderQuotaService {
   ) {}
 
   async findAll() {
-    return this.prisma.aIProviderQuota.findMany({ orderBy: [{ providerName: 'asc' }, { periodStart: 'desc' }] });
+    return this.prisma.aIProviderQuota.findMany({
+      orderBy: [{ providerName: 'asc' }, { periodStart: 'desc' }],
+    });
   }
 
   async create(dto: CreateAiProviderQuotaDto) {
@@ -87,7 +89,13 @@ export class AiProviderQuotaService {
 
       const { start, end } = periodBounds(latest.period, now);
       const alreadyRolled = await this.prisma.aIProviderQuota.findUnique({
-        where: { providerName_period_periodStart: { providerName: latest.providerName, period: latest.period, periodStart: start } },
+        where: {
+          providerName_period_periodStart: {
+            providerName: latest.providerName,
+            period: latest.period,
+            periodStart: start,
+          },
+        },
       });
       if (alreadyRolled) continue;
 

@@ -7,16 +7,38 @@ function jsonResponse(status: number, body: unknown) {
 }
 
 function okResponse(data: unknown) {
-  return jsonResponse(200, { method: '', http_method: 'GET', http_code: 200, error_code: 'OK', error_msg: '', params: [], data });
+  return jsonResponse(200, {
+    method: '',
+    http_method: 'GET',
+    http_code: 200,
+    error_code: 'OK',
+    error_msg: '',
+    params: [],
+    data,
+  });
 }
 
 function errorResponse(httpCode: number, errorCode: string, errorMsg = 'error') {
-  return jsonResponse(httpCode, { method: '', http_method: 'GET', http_code: httpCode, error_code: errorCode, error_msg: errorMsg, params: [], data: {} });
+  return jsonResponse(httpCode, {
+    method: '',
+    http_method: 'GET',
+    http_code: httpCode,
+    error_code: errorCode,
+    error_msg: errorMsg,
+    params: [],
+    data: {},
+  });
 }
 
 describe('WebHotelierAdapter (M4 spec §5b)', () => {
   function makeAdapter(fetchMock: jest.Mock) {
-    return new WebHotelierAdapter('webhotelier', 'https://rest.reserve-online.net', new BasicAuthStrategy('agent', 'secret'), 8000, fetchMock as any);
+    return new WebHotelierAdapter(
+      'webhotelier',
+      'https://rest.reserve-online.net',
+      new BasicAuthStrategy('agent', 'secret'),
+      8000,
+      fetchMock as any,
+    );
   }
 
   describe('auth', () => {
@@ -31,10 +53,14 @@ describe('WebHotelierAdapter (M4 spec §5b)', () => {
     });
 
     it('error_code=INVALID_AUTH → ProviderError(AUTH_FAILED)', async () => {
-      const fetchMock = jest.fn().mockResolvedValue(errorResponse(403, 'INVALID_AUTH', 'Invalid username or password'));
+      const fetchMock = jest
+        .fn()
+        .mockResolvedValue(errorResponse(403, 'INVALID_AUTH', 'Invalid username or password'));
       const adapter = makeAdapter(fetchMock);
 
-      await expect(adapter.search({ stayFrom: '2027-07-01', stayTo: '2027-07-08', adults: 2 })).rejects.toMatchObject({
+      await expect(
+        adapter.search({ stayFrom: '2027-07-01', stayTo: '2027-07-08', adults: 2 }),
+      ).rejects.toMatchObject({
         code: 'AUTH_FAILED',
       });
     });
@@ -68,18 +94,32 @@ describe('WebHotelierAdapter (M4 spec §5b)', () => {
       );
       const adapter = makeAdapter(fetchMock);
 
-      const results = await adapter.search({ stayFrom: '2027-07-01', stayTo: '2027-07-08', adults: 2 });
+      const results = await adapter.search({
+        stayFrom: '2027-07-01',
+        stayTo: '2027-07-08',
+        adults: 2,
+      });
 
       expect(results).toHaveLength(3);
-      expect(results[0]).toMatchObject({ externalId: 'demo:21830', priceFrom: 7000, currency: 'EUR', quotaStatus: 'AVAILABLE', starRating: 4 });
+      expect(results[0]).toMatchObject({
+        externalId: 'demo:21830',
+        priceFrom: 7000,
+        currency: 'EUR',
+        quotaStatus: 'AVAILABLE',
+        starRating: 4,
+      });
       expect(results[2]).toMatchObject({ externalId: 'travel:67447', starRating: null });
     });
 
     it('NO_HOTELS_FOUND → ProviderError(NO_AVAILABILITY)', async () => {
-      const fetchMock = jest.fn().mockResolvedValue(errorResponse(200, 'NO_HOTELS_FOUND', 'No properties found'));
+      const fetchMock = jest
+        .fn()
+        .mockResolvedValue(errorResponse(200, 'NO_HOTELS_FOUND', 'No properties found'));
       const adapter = makeAdapter(fetchMock);
 
-      await expect(adapter.search({ stayFrom: '2027-07-01', stayTo: '2027-07-08', adults: 2 })).rejects.toMatchObject({
+      await expect(
+        adapter.search({ stayFrom: '2027-07-01', stayTo: '2027-07-08', adults: 2 }),
+      ).rejects.toMatchObject({
         code: 'NO_AVAILABILITY',
       });
     });
@@ -137,7 +177,11 @@ describe('WebHotelierAdapter (M4 spec §5b)', () => {
       );
       const adapter = makeAdapter(fetchMock);
 
-      const quote = await adapter.checkAvailabilityAndPrice('demo:21830', { stayFrom: '2027-07-01', stayTo: '2027-07-08', adults: 2 });
+      const quote = await adapter.checkAvailabilityAndPrice('demo:21830', {
+        stayFrom: '2027-07-01',
+        stayTo: '2027-07-08',
+        adults: 2,
+      });
 
       expect(quote.priceAmount).toBe(10000);
       expect(quote.availableUnits).toBe(5);
@@ -145,11 +189,19 @@ describe('WebHotelierAdapter (M4 spec §5b)', () => {
     });
 
     it('rate id koji ne postoji u odgovoru → ProviderError(NO_AVAILABILITY)', async () => {
-      const fetchMock = jest.fn().mockResolvedValue(okResponse({ hotels: [{ code: 'demo', name: 'Demo', currency: 'EUR', rates: [] }] }));
+      const fetchMock = jest
+        .fn()
+        .mockResolvedValue(
+          okResponse({ hotels: [{ code: 'demo', name: 'Demo', currency: 'EUR', rates: [] }] }),
+        );
       const adapter = makeAdapter(fetchMock);
 
       await expect(
-        adapter.checkAvailabilityAndPrice('demo:99999', { stayFrom: '2027-07-01', stayTo: '2027-07-08', adults: 2 }),
+        adapter.checkAvailabilityAndPrice('demo:99999', {
+          stayFrom: '2027-07-01',
+          stayTo: '2027-07-08',
+          adults: 2,
+        }),
       ).rejects.toMatchObject({ code: 'NO_AVAILABILITY' });
     });
   });
@@ -157,10 +209,25 @@ describe('WebHotelierAdapter (M4 spec §5b)', () => {
   describe('confirmBooking (§5b tačka 5)', () => {
     it('pribavlja svežu cenu preko checkAvailabilityAndPrice, šalje je u /book, mapira res_id', async () => {
       const availabilityBody = okResponse({
-        hotels: [{ code: 'demo', name: 'Demo Hotel', currency: 'EUR', rates: [{ id: 21830, room: 'JS', price: 70, remaining: 5 }] }],
+        hotels: [
+          {
+            code: 'demo',
+            name: 'Demo Hotel',
+            currency: 'EUR',
+            rates: [{ id: 21830, room: 'JS', price: 70, remaining: 5 }],
+          },
+        ],
       });
-      const bookBody = okResponse({ summaryUrl: 'https://x', res_id: 11234567, email: 'b2b@webhotelier.net', result: 'CONFIRMED' });
-      const fetchMock = jest.fn().mockResolvedValueOnce(availabilityBody).mockResolvedValueOnce(bookBody);
+      const bookBody = okResponse({
+        summaryUrl: 'https://x',
+        res_id: 11234567,
+        email: 'b2b@webhotelier.net',
+        result: 'CONFIRMED',
+      });
+      const fetchMock = jest
+        .fn()
+        .mockResolvedValueOnce(availabilityBody)
+        .mockResolvedValueOnce(bookBody);
       const adapter = makeAdapter(fetchMock);
 
       const confirmation = await adapter.confirmBooking('demo:21830', {
@@ -169,7 +236,11 @@ describe('WebHotelierAdapter (M4 spec §5b)', () => {
         idempotencyKey: 'idem-1',
       });
 
-      expect(confirmation).toMatchObject({ providerBookingReference: '11234567', status: 'CONFIRMED', confirmedPrice: 7000 });
+      expect(confirmation).toMatchObject({
+        providerBookingReference: '11234567',
+        status: 'CONFIRMED',
+        confirmedPrice: 7000,
+      });
       const [bookUrl, bookInit] = fetchMock.mock.calls[1];
       expect(bookUrl).toContain('/book/demo');
       const form = new URLSearchParams(bookInit.body as string);
@@ -181,9 +252,19 @@ describe('WebHotelierAdapter (M4 spec §5b)', () => {
 
     it('ALLOT_DEPLETED na /book → ProviderError(NO_AVAILABILITY)', async () => {
       const availabilityBody = okResponse({
-        hotels: [{ code: 'demo', name: 'Demo Hotel', currency: 'EUR', rates: [{ id: 21830, room: 'JS', price: 70, remaining: 5 }] }],
+        hotels: [
+          {
+            code: 'demo',
+            name: 'Demo Hotel',
+            currency: 'EUR',
+            rates: [{ id: 21830, room: 'JS', price: 70, remaining: 5 }],
+          },
+        ],
       });
-      const fetchMock = jest.fn().mockResolvedValueOnce(availabilityBody).mockResolvedValueOnce(errorResponse(400, 'ALLOT_DEPLETED', 'Availability depleted'));
+      const fetchMock = jest
+        .fn()
+        .mockResolvedValueOnce(availabilityBody)
+        .mockResolvedValueOnce(errorResponse(400, 'ALLOT_DEPLETED', 'Availability depleted'));
       const adapter = makeAdapter(fetchMock);
 
       await expect(
@@ -198,7 +279,15 @@ describe('WebHotelierAdapter (M4 spec §5b)', () => {
 
   describe('cancelBooking', () => {
     it('poziva /reservation/cancel/{res_id} i vraća cancelled:true', async () => {
-      const fetchMock = jest.fn().mockResolvedValue(okResponse({ result: 'OK', cancellation_penalty_amount: 59.4, cancellation_penalty_currency: 'EUR' }));
+      const fetchMock = jest
+        .fn()
+        .mockResolvedValue(
+          okResponse({
+            result: 'OK',
+            cancellation_penalty_amount: 59.4,
+            cancellation_penalty_currency: 'EUR',
+          }),
+        );
       const adapter = makeAdapter(fetchMock);
 
       const result = await adapter.cancelBooking('11234567');
@@ -210,17 +299,25 @@ describe('WebHotelierAdapter (M4 spec §5b)', () => {
 
   describe('greške mreže/timeout/format', () => {
     it('AbortError → ProviderError(TIMEOUT)', async () => {
-      const fetchMock = jest.fn().mockRejectedValue(Object.assign(new Error('aborted'), { name: 'AbortError' }));
+      const fetchMock = jest
+        .fn()
+        .mockRejectedValue(Object.assign(new Error('aborted'), { name: 'AbortError' }));
       const adapter = makeAdapter(fetchMock);
-      await expect(adapter.search({ stayFrom: '2027-07-01', stayTo: '2027-07-08', adults: 2 })).rejects.toMatchObject({
+      await expect(
+        adapter.search({ stayFrom: '2027-07-01', stayTo: '2027-07-08', adults: 2 }),
+      ).rejects.toMatchObject({
         code: 'TIMEOUT',
       });
     });
 
     it('HTTP 503 → ProviderError(PROVIDER_UNAVAILABLE)', async () => {
-      const fetchMock = jest.fn().mockResolvedValue({ status: 503, ok: false, json: async () => ({}) });
+      const fetchMock = jest
+        .fn()
+        .mockResolvedValue({ status: 503, ok: false, json: async () => ({}) });
       const adapter = makeAdapter(fetchMock);
-      await expect(adapter.search({ stayFrom: '2027-07-01', stayTo: '2027-07-08', adults: 2 })).rejects.toMatchObject({
+      await expect(
+        adapter.search({ stayFrom: '2027-07-01', stayTo: '2027-07-08', adults: 2 }),
+      ).rejects.toMatchObject({
         code: 'PROVIDER_UNAVAILABLE',
       });
     });
@@ -234,7 +331,9 @@ describe('WebHotelierAdapter (M4 spec §5b)', () => {
         },
       });
       const adapter = makeAdapter(fetchMock);
-      await expect(adapter.search({ stayFrom: '2027-07-01', stayTo: '2027-07-08', adults: 2 })).rejects.toBeInstanceOf(ProviderError);
+      await expect(
+        adapter.search({ stayFrom: '2027-07-01', stayTo: '2027-07-08', adults: 2 }),
+      ).rejects.toBeInstanceOf(ProviderError);
     });
   });
 });

@@ -20,7 +20,11 @@ export interface RefundOrVoidResult {
 }
 
 export interface PaymentGatewayAdapter {
-  initiatePayment(amount: number, currency: string, idempotencyKey: string): Promise<InitiatePaymentResult>;
+  initiatePayment(
+    amount: number,
+    currency: string,
+    idempotencyKey: string,
+  ): Promise<InitiatePaymentResult>;
   getPaymentStatus(gatewayTransactionId: string): Promise<PaymentStatusResult>;
   refundOrVoid(gatewayTransactionId: string, amount: number): Promise<RefundOrVoidResult>;
 }

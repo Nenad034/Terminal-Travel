@@ -1,4 +1,7 @@
-import { similarity, DEFAULT_NAME_SIMILARITY_THRESHOLD } from '../../m5-rezervacije/common/fuzzy-match';
+import {
+  similarity,
+  DEFAULT_NAME_SIMILARITY_THRESHOLD,
+} from '../../m5-rezervacije/common/fuzzy-match';
 import { PrismaService } from '../../../prisma/prisma.service';
 
 // M10 spec §8.6.3 — determinizam, ne slobodan AI izbor: kandidati su SupplierObligation istog
@@ -32,7 +35,8 @@ export async function findBestSupplierObligationMatch(
   for (const candidate of candidates) {
     const item = candidate.bookingItem;
     if (!item) continue;
-    const overlaps = item.stayFrom < params.extractedStayTo && item.stayTo > params.extractedStayFrom;
+    const overlaps =
+      item.stayFrom < params.extractedStayTo && item.stayTo > params.extractedStayFrom;
     if (!overlaps) continue;
 
     let bestNameScore = 0;
@@ -45,7 +49,10 @@ export async function findBestSupplierObligationMatch(
     if (bestNameScore < DEFAULT_NAME_SIMILARITY_THRESHOLD) continue;
 
     // Odstupanje iznosa umanjuje pouzdanost (ne odbacuje kandidata — §8.0/§8.6.3).
-    const amountDeviation = candidate.amountOriginal > 0 ? Math.abs(candidate.amountOriginal - params.extractedAmount) / candidate.amountOriginal : 0;
+    const amountDeviation =
+      candidate.amountOriginal > 0
+        ? Math.abs(candidate.amountOriginal - params.extractedAmount) / candidate.amountOriginal
+        : 0;
     const amountPenalty = Math.min(amountDeviation, 0.5); // do 50 procentnih poena kazne
     const confidence = Math.round((bestNameScore - amountPenalty) * 100);
 

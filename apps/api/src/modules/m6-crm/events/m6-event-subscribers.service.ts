@@ -46,7 +46,12 @@ export class M6EventSubscribersService implements OnModuleInit {
   // event payload/ovaj handler ga nisu prenosili dalje na ClientAccount, pa je
   // `ClientAccount.phone` ostajao trajno prazan za SVAKOG samostalno registrovanog
   // gosta (ne samo novi "nastavi bez naloga" tok) — popravljeno u oba fajla.
-  private async createClientAccountForGuest(userId: string, email: string, fullName: string, phone: string | null): Promise<void> {
+  private async createClientAccountForGuest(
+    userId: string,
+    email: string,
+    fullName: string,
+    phone: string | null,
+  ): Promise<void> {
     const account = await this.clientAccounts.create({
       accountType: 'INDIVIDUAL',
       fullName,

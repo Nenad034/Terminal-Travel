@@ -4,7 +4,13 @@ import { ContractPeriodsService } from './contract-periods.service';
 describe('ContractPeriodsService', () => {
   function makeService() {
     const prisma = {
-      contractPeriod: { findFirst: jest.fn().mockResolvedValue(null), findMany: jest.fn(), findUnique: jest.fn(), findUniqueOrThrow: jest.fn(), create: jest.fn() },
+      contractPeriod: {
+        findFirst: jest.fn().mockResolvedValue(null),
+        findMany: jest.fn(),
+        findUnique: jest.fn(),
+        findUniqueOrThrow: jest.fn(),
+        create: jest.fn(),
+      },
       rateLine: { create: jest.fn(), findMany: jest.fn() },
       cancellationRule: { create: jest.fn(), findMany: jest.fn() },
       pricelistOffer: { create: jest.fn(), findMany: jest.fn() },
@@ -38,7 +44,11 @@ describe('ContractPeriodsService', () => {
 
       expect(prisma.contractPeriod.create).toHaveBeenCalledWith(
         expect.objectContaining({
-          data: expect.objectContaining({ allotmentMode: 'FIXED', totalCapacity: 10, releaseDaysBefore: 21 }),
+          data: expect.objectContaining({
+            allotmentMode: 'FIXED',
+            totalCapacity: 10,
+            releaseDaysBefore: 21,
+          }),
         }),
       );
     });
@@ -49,7 +59,12 @@ describe('ContractPeriodsService', () => {
 
       await service.create(
         'contract-1',
-        { stayFrom: '2027-07-01', stayTo: '2027-07-31', roomType: 'STD', allotmentMode: 'ON_REQUEST' as any },
+        {
+          stayFrom: '2027-07-01',
+          stayTo: '2027-07-31',
+          roomType: 'STD',
+          allotmentMode: 'ON_REQUEST' as any,
+        },
         'actor-1',
       );
 
@@ -114,7 +129,13 @@ describe('ContractPeriodsService', () => {
       await expect(
         service.create(
           'contract-1',
-          { stayFrom: '2027-07-15', stayTo: '2027-08-15', roomType: 'DELUXE', allotmentMode: 'FIXED' as any, totalCapacity: 5 },
+          {
+            stayFrom: '2027-07-15',
+            stayTo: '2027-08-15',
+            roomType: 'DELUXE',
+            allotmentMode: 'FIXED' as any,
+            totalCapacity: 5,
+          },
           'actor-1',
         ),
       ).rejects.toThrow(BadRequestException);
@@ -136,7 +157,11 @@ describe('ContractPeriodsService', () => {
 
       const result = await service.reserve('p1', 1, 'actor-1');
 
-      expect(result).toEqual({ reserved: true, allotmentMode: 'ON_REQUEST', requiresSupplierConfirmation: true });
+      expect(result).toEqual({
+        reserved: true,
+        allotmentMode: 'ON_REQUEST',
+        requiresSupplierConfirmation: true,
+      });
       expect(prisma.$queryRaw).not.toHaveBeenCalled();
     });
 
@@ -156,7 +181,9 @@ describe('ContractPeriodsService', () => {
       const result = await service.reserve('p1', 1, 'actor-1');
 
       expect(result).toEqual({ reserved: true, unitsSold: 8, remaining: 2 });
-      expect(auditLog.write).toHaveBeenCalledWith(expect.objectContaining({ action: 'contract_period.reserved' }));
+      expect(auditLog.write).toHaveBeenCalledWith(
+        expect.objectContaining({ action: 'contract_period.reserved' }),
+      );
     });
 
     it('preostalo=1 posle rezervacije emituje CRITICAL signal (§4.3)', async () => {
@@ -231,18 +258,36 @@ describe('ContractPeriodsService', () => {
   describe('availability', () => {
     it('ON_REQUEST period vraća requiresSupplierConfirmation, ne brojeve', async () => {
       const { service, prisma } = makeService();
-      prisma.contractPeriod.findUniqueOrThrow.mockResolvedValue({ id: 'p1', allotmentMode: 'ON_REQUEST', totalCapacity: null });
+      prisma.contractPeriod.findUniqueOrThrow.mockResolvedValue({
+        id: 'p1',
+        allotmentMode: 'ON_REQUEST',
+        totalCapacity: null,
+      });
 
       const result = await service.availability('p1');
-      expect(result).toEqual({ allotmentMode: 'ON_REQUEST', unlimited: false, requiresSupplierConfirmation: true });
+      expect(result).toEqual({
+        allotmentMode: 'ON_REQUEST',
+        unlimited: false,
+        requiresSupplierConfirmation: true,
+      });
     });
 
     it('FIXED period vraća preostali kapacitet', async () => {
       const { service, prisma } = makeService();
-      prisma.contractPeriod.findUniqueOrThrow.mockResolvedValue({ id: 'p1', allotmentMode: 'FIXED', totalCapacity: 10, unitsSold: 3 });
+      prisma.contractPeriod.findUniqueOrThrow.mockResolvedValue({
+        id: 'p1',
+        allotmentMode: 'FIXED',
+        totalCapacity: 10,
+        unitsSold: 3,
+      });
 
       const result = await service.availability('p1');
-      expect(result).toEqual({ allotmentMode: 'FIXED', totalCapacity: 10, unitsSold: 3, remaining: 7 });
+      expect(result).toEqual({
+        allotmentMode: 'FIXED',
+        totalCapacity: 10,
+        unitsSold: 3,
+        remaining: 7,
+      });
     });
   });
 
@@ -265,10 +310,16 @@ describe('ContractPeriodsService', () => {
 
       expect(prisma.pricelistOffer.create).toHaveBeenCalledWith(
         expect.objectContaining({
-          data: expect.objectContaining({ contractPeriodId: 'p1', offerType: 'EARLY_BOOKING', discountPercentage: 15 }),
+          data: expect.objectContaining({
+            contractPeriodId: 'p1',
+            offerType: 'EARLY_BOOKING',
+            discountPercentage: 15,
+          }),
         }),
       );
-      expect(auditLog.write).toHaveBeenCalledWith(expect.objectContaining({ action: 'pricelist_offer.upserted' }));
+      expect(auditLog.write).toHaveBeenCalledWith(
+        expect.objectContaining({ action: 'pricelist_offer.upserted' }),
+      );
     });
 
     it('kreira FREE_NIGHTS ponudu sa stay_nights/pay_nights', async () => {
@@ -311,16 +362,27 @@ describe('ContractPeriodsService', () => {
 
       await service.upsertAncillaryService(
         'p1',
-        { name: 'Kućni ljubimac', pricingMode: 'FLAT_PER_UNIT' as any, flatAmount: 1000, unit: 'PER_STAY' as any } as any,
+        {
+          name: 'Kućni ljubimac',
+          pricingMode: 'FLAT_PER_UNIT' as any,
+          flatAmount: 1000,
+          unit: 'PER_STAY' as any,
+        } as any,
         'actor-1',
       );
 
       expect(prisma.ancillaryService.create).toHaveBeenCalledWith(
         expect.objectContaining({
-          data: expect.objectContaining({ contractPeriodId: 'p1', name: 'Kućni ljubimac', flatAmount: 1000 }),
+          data: expect.objectContaining({
+            contractPeriodId: 'p1',
+            name: 'Kućni ljubimac',
+            flatAmount: 1000,
+          }),
         }),
       );
-      expect(auditLog.write).toHaveBeenCalledWith(expect.objectContaining({ action: 'ancillary_service.upserted' }));
+      expect(auditLog.write).toHaveBeenCalledWith(
+        expect.objectContaining({ action: 'ancillary_service.upserted' }),
+      );
     });
 
     it('kreira uslugu sa pricingMode PERCENTAGE_OF_NIGHTLY_RATE', async () => {
@@ -355,11 +417,20 @@ describe('ContractPeriodsService', () => {
   describe('upsertTouristTax / getTouristTax (M3 spec §2.7, dopuna v1.12)', () => {
     it('koristi Prisma upsert (1:1 po periodu), ne "uvek kreiraj novi red"', async () => {
       const { service, prisma, auditLog } = makeService();
-      prisma.touristTaxInfo.upsert.mockResolvedValue({ id: 't1', contractPeriodId: 'p1', includedInPrice: false });
+      prisma.touristTaxInfo.upsert.mockResolvedValue({
+        id: 't1',
+        contractPeriodId: 'p1',
+        includedInPrice: false,
+      });
 
       await service.upsertTouristTax(
         'p1',
-        { includedInPrice: false, collectedBy: 'PAID_ON_SITE_BY_GUEST' as any, amountPerNight: 200, currency: 'EUR' } as any,
+        {
+          includedInPrice: false,
+          collectedBy: 'PAID_ON_SITE_BY_GUEST' as any,
+          amountPerNight: 200,
+          currency: 'EUR',
+        } as any,
         'actor-1',
       );
 
@@ -370,7 +441,9 @@ describe('ContractPeriodsService', () => {
           update: expect.objectContaining({ includedInPrice: false }),
         }),
       );
-      expect(auditLog.write).toHaveBeenCalledWith(expect.objectContaining({ action: 'tourist_tax_info.upserted' }));
+      expect(auditLog.write).toHaveBeenCalledWith(
+        expect.objectContaining({ action: 'tourist_tax_info.upserted' }),
+      );
     });
 
     it('getTouristTax vraća null kad ne postoji zapis za period', async () => {

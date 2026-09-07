@@ -29,13 +29,25 @@ export const PRODAJA_SUB_LABELS = {
 } as const;
 export type ProdajaSub = keyof typeof PRODAJA_SUB_LABELS;
 
-export const OCCUPANCY_GROUP_BY = ['room_type', 'board_type', 'stars', 'accommodation_type'] as const;
+export const OCCUPANCY_GROUP_BY = [
+  'room_type',
+  'board_type',
+  'stars',
+  'accommodation_type',
+] as const;
 // Kanal/tip proizvoda kao padajući meni umesto slobodnog teksta (5.9.2026, vlasnikov nalaz uz
 // snimak ekrana: "polja u kojima se kuca ne reaguju, a tu treba da vec postoje podaci koji se
 // biraju") — vrednosti su poznat, fiksan skup (M5 spec `M5Channel`/M2 `ProductType`), isti
 // princip kao `RealFilterBar.tsx`/`CalendarFilterBar.tsx` (ti fajlovi drže sopstvenu kopiju iste
 // liste — mala dupliranost, isti obrazac).
-export const CHANNEL_OPTIONS = ['B2C_SITE', 'B2B_PORTAL', 'MOBILE', 'INTERNAL_PANEL', 'PHONE', 'MCP_AGENT'] as const;
+export const CHANNEL_OPTIONS = [
+  'B2C_SITE',
+  'B2B_PORTAL',
+  'MOBILE',
+  'INTERNAL_PANEL',
+  'PHONE',
+  'MCP_AGENT',
+] as const;
 export const PRODUCT_TYPE_OPTIONS = [
   'ACCOMMODATION',
   'PACKAGE',
@@ -48,7 +60,14 @@ export const PRODUCT_TYPE_OPTIONS = [
   'EVENT',
   'CRUISE',
 ] as const;
-export const DYNAMIC_DIMENSIONS = ['destination_country', 'destination_city', 'product_name', 'supplier_name', 'channel', 'subagent_name'] as const;
+export const DYNAMIC_DIMENSIONS = [
+  'destination_country',
+  'destination_city',
+  'product_name',
+  'supplier_name',
+  'channel',
+  'subagent_name',
+] as const;
 // Ikonice vrsta proizvoda (5.9.2026, vlasnikov zahtev: "stavi ikone iz pretrage... sve treba da
 // ide u tri nivoa Drzava, Mesto, proizvod koji smo odabrali") — ISTE ikonice kao ekran pretrage
 // (`PRODUCT_ICONS`, jedan izvor istine). Klik UVEK postavlja isti trodelni niz dimenzija

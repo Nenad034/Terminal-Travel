@@ -14,7 +14,10 @@ export interface CreateQuoteState {
 // M5 spec §3.0e.3a (dopuna 29.8.2026) — `dateMismatchAcknowledged` se prosleđuje SAMO kad je
 // korisnik već video upozorenje (RightPanel.tsx) i eksplicitno potvrdio da su termini namerno
 // različiti; server ostaje jedini pravi oslonac (ponovo proverava isto, ne veruje klijentu).
-export async function createQuoteFromSelection(items: SelectionItem[], dateMismatchAcknowledged?: boolean): Promise<CreateQuoteState> {
+export async function createQuoteFromSelection(
+  items: SelectionItem[],
+  dateMismatchAcknowledged?: boolean,
+): Promise<CreateQuoteState> {
   if (items.length === 0) return { error: 'Selekcija je prazna.' };
   if (items.some((i) => !i.stayFrom || !i.stayTo)) {
     return { error: 'Izaberite period boravka (od/do) pre kreiranja ponude.' };
@@ -33,13 +36,19 @@ export async function createQuoteFromSelection(items: SelectionItem[], dateMisma
           providerQuoteReference: i.providerQuoteReference || undefined,
           stayFrom: i.stayFrom,
           stayTo: i.stayTo,
-          occupancy: { adults: i.adults, children: i.children, roomConfig: [{ adults: i.adults, children: i.children, childrenAges: [] }] },
+          occupancy: {
+            adults: i.adults,
+            children: i.children,
+            roomConfig: [{ adults: i.adults, children: i.children, childrenAges: [] }],
+          },
         })),
       },
     });
     quoteId = quote.id;
   } catch (err) {
-    return { error: err instanceof ApiError ? extractMessage(err) : 'Kreiranje ponude nije uspelo.' };
+    return {
+      error: err instanceof ApiError ? extractMessage(err) : 'Kreiranje ponude nije uspelo.',
+    };
   }
   return { error: null, quoteId };
 }
@@ -54,14 +63,22 @@ export interface ActivityDestinationResult {
 // (`GET /sales/search/destinations-by-activity`, backend gotov — commit 351b2fd). Za razliku od
 // ostatka ovog ekrana (potpuno mock, §3.0b.2), OVAJ poziv je stvaran: `apiFetch` je server-only
 // pa mora ići kroz server akciju čak i za GET, isti obrazac kao ostatak fajla.
-export async function searchDestinationsByActivity(activity: string): Promise<{ error: string | null; results: ActivityDestinationResult[] }> {
+export async function searchDestinationsByActivity(
+  activity: string,
+): Promise<{ error: string | null; results: ActivityDestinationResult[] }> {
   try {
     const results = await apiFetch<ActivityDestinationResult[]>(
       `/sales/search/destinations-by-activity?activity=${encodeURIComponent(activity)}&channel=INTERNAL_PANEL`,
     );
     return { error: null, results };
   } catch (err) {
-    return { error: err instanceof ApiError ? extractMessage(err) : 'Pretraga po aktivnosti trenutno nije dostupna.', results: [] };
+    return {
+      error:
+        err instanceof ApiError
+          ? extractMessage(err)
+          : 'Pretraga po aktivnosti trenutno nije dostupna.',
+      results: [],
+    };
   }
 }
 

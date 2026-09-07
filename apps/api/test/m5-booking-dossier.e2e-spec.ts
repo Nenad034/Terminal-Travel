@@ -34,7 +34,9 @@ describe('M5 §4.5 — aranžman i putnici na rezervaciji (e2e)', () => {
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
     app = moduleRef.createNestApplication();
     app.setGlobalPrefix('api/v1');
-    app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }));
+    app.useGlobalPipes(
+      new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }),
+    );
     app.useGlobalFilters(new PrismaExceptionFilter());
     await app.init();
     prisma = app.get(PrismaService);
@@ -42,12 +44,18 @@ describe('M5 §4.5 — aranžman i putnici na rezervaciji (e2e)', () => {
   });
 
   afterAll(async () => {
-    if (createdBookingIds.length) await prisma.booking.deleteMany({ where: { id: { in: createdBookingIds } } });
-    if (createdMarkupRuleIds.length) await prisma.markupRule.deleteMany({ where: { id: { in: createdMarkupRuleIds } } });
-    if (createdProductIds.length) await prisma.product.deleteMany({ where: { id: { in: createdProductIds } } });
-    if (createdContractIds.length) await prisma.contract.deleteMany({ where: { id: { in: createdContractIds } } });
-    if (createdSupplierIds.length) await prisma.supplier.deleteMany({ where: { id: { in: createdSupplierIds } } });
-    if (createdClientAccountIds.length) await prisma.clientAccount.deleteMany({ where: { id: { in: createdClientAccountIds } } });
+    if (createdBookingIds.length)
+      await prisma.booking.deleteMany({ where: { id: { in: createdBookingIds } } });
+    if (createdMarkupRuleIds.length)
+      await prisma.markupRule.deleteMany({ where: { id: { in: createdMarkupRuleIds } } });
+    if (createdProductIds.length)
+      await prisma.product.deleteMany({ where: { id: { in: createdProductIds } } });
+    if (createdContractIds.length)
+      await prisma.contract.deleteMany({ where: { id: { in: createdContractIds } } });
+    if (createdSupplierIds.length)
+      await prisma.supplier.deleteMany({ where: { id: { in: createdSupplierIds } } });
+    if (createdClientAccountIds.length)
+      await prisma.clientAccount.deleteMany({ where: { id: { in: createdClientAccountIds } } });
     if (createdUserIds.length) {
       await prisma.userRole.deleteMany({ where: { userId: { in: createdUserIds } } });
       await prisma.user.deleteMany({ where: { id: { in: createdUserIds } } });
@@ -59,7 +67,11 @@ describe('M5 §4.5 — aranžman i putnici na rezervaciji (e2e)', () => {
     return { Authorization: `Bearer ${accessToken}` };
   }
 
-  async function createUser(roleName: string, accountType: 'STAFF' | 'GUEST' = 'STAFF', linkedProfileId: string | null = null) {
+  async function createUser(
+    roleName: string,
+    accountType: 'STAFF' | 'GUEST' = 'STAFF',
+    linkedProfileId: string | null = null,
+  ) {
     const user = await prisma.user.create({
       data: {
         email: `m5dos-${testRunId}-${Math.random().toString(36).slice(2)}@tt-test.rs`,
@@ -72,8 +84,12 @@ describe('M5 §4.5 — aranžman i putnici na rezervaciji (e2e)', () => {
     createdUserIds.push(user.id);
     // GOST dobija svoju sistemsku ulogu — bez nje nema ni `M5/booking/VIEW`, pa bi test
     // proveravao 403 umesto maskiranog prikaza koji ga zanima.
-    const role = await prisma.role.findUniqueOrThrow({ where: { name: accountType === 'GUEST' ? SYSTEM_ROLES.GOST : roleName } });
-    await prisma.userRole.create({ data: { userId: user.id, roleId: role.id, assignedBy: user.id } });
+    const role = await prisma.role.findUniqueOrThrow({
+      where: { name: accountType === 'GUEST' ? SYSTEM_ROLES.GOST : roleName },
+    });
+    await prisma.userRole.create({
+      data: { userId: user.id, roleId: role.id, assignedBy: user.id },
+    });
     return { user, accessToken: jwt.sign({ sub: user.id, sessionId: 'e2e-test-session' }) };
   }
 
@@ -121,15 +137,27 @@ describe('M5 §4.5 — aranžman i putnici na rezervaciji (e2e)', () => {
         attributes: { stars: 4 },
         translations: {
           create: [
-            { languageCode: 'sr', name: 'Hotel Dosije Test', description: 'opis', slug: `hotel-dos-sr-${uid}` },
-            { languageCode: 'en', name: 'Hotel Dossier Test', description: 'desc', slug: `hotel-dos-en-${uid}` },
+            {
+              languageCode: 'sr',
+              name: 'Hotel Dosije Test',
+              description: 'opis',
+              slug: `hotel-dos-sr-${uid}`,
+            },
+            {
+              languageCode: 'en',
+              name: 'Hotel Dossier Test',
+              description: 'desc',
+              slug: `hotel-dos-en-${uid}`,
+            },
           ],
         },
       },
     });
     createdProductIds.push(product.id);
 
-    const markupRule = await prisma.markupRule.create({ data: { scopeType: 'M3_SUPPLIER', scopeId: supplier.id, percentage: 20 } });
+    const markupRule = await prisma.markupRule.create({
+      data: { scopeType: 'M3_SUPPLIER', scopeId: supplier.id, percentage: 20 },
+    });
     createdMarkupRuleIds.push(markupRule.id);
 
     return { product, markupRule };
@@ -201,7 +229,9 @@ describe('M5 §4.5 — aranžman i putnici na rezervaciji (e2e)', () => {
     const { user, accessToken } = await createUser(SYSTEM_ROLES.VLASNIK);
     const { booking } = await createBookingWithItem(user.id);
 
-    const res = await request(app.getHttpServer()).get(`/api/v1/sales/bookings/${booking.id}`).set(authed(accessToken));
+    const res = await request(app.getHttpServer())
+      .get(`/api/v1/sales/bookings/${booking.id}`)
+      .set(authed(accessToken));
     expect(res.status).toBe(200);
 
     const item = res.body.items[0];
@@ -210,13 +240,18 @@ describe('M5 §4.5 — aranžman i putnici na rezervaciji (e2e)', () => {
     expect(item.product.destinationCity).toBe('Budva');
     expect(item.unitCount).toBe(2);
     expect(new Date(item.stayFrom).toISOString().slice(0, 10)).toBe('2027-06-10');
-    expect(item.guests.map((g: { guestLastName: string }) => g.guestLastName).sort()).toEqual(['Anić', 'Marković']);
+    expect(item.guests.map((g: { guestLastName: string }) => g.guestLastName).sort()).toEqual([
+      'Anić',
+      'Marković',
+    ]);
   });
 
   // §4.6 dopuna (1.9.2026, vlasnikova odluka: "predstavnik može napomenu da upisuje u postojeće
   // beleške ali mora da se vidi izdvojeno") — poreklo se izvodi iz uloge autora, ne iz tela zahteva.
   it('predstavnik (VODIC) piše u ISTU listu beleški, obeleženu kao FIELD_REP, i tek posle dodele', async () => {
-    const { user: prodavac, accessToken: prodavacToken } = await createUser(SYSTEM_ROLES.PRODAJNI_AGENT);
+    const { user: prodavac, accessToken: prodavacToken } = await createUser(
+      SYSTEM_ROLES.PRODAJNI_AGENT,
+    );
     const { user: vodic, accessToken: vodicToken } = await createUser(SYSTEM_ROLES.VODIC);
     const { booking } = await createBookingWithItem(prodavac.id);
     const item = await prisma.bookingItem.findFirstOrThrow({ where: { bookingId: booking.id } });
@@ -250,7 +285,9 @@ describe('M5 §4.5 — aranžman i putnici na rezervaciji (e2e)', () => {
     expect(izKancelarije.body.origin).toBe('OFFICE');
 
     // Jedna lista, dva porekla — to je ono što ekran razdvaja vizuelno.
-    const lista = await request(app.getHttpServer()).get(`/api/v1/sales/bookings/${booking.id}/notes`).set(authed(prodavacToken));
+    const lista = await request(app.getHttpServer())
+      .get(`/api/v1/sales/bookings/${booking.id}/notes`)
+      .set(authed(prodavacToken));
     expect(lista.body).toHaveLength(2);
     expect(lista.body.filter((n: { origin: string }) => n.origin === 'FIELD_REP')).toHaveLength(1);
   });
@@ -260,7 +297,9 @@ describe('M5 §4.5 — aranžman i putnici na rezervaciji (e2e)', () => {
     const { booking, accountId } = await createBookingWithItem(staff.id);
     const { accessToken: guestToken } = await createUser(SYSTEM_ROLES.VLASNIK, 'GUEST', accountId);
 
-    const res = await request(app.getHttpServer()).get(`/api/v1/sales/bookings/${booking.id}`).set(authed(guestToken));
+    const res = await request(app.getHttpServer())
+      .get(`/api/v1/sales/bookings/${booking.id}`)
+      .set(authed(guestToken));
     expect(res.status).toBe(200);
 
     const item = res.body.items[0];

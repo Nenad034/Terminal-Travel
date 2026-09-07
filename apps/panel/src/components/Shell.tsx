@@ -37,7 +37,11 @@ interface LayoutVisibility {
   statusBar: boolean;
   terminal: boolean;
 }
-const DEFAULT_LAYOUT_VISIBILITY: LayoutVisibility = { sidebar: true, statusBar: true, terminal: false };
+const DEFAULT_LAYOUT_VISIBILITY: LayoutVisibility = {
+  sidebar: true,
+  statusBar: true,
+  terminal: false,
+};
 
 // Gornja granica širine centralnog sadržaja (2.9.2026, na zahtev vlasnika: "omogućiti ko to želi
 // da se u centralnom panelu širina prikaza podesi na manju širinu", dizajn dok. §6b.1 / M17 spec
@@ -84,9 +88,14 @@ export default function Shell({
 
   // Grupa bez ijedne stavke koju ovaj korisnik sme da vidi se u potpunosti uklanja (M17
   // spec §3 — "ne samo onemogućeno", isti princip kao visibleNavItems).
-  const groups = useMemo(() => NAV_GROUPS.filter((g) => g.itemIds.some((id) => items.some((i) => i.id === id))), [items]);
+  const groups = useMemo(
+    () => NAV_GROUPS.filter((g) => g.itemIds.some((id) => items.some((i) => i.id === id))),
+    [items],
+  );
 
-  const [activeGroupId, setActiveGroupId] = useState(() => groupForHref(pathname)?.id ?? groups[0]?.id ?? 'pocetna');
+  const [activeGroupId, setActiveGroupId] = useState(
+    () => groupForHref(pathname)?.id ?? groups[0]?.id ?? 'pocetna',
+  );
   // ISPRAVKA (26.8.2026, na zahtev vlasnika, uz uživo nalaz — "kad se klikne na dugme Home
   // ništa se ne dešava", "link za Pretraga i rezervacije ne reaguje odmah, moram da kliknem na
   // neku drugu ikonu pa da se vratim"). Uzrok: `activeGroupId` se DOSAD menjao ISKLJUČIVO ručnim
@@ -213,11 +222,16 @@ export default function Shell({
   // (SelectionContext/RowSummaryContext/PanelCollectionContext ostaju netaknuti) — vraća se pri
   // povratku u taj modul.
   const currentModuleId = useMemo(() => groupForHref(pathname)?.id ?? 'pocetna', [pathname]);
-  const currentModuleLabel = useMemo(() => groups.find((g) => g.id === currentModuleId)?.label ?? 'Modul', [groups, currentModuleId]);
+  const currentModuleLabel = useMemo(
+    () => groups.find((g) => g.id === currentModuleId)?.label ?? 'Modul',
+    [groups, currentModuleId],
+  );
   const [rightPanelOpenModules, setRightPanelOpenModules] = useState<Set<string>>(new Set());
   const rightPanelOpen = rightPanelOpenModules.has(currentModuleId);
   function openRightPanelForCurrentModule() {
-    setRightPanelOpenModules((prev) => (prev.has(currentModuleId) ? prev : new Set(prev).add(currentModuleId)));
+    setRightPanelOpenModules((prev) =>
+      prev.has(currentModuleId) ? prev : new Set(prev).add(currentModuleId),
+    );
   }
   function toggleRightPanelForCurrentModule() {
     setRightPanelOpenModules((prev) => {
@@ -238,7 +252,8 @@ export default function Shell({
   // "Customize Layout" (dizajn dok. §5f, 23.8.2026) — isti bezbedan hidratacioni obrazac kao
   // `sidebarCollapsed` iznad: podrazumevana vrednost na SERVERU i prvom klijentskom renderu,
   // localStorage se čita tek posle mount-a.
-  const [layoutVisibility, setLayoutVisibility] = useState<LayoutVisibility>(DEFAULT_LAYOUT_VISIBILITY);
+  const [layoutVisibility, setLayoutVisibility] =
+    useState<LayoutVisibility>(DEFAULT_LAYOUT_VISIBILITY);
   useEffect(() => {
     try {
       const raw = localStorage.getItem(LAYOUT_VISIBILITY_KEY);
@@ -328,7 +343,8 @@ export default function Shell({
         if (value === 'overlay' || value === 'push') setRightPanelMode(value);
         // Isti odgovor nosi SVE preference korisnika (`GET /iam/users/me/preferences` vraća mapu),
         // pa se širina centralnog sadržaja čita iz njega — bez drugog mrežnog poziva.
-        if (isMainWidth(data?.[MAIN_WIDTH_PREFERENCE_KEY])) setMainWidth(data[MAIN_WIDTH_PREFERENCE_KEY]);
+        if (isMainWidth(data?.[MAIN_WIDTH_PREFERENCE_KEY]))
+          setMainWidth(data[MAIN_WIDTH_PREFERENCE_KEY]);
         const dock = data?.[AI_DOCK_PREFERENCE_KEY];
         if (dock === 'right' || dock === 'bottom') setAiDock(dock);
       })
@@ -352,19 +368,29 @@ export default function Shell({
   return (
     <TabsProvider homeLabel="Početna">
       <SelectionProvider onFirstAdd={openRightPanelForCurrentModule}>
-      <RowSummaryProvider onFirstShow={openRightPanelForCurrentModule}>
-      <ProductPreviewProvider onFirstShow={openRightPanelForCurrentModule}>
-      <PanelCollectionProvider onFirstAdd={(moduleId) => setRightPanelOpenModules((prev) => (prev.has(moduleId) ? prev : new Set(prev).add(moduleId)))}>
-      <GroupSearchBuilderProvider>
-      <SearchStateProvider>
-      <SearchFiltersProvider>
-      <KatalogProvider>
-      {/* `onFirstAdd` NE otvara desni panel dok je korisnik u Fokus tabu (dopuna 25.8.2026, na
+        <RowSummaryProvider onFirstShow={openRightPanelForCurrentModule}>
+          <ProductPreviewProvider onFirstShow={openRightPanelForCurrentModule}>
+            <PanelCollectionProvider
+              onFirstAdd={(moduleId) =>
+                setRightPanelOpenModules((prev) =>
+                  prev.has(moduleId) ? prev : new Set(prev).add(moduleId),
+                )
+              }
+            >
+              <GroupSearchBuilderProvider>
+                <SearchStateProvider>
+                  <SearchFiltersProvider>
+                    <KatalogProvider>
+                      {/* `onFirstAdd` NE otvara desni panel dok je korisnik u Fokus tabu (dopuna 25.8.2026, na
           zahtev vlasnika: "kada se klikne na # otvara se odmah desni panel iako je vec ai agent
           u celom tabu. To ukinite") — AI chat je tamo već preko celog centralnog prostora
           (`/ai-asistent`, §6c.0), otvaranje desnog panela pored njega nema smisla/nepotrebno je. */}
-      <AiContextProvider onFirstAdd={() => { if (pathname !== '/ai-asistent') openRightPanelForCurrentModule(); }}>
-        {/* VS Code obrazac, ISPRAVKA (21.8.2026, na zahtev vlasnika, uz stvaran VS Code
+                      <AiContextProvider
+                        onFirstAdd={() => {
+                          if (pathname !== '/ai-asistent') openRightPanelForCurrentModule();
+                        }}
+                      >
+                        {/* VS Code obrazac, ISPRAVKA (21.8.2026, na zahtev vlasnika, uz stvaran VS Code
             snimak ekrana kao referencu: "ne sviđa mi se [prethodni pokušaj sa linijama/
             razmakom]... uklonite linije oko traka i panela, neka razdvajanje bude različitim
             tonovima boje"). Prethodni prolaz (v1.42) je uveo `border-frame` liniju + `gap-1.5`
@@ -377,10 +403,10 @@ export default function Shell({
             tab, AiChatBox). Kad su dve susedne zone istog tona (npr. TopBar iznad TabBar-a),
             namerno se vizuelno stapaju u jednu masu, isto kao naslovna traka i traka tabova
             u pravom VS Code-u. */}
-        <div className="flex h-screen flex-col overflow-hidden bg-bg text-ink">
-          <TopBar leftColumnWidth={leftColumnWidth} tabOffset={tabOffset} />
-          <div className="flex flex-1 overflow-hidden">
-            {/* `leftColumnRef` (23.8.2026, uz snimak ekrana — "i dalje nije dobra pozicija prvog
+                        <div className="flex h-screen flex-col overflow-hidden bg-bg text-ink">
+                          <TopBar leftColumnWidth={leftColumnWidth} tabOffset={tabOffset} />
+                          <div className="flex flex-1 overflow-hidden">
+                            {/* `leftColumnRef` (23.8.2026, uz snimak ekrana — "i dalje nije dobra pozicija prvog
                 taba") — dva uzastopna pokušaja da se TopBar-ov razmak POGODI (statična vrednost
                 v1.94, pa binarna proširena/uska vrednost v1.95) su i dalje bila netačna, jer
                 nijedan od pretpostavljenih brojeva nije pratio STVARNU renderovanu širinu ove
@@ -389,49 +415,49 @@ export default function Shell({
                 da bi se unapred izračunalo). Umesto nagađanja, širina se sad STVARNO MERI preko
                 `ResizeObserver` (ispod) i prosleđuje `TopBar`-u kao broj u pikselima — tačna u
                 svakom stanju, uključujući uživo prevlačenje, bez ijedne nove pretpostavke. */}
-            <div ref={leftColumnRef} className="flex">
-              <ActivityBar
-                groups={groups}
-                items={items}
-                activeGroupId={activeGroup?.id ?? ''}
-                // ISPRAVKA (26.8.2026, na zahtev vlasnika: "kad se skupi levi panel ima neki bag
-                // i treba više puta da se klikne kako bi se ponovo otvorio") — dok je traka
-                // skupljena, klik na NEAKTIVNU grupu je do sad samo pozivao `setActiveGroupId`
-                // (Sidebar ostaje montiran kao `null` dok je `collapsed`, pa se ništa vidljivo
-                // nije desilo); tek SLEDEĆI klik je pogađao "već aktivnu" granu u ActivityBar-u
-                // koja stvarno zove `onToggleCollapse`. Sad izbor grupe dok je skupljeno odmah i
-                // širi traku — jedan klik, ne dva.
-                onSelectGroup={(id) => {
-                  setActiveGroupId(id);
-                  if (sidebarCollapsed) setCollapsed(false);
-                }}
-                collapsed={sidebarCollapsed}
-                onToggleCollapse={() => setCollapsed(!sidebarCollapsed)}
-              />
-              {layoutVisibility.sidebar && (
-                <ResizablePane
-                  storageKey="tt-panel-sidebar-width"
-                  defaultWidth={224}
-                  minWidth={180}
-                  maxWidth={420}
-                  collapsed={sidebarCollapsed}
-                  collapsedWidth={0}
-                >
-                  <Sidebar
-                    items={items}
-                    activeGroup={activeGroup}
-                    mePresent
-                    collapsed={sidebarCollapsed}
-                    onCollapse={() => setCollapsed(true)}
-                  />
-                </ResizablePane>
-              )}
-            </div>
-            <div className="flex flex-1 flex-col overflow-hidden">
-              {/* Traka tabova VRAĆENA u TopBar (21.8.2026, treći krug istog dana, na zahtev
+                            <div ref={leftColumnRef} className="flex">
+                              <ActivityBar
+                                groups={groups}
+                                items={items}
+                                activeGroupId={activeGroup?.id ?? ''}
+                                // ISPRAVKA (26.8.2026, na zahtev vlasnika: "kad se skupi levi panel ima neki bag
+                                // i treba više puta da se klikne kako bi se ponovo otvorio") — dok je traka
+                                // skupljena, klik na NEAKTIVNU grupu je do sad samo pozivao `setActiveGroupId`
+                                // (Sidebar ostaje montiran kao `null` dok je `collapsed`, pa se ništa vidljivo
+                                // nije desilo); tek SLEDEĆI klik je pogađao "već aktivnu" granu u ActivityBar-u
+                                // koja stvarno zove `onToggleCollapse`. Sad izbor grupe dok je skupljeno odmah i
+                                // širi traku — jedan klik, ne dva.
+                                onSelectGroup={(id) => {
+                                  setActiveGroupId(id);
+                                  if (sidebarCollapsed) setCollapsed(false);
+                                }}
+                                collapsed={sidebarCollapsed}
+                                onToggleCollapse={() => setCollapsed(!sidebarCollapsed)}
+                              />
+                              {layoutVisibility.sidebar && (
+                                <ResizablePane
+                                  storageKey="tt-panel-sidebar-width"
+                                  defaultWidth={224}
+                                  minWidth={180}
+                                  maxWidth={420}
+                                  collapsed={sidebarCollapsed}
+                                  collapsedWidth={0}
+                                >
+                                  <Sidebar
+                                    items={items}
+                                    activeGroup={activeGroup}
+                                    mePresent
+                                    collapsed={sidebarCollapsed}
+                                    onCollapse={() => setCollapsed(true)}
+                                  />
+                                </ResizablePane>
+                              )}
+                            </div>
+                            <div className="flex flex-1 flex-col overflow-hidden">
+                              {/* Traka tabova VRAĆENA u TopBar (21.8.2026, treći krug istog dana, na zahtev
                   vlasnika: "vratite tabove u gornji red") — poništava prethodni pokušaj
                   (v1.62, prvi red centralne kolone). Vidi TopBar.tsx. */}
-              {/* Centralni sadržaj na PUNIH 100% dostupne širine (29.8.2026, na zahtev vlasnika,
+                              {/* Centralni sadržaj na PUNIH 100% dostupne širine (29.8.2026, na zahtev vlasnika,
                   tt-shadcn-redesign — "centralni panel uvek treba da bude na 100% širine bez
                   obzira koliko su bočni paneli široki") — POVLAČI raniju `w-[90%] mx-auto`
                   odluku (21.8.2026, §komentar u istoriji ovog fajla): tih 10% margine je
@@ -439,8 +465,8 @@ export default function Shell({
                   jer je 90% ionako sve manjeg preostalog prostora izgledalo kao da se centar
                   dodatno skuplja. Bez `mx-auto`/fiksne širine, `flex-1` sam ispuni tačno onoliko
                   prostora koliko ostane između bočne trake i desnog panela, u svakom stanju. */}
-              <div className="flex flex-1 flex-col overflow-hidden">
-                {/* `id` čita AiChatBox.tsx da automatski priloži vidljiv sadržaj ovog taba uz
+                              <div className="flex flex-1 flex-col overflow-hidden">
+                                {/* `id` čita AiChatBox.tsx da automatski priloži vidljiv sadržaj ovog taba uz
                     svaku poruku (M15 spec §6.5.1 dopuna, 22.8.2026, na zahtev vlasnika) — bez
                     ovog `id`-ja nema drugog opšteg mesta da se "trenutan sadržaj ekrana" pročita
                     bez posebnog ožičenja svakog od 18 ekrana ponaosob. AiChatBox je od 25.8.2026
@@ -448,7 +474,7 @@ export default function Shell({
                     potomak, pa čitanje ostaje bezbedno (nema rizika od rekurzivnog čitanja
                     sopstvene istorije). Izuzetak: `/ai-asistent` Fokus tab, gde AiChatBox JESTE
                     ovaj `<main>` sadržaj — `fokus` prop tamo isključuje čitanje (AiChatBox.tsx). */}
-                {/* Gornja granica širine (2.9.2026, §6b.1) — postavljena kao `maxWidth` na sam
+                                {/* Gornja granica širine (2.9.2026, §6b.1) — postavljena kao `maxWidth` na sam
                     `<main>`, uz `mx-auto` da se sadržaj centrira kad granica stvarno deluje.
                     `w-full` ostaje: bez njega bi `max-width` na flex-detetu davao širinu po
                     sadržaju, ne po raspoloživom prostoru. Kad je izabrano `full`, `maxWidth` je
@@ -457,32 +483,38 @@ export default function Shell({
                     postavlja na `<main>`, ne na neki omotač iznad: `bg-panel` tada prati sadržaj,
                     pa se pri užoj širini vidi `--bg` sa strane i granica čita kao namerna, ne kao
                     prazan hod. */}
-                <main
-                  ref={mainRef}
-                  id="tt-main-content"
-                  style={mainWidth === 'full' ? undefined : { maxWidth: `${mainWidth}px` }}
-                  className="mx-auto w-full flex-1 overflow-y-auto bg-panel"
-                >
-                  {children}
-                </main>
-                {/* Terminal panel (dizajn dok. §5f, M15 spec §6.9) — VS Code pozicija, ispod
+                                <main
+                                  ref={mainRef}
+                                  id="tt-main-content"
+                                  style={
+                                    mainWidth === 'full'
+                                      ? undefined
+                                      : { maxWidth: `${mainWidth}px` }
+                                  }
+                                  className="mx-auto w-full flex-1 overflow-y-auto bg-panel"
+                                >
+                                  {children}
+                                </main>
+                                {/* Terminal panel (dizajn dok. §5f, M15 spec §6.9) — VS Code pozicija, ispod
                     sadržaja, iznad statusne trake, span samo centralne kolone (ne ide ispod
                     bočne trake/desnog panela, isto kao pravi VS Code Panel). Montira se SAMO uz
                     `showBiTerminal` (RBAC, isključivo VLASNIK) — nema onemogućenog stanja. */}
-                {showBiTerminal && layoutVisibility.terminal && <TerminalPanel onClose={() => toggleLayout('terminal')} />}
-                {/* AI asistent u dnu centralne kolone — ista VS Code pozicija kao Terminal iznad
+                                {showBiTerminal && layoutVisibility.terminal && (
+                                  <TerminalPanel onClose={() => toggleLayout('terminal')} />
+                                )}
+                                {/* AI asistent u dnu centralne kolone — ista VS Code pozicija kao Terminal iznad
                     (§6c.0 dopuna, 3.9.2026). Sused `<main>`-a, ne njegov potomak: `AiChatBox`
                     čita `#tt-main-content` da priloži sadržaj ekrana, pa bi kao potomak čitao
                     sopstvenu istoriju. */}
-                {aiDock === 'bottom' && (
-                  <AiDockBottom
-                    slotRef={setAiSlot}
-                    onMoveToRight={() => moveAiDock('right')}
-                  />
-                )}
-              </div>
-            </div>
-            {/* Dizajn dok. §6c.0 (dopuna 25.8.2026, na zahtev vlasnika) — AI chat je sad TRAJAN
+                                {aiDock === 'bottom' && (
+                                  <AiDockBottom
+                                    slotRef={setAiSlot}
+                                    onMoveToRight={() => moveAiDock('right')}
+                                  />
+                                )}
+                              </div>
+                            </div>
+                            {/* Dizajn dok. §6c.0 (dopuna 25.8.2026, na zahtev vlasnika) — AI chat je sad TRAJAN
                 deo `RightPanel` (naslagan ispod postojećeg sažetka/podsetnika), ne poseban
                 plutajući prozor. `ResizablePane` je UVEK montiran (`collapsed={!rightPanelOpen}`,
                 isti obrazac kao bočna traka) — `RightPanel`/`AiChatBox` se nikad ne uklanjaju iz
@@ -501,74 +533,91 @@ export default function Shell({
                 Prelazak između režima remontira `RightPanel` (različit roditelj) — istorija
                 razgovora se u tom retkom, eksplicitnom trenutku gubi; svako drugo otvaranje/
                 zatvaranje je bezbedno. */}
-            {rightPanelMode === 'push' ? (
-              <ResizablePane storageKey="tt-panel-right-width" defaultWidth={420} minWidth={260} maxWidth={560} handleSide="left" collapsed={!rightPanelOpen} collapsedWidth={0}>
-                <RightPanel
-                  moduleId={currentModuleId}
-                  moduleLabel={currentModuleLabel}
-                  onClose={closeRightPanelForCurrentModule}
-                  displayMode={rightPanelMode}
-                  onToggleDisplayMode={toggleRightPanelMode}
-                  aiDock={aiDock}
-                  aiSlotRef={setAiSlot}
-                  onMoveAiToBottom={() => moveAiDock('bottom')}
-                />
-              </ResizablePane>
-            ) : (
-              // `right-[43px]`/`bottom-[43px]` (5.9.2026, dopuna) — desna traka (`RightRail.tsx`)
-              // sad zauzima 43px uz desnu ivicu ekrana, i StatusBar je porastao sa 29px na 43px
-              // (isti zahtev, "visina donje trake ista kao gornje") — overlay panel mora da
-              // ostavi prostor za oboje, ne da ih prekrije.
-              <div className="fixed bottom-[43px] right-[43px] top-[43px] z-30 shadow-lg" style={{ display: rightPanelOpen ? undefined : 'none' }}>
-                <ResizablePane storageKey="tt-panel-right-width" defaultWidth={420} minWidth={260} maxWidth={560} handleSide="left">
-                  <RightPanel
-                    moduleId={currentModuleId}
-                    moduleLabel={currentModuleLabel}
-                    onClose={closeRightPanelForCurrentModule}
-                    displayMode={rightPanelMode}
-                    onToggleDisplayMode={toggleRightPanelMode}
-                    aiDock={aiDock}
-                    aiSlotRef={setAiSlot}
-                    onMoveAiToBottom={() => moveAiDock('bottom')}
-                  />
-                </ResizablePane>
-              </div>
-            )}
-            {/* Desna vertikalna traka (5.9.2026, vlasnikov zahtev: "formirajte desnu traku i tu
+                            {rightPanelMode === 'push' ? (
+                              <ResizablePane
+                                storageKey="tt-panel-right-width"
+                                defaultWidth={420}
+                                minWidth={260}
+                                maxWidth={560}
+                                handleSide="left"
+                                collapsed={!rightPanelOpen}
+                                collapsedWidth={0}
+                              >
+                                <RightPanel
+                                  moduleId={currentModuleId}
+                                  moduleLabel={currentModuleLabel}
+                                  onClose={closeRightPanelForCurrentModule}
+                                  displayMode={rightPanelMode}
+                                  onToggleDisplayMode={toggleRightPanelMode}
+                                  aiDock={aiDock}
+                                  aiSlotRef={setAiSlot}
+                                  onMoveAiToBottom={() => moveAiDock('bottom')}
+                                />
+                              </ResizablePane>
+                            ) : (
+                              // `right-[43px]`/`bottom-[43px]` (5.9.2026, dopuna) — desna traka (`RightRail.tsx`)
+                              // sad zauzima 43px uz desnu ivicu ekrana, i StatusBar je porastao sa 29px na 43px
+                              // (isti zahtev, "visina donje trake ista kao gornje") — overlay panel mora da
+                              // ostavi prostor za oboje, ne da ih prekrije.
+                              <div
+                                className="fixed bottom-[43px] right-[43px] top-[43px] z-30 shadow-lg"
+                                style={{ display: rightPanelOpen ? undefined : 'none' }}
+                              >
+                                <ResizablePane
+                                  storageKey="tt-panel-right-width"
+                                  defaultWidth={420}
+                                  minWidth={260}
+                                  maxWidth={560}
+                                  handleSide="left"
+                                >
+                                  <RightPanel
+                                    moduleId={currentModuleId}
+                                    moduleLabel={currentModuleLabel}
+                                    onClose={closeRightPanelForCurrentModule}
+                                    displayMode={rightPanelMode}
+                                    onToggleDisplayMode={toggleRightPanelMode}
+                                    aiDock={aiDock}
+                                    aiSlotRef={setAiSlot}
+                                    onMoveAiToBottom={() => moveAiDock('bottom')}
+                                  />
+                                </ResizablePane>
+                              </div>
+                            )}
+                            {/* Desna vertikalna traka (5.9.2026, vlasnikov zahtev: "formirajte desnu traku i tu
                 smestite sve ikone iz gornje trake iz desnog ugla") — ogledalo `ActivityBar.tsx`
                 na suprotnoj ivici ekrana, POSLEDNJI element ovog reda tako da ostaje uz desnu
                 ivicu ekrana bez obzira na push/overlay stanje desnog panela iznad. */}
-            <RightRail
-              rightPanelOpen={rightPanelOpen}
-              onToggleRightPanel={toggleRightPanelForCurrentModule}
-              layoutProps={{
-                sidebarVisible: layoutVisibility.sidebar,
-                onToggleSidebar: () => toggleLayout('sidebar'),
-                statusBarVisible: layoutVisibility.statusBar,
-                onToggleStatusBar: () => toggleLayout('statusBar'),
-                showTerminal: showBiTerminal,
-                terminalOpen: layoutVisibility.terminal,
-                onToggleTerminal: () => toggleLayout('terminal'),
-                mainWidth,
-                onChangeMainWidth: changeMainWidth,
-              }}
-            />
-          </div>
-          {layoutVisibility.statusBar && (
-            <StatusBar
-              fullName={fullName}
-              roleLabel={roles.join(', ')}
-              moduleCode={moduleCodeForHref(pathname)}
-            />
-          )}
-        </div>
-        {/* JEDINI `AiChatBox` u aplikaciji, u stabilnom domaćinu koji se FIZIČKI premešta u
+                            <RightRail
+                              rightPanelOpen={rightPanelOpen}
+                              onToggleRightPanel={toggleRightPanelForCurrentModule}
+                              layoutProps={{
+                                sidebarVisible: layoutVisibility.sidebar,
+                                onToggleSidebar: () => toggleLayout('sidebar'),
+                                statusBarVisible: layoutVisibility.statusBar,
+                                onToggleStatusBar: () => toggleLayout('statusBar'),
+                                showTerminal: showBiTerminal,
+                                terminalOpen: layoutVisibility.terminal,
+                                onToggleTerminal: () => toggleLayout('terminal'),
+                                mainWidth,
+                                onChangeMainWidth: changeMainWidth,
+                              }}
+                            />
+                          </div>
+                          {layoutVisibility.statusBar && (
+                            <StatusBar
+                              fullName={fullName}
+                              roleLabel={roles.join(', ')}
+                              moduleCode={moduleCodeForHref(pathname)}
+                            />
+                          )}
+                        </div>
+                        {/* JEDINI `AiChatBox` u aplikaciji, u stabilnom domaćinu koji se FIZIČKI premešta u
             aktivan slot (desni panel ili dno centralne kolone), umesto da se prerenderuje tamo.
             Zašto ovako, a ne portalom: promena odredišta portala je za React nov portal — dete
             se odmontira i ponovo montira, pa se gubi i istorija razgovora i nedovršen tekst u
             polju (izmereno: tekst je posle premeštanja bio prazan). Ovde React uopšte ne dira
             roditelja — samo mi premestimo jedan čvor, a njegovo stanje ostaje netaknuto. */}
-        {/* Parkiralište domaćina dok nijedan slot nije aktivan (ispravka 4.9.2026, vlasnikov
+                        {/* Parkiralište domaćina dok nijedan slot nije aktivan (ispravka 4.9.2026, vlasnikov
             nalaz: "i dalje se pojavljuje ovaj prazan prostor kada se skroluje na dole").
             Domaćin je SUSED glavnog `h-screen` bloka, pa je — dok stoji ovde nepremešten —
             bio običan element u toku dokumenta i dodavao svoju visinu ISPOD ekrana: telo
@@ -578,21 +627,24 @@ export default function Shell({
             iznad premesti u slot, ovde ostaje prazna ljuska bez ikakvog uticaja. Ne `hidden`
             i ne `display:none` — čvor mora ostati živ i merljiv, jer se FIZIČKI premešta sa
             svojim stanjem (vidi napomenu iznad). */}
-        <div className="pointer-events-none fixed bottom-0 left-0 h-0 w-0 overflow-hidden">
-          <div ref={aiHostRef} className="flex h-full min-h-0 w-full flex-col overflow-hidden">
-            <AiChatBox />
-          </div>
-        </div>
-        <CommandPalette items={items} />
-        <NotificationStack />
-      </AiContextProvider>
-      </KatalogProvider>
-      </SearchFiltersProvider>
-      </SearchStateProvider>
-      </GroupSearchBuilderProvider>
-      </PanelCollectionProvider>
-      </ProductPreviewProvider>
-      </RowSummaryProvider>
+                        <div className="pointer-events-none fixed bottom-0 left-0 h-0 w-0 overflow-hidden">
+                          <div
+                            ref={aiHostRef}
+                            className="flex h-full min-h-0 w-full flex-col overflow-hidden"
+                          >
+                            <AiChatBox />
+                          </div>
+                        </div>
+                        <CommandPalette items={items} />
+                        <NotificationStack />
+                      </AiContextProvider>
+                    </KatalogProvider>
+                  </SearchFiltersProvider>
+                </SearchStateProvider>
+              </GroupSearchBuilderProvider>
+            </PanelCollectionProvider>
+          </ProductPreviewProvider>
+        </RowSummaryProvider>
       </SelectionProvider>
     </TabsProvider>
   );

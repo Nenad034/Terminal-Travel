@@ -1,4 +1,9 @@
-import { AgePolicyEntry, applyDefaultAgePolicy, applyDefaultAgePolicyToRoomTypes, DEFAULT_AGE_POLICY } from './age-policy';
+import {
+  AgePolicyEntry,
+  applyDefaultAgePolicy,
+  applyDefaultAgePolicyToRoomTypes,
+  DEFAULT_AGE_POLICY,
+} from './age-policy';
 
 interface TestRoomType {
   code: string;
@@ -20,7 +25,9 @@ describe('applyDefaultAgePolicy (M2 spec §2.3b)', () => {
   });
 
   it('čuva eksplicitno postavljen age_policy nepromenjen (ne prepisuje ga podrazumevanim)', () => {
-    const custom = [{ category: 'ADULT' as const, age_from: 14, age_to: null, counts_toward_capacity: true }];
+    const custom = [
+      { category: 'ADULT' as const, age_from: 14, age_to: null, counts_toward_capacity: true },
+    ];
     const roomType = { code: 'STD', age_policy: custom };
     expect(applyDefaultAgePolicy(roomType).age_policy).toEqual(custom);
   });
@@ -32,8 +39,12 @@ describe('applyDefaultAgePolicy (M2 spec §2.3b)', () => {
   });
 
   it('podrazumevani ADULT i CHILD ulaze u kapacitet', () => {
-    expect(DEFAULT_AGE_POLICY.find((p) => p.category === 'ADULT')?.counts_toward_capacity).toBe(true);
-    expect(DEFAULT_AGE_POLICY.find((p) => p.category === 'CHILD')?.counts_toward_capacity).toBe(true);
+    expect(DEFAULT_AGE_POLICY.find((p) => p.category === 'ADULT')?.counts_toward_capacity).toBe(
+      true,
+    );
+    expect(DEFAULT_AGE_POLICY.find((p) => p.category === 'CHILD')?.counts_toward_capacity).toBe(
+      true,
+    );
   });
 });
 

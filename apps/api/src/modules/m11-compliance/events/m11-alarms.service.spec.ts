@@ -4,8 +4,15 @@ describe('M11AlarmsService (M11 spec §2.1, §2.2, §2.3)', () => {
   function makeService() {
     const eventBus = { emit: jest.fn() };
     const travelGuarantee = { checkAndEmitHealthSignals: jest.fn() };
-    const registrations = { findMissingRegistrationOlderThan: jest.fn(), findReleasePendingOlderThan: jest.fn() };
-    const service = new M11AlarmsService(eventBus as any, travelGuarantee as any, registrations as any);
+    const registrations = {
+      findMissingRegistrationOlderThan: jest.fn(),
+      findReleasePendingOlderThan: jest.fn(),
+    };
+    const service = new M11AlarmsService(
+      eventBus as any,
+      travelGuarantee as any,
+      registrations as any,
+    );
     return { service, eventBus, travelGuarantee, registrations };
   }
 
@@ -23,7 +30,9 @@ describe('M11AlarmsService (M11 spec §2.1, §2.2, §2.3)', () => {
 
   it('checkMissingRegistrations emituje alarm za svaki nedostajući zapis (§2.3 alarm 1)', async () => {
     const { service, eventBus, registrations } = makeService();
-    registrations.findMissingRegistrationOlderThan.mockResolvedValue([{ id: 'reg-1', bookingId: 'booking-1' }]);
+    registrations.findMissingRegistrationOlderThan.mockResolvedValue([
+      { id: 'reg-1', bookingId: 'booking-1' },
+    ]);
 
     await service.checkMissingRegistrations();
 
@@ -35,7 +44,9 @@ describe('M11AlarmsService (M11 spec §2.1, §2.2, §2.3)', () => {
 
   it('checkReleasePending emituje alarm za svaki zaglavljen zapis (§2.3 alarm 2)', async () => {
     const { service, eventBus, registrations } = makeService();
-    registrations.findReleasePendingOlderThan.mockResolvedValue([{ id: 'reg-2', bookingId: 'booking-2' }]);
+    registrations.findReleasePendingOlderThan.mockResolvedValue([
+      { id: 'reg-2', bookingId: 'booking-2' },
+    ]);
 
     await service.checkReleasePending();
 

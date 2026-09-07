@@ -1,4 +1,12 @@
-import { IsDateString, IsEmail, IsIn, IsObject, IsOptional, IsString, IsUUID } from 'class-validator';
+import {
+  IsDateString,
+  IsEmail,
+  IsIn,
+  IsObject,
+  IsOptional,
+  IsString,
+  IsUUID,
+} from 'class-validator';
 
 // M6 spec §2.2 — PATCH /guest-profiles/:id. Sva polja opciona.
 export class UpdateGuestProfileDto {

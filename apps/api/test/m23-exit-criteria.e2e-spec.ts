@@ -30,7 +30,9 @@ describe('M23 — izlazni kriterijum (e2e)', () => {
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
     app = moduleRef.createNestApplication();
     app.setGlobalPrefix('api/v1');
-    app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }));
+    app.useGlobalPipes(
+      new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }),
+    );
     app.useGlobalFilters(new PrismaExceptionFilter());
     await app.init();
     prisma = app.get(PrismaService);
@@ -40,17 +42,23 @@ describe('M23 — izlazni kriterijum (e2e)', () => {
 
   afterAll(async () => {
     if (createdImportIds.length) {
-      await prisma.productContentImportField.deleteMany({ where: { importId: { in: createdImportIds } } });
+      await prisma.productContentImportField.deleteMany({
+        where: { importId: { in: createdImportIds } },
+      });
       await prisma.productContentImport.deleteMany({ where: { id: { in: createdImportIds } } });
     }
     if (createdProductIds.length) {
       await prisma.product.deleteMany({ where: { id: { in: createdProductIds } } });
     }
     if (createdArticleIds.length) {
-      await prisma.question.deleteMany({ where: { matchedArticleIds: { hasSome: createdArticleIds } } });
+      await prisma.question.deleteMany({
+        where: { matchedArticleIds: { hasSome: createdArticleIds } },
+      });
       await prisma.articleRevision.deleteMany({ where: { articleId: { in: createdArticleIds } } });
       await prisma.articleSource.deleteMany({ where: { articleId: { in: createdArticleIds } } });
-      await prisma.articleTranslation.deleteMany({ where: { articleId: { in: createdArticleIds } } });
+      await prisma.articleTranslation.deleteMany({
+        where: { articleId: { in: createdArticleIds } },
+      });
       await prisma.article.deleteMany({ where: { id: { in: createdArticleIds } } });
     }
     if (createdUserIds.length) {
@@ -72,7 +80,9 @@ describe('M23 — izlazni kriterijum (e2e)', () => {
     });
     createdUserIds.push(user.id);
     const role = await prisma.role.findUniqueOrThrow({ where: { name: roleName } });
-    await prisma.userRole.create({ data: { userId: user.id, roleId: role.id, assignedBy: user.id } });
+    await prisma.userRole.create({
+      data: { userId: user.id, roleId: role.id, assignedBy: user.id },
+    });
     const accessToken = jwt.sign({ sub: user.id, sessionId: 'e2e-test-session' });
     return { user, accessToken };
   }
@@ -82,7 +92,9 @@ describe('M23 — izlazni kriterijum (e2e)', () => {
   }
 
   async function getAiAgentUserId(): Promise<string> {
-    const agent = await prisma.aIAgent.findFirstOrThrow({ where: { agentRole: 'KNOWLEDGE_AGENT' } });
+    const agent = await prisma.aIAgent.findFirstOrThrow({
+      where: { agentRole: 'KNOWLEDGE_AGENT' },
+    });
     return agent.userId;
   }
 
@@ -99,7 +111,13 @@ describe('M23 — izlazni kriterijum (e2e)', () => {
         subjectType: 'DESTINATION',
         destinationCountry: `Testland-${testRunId}`,
         destinationCity: 'Test City',
-        translations: [{ languageCode: 'sr', title: `Test destinacija ${testRunId}`, body: 'Opis destinacije za test.' }],
+        translations: [
+          {
+            languageCode: 'sr',
+            title: `Test destinacija ${testRunId}`,
+            body: 'Opis destinacije za test.',
+          },
+        ],
       });
     expect(createRes.status).toBe(201);
     const articleId = createRes.body.id;
@@ -112,8 +130,12 @@ describe('M23 — izlazni kriterijum (e2e)', () => {
     expect(publishRes.status).toBe(201);
     expect(publishRes.body.shareToken).toBeDefined();
 
-    const listSales = await request(app.getHttpServer()).get('/api/v1/knowledge/articles').set(authed(salesManager.accessToken));
-    const listSubagent = await request(app.getHttpServer()).get('/api/v1/knowledge/articles').set(authed(subagentAdmin.accessToken));
+    const listSales = await request(app.getHttpServer())
+      .get('/api/v1/knowledge/articles')
+      .set(authed(salesManager.accessToken));
+    const listSubagent = await request(app.getHttpServer())
+      .get('/api/v1/knowledge/articles')
+      .set(authed(subagentAdmin.accessToken));
     expect(listSales.status).toBe(200);
     expect(listSubagent.status).toBe(200);
 
@@ -133,7 +155,9 @@ describe('M23 — izlazni kriterijum (e2e)', () => {
       .send({
         subjectType: 'COUNTRY',
         destinationCountry: `PublicLand-${testRunId}`,
-        translations: [{ languageCode: 'sr', title: 'Javni članak', body: 'Sadržaj javnog članka.' }],
+        translations: [
+          { languageCode: 'sr', title: 'Javni članak', body: 'Sadržaj javnog članka.' },
+        ],
       });
     const articleId = createRes.body.id;
     createdArticleIds.push(articleId);
@@ -145,12 +169,16 @@ describe('M23 — izlazni kriterijum (e2e)', () => {
     const shareToken = publishRes.body.shareToken;
 
     // Bez Authorization header-a — javna, neautentifikovana ruta.
-    const publicRes = await request(app.getHttpServer()).get(`/api/v1/knowledge/public/${shareToken}`);
+    const publicRes = await request(app.getHttpServer()).get(
+      `/api/v1/knowledge/public/${shareToken}`,
+    );
     expect(publicRes.status).toBe(200);
     expect(publicRes.body.id).toBe(articleId);
     expect(publicRes.body.translation.title).toBe('Javni članak');
 
-    const notFoundRes = await request(app.getHttpServer()).get('/api/v1/knowledge/public/nepostojeci-token');
+    const notFoundRes = await request(app.getHttpServer()).get(
+      '/api/v1/knowledge/public/nepostojeci-token',
+    );
     expect(notFoundRes.status).toBe(404);
   });
 
@@ -173,7 +201,10 @@ describe('M23 — izlazni kriterijum (e2e)', () => {
     const goodSourceRes = await request(app.getHttpServer())
       .post(`/api/v1/knowledge/articles/${articleId}/sources`)
       .set(authed(vlasnik.accessToken))
-      .send({ url: 'https://tourism-board.example.gov', sourceType: 'GOVERNMENT_OR_TOURISM_BOARD' });
+      .send({
+        url: 'https://tourism-board.example.gov',
+        sourceType: 'GOVERNMENT_OR_TOURISM_BOARD',
+      });
     expect(goodSourceRes.status).toBe(201);
   });
 
@@ -193,7 +224,8 @@ describe('M23 — izlazni kriterijum (e2e)', () => {
         research: {
           sourceUrl: 'https://tourism-board.example.gov/city',
           sourceType: 'GOVERNMENT_OR_TOURISM_BOARD',
-          rawText: 'Grad je poznat po starom gradskom jezgru i muzejima. Idealan za jednodnevni izlet.',
+          rawText:
+            'Grad je poznat po starom gradskom jezgru i muzejima. Idealan za jednodnevni izlet.',
         },
       });
     expect(createRes.status).toBe(201);
@@ -251,7 +283,10 @@ describe('M23 — izlazni kriterijum (e2e)', () => {
     const articleAfter = await prisma.article.findUniqueOrThrow({ where: { id: articleId } });
     expect(articleAfter.lastRefreshedAt).not.toBeNull();
     expect(articleAfter.nextRefreshDueAt).not.toBeNull();
-    const daysDiff = Math.round((articleAfter.nextRefreshDueAt!.getTime() - articleAfter.lastRefreshedAt!.getTime()) / (24 * 60 * 60 * 1000));
+    const daysDiff = Math.round(
+      (articleAfter.nextRefreshDueAt!.getTime() - articleAfter.lastRefreshedAt!.getTime()) /
+        (24 * 60 * 60 * 1000),
+    );
     expect(daysDiff).toBe(30);
 
     // AI_AGENT ne sme objaviti članak.
@@ -300,11 +335,15 @@ describe('M23 — izlazni kriterijum (e2e)', () => {
       .set(authed(vlasnik.accessToken));
     const revisionId = revisions.body[0].id;
 
-    const importRecord = await prisma.productContentImport.findFirstOrThrow({ where: { productId: product.id, origin: 'M23_RESEARCH' } });
+    const importRecord = await prisma.productContentImport.findFirstOrThrow({
+      where: { productId: product.id, origin: 'M23_RESEARCH' },
+    });
     createdImportIds.push(importRecord.id);
     expect(importRecord.status).toBe('EXTRACTED');
 
-    const fields = await prisma.productContentImportField.findMany({ where: { importId: importRecord.id } });
+    const fields = await prisma.productContentImportField.findMany({
+      where: { importId: importRecord.id },
+    });
     expect(fields.length).toBeGreaterThan(0);
     for (const field of fields) {
       expect(field.sourceArticleRevisionId).toBe(revisionId);
@@ -327,19 +366,29 @@ describe('M23 — izlazni kriterijum (e2e)', () => {
     const articleId = createRes.body.id;
     createdArticleIds.push(articleId);
 
-    await request(app.getHttpServer()).post(`/api/v1/knowledge/articles/${articleId}/publish`).set(authed(vlasnik.accessToken)).send({});
+    await request(app.getHttpServer())
+      .post(`/api/v1/knowledge/articles/${articleId}/publish`)
+      .set(authed(vlasnik.accessToken))
+      .send({});
 
     // Ručno postavi dospeo rok (simulira 30+ dana od objave).
-    await prisma.article.update({ where: { id: articleId }, data: { nextRefreshDueAt: new Date('2000-01-01') } });
+    await prisma.article.update({
+      where: { id: articleId },
+      data: { nextRefreshDueAt: new Date('2000-01-01') },
+    });
 
     await refreshService.runDueRefreshes();
 
-    const revisions = await prisma.articleRevision.findMany({ where: { articleId, trigger: 'SCHEDULED_REFRESH' } });
+    const revisions = await prisma.articleRevision.findMany({
+      where: { articleId, trigger: 'SCHEDULED_REFRESH' },
+    });
     expect(revisions.length).toBe(1);
     expect(revisions[0].status).toBe('PENDING_REVIEW');
 
     // Objavljen sadržaj ostaje netaknut dok revizija čeka.
-    const translation = await prisma.articleTranslation.findFirst({ where: { articleId, languageCode: 'sr' } });
+    const translation = await prisma.articleTranslation.findFirst({
+      where: { articleId, languageCode: 'sr' },
+    });
     expect(translation!.title).toBe('Pre osvežavanja');
 
     const articleAfter = await prisma.article.findUniqueOrThrow({ where: { id: articleId } });
@@ -414,11 +463,19 @@ describe('M23 — izlazni kriterijum (e2e)', () => {
     const articleId = createRes.body.id;
     createdArticleIds.push(articleId);
 
-    await request(app.getHttpServer()).post(`/api/v1/knowledge/articles/${articleId}/publish`).set(authed(vlasnik.accessToken)).send({});
-    await prisma.article.update({ where: { id: articleId }, data: { nextRefreshDueAt: new Date('2000-01-01') } });
+    await request(app.getHttpServer())
+      .post(`/api/v1/knowledge/articles/${articleId}/publish`)
+      .set(authed(vlasnik.accessToken))
+      .send({});
+    await prisma.article.update({
+      where: { id: articleId },
+      data: { nextRefreshDueAt: new Date('2000-01-01') },
+    });
     await refreshService.runDueRefreshes();
 
-    const placeholder = await prisma.articleRevision.findFirstOrThrow({ where: { articleId, trigger: 'SCHEDULED_REFRESH' } });
+    const placeholder = await prisma.articleRevision.findFirstOrThrow({
+      where: { articleId, trigger: 'SCHEDULED_REFRESH' },
+    });
     expect(placeholder.status).toBe('PENDING_REVIEW');
     expect((placeholder.proposedTranslations as unknown as unknown[]).length).toBe(0);
 
@@ -436,13 +493,19 @@ describe('M23 — izlazni kriterijum (e2e)', () => {
     expect(researchRes.body.revision.status).toBe('PENDING_REVIEW');
 
     // I dalje TAČNO jedna SCHEDULED_REFRESH revizija — popunjena je postojeća, ne kreirana nova.
-    const revisionsAfter = await prisma.articleRevision.findMany({ where: { articleId, trigger: 'SCHEDULED_REFRESH' } });
+    const revisionsAfter = await prisma.articleRevision.findMany({
+      where: { articleId, trigger: 'SCHEDULED_REFRESH' },
+    });
     expect(revisionsAfter).toHaveLength(1);
     expect(revisionsAfter[0].id).toBe(placeholder.id);
-    expect((revisionsAfter[0].proposedTranslations as unknown as unknown[]).length).toBeGreaterThan(0);
+    expect((revisionsAfter[0].proposedTranslations as unknown as unknown[]).length).toBeGreaterThan(
+      0,
+    );
 
     // Objavljen sadržaj ostaje netaknut dok revizija čeka odobrenje.
-    const translation = await prisma.articleTranslation.findFirst({ where: { articleId, languageCode: 'sr' } });
+    const translation = await prisma.articleTranslation.findFirst({
+      where: { articleId, languageCode: 'sr' },
+    });
     expect(translation!.title).toBe('Pre osvežavanja');
   });
 });

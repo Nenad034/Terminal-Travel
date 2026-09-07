@@ -60,7 +60,14 @@ export class TravelGuaranteeService {
     let result: TravelGuarantee;
 
     if (dto.createNew || !current) {
-      if (!dto.provider || !dto.policyNumber || dto.coverageAmount == null || !dto.currency || !dto.validFrom || !dto.validTo) {
+      if (
+        !dto.provider ||
+        !dto.policyNumber ||
+        dto.coverageAmount == null ||
+        !dto.currency ||
+        !dto.validFrom ||
+        !dto.validTo
+      ) {
         throw new BadRequestException(
           'Za kreiranje nove garancije obavezni su provider, policyNumber, coverageAmount, currency, validFrom, validTo (M11 spec §2.1).',
         );
@@ -124,7 +131,8 @@ export class TravelGuaranteeService {
     }
 
     const utilizedAmount = await this.computeUtilizedAmount(guarantee);
-    const utilizationPercent = guarantee.coverageAmount === 0 ? 0 : (utilizedAmount / guarantee.coverageAmount) * 100;
+    const utilizationPercent =
+      guarantee.coverageAmount === 0 ? 0 : (utilizedAmount / guarantee.coverageAmount) * 100;
 
     return {
       travelGuaranteeId: guarantee.id,
@@ -143,17 +151,24 @@ export class TravelGuaranteeService {
   // M5 BookingsService). Kombinuje dve odvojene provere: (a) da li uopšte postoji dovoljno
   // sveža garancija (hibridni grace period, vidi NO_GUARANTEE_GRACE_PERIOD_DAYS), (b) da li bi
   // ova konkretna rezervacija prekoračila coverage_amount važeće garancije.
-  async assessForBooking(params: { bookingTotalPrice: number; currency: string }): Promise<TravelGuaranteeAssessment> {
+  async assessForBooking(params: {
+    bookingTotalPrice: number;
+    currency: string;
+  }): Promise<TravelGuaranteeAssessment> {
     const guarantee = await this.findCurrent();
     const now = new Date();
 
     if (!guarantee) {
-      await this.eventBus.emit('M11', 'travel_guarantee_missing_urgent', { checkedAt: now.toISOString() });
+      await this.eventBus.emit('M11', 'travel_guarantee_missing_urgent', {
+        checkedAt: now.toISOString(),
+      });
       return { allowed: true };
     }
 
     if (!this.isCurrentlyValid(guarantee)) {
-      const graceDeadline = new Date(guarantee.validTo.getTime() + NO_GUARANTEE_GRACE_PERIOD_DAYS * 24 * 60 * 60 * 1000);
+      const graceDeadline = new Date(
+        guarantee.validTo.getTime() + NO_GUARANTEE_GRACE_PERIOD_DAYS * 24 * 60 * 60 * 1000,
+      );
       if (now > graceDeadline) {
         return {
           allowed: false,
@@ -171,7 +186,12 @@ export class TravelGuaranteeService {
     const utilizedAmount = await this.computeUtilizedAmount(guarantee);
     let additional: number;
     try {
-      additional = await this.convert(params.bookingTotalPrice, params.currency, guarantee.currency, now);
+      additional = await this.convert(
+        params.bookingTotalPrice,
+        params.currency,
+        guarantee.currency,
+        now,
+      );
     } catch (err) {
       if (err instanceof NotFoundException) {
         // Odluka vlasnika (avgust 2026, M11 spec §7): kad kurs za valutu rezervacije nedostaje,
@@ -214,12 +234,16 @@ export class TravelGuaranteeService {
     const now = new Date();
 
     if (!guarantee) {
-      await this.eventBus.emit('M11', 'travel_guarantee_missing_urgent', { checkedAt: now.toISOString() });
+      await this.eventBus.emit('M11', 'travel_guarantee_missing_urgent', {
+        checkedAt: now.toISOString(),
+      });
       return;
     }
 
     if (guarantee.status === 'ACTIVE') {
-      const daysRemaining = Math.floor((guarantee.validTo.getTime() - now.getTime()) / (24 * 60 * 60 * 1000));
+      const daysRemaining = Math.floor(
+        (guarantee.validTo.getTime() - now.getTime()) / (24 * 60 * 60 * 1000),
+      );
       if ([60, 30, 7].includes(daysRemaining)) {
         await this.eventBus.emit('M11', 'travel_guarantee_expiring', {
           travelGuaranteeId: guarantee.id,
@@ -230,12 +254,18 @@ export class TravelGuaranteeService {
     }
 
     if (!this.isCurrentlyValid(guarantee)) {
-      const graceDeadline = new Date(guarantee.validTo.getTime() + NO_GUARANTEE_GRACE_PERIOD_DAYS * 24 * 60 * 60 * 1000);
-      await this.eventBus.emit('M11', now > graceDeadline ? 'travel_guarantee_blocked' : 'travel_guarantee_gap_urgent', {
-        travelGuaranteeId: guarantee.id,
-        validTo: guarantee.validTo.toISOString(),
-        graceDeadline: graceDeadline.toISOString(),
-      });
+      const graceDeadline = new Date(
+        guarantee.validTo.getTime() + NO_GUARANTEE_GRACE_PERIOD_DAYS * 24 * 60 * 60 * 1000,
+      );
+      await this.eventBus.emit(
+        'M11',
+        now > graceDeadline ? 'travel_guarantee_blocked' : 'travel_guarantee_gap_urgent',
+        {
+          travelGuaranteeId: guarantee.id,
+          validTo: guarantee.validTo.toISOString(),
+          graceDeadline: graceDeadline.toISOString(),
+        },
+      );
     }
   }
 
@@ -279,7 +309,12 @@ export class TravelGuaranteeService {
 
   // Trougaona konverzija preko RSD — ExchangeRateSnapshot.nbsMiddleRate je uvek RSD po jedinici
   // strane valute (isti obrazac kao M10 FiscalDocumentsService.convertToRsd).
-  private async convert(amount: number, fromCurrency: string, toCurrency: string, onDate: Date): Promise<number> {
+  private async convert(
+    amount: number,
+    fromCurrency: string,
+    toCurrency: string,
+    onDate: Date,
+  ): Promise<number> {
     if (fromCurrency === toCurrency) return amount;
 
     if (toCurrency === 'RSD') {

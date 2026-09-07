@@ -15,22 +15,34 @@ export class TrendSuggestionsService {
 
   async create(dto: CreateTrendSuggestionDto) {
     return this.prisma.trendSuggestion.create({
-      data: { category: dto.category, summary: dto.summary, suggestedAction: dto.suggestedAction, status: 'DRAFT' },
+      data: {
+        category: dto.category,
+        summary: dto.summary,
+        suggestedAction: dto.suggestedAction,
+        status: 'DRAFT',
+      },
     });
   }
 
   async approve(id: string, actorId: string) {
     const existing = await this.findOneOrThrow(id);
     if (existing.status !== 'DRAFT') {
-      throw new BadRequestException(`TrendSuggestion ${id} je već u statusu ${existing.status} — samo DRAFT se može odobriti.`);
+      throw new BadRequestException(
+        `TrendSuggestion ${id} je već u statusu ${existing.status} — samo DRAFT se može odobriti.`,
+      );
     }
-    return this.prisma.trendSuggestion.update({ where: { id }, data: { status: 'APPROVED', approvedBy: actorId } });
+    return this.prisma.trendSuggestion.update({
+      where: { id },
+      data: { status: 'APPROVED', approvedBy: actorId },
+    });
   }
 
   async reject(id: string) {
     const existing = await this.findOneOrThrow(id);
     if (existing.status !== 'DRAFT') {
-      throw new BadRequestException(`TrendSuggestion ${id} je već u statusu ${existing.status} — samo DRAFT se može odbiti.`);
+      throw new BadRequestException(
+        `TrendSuggestion ${id} je već u statusu ${existing.status} — samo DRAFT se može odbiti.`,
+      );
     }
     return this.prisma.trendSuggestion.update({ where: { id }, data: { status: 'REJECTED' } });
   }

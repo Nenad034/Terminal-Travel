@@ -19,7 +19,7 @@ Zamislite kućnog čuvara koji ne samo da snima kamerom (to već imate — M17 d
 
 - **Email obaveštenja nisu stvarno povezana.** Slanje prave email pošte zahteva ili novu biblioteku ili plaćen servis (SendGrid i slično) — to je mala tehnička odluka, ali ipak odluka, pa čeka da je zajedno donesemo. Do tada, Telegram je pouzdan i besplatan način da odmah dobijate obaveštenja.
 - **"U aplikaciji" obaveštenja (kroz budući interni chat) čekaju taj chat da bude izgrađen** (M19, sledeći modul na redu posle ovog).
-- **AI istraživanje trendova nije autonomno.** Sistem ima mesto da se upiše nalaz i traži odobrenje, ali *pronalaženje* tih nalaza (pretraga interneta) i dalje radi čovek — pravljenje AI istraživača zahteva pristup pretrazi interneta koji trenutno nije uveden u sistem (posebna odluka za kasnije).
+- **AI istraživanje trendova nije autonomno.** Sistem ima mesto da se upiše nalaz i traži odobrenje, ali _pronalaženje_ tih nalaza (pretraga interneta) i dalje radi čovek — pravljenje AI istraživača zahteva pristup pretrazi interneta koji trenutno nije uveden u sistem (posebna odluka za kasnije).
 - **Ekran u internom panelu (M17) još ne postoji za ovo** — sve gore opisano radi "ispod haube" (API, baza, cron poslovi koji rade sami), ali još nema dugmadi/liste u panelu gde biste to sve gledali klikom. To je sledeći, mali korak kad odlučite da ga tražite.
 - **Praćenje zloupotrebe pitanja AI asistenta centra za pomoć** čeka taj centar za pomoć (M21) da bude izgrađen — mesto za taj signal postoji, ali nema šta da prati dok M21 ne postoji.
 

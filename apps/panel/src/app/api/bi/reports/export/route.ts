@@ -8,11 +8,17 @@ import { apiFetch, ApiError } from '@/lib/api-client';
 export async function POST(req: NextRequest) {
   const dto = await req.json();
   try {
-    const result = await apiFetch('/bi/reports/export', { method: 'POST', body: dto, requireAuth: true });
+    const result = await apiFetch('/bi/reports/export', {
+      method: 'POST',
+      body: dto,
+      requireAuth: true,
+    });
     return NextResponse.json(result);
   } catch (err) {
     if (err instanceof ApiError) {
-      return NextResponse.json(err.body ?? { message: 'Izvoz izveštaja nije uspeo' }, { status: err.status });
+      return NextResponse.json(err.body ?? { message: 'Izvoz izveštaja nije uspeo' }, {
+        status: err.status,
+      });
     }
     throw err;
   }

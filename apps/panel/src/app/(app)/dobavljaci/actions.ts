@@ -25,7 +25,9 @@ export async function createSupplier(_prev: FormState, formData: FormData): Prom
     });
     revalidatePath('/dobavljaci');
   } catch (err) {
-    return { error: err instanceof ApiError ? extractMessage(err) : 'Kreiranje dobavljača nije uspelo.' };
+    return {
+      error: err instanceof ApiError ? extractMessage(err) : 'Kreiranje dobavljača nije uspelo.',
+    };
   }
   redirect('/dobavljaci');
 }
@@ -46,7 +48,9 @@ export async function createContract(_prev: FormState, formData: FormData): Prom
     });
     revalidatePath('/ugovori');
   } catch (err) {
-    return { error: err instanceof ApiError ? extractMessage(err) : 'Kreiranje ugovora nije uspelo.' };
+    return {
+      error: err instanceof ApiError ? extractMessage(err) : 'Kreiranje ugovora nije uspelo.',
+    };
   }
   redirect('/ugovori');
 }

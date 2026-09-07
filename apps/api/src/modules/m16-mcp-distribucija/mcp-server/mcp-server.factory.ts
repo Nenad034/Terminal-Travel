@@ -18,7 +18,10 @@ const productTypeEnum = z.enum([
   'CRUISE',
 ]);
 
-const occupancySchema = z.object({ adults: z.number().int().min(0), children: z.number().int().min(0) });
+const occupancySchema = z.object({
+  adults: z.number().int().min(0),
+  children: z.number().int().min(0),
+});
 
 const quoteItemSchema = z.object({
   productId: z.string(),
@@ -27,7 +30,11 @@ const quoteItemSchema = z.object({
   occupancy: occupancySchema,
 });
 
-const guestSchema = z.object({ itemIndex: z.number().int(), firstName: z.string(), lastName: z.string() });
+const guestSchema = z.object({
+  itemIndex: z.number().int(),
+  firstName: z.string(),
+  lastName: z.string(),
+});
 
 /**
  * Gradi jedan `McpServer` po zahtevu (MCP 2026-07-28 je stateless, §1.1 M16 spec) — tool
@@ -72,7 +79,10 @@ export class McpServerFactoryService {
         },
         async (args) => {
           const results = await this.tools.searchProducts(args as any);
-          return { content: [{ type: 'text', text: JSON.stringify(results) }], structuredContent: { results } };
+          return {
+            content: [{ type: 'text', text: JSON.stringify(results) }],
+            structuredContent: { results },
+          };
         },
       );
 
@@ -89,9 +99,13 @@ export class McpServerFactoryService {
         },
         async (args) => {
           this.tools.assertWriteAllowed(accessLevel, 'create_quote');
-          if (!actorUserId) throw new Error('MCP klijent nema aktivan servisni nalog (nije ACTIVE).');
+          if (!actorUserId)
+            throw new Error('MCP klijent nema aktivan servisni nalog (nije ACTIVE).');
           const quote = await this.tools.createQuote(actorUserId, args as any);
-          return { content: [{ type: 'text', text: JSON.stringify(quote) }], structuredContent: quote };
+          return {
+            content: [{ type: 'text', text: JSON.stringify(quote) }],
+            structuredContent: quote,
+          };
         },
       );
 
@@ -111,10 +125,14 @@ export class McpServerFactoryService {
         },
         async (args) => {
           this.tools.assertWriteAllowed(accessLevel, 'confirm_booking');
-          if (!actorUserId) throw new Error('MCP klijent nema aktivan servisni nalog (nije ACTIVE).');
+          if (!actorUserId)
+            throw new Error('MCP klijent nema aktivan servisni nalog (nije ACTIVE).');
           const { quoteId, ...dto } = args as any;
           const booking = await this.tools.confirmBooking(actorUserId, quoteId, dto);
-          return { content: [{ type: 'text', text: JSON.stringify(booking) }], structuredContent: booking };
+          return {
+            content: [{ type: 'text', text: JSON.stringify(booking) }],
+            structuredContent: booking,
+          };
         },
       );
 
@@ -126,9 +144,13 @@ export class McpServerFactoryService {
           inputSchema: z.object({ bookingId: z.string() }),
         },
         async (args) => {
-          if (!actorUserId) throw new Error('MCP klijent nema aktivan servisni nalog (nije ACTIVE).');
+          if (!actorUserId)
+            throw new Error('MCP klijent nema aktivan servisni nalog (nije ACTIVE).');
           const booking = await this.tools.getBookingStatus(actorUserId, (args as any).bookingId);
-          return { content: [{ type: 'text', text: JSON.stringify(booking) }], structuredContent: booking };
+          return {
+            content: [{ type: 'text', text: JSON.stringify(booking) }],
+            structuredContent: booking,
+          };
         },
       );
 
@@ -141,10 +163,14 @@ export class McpServerFactoryService {
         },
         async (args) => {
           this.tools.assertWriteAllowed(accessLevel, 'cancel_booking');
-          if (!actorUserId) throw new Error('MCP klijent nema aktivan servisni nalog (nije ACTIVE).');
+          if (!actorUserId)
+            throw new Error('MCP klijent nema aktivan servisni nalog (nije ACTIVE).');
           const { bookingId, ...dto } = args as any;
           const result = await this.tools.cancelBooking(actorUserId, bookingId, dto);
-          return { content: [{ type: 'text', text: JSON.stringify(result) }], structuredContent: result };
+          return {
+            content: [{ type: 'text', text: JSON.stringify(result) }],
+            structuredContent: result,
+          };
         },
       );
 

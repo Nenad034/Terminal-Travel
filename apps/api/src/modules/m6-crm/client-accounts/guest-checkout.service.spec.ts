@@ -6,7 +6,9 @@ import { GuestCheckoutService } from './guest-checkout.service';
 // svaki poziv generiše sopstvenu slučajnu vrednost.
 describe('GuestCheckoutService', () => {
   function makeService() {
-    const authService: any = { register: jest.fn().mockResolvedValue({ accessToken: 'a', refreshToken: 'b' }) };
+    const authService: any = {
+      register: jest.fn().mockResolvedValue({ accessToken: 'a', refreshToken: 'b' }),
+    };
     const service = new GuestCheckoutService(authService);
     return { service, authService };
   }
@@ -14,7 +16,11 @@ describe('GuestCheckoutService', () => {
   it('poziva AuthService.register sa fullName/email/phone i slučajnom lozinkom', async () => {
     const { service, authService } = makeService();
 
-    const result = await service.checkout({ fullName: 'Petar Petrović', email: 'petar@example.com', phone: '+381601234567' });
+    const result = await service.checkout({
+      fullName: 'Petar Petrović',
+      email: 'petar@example.com',
+      phone: '+381601234567',
+    });
 
     expect(authService.register).toHaveBeenCalledTimes(1);
     const dto = authService.register.mock.calls[0][0];

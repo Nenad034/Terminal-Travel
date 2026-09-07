@@ -8,7 +8,6 @@ import PaymentRow from './PaymentRow';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 
-
 interface FiscalDocument {
   id: string;
   bookingId: string | null;
@@ -41,7 +40,13 @@ interface Payment {
   receivedAt: string | null;
   createdAt?: string;
   bank?: { id: string; name: string } | null;
-  checkDetails?: { id: string; bankId: string; amount: number; checkNumber: string; clearanceDate: string }[];
+  checkDetails?: {
+    id: string;
+    bankId: string;
+    amount: number;
+    checkNumber: string;
+    clearanceDate: string;
+  }[];
   editable?: boolean;
 }
 
@@ -59,7 +64,10 @@ export default async function FiscalDocumentDetailPage(props: { params: Promise<
   try {
     doc = await apiFetch<FiscalDocument>(`/finance/fiscal-documents/${params.id}`);
   } catch (err) {
-    error = err instanceof ApiError && err.status === 404 ? 'Fiskalni dokument nije pronađen.' : 'Fiskalni dokument trenutno nije dostupan.';
+    error =
+      err instanceof ApiError && err.status === 404
+        ? 'Fiskalni dokument nije pronađen.'
+        : 'Fiskalni dokument trenutno nije dostupan.';
   }
 
   const payments =
@@ -69,7 +77,10 @@ export default async function FiscalDocumentDetailPage(props: { params: Promise<
   // M10 spec §5.2 dopuna (2.9.2026) — spisak banaka za formu unosa uplate; zanemarljivo mala
   // referentna lista, dohvata se bez obzira na dozvolu prikaza forme ako forma uopšte može da
   // se prikaže (canRecordPayment ispod).
-  const banks = doc && doc.bookingId && canRecordPayment ? await apiFetch<BankOption[]>('/finance/banks').catch(() => [] as BankOption[]) : [];
+  const banks =
+    doc && doc.bookingId && canRecordPayment
+      ? await apiFetch<BankOption[]>('/finance/banks').catch(() => [] as BankOption[])
+      : [];
 
   return (
     <div className="p-6">
@@ -87,28 +98,38 @@ export default async function FiscalDocumentDetailPage(props: { params: Promise<
             {doc.bookingId && (
               <p>
                 Rezervacija:{' '}
-                <Link href={`/rezervacije/${doc.bookingId}`} className="text-accent hover:underline">
+                <Link
+                  href={`/rezervacije/${doc.bookingId}`}
+                  className="text-accent hover:underline"
+                >
                   {doc.bookingId.slice(0, 8)}…
                 </Link>
               </p>
             )}
             <p className="mt-1">
-              Kupac: <b className="text-ink">{doc.buyerNameSnapshot || '—'}</b> {doc.buyerTaxIdSnapshot ? `(PIB ${doc.buyerTaxIdSnapshot})` : ''}
+              Kupac: <b className="text-ink">{doc.buyerNameSnapshot || '—'}</b>{' '}
+              {doc.buyerTaxIdSnapshot ? `(PIB ${doc.buyerTaxIdSnapshot})` : ''}
             </p>
             <p className="mt-1">
               Iznos:{' '}
               <b className="text-ink">
-                {(doc.amountOriginal / 100).toLocaleString('sr-RS', { minimumFractionDigits: 2 })} {doc.currencyOriginal}
+                {(doc.amountOriginal / 100).toLocaleString('sr-RS', { minimumFractionDigits: 2 })}{' '}
+                {doc.currencyOriginal}
               </b>{' '}
-              (RSD: {(doc.amountRsd / 100).toLocaleString('sr-RS', { minimumFractionDigits: 2 })}, PDV:{' '}
-              {(doc.vatAmount / 100).toLocaleString('sr-RS', { minimumFractionDigits: 2 })})
+              (RSD: {(doc.amountRsd / 100).toLocaleString('sr-RS', { minimumFractionDigits: 2 })},
+              PDV: {(doc.vatAmount / 100).toLocaleString('sr-RS', { minimumFractionDigits: 2 })})
             </p>
-            {doc.vatCalculationBasis && <p className="mt-1">Osnovica PDV: {doc.vatCalculationBasis}</p>}
-            {doc.externalReference && <p className="mt-1">Broj kod SEF/ESIR: {doc.externalReference}</p>}
+            {doc.vatCalculationBasis && (
+              <p className="mt-1">Osnovica PDV: {doc.vatCalculationBasis}</p>
+            )}
+            {doc.externalReference && (
+              <p className="mt-1">Broj kod SEF/ESIR: {doc.externalReference}</p>
+            )}
             {doc.buyerAcceptanceStatus && doc.buyerAcceptanceStatus !== 'N_A' && (
               <p className="mt-1">
                 Prihvatanje kupca: <StatusBadge status={doc.buyerAcceptanceStatus} />
-                {doc.buyerAcceptanceDeadline && ` — rok ${new Date(doc.buyerAcceptanceDeadline).toLocaleDateString('sr-RS')}`}
+                {doc.buyerAcceptanceDeadline &&
+                  ` — rok ${new Date(doc.buyerAcceptanceDeadline).toLocaleDateString('sr-RS')}`}
               </p>
             )}
           </div>
@@ -116,7 +137,8 @@ export default async function FiscalDocumentDetailPage(props: { params: Promise<
           {doc.status === 'DRAFT' && canSubmit && (
             <div className="mb-6 rounded-lg border border-warn bg-warn-bg p-4">
               <p className="mb-2 text-xs text-warn">
-                Nacrt je pripremljen ali još nije poslat — slanje je nepovratan korak i zahteva svesnu potvrdu (M10 spec §6).
+                Nacrt je pripremljen ali još nije poslat — slanje je nepovratan korak i zahteva
+                svesnu potvrdu (M10 spec §6).
               </p>
               <SubmitButton id={doc.id} />
             </div>
@@ -139,7 +161,11 @@ export default async function FiscalDocumentDetailPage(props: { params: Promise<
             <div className="mb-4">
               <h2 className="mb-2 text-sm font-semibold text-ink">Uplate</h2>
               <div className="mb-3 overflow-hidden rounded-lg border border-border">
-                {payments.length === 0 && <p className="p-3 text-center text-xs text-ink-faint">Nema evidentiranih uplata.</p>}
+                {payments.length === 0 && (
+                  <p className="p-3 text-center text-xs text-ink-faint">
+                    Nema evidentiranih uplata.
+                  </p>
+                )}
                 {payments.map((p) => (
                   <PaymentRow
                     key={p.id}
@@ -153,7 +179,12 @@ export default async function FiscalDocumentDetailPage(props: { params: Promise<
                 ))}
               </div>
               {canRecordPayment && (
-                <RecordPaymentForm bookingId={doc.bookingId} currency={doc.currencyOriginal} revalidatePath={`/finansije/fiskalni-dokumenti/${doc.id}`} banks={banks} />
+                <RecordPaymentForm
+                  bookingId={doc.bookingId}
+                  currency={doc.currencyOriginal}
+                  revalidatePath={`/finansije/fiskalni-dokumenti/${doc.id}`}
+                  banks={banks}
+                />
               )}
             </div>
           )}
@@ -164,7 +195,9 @@ export default async function FiscalDocumentDetailPage(props: { params: Promise<
 }
 
 function StatusBadge({ status }: { status: string }) {
-  if (['ISSUED', 'RECEIVED', 'PAID', 'ACCEPTED'].includes(status)) return <Badge variant="ok">{status}</Badge>;
-  if (['REJECTED', 'STORNIRANO', 'FAILED', 'VOIDED', 'EXPIRED'].includes(status)) return <Badge variant="danger">{status}</Badge>;
+  if (['ISSUED', 'RECEIVED', 'PAID', 'ACCEPTED'].includes(status))
+    return <Badge variant="ok">{status}</Badge>;
+  if (['REJECTED', 'STORNIRANO', 'FAILED', 'VOIDED', 'EXPIRED'].includes(status))
+    return <Badge variant="danger">{status}</Badge>;
   return <Badge variant="warn">{status}</Badge>;
 }

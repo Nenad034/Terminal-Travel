@@ -5,7 +5,6 @@ import RegisterTab from '@/components/RegisterTab';
 import Icon from '@/components/Icon';
 import { Badge } from '@/components/ui/badge';
 
-
 interface Contract {
   id: string;
   supplierId: string;
@@ -48,11 +47,17 @@ export default async function ContractsPage() {
           <h1 className="text-lg font-semibold text-ink">Ugovori</h1>
         </div>
         <div className="flex gap-2">
-          <Link href="/dobavljaci" className="flex items-center gap-1.5 rounded border border-border bg-panel px-3 py-1.5 text-xs font-medium text-ink-dim hover:border-accent">
+          <Link
+            href="/dobavljaci"
+            className="flex items-center gap-1.5 rounded border border-border bg-panel px-3 py-1.5 text-xs font-medium text-ink-dim hover:border-accent"
+          >
             <Icon name="organization" /> dobavljači
           </Link>
           {canCreate && (
-            <Link href="/ugovori/novi" className="flex items-center gap-1.5 rounded bg-accent px-3 py-1.5 text-xs font-semibold text-accent-ink hover:bg-accent-strong">
+            <Link
+              href="/ugovori/novi"
+              className="flex items-center gap-1.5 rounded bg-accent px-3 py-1.5 text-xs font-semibold text-accent-ink hover:bg-accent-strong"
+            >
               <Icon name="add" /> nov ugovor
             </Link>
           )}
@@ -63,7 +68,9 @@ export default async function ContractsPage() {
 
       {!error && (
         <div className="overflow-hidden rounded-lg border border-border">
-          {contracts.length === 0 && <p className="p-4 text-center text-xs text-ink-faint">Nema ugovora.</p>}
+          {contracts.length === 0 && (
+            <p className="p-4 text-center text-xs text-ink-faint">Nema ugovora.</p>
+          )}
           {contracts.map((c) => (
             // `id` (23.8.2026, na zahtev vlasnika: "ovo treba da ima linkove ka stavkama na koje
             // obavestava") — dashboard upozorenje ("M3 — rokovi povrata alotmana") i dalje može
@@ -77,10 +84,14 @@ export default async function ContractsPage() {
             >
               <div>
                 <div className="font-medium text-ink">
-                  {c.contractNumber} <span className="text-ink-faint">— {suppliersById.get(c.supplierId) ?? c.supplierId}</span>
+                  {c.contractNumber}{' '}
+                  <span className="text-ink-faint">
+                    — {suppliersById.get(c.supplierId) ?? c.supplierId}
+                  </span>
                 </div>
                 <div className="text-xs text-ink-faint">
-                  {c.currency} · {new Date(c.validFrom).toLocaleDateString('sr-RS')} – {new Date(c.validTo).toLocaleDateString('sr-RS')}
+                  {c.currency} · {new Date(c.validFrom).toLocaleDateString('sr-RS')} –{' '}
+                  {new Date(c.validTo).toLocaleDateString('sr-RS')}
                 </div>
               </div>
               <StatusBadge status={c.status} />
@@ -93,5 +104,17 @@ export default async function ContractsPage() {
 }
 
 function StatusBadge({ status }: { status: string }) {
-  return <Badge variant={status === 'ACTIVE' ? 'ok' : status === 'EXPIRED' || status === 'TERMINATED' ? 'danger' : 'secondary'}>{status}</Badge>;
+  return (
+    <Badge
+      variant={
+        status === 'ACTIVE'
+          ? 'ok'
+          : status === 'EXPIRED' || status === 'TERMINATED'
+            ? 'danger'
+            : 'secondary'
+      }
+    >
+      {status}
+    </Badge>
+  );
 }

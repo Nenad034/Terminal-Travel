@@ -10,8 +10,16 @@ type Theme = 'light' | 'dim' | 'dark';
 // docs/analize/29-DIZAJN-SISTEM-UI.md §2 dopuna). "dim" nema `prefers-color-scheme` granu (OS
 // ne ume da signalizira tri stanja) — dostupan isključivo preko ovog ručnog prekidača.
 const CYCLE: Theme[] = ['light', 'dim', 'dark'];
-const LABELS: Record<Theme, string> = { light: 'Prebaci na dim mod', dim: 'Prebaci na tamni mod', dark: 'Prebaci na svetli mod' };
-const ICONS: Record<Theme, string> = { light: 'circle-filled', dim: 'circle-large-outline', dark: 'color-mode' };
+const LABELS: Record<Theme, string> = {
+  light: 'Prebaci na dim mod',
+  dim: 'Prebaci na tamni mod',
+  dark: 'Prebaci na svetli mod',
+};
+const ICONS: Record<Theme, string> = {
+  light: 'circle-filled',
+  dim: 'circle-large-outline',
+  dark: 'color-mode',
+};
 
 const THEME_COOKIE = 'tt-panel-theme';
 const ONE_YEAR = 60 * 60 * 24 * 365;
@@ -59,7 +67,9 @@ export default function ThemeToggle() {
     }
 
     const current = document.documentElement.getAttribute('data-theme') as Theme | null;
-    setTheme(current ?? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'));
+    setTheme(
+      current ?? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'),
+    );
   }, []);
 
   function toggle() {

@@ -27,13 +27,18 @@ async function main() {
   }
 
   const hotelGuestIds = (
-    await prisma.bookingItemGuest.findMany({ where: { bookingItem: { bookingId: TARGET_BOOKING_ID } }, select: { id: true } })
+    await prisma.bookingItemGuest.findMany({
+      where: { bookingItem: { bookingId: TARGET_BOOKING_ID } },
+      select: { id: true },
+    })
   ).map((g) => g.id);
   if (hotelGuestIds.length) {
     await prisma.fieldCheckIn.deleteMany({ where: { bookingItemGuestId: { in: hotelGuestIds } } });
   }
 
-  await prisma.ticketMessage.deleteMany({ where: { ticket: { relatedBookingId: TARGET_BOOKING_ID } } });
+  await prisma.ticketMessage.deleteMany({
+    where: { ticket: { relatedBookingId: TARGET_BOOKING_ID } },
+  });
   await prisma.ticket.deleteMany({ where: { relatedBookingId: TARGET_BOOKING_ID } });
   await prisma.travelGuaranteeRegistration.deleteMany({ where: { bookingId: TARGET_BOOKING_ID } });
   await prisma.clientContract.deleteMany({ where: { bookingId: TARGET_BOOKING_ID } });
@@ -42,9 +47,13 @@ async function main() {
   await prisma.bookingNote.deleteMany({ where: { bookingId: TARGET_BOOKING_ID } });
   await prisma.bookingItem.deleteMany({ where: { bookingId: TARGET_BOOKING_ID } });
 
-  await prisma.guestProfile.deleteMany({ where: { id: { in: [`${MOCK_MARKER}-guest-jovana`, `${MOCK_MARKER}-guest-petar`] } } });
+  await prisma.guestProfile.deleteMany({
+    where: { id: { in: [`${MOCK_MARKER}-guest-jovana`, `${MOCK_MARKER}-guest-petar`] } },
+  });
 
-  const mockProducts = await prisma.product.findMany({ where: { translations: { some: { slug: { startsWith: 'mock-dossier-' } } } } });
+  const mockProducts = await prisma.product.findMany({
+    where: { translations: { some: { slug: { startsWith: 'mock-dossier-' } } } },
+  });
   if (mockProducts.length) {
     const ids = mockProducts.map((p) => p.id);
     await prisma.markupRule.deleteMany({ where: { scopeId: { in: ids } } });

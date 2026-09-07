@@ -135,7 +135,12 @@ export default function ShareReportButton({
       // nema razloga da uđe u server-render bundle ove (server) stranice.
       const { default: html2canvas } = await import('html2canvas');
       const canvas = await html2canvas(el, { backgroundColor: '#ffffff' });
-      await exportAndSend(conversation, { reportKind, title, format: 'PNG', imageBase64: canvas.toDataURL('image/png') });
+      await exportAndSend(conversation, {
+        reportKind,
+        title,
+        format: 'PNG',
+        imageBase64: canvas.toDataURL('image/png'),
+      });
     } catch {
       setError('Slanje nije uspelo — pokušaj ponovo.');
       setSending(null);
@@ -149,13 +154,22 @@ export default function ShareReportButton({
   function mailtoHref(): string {
     const dicts = rows as Record<string, unknown>[];
     const cols = dicts.length > 0 ? Object.keys(dicts[0]) : [];
-    const widths = cols.map((c) => Math.max(c.length, ...dicts.map((r) => String(r[c] ?? '').length)) + 2);
+    const widths = cols.map(
+      (c) => Math.max(c.length, ...dicts.map((r) => String(r[c] ?? '').length)) + 2,
+    );
     const line = (vals: string[]) => vals.map((v, i) => v.padEnd(widths[i])).join('');
-    const header = cols.length > 0 ? `${line(cols)}\n${line(cols.map((_, i) => '-'.repeat(Math.max(0, widths[i] - 2))))}\n` : '';
+    const header =
+      cols.length > 0
+        ? `${line(cols)}\n${line(cols.map((_, i) => '-'.repeat(Math.max(0, widths[i] - 2))))}\n`
+        : '';
     const shown = dicts.slice(0, 100);
     const body = shown.map((r) => line(cols.map((c) => String(r[c] ?? '')))).join('\n');
-    const truncated = rows.length > shown.length ? `\n… i još ${rows.length - shown.length} redova (pun izveštaj preuzmi iz panela).` : '';
-    const text = rows.length === 0 ? 'Nema podataka za zadate filtere.' : `${header}${body}${truncated}`;
+    const truncated =
+      rows.length > shown.length
+        ? `\n… i još ${rows.length - shown.length} redova (pun izveštaj preuzmi iz panela).`
+        : '';
+    const text =
+      rows.length === 0 ? 'Nema podataka za zadate filtere.' : `${header}${body}${truncated}`;
     return `mailto:?subject=${encodeURIComponent(`Izveštaj — ${title}`)}&body=${encodeURIComponent(text)}`;
   }
 
@@ -164,7 +178,9 @@ export default function ShareReportButton({
       <button
         onClick={togglePicker}
         className={`flex items-center gap-1.5 rounded border px-2 py-1 text-[11px] font-medium ${
-          open ? 'border-accent text-accent' : 'border-border text-ink-dim hover:border-accent hover:text-accent'
+          open
+            ? 'border-accent text-accent'
+            : 'border-border text-ink-dim hover:border-accent hover:text-accent'
         }`}
       >
         <Icon name="share" /> Podeli
@@ -173,14 +189,20 @@ export default function ShareReportButton({
         <div className="absolute right-0 top-full z-30 mt-1 w-80 rounded-lg border border-border bg-panel p-2.5 text-xs shadow-lg">
           <div className="mb-2 flex items-center gap-2">
             <span className="flex-shrink-0 text-ink-faint">format tabele</span>
-            <select value={format} onChange={(e) => setFormat(e.target.value as TableFormat)} className="input flex-1 text-[11px]">
+            <select
+              value={format}
+              onChange={(e) => setFormat(e.target.value as TableFormat)}
+              className="input flex-1 text-[11px]"
+            >
               <option value="EXCEL">Excel</option>
               <option value="PDF">PDF</option>
               <option value="HTML">HTML</option>
             </select>
           </div>
 
-          <div className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-ink-faint">Izvoz</div>
+          <div className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-ink-faint">
+            Izvoz
+          </div>
           <div className="mb-2 flex gap-1.5">
             <button
               disabled={sending === 'export'}
@@ -200,7 +222,9 @@ export default function ShareReportButton({
             </button>
           </div>
 
-          <div className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-ink-faint">Interni chat</div>
+          <div className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-ink-faint">
+            Interni chat
+          </div>
           <div className="mb-2 max-h-36 overflow-y-auto rounded border border-border">
             {conversations === null ? (
               <div className="px-2 py-1.5 text-ink-faint">učitavam…</div>
@@ -208,7 +232,10 @@ export default function ShareReportButton({
               <div className="px-2 py-1.5 text-ink-faint">Nema dostupnih razgovora.</div>
             ) : (
               conversations.map((c) => (
-                <div key={c.id} className="flex items-center justify-between gap-1 border-b border-border px-2 py-1 last:border-b-0">
+                <div
+                  key={c.id}
+                  className="flex items-center justify-between gap-1 border-b border-border px-2 py-1 last:border-b-0"
+                >
                   <span className="truncate text-ink-dim">{c.name ?? c.type}</span>
                   <div className="flex flex-shrink-0 gap-1">
                     <button
@@ -233,7 +260,9 @@ export default function ShareReportButton({
             )}
           </div>
 
-          <div className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-ink-faint">Mejl</div>
+          <div className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-ink-faint">
+            Mejl
+          </div>
           <a
             href={mailtoHref()}
             className="flex items-center justify-center gap-1.5 rounded border border-ink-faint px-2 py-1.5 text-accent hover:border-accent"

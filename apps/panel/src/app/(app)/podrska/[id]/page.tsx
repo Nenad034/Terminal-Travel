@@ -7,7 +7,6 @@ import Icon from '@/components/Icon';
 import TicketMessagesPanel from './TicketMessagesPanel';
 import TicketStatusForm from './TicketStatusForm';
 
-
 interface Ticket {
   id: string;
   ticketNumber: string;
@@ -60,7 +59,10 @@ export default async function TicketDetailPage(props: { params: Promise<{ id: st
   return (
     <div className="p-6">
       <RegisterTab label={ticket.ticketNumber} />
-      <Link href="/podrska" className="mb-3 inline-flex items-center gap-1 text-xs text-ink-faint hover:text-ink">
+      <Link
+        href="/podrska"
+        className="mb-3 inline-flex items-center gap-1 text-xs text-ink-faint hover:text-ink"
+      >
         <Icon name="arrow-left" /> nazad na listu
       </Link>
 
@@ -68,17 +70,31 @@ export default async function TicketDetailPage(props: { params: Promise<{ id: st
         <h1 className="text-lg font-semibold text-ink">{ticket.ticketNumber}</h1>
         <p className="mt-1 text-sm text-ink">{ticket.subject}</p>
         <p className="text-xs text-ink-faint">
-          {ticket.category} · {ticket.channel} · otvoren {new Date(ticket.createdAt).toLocaleString('sr-RS')}
+          {ticket.category} · {ticket.channel} · otvoren{' '}
+          {new Date(ticket.createdAt).toLocaleString('sr-RS')}
           {ticket.resolvedAt && ` · rešen ${new Date(ticket.resolvedAt).toLocaleString('sr-RS')}`}
         </p>
       </div>
 
       {ticket.category === 'REKLAMACIJA' && (
-        <div className={`mb-4 rounded-lg border p-3 text-xs ${ticket.zzpEscalatedAt || zzpOverdue ? 'border-danger bg-danger-bg text-danger' : 'border-border bg-panel text-ink-dim'}`}>
-          <Icon name="law" /> Reklamacija — zakonski rok odgovora (Zakon o zaštiti potrošača, M14 spec §3.1):{' '}
-          <b>{ticket.zzpResponseDeadline ? new Date(ticket.zzpResponseDeadline).toLocaleDateString('sr-RS') : '—'}</b>
-          {ticket.zzpEscalatedAt && <span className="ml-2 font-semibold">— eskalirano menadžmentu {new Date(ticket.zzpEscalatedAt).toLocaleString('sr-RS')}</span>}
-          {!ticket.zzpEscalatedAt && zzpOverdue && <span className="ml-2 font-semibold">— rok prekoračen</span>}
+        <div
+          className={`mb-4 rounded-lg border p-3 text-xs ${ticket.zzpEscalatedAt || zzpOverdue ? 'border-danger bg-danger-bg text-danger' : 'border-border bg-panel text-ink-dim'}`}
+        >
+          <Icon name="law" /> Reklamacija — zakonski rok odgovora (Zakon o zaštiti potrošača, M14
+          spec §3.1):{' '}
+          <b>
+            {ticket.zzpResponseDeadline
+              ? new Date(ticket.zzpResponseDeadline).toLocaleDateString('sr-RS')
+              : '—'}
+          </b>
+          {ticket.zzpEscalatedAt && (
+            <span className="ml-2 font-semibold">
+              — eskalirano menadžmentu {new Date(ticket.zzpEscalatedAt).toLocaleString('sr-RS')}
+            </span>
+          )}
+          {!ticket.zzpEscalatedAt && zzpOverdue && (
+            <span className="ml-2 font-semibold">— rok prekoračen</span>
+          )}
         </div>
       )}
 
@@ -88,7 +104,8 @@ export default async function TicketDetailPage(props: { params: Promise<{ id: st
           className="mb-4 flex items-center justify-between rounded-lg border border-border bg-panel p-3 text-xs hover:border-accent"
         >
           <span>
-            <Icon name="link" /> vezana rezervacija: <b className="text-ink">{ticket.relatedBooking.bookingNumber}</b>
+            <Icon name="link" /> vezana rezervacija:{' '}
+            <b className="text-ink">{ticket.relatedBooking.bookingNumber}</b>
           </span>
           <span className="text-ink-faint">{ticket.relatedBooking.status}</span>
         </Link>

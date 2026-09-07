@@ -1,7 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { ProviderCallOperation } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
-import { type PaginationQueryDto, paginated, paginationArgs } from '../../../common/pagination/pagination';
+import {
+  type PaginationQueryDto,
+  paginated,
+  paginationArgs,
+} from '../../../common/pagination/pagination';
 
 @Injectable()
 export class ProviderCallLogsService {

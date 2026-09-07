@@ -1,7 +1,7 @@
 # 39 — Revizija koda: nalazi i predlozi
 
 **Datum:** 4.9.2026
-**Povod:** zahtev vlasnika — *„prođite kroz ceo folder i sve tipove fajlova u potrazi za nelogičnostima, greškama, lošim kodovima, stvarima koje nisu optimizovane… sve ono za šta smatrate da treba da bude bolje ili zamenjeno boljim."*
+**Povod:** zahtev vlasnika — _„prođite kroz ceo folder i sve tipove fajlova u potrazi za nelogičnostima, greškama, lošim kodovima, stvarima koje nisu optimizovane… sve ono za šta smatrate da treba da bude bolje ili zamenjeno boljim."_
 **Status:** spisak za odluku. **Nijedna izmena nije napravljena** — vlasnik prvo bira šta se radi.
 
 ---
@@ -30,22 +30,23 @@ Isto se dešavalo i pri kliku na termin u **kalendaru**. Klik na sam **broj reze
 
 **Uzrok:** dva načina adresiranja iste stvari. Stara mock pod-ruta `rezervacije/lista/[bookingNumber]` (44 linije, v1.42–v1.53) traži zapis po **broju** u hardkodovanom nizu `MOCK_BOOKINGS`. Pravi dosije `rezervacije/[id]` (1.742 linije, API `/sales/bookings/:id`) traži po **internom ID-u**. Kad je lista v1.54 prešla na prave podatke, tabela je preusmerena na `id`, ali dva potrošača su ostala na broju:
 
-| Ulaz | Stanje pre | Zašto |
-| :---- | :---- | :---- |
-| `RealBookingsTable.tsx:177` — klik na broj | ispravan | već je nosio `b.id` |
-| `RightPanel.tsx:278` — „Otvori pun zapis" | **na mock rutu** | sažetak (`BookingRowSummary`) uopšte nije nosio `id`, samo broj |
-| `DayAgenda.tsx:40` — kalendar | **na mock rutu** | `DayDetailEntry` je imao `bookingId`, ali se koristio broj |
+| Ulaz                                       | Stanje pre       | Zašto                                                           |
+| :----------------------------------------- | :--------------- | :-------------------------------------------------------------- |
+| `RealBookingsTable.tsx:177` — klik na broj | ispravan         | već je nosio `b.id`                                             |
+| `RightPanel.tsx:278` — „Otvori pun zapis"  | **na mock rutu** | sažetak (`BookingRowSummary`) uopšte nije nosio `id`, samo broj |
+| `DayAgenda.tsx:40` — kalendar              | **na mock rutu** | `DayDetailEntry` je imao `bookingId`, ali se koristio broj      |
 
 `BookingsTable.tsx` (446 linija, mock) više se ne renderuje nigde — `FiltersModal.tsx` iz njega uvozi samo tip `ColumnKey`. Nije uzrok, ali jeste mrtav kod.
 
 **Šta je ispravljeno (5.9.2026):**
+
 1. `BookingRowSummary` dobio opciono polje `bookingId`; `RealBookingsTable` ga popunjava.
 2. `RightPanel` vodi na `/rezervacije/<id>`. Kad `bookingId` nedostaje, dugme se **ne prikazuje** — odsutno dugme je bolje od dugmeta koje otvori „nije pronađena".
 3. `DayAgenda` vodi na `/rezervacije/<entry.bookingId>`.
 
 **Provereno kroz stvarne ekrane** (prijava u panel, TOTP, pa učitavanje stranica), ne iz koda: `/rezervacije/<id>` vraća HTTP 200 sa brojem rezervacije, bez „nije pronađena" i bez „MOCK prikaz" upozorenja; lista sada nosi interni ID; kalendar više ne emituje nijedan `/rezervacije/lista/MOCK...` link. `tsc --noEmit` čist.
 
-**Ostaje kao odluka vlasnika (ne diram bez potvrde):** stara mock ruta i `mock-data.ts` sada su bez ijednog ulaza — niko ih više ne otvara, ali stoje. Brisanje je čist dobitak *ako* vam više ne trebaju za pregled izgleda. Vlasnikova odluka od 5.9.2026 je da mock podaci **svesno ostaju** dok se ne pređe na stvaran rad, pa se ništa ne briše bez izričite potvrde. Napomena: ovo se odnosi na mock *ekran*; same rezervacije `MOCK-LISTA-*` su prave rezervacije u bazi i njih ovo ne dotiče.
+**Ostaje kao odluka vlasnika (ne diram bez potvrde):** stara mock ruta i `mock-data.ts` sada su bez ijednog ulaza — niko ih više ne otvara, ali stoje. Brisanje je čist dobitak _ako_ vam više ne trebaju za pregled izgleda. Vlasnikova odluka od 5.9.2026 je da mock podaci **svesno ostaju** dok se ne pređe na stvaran rad, pa se ništa ne briše bez izričite potvrde. Napomena: ovo se odnosi na mock _ekran_; same rezervacije `MOCK-LISTA-*` su prave rezervacije u bazi i njih ovo ne dotiče.
 
 ---
 
@@ -57,22 +58,22 @@ Isto se dešavalo i pri kliku na termin u **kalendaru**. Klik na sam **broj reze
 
 **Simptom.** Na tri mesta sistem trajno upisuje da je poruka poslata, a nijedna ne izlazi iz kuće:
 
-| # | Gde | Šta se upiše kao istina | Vidi li to čovek danas |
-| :-- | :---- | :---- | :---- |
-| 1 | `SupplierManifestsService.send()` | `status = SENT`, `sentAt`, `sentToEmail`, `BookingItem.announcedAt`, revizijski trag `supplier_manifest.sent` | ne — nema ekrana u panelu |
-| 2 | `SupplierChangeNoticesService.send()` | `status = SENT`, `sentAt`, trag `supplier_change_notice.sent` | ne — nema ekrana u panelu |
-| 3 | `EmailThreadsService.sendDraft()` (M22) | `sentBy`, `providerMessageId = mock-<uuid>`, trag `email_message.draft_sent` | **da** — dugme „pošalji" u `EmailMessagesPanel.tsx` |
+| #   | Gde                                     | Šta se upiše kao istina                                                                                       | Vidi li to čovek danas                              |
+| :-- | :-------------------------------------- | :------------------------------------------------------------------------------------------------------------ | :-------------------------------------------------- |
+| 1   | `SupplierManifestsService.send()`       | `status = SENT`, `sentAt`, `sentToEmail`, `BookingItem.announcedAt`, revizijski trag `supplier_manifest.sent` | ne — nema ekrana u panelu                           |
+| 2   | `SupplierChangeNoticesService.send()`   | `status = SENT`, `sentAt`, trag `supplier_change_notice.sent`                                                 | ne — nema ekrana u panelu                           |
+| 3   | `EmailThreadsService.sendDraft()` (M22) | `sentBy`, `providerMessageId = mock-<uuid>`, trag `email_message.draft_sent`                                  | **da** — dugme „pošalji" u `EmailMessagesPanel.tsx` |
 
 Treće mesto je jedino koje čovek danas stvarno klikne, i ono ponaša se kao uspeh.
 
-**Uzrok (odvojen dokaz, pravilo 2).** Nije jedan stub, nego **jedan izbor koji nije donet**. `MockEmailProviderAdapter` je *jedina* implementacija `EmailProviderAdapter` (`EmailProviderFactory` nema drugu granu); ona samo loguje upozorenje i vraća izmišljen `providerMessageId`. To nije previd — M22 spec §10 izričito čeka **vlasnikov izbor provajdera** (Gmail API / Microsoft Graph / IMAP-SMTP). Poštena je i sama poruka u logu („NIJE stvarno poslat"). Neiskren je samo **zapis u bazi**, koji ne pravi razliku između poslatog i pripremljenog.
+**Uzrok (odvojen dokaz, pravilo 2).** Nije jedan stub, nego **jedan izbor koji nije donet**. `MockEmailProviderAdapter` je _jedina_ implementacija `EmailProviderAdapter` (`EmailProviderFactory` nema drugu granu); ona samo loguje upozorenje i vraća izmišljen `providerMessageId`. To nije previd — M22 spec §10 izričito čeka **vlasnikov izbor provajdera** (Gmail API / Microsoft Graph / IMAP-SMTP). Poštena je i sama poruka u logu („NIJE stvarno poslat"). Neiskren je samo **zapis u bazi**, koji ne pravi razliku između poslatog i pripremljenog.
 
 Uz to, komentar u `M22MailboxStubService` tvrdi da „M22 još nije implementiran" — netačno od kad M22 postoji (`M22EmailInboxModule` je registrovan u `app.module.ts:56`). To je zamka 13.2 (tvrdnja preživela stanje koje opisuje); komentar ispravljen 5.9.2026.
 
 **Pokušaj obaranja (pravilo 5): „nalaz bi bio netačan ako postoji spreman put za stvarno slanje."** Provereno — **ne postoji**, i time je prvobitni predlog oboren:
 
-- *„povezati stub sa M22"* — **ne bi poslalo ništa.** M22 jeste implementiran, ali njegov jedini provajder je mock. Povezivanje bi lažno „poslato" pomerilo jedan sloj dublje, ne uklonilo ga.
-- *„ili sa `MailerService`-om"* — **suprotno pisanom pravilu.** Sopstvena dokumentacija tog servisa isključuje ovu upotrebu: „NIJE za … sandučad iz M22 (tamo se šalje U IME sandučeta, preko konekcije tog sandučeta, što je zaseban provajderski izbor — M22 §10)." `MailerService` šalje sistemsku poštu sa adrese kuće; najava dobavljaču ide iz zajedničkog sandučeta i mora ostati u toj niti da bi odgovor hotela imao gde da se veže.
+- _„povezati stub sa M22"_ — **ne bi poslalo ništa.** M22 jeste implementiran, ali njegov jedini provajder je mock. Povezivanje bi lažno „poslato" pomerilo jedan sloj dublje, ne uklonilo ga.
+- _„ili sa `MailerService`-om"_ — **suprotno pisanom pravilu.** Sopstvena dokumentacija tog servisa isključuje ovu upotrebu: „NIJE za … sandučad iz M22 (tamo se šalje U IME sandučeta, preko konekcije tog sandučeta, što je zaseban provajderski izbor — M22 §10)." `MailerService` šalje sistemsku poštu sa adrese kuće; najava dobavljaču ide iz zajedničkog sandučeta i mora ostati u toj niti da bi odgovor hotela imao gde da se veže.
 
 Nalaz dakle opstaje, ali **nije popravljiv kodom bez vlasnikove odluke o provajderu**. Ono što jeste popravljivo odmah je da zapis prestane da tvrdi neistinu.
 
@@ -83,7 +84,7 @@ Nalaz dakle opstaje, ali **nije popravljiv kodom bez vlasnikove odluke o provajd
 
 ---
 
-**REŠENO 5.9.2026** (vlasnikova odluka: „nov status *pripremljeno, čeka slanje*"; M5 spec v1.99 §8.4/§8.8, M22 spec v1.7 §2.4/§10). Ispalo je bolje nego što je odluka tražila — uz iskren zapis, slanje je i **stvarno prorađeno**:
+**REŠENO 5.9.2026** (vlasnikova odluka: „nov status _pripremljeno, čeka slanje_"; M5 spec v1.99 §8.4/§8.8, M22 spec v1.7 §2.4/§10). Ispalo je bolje nego što je odluka tražila — uz iskren zapis, slanje je i **stvarno prorađeno**:
 
 1. **`SupplierManifestStatus`/`SupplierChangeNoticeStatus` dobili `PENDING_SEND`.** Kad isporuke nema: `sent_at` ostaje prazan i `announced_at` se NE upisuje, pa stavke ostaju nenajavljene u svakoj postojećoj proveri — bez ijedne dodatne logike. `sent_by` se ipak upisuje (ko je pokušao). Revizijski trag razdvaja `supplier_manifest.sent` od `supplier_manifest.send_pending`.
 2. **`EmailMessage.delivered_at`** (M22 §2.4) — `sent_by` znači „ko je kliknuo", `delivered_at` znači „provajder je primio". Mock adapter više ne vraća izmišljen `providerMessageId`, nego `delivered: false`.
@@ -93,15 +94,16 @@ Nalaz dakle opstaje, ali **nije popravljiv kodom bez vlasnikove odluke o provajd
 
 **Provereno kroz stvaran API** (prijava, 2FA, `POST /sales/supplier-manifests/:id/send`), ne iz koda:
 
-| Provera | Ishod |
-| :---- | :---- |
-| provajder radi → slanje | `SENT`, `sent_at` upisan, **mejl stvarno stigao** u mailpit: `dobavljaci@terminal-travel.local → rezervacije@nile-incoming-services.example`, naslov `[REF: TT-000001] Operativna lista — ...` |
-| provajder nedostupan → slanje | `PENDING_SEND`, `sent_at` = `null`, **0 stavaka** označeno kao najavljeno, trag `supplier_manifest.send_pending` |
-| provajder proradi → ponovno slanje iste liste | `SENT` |
+| Provera                                       | Ishod                                                                                                                                                                                          |
+| :-------------------------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| provajder radi → slanje                       | `SENT`, `sent_at` upisan, **mejl stvarno stigao** u mailpit: `dobavljaci@terminal-travel.local → rezervacije@nile-incoming-services.example`, naslov `[REF: TT-000001] Operativna lista — ...` |
+| provajder nedostupan → slanje                 | `PENDING_SEND`, `sent_at` = `null`, **0 stavaka** označeno kao najavljeno, trag `supplier_manifest.send_pending`                                                                               |
+| provajder proradi → ponovno slanje iste liste | `SENT`                                                                                                                                                                                         |
 
 976 testova prolazi (5 novih, `supplier-manifest-send-honesty.spec.ts` — zaključavaju baš ovo ponašanje, jer greška nije bila pad nego pogrešan upis).
 
 **Ostaje otvoreno i zavedeno (ne prećutano):**
+
 - **Dovlačenje pristigle pošte** (`fetchNewMessages`) — SMTP to po prirodi ne radi; traži IMAP ili API provajdera. Odgovor dobavljača se zato još ne uvozi sam. Nalaz 1.2 je time rešen u smeru „mi → hotel"; smer „hotel → mi" ostaje.
 - **Izbor pravog provajdera** za produkciju (Gmail API / Microsoft Graph / IMAP) — vlasnikova odluka, M22 §10.
 - ~~**Nema ekrana u panelu** za `SupplierManifest`/`SupplierChangeNotice`~~ — **rešeno istog dana** na zahtev vlasnika: `/rezervacije/najave` (M17 v2.37). Ceo tok se sada vodi sa ekrana.
@@ -134,17 +136,17 @@ Pogođeno je praktično sve: `refresh_tokens.user_id`, `products.source_contract
 
 **Izmereno posle (klasa A):**
 
-| | pre | posle |
-| :---- | :---- | :---- |
+|                             | pre       | posle        |
+| :-------------------------- | :-------- | :----------- |
 | strani ključevi bez indeksa | 81 od 102 | **0 od 102** |
-| indeksa u bazi | 160 | 241 |
+| indeksa u bazi              | 160       | 241          |
 
 **Stvaran efekat, izmeren `EXPLAIN ANALYZE`-om nad `rate_lines` (1.542 reda), isti upit oba puta:**
 
-| | pročitano blokova |
-| :---- | :---- |
-| sa indeksom (od danas) | **4** (Bitmap Index Scan) |
-| bez indeksa (kako je bilo) | **30** (Seq Scan) |
+|                            | pročitano blokova         |
+| :------------------------- | :------------------------ |
+| sa indeksom (od danas)     | **4** (Bitmap Index Scan) |
+| bez indeksa (kako je bilo) | **30** (Seq Scan)         |
 
 Broj pročitanih blokova bez indeksa raste sa veličinom tabele; sa indeksom ostaje skoro ravan. Na 1.542 reda to je 30 naspram 4 — nevidljivo. Na sto hiljada redova ista razlika je između trenutnog i minutnog odgovora, i to na svakom ekranu istovremeno.
 
@@ -173,10 +175,10 @@ Katalog proizvoda nema ni to — vraća sve. Danas 217 zapisa, ali kad se uklju�
 
 Zajednički obrazac je u `apps/api/src/common/pagination/`: `parsePagination` (čita `page`/`limit`), `paginationArgs` (prevod u Prisma `skip`/`take`), `paginated` (omotač odgovora `{ data, total, page, limit, pageCount, hasMore }`). `total` uvek dolazi iz `count` u ISTOJ transakciji sa upitom — inače „prikazano 50 od 1.240" ume da laže dok neko drugi upisuje.
 
-| Lista | Pre | Posle |
-| :---- | :---- | :---- |
-| `GET /sales/bookings` | golo `take: 200`, bez poruke | straničeno; panel ispisuje „prikazano 21–25 od 25" i strelice |
-| `GET /catalog/products` | bez ikakve granice | `{ data, total }`; straničenje **opciono** (v. niže) |
+| Lista                   | Pre                          | Posle                                                         |
+| :---------------------- | :--------------------------- | :------------------------------------------------------------ |
+| `GET /sales/bookings`   | golo `take: 200`, bez poruke | straničeno; panel ispisuje „prikazano 21–25 od 25" i strelice |
+| `GET /catalog/products` | bez ikakve granice           | `{ data, total }`; straničenje **opciono** (v. niže)          |
 
 **Katalog namerno NIJE straničen podrazumevano** — i to je nalaz koji prvobitni predlog nije uzeo u obzir. U `katalog/page.tsx` stoji vlasnikova odluka od 4.9.2026 da filteri rade trenutno, nad celom dovučenom listom. Podrazumevano straničenje bi ih tiho svelo na jednu stranu: korisnik bi filtrirao 50 od 217 proizvoda misleći da vidi sve — ista klasa greške koju nalaz i prijavljuje, samo obrnuta. Isto ograničenje stoji za `GET /search` (M5 v2.20 izričito uslovljava klijentsko filtriranje time da pretraga vraća sve). Kad se uključi M4, obe odluke prestaju da važe i filtriranje mora na server — zavedeno.
 
@@ -204,6 +206,7 @@ Sa 10.000 stavki to je preko 30.000 upita u jednoj operaciji. Danas radi jer je 
 **Ispravka brojke iz prvobitnog nalaza:** nije bilo „tri upita po stavci" nego **oko šesnaest**. Tri su bila vidljiva u samoj rekonsilijaciji; ostalo je bilo skriveno u `buildFactBookingData`, koje za svaku stavku posebno povlači proizvod, ugovor, dobavljača, klijentski nalog, subagenta, goste i kurs. Prvobitni nalaz je izbrojao samo ono što se vidi u jednoj funkciji — greška u istom rodu kao 8.4 (obim procenjen, ne prebrojan).
 
 **Šta je urađeno:**
+
 1. **Serije od 500 umesto svega odjednom.** Kretanje ide „kursorom" po `id`, ne `skip`-om — `skip` na velikoj tabeli tera bazu da prebroji i preskoči sve prethodne redove pri svakoj seriji, pa posao usporava što dalje odmiče.
 2. **Jedan upit po seriji umesto dva po stavci** za stanje pre i posle (`findMany … in [ids]` umesto `findUnique` u petlji).
 3. **Keš za jedan prolaz** (`FactSyncCache`) — proizvod/ugovor/dobavljač/klijent/kurs se ponavljaju kroz hiljade stavki; hiljadu rezervacija istog hotela značilo je hiljadu identičnih upita za tog dobavljača. Keš namerno **ne živi između prolaza**: rekonsilijaciji je ceo posao da uhvati promene u izvornim modulima, pa bi trajan keš značio ispravljanje projekcije na zastarelu vrednost.
@@ -212,10 +215,10 @@ Sa 10.000 stavki to je preko 30.000 upita u jednoj operaciji. Danas radi jer je 
 
 **Izmereno na živom sistemu, ista metoda na oba koda** (25 stavki + 13 uplata, `pg_stat_user_tables`, tri prolaza po verziji, uz pauzu da statistika Postgresa stigne — merenje bez te pauze daje lažno niske brojeve):
 
-| | pretraga tabela po prolazu |
-| :---- | :---- |
-| pre | 395–451 |
-| posle | 292–315 |
+|       | pretraga tabela po prolazu |
+| :---- | :------------------------- |
+| pre   | 395–451                    |
+| posle | 292–315                    |
 
 **Pošteno o veličini dobitka:** na 25 stavki to je oko **25% manje** — nije dramatično, i ne treba ga tako prikazivati. Većina preostalih upita je po prirodi jedinstvena za svaku stavku (sama stavka, njena rezervacija, njeni gosti, upis projekcije) i nju ni keš ni serije ne uklanjaju. Ono što se stvarno menja je **kako raste**: dosadašnji kod je učitavao ceo skup u memoriju i broj upita mu je rastao pravolinijski sa brojem stavki, a udeo keširanih pogodaka raste sa količinom podataka (agencija ima hiljade rezervacija, ali desetine dobavljača). Prava provera efekta je moguća tek nad stvarnim obimom podataka — do tada se ovo ne sme prijaviti kao „rešen problem performansi", nego kao uklonjen obrazac koji bi tamo pukao.
 
@@ -227,12 +230,12 @@ Sa 10.000 stavki to je preko 30.000 upita u jednoj operaciji. Danas radi jer je 
 
 ### 2.4 Panel nema nijedan test, a CI ga uopšte ne dodiruje — (a) URAĐENO 5.9.2026, (b) čeka odluku vlasnika
 
-| Celina | Testova | Gradi se u CI? |
-| :---- | :---- | :---- |
-| `apps/api` | 121 unit + 22 e2e | da |
-| `apps/panel` (42.000 linija) | **0** | **ne** |
-| `apps/web` | **0** | **ne** |
-| `apps/mobile` | 2 | **ne** |
+| Celina                       | Testova           | Gradi se u CI? |
+| :--------------------------- | :---------------- | :------------- |
+| `apps/api`                   | 121 unit + 22 e2e | da             |
+| `apps/panel` (42.000 linija) | **0**             | **ne**         |
+| `apps/web`                   | **0**             | **ne**         |
+| `apps/mobile`                | 2                 | **ne**         |
 
 CI (`.github/workflows/ci.yml`) gradi i testira isključivo `apps/api`. Ni `tsc` ni `eslint` ne rade nad panelom.
 
@@ -247,11 +250,11 @@ CI (`.github/workflows/ci.yml`) gradi i testira isključivo `apps/api`. Ni `tsc`
 
 **Uz to su tri dotad SAMO ZAPISANE zamke pretvorene u provere koje padaju same** — deo šireg dogovora sa vlasnikom (5.9.2026) da pravilo koje zavisi od sećanja nije prevencija. Dokaz da ne radi: zamka 7.1 postoji od 2.9.2026, a prekršena je 5.9.2026, tri dana kasnije.
 
-| Provera | Zamka koju zamenjuje | Dokazano da hvata |
-| :---- | :---- | :---- |
-| `tools/provera-indeksa.mjs` | nalaz 2.1 se tiho vraća sa svakom novom relacijom | indeks uklonjen ručno → provera pala sa tačnim imenom tabele i kolone, pa vraćen |
-| `tools/provera-use-server.mjs` | 7.1a — ruši ekran, `tsc`/`build` ćute | ubačena TAČNO ona konstanta koja je rušila ekran → provera je našla, pa uklonjena |
-| `tools/check-contrast.js` | dizajn §2a — skripta je postojala od 2.9.2026, ali se pokretala samo kad bi se neko setio | prolazi nad trenutnim tokenima |
+| Provera                        | Zamka koju zamenjuje                                                                      | Dokazano da hvata                                                                 |
+| :----------------------------- | :---------------------------------------------------------------------------------------- | :-------------------------------------------------------------------------------- |
+| `tools/provera-indeksa.mjs`    | nalaz 2.1 se tiho vraća sa svakom novom relacijom                                         | indeks uklonjen ručno → provera pala sa tačnim imenom tabele i kolone, pa vraćen  |
+| `tools/provera-use-server.mjs` | 7.1a — ruši ekran, `tsc`/`build` ćute                                                     | ubačena TAČNO ona konstanta koja je rušila ekran → provera je našla, pa uklonjena |
+| `tools/check-contrast.js`      | dizajn §2a — skripta je postojala od 2.9.2026, ali se pokretala samo kad bi se neko setio | prolazi nad trenutnim tokenima                                                    |
 
 Obe nove provere su **prvo dokazane obaranjem** — nije dovoljno da ćute nad ispravnim kodom, moraju da progovore nad pokvarenim.
 
@@ -261,12 +264,12 @@ Obe nove provere su **prvo dokazane obaranjem** — nije dovoljno da ćute nad i
 
 **Server Component stranice se ne mogu testirati sa `@testing-library/react`** (traže pravi Next runtime, ne samo React) — skoro sav sadržaj ekrana panela JESU Server Component-i (`async function` koji direktno pozivaju API). Zato testovi gađaju **izdvojene klijentske komponente** iz svakog od četiri kritična puta, ne cele ekrane:
 
-| Put | Komponenta | Šta zaključava |
-| :---- | :---- | :---- |
-| Prijava | `LoginForm` | uspešna prijava bez 2FA vodi na `/`; prelazak na MFA korak kad server to traži; greška sa servera ostaje na ekranu, ne odlazi nikuda |
-| Dosije | `BookingSummary` (izdvojeno iz `RightPanel`, dodat `export`) | regresija nalaza 1.1 — dugme „Otvori pun zapis" postoji SAMO kad sažetak nosi `bookingId` |
-| Pretraga | `SearchCriteriaForm` | dugme „pretraži" onemogućeno dok država nije uneta; slanje sastavlja tačnu adresu (`type`, `destinationCountry`) |
-| Lista rezervacija | `Pagination` | regresija bagova nalaza 2.2 — raspon na nepunoj poslednjoj strani (`21–25`, ne `11–15`); strelice se onemogućavaju na granicama; ostali query parametri se čuvaju kroz linkove |
+| Put               | Komponenta                                                   | Šta zaključava                                                                                                                                                                 |
+| :---------------- | :----------------------------------------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Prijava           | `LoginForm`                                                  | uspešna prijava bez 2FA vodi na `/`; prelazak na MFA korak kad server to traži; greška sa servera ostaje na ekranu, ne odlazi nikuda                                           |
+| Dosije            | `BookingSummary` (izdvojeno iz `RightPanel`, dodat `export`) | regresija nalaza 1.1 — dugme „Otvori pun zapis" postoji SAMO kad sažetak nosi `bookingId`                                                                                      |
+| Pretraga          | `SearchCriteriaForm`                                         | dugme „pretraži" onemogućeno dok država nije uneta; slanje sastavlja tačnu adresu (`type`, `destinationCountry`)                                                               |
+| Lista rezervacija | `Pagination`                                                 | regresija bagova nalaza 2.2 — raspon na nepunoj poslednjoj strani (`21–25`, ne `11–15`); strelice se onemogućavaju na granicama; ostali query parametri se čuvaju kroz linkove |
 
 13 testova, 4 test-fajla, sva četiri prolaze zajedno bez kolizije. `tsc`, `eslint` (0 grešaka) i produkcijski `next build` i dalje čisti. Korak dodat u CI (`panel-web` job, posle ESLint-a).
 
@@ -288,6 +291,7 @@ Posledica: svaka greška u renderu — kao ona sa `base_beds` — daje golu Next
 **REŠENO 5.9.2026 — stranica greške. 404 NIJE, i to se ne prikazuje kao da jeste.**
 
 **Urađeno:**
+
 - `apps/panel/(app)/error.tsx` — prikazuje se UNUTAR ljuske panela (leva traka, tabovi i meni ostaju), poruka na srpskom, dugmad „pokušaj ponovo" i „na početnu", i **oznaka za prijavu** (`digest`) — jedina nit koja spaja ono što korisnik vidi sa tragom u logu servera.
 - `apps/panel/global-error.tsx` — poslednja odbrana kad padne i korenski raspored. Namerno bez ijedne naše klase i komponente: u tom stanju se ne sme računati ni na to da su stilovi učitani.
 - `apps/web/[locale]/(site)/error.tsx` — isto za javni sajt, kroz `next-intl`; poruka izričito kaže gostu da ništa nije upisano, jer greška u prikazu nastaje pre bilo kakvog upisa. Prevodi dodati za svih 8 jezika.
@@ -303,6 +307,7 @@ Posledica: svaka greška u renderu — kao ona sa `base_beds` — daje golu Next
 **Zašto prethodni pokušaj (5.9.2026) nije radio ostaje nerazjašnjeno** — fajl je tada bio uklonjen bez zabeleženog uzroka, pa nije bilo šta da se ponovo proveri sem da se napravi isti fajl i stvarno isproba, ovaj put uz dokaz umesto pretpostavke.
 
 **Provereno u pravom browseru, nad produkcijskim buildom** (`next build && next start`, ne `next dev` — dev servira sopstveni dijagnostički ekran, dok. 39 zamka 7.1b), oba scenarija iz Next dokumentacije:
+
 - **Neupoznata adresa** (`/ovo-ne-postoji-nigde`) — HTTP 404, srpski tekst „Stranica nije pronađena", bez ljuske panela (adresa nije ni pod jednim poznatim ekranom, pa nema šta da je nosi).
 - **Eksplicitan `notFound()` iz ekrana** (`/pomoc/ne-postoji-ovaj-id`, postojeći poziv u `pomoc/[id]/page.tsx`) — HTTP 404, ista poruka, **ljuska panela ostaje vidljiva** (leva traka, tabovi) jer `(app)/layout.tsx` ostaje montiran dok se bubl-uje do korenskog `not-found.tsx` — bolje ponašanje nego što je dizajn tražio, ne lošije.
 
@@ -326,6 +331,7 @@ Problem je smer greške: ako sledeći kontroler zaboravi guard, endpoint je **ti
 **Ispravka brojke iz prvobitnog nalaza:** nije bilo pet namerno javnih kontrolera nego **osam**, plus pojedinačne metode unutar tri dodatna kontrolera koji su mešoviti (deo metoda zaključan, deo javan) — `AuthController` (registracija/prijava/2FA-setup/refresh/logout/aktivacija/reset lozinke, 10 metoda), `PaymentsController` (`card/initiate`, `card/webhook`) i `OmnisearchController` (`search()`, koji sam grana po kanalu). Prvobitna brojka je izbrojala samo kontrolere bez ijednog pojavljivanja guard-a u fajlu, ne i pojedinačne javne metode unutar guardovanih kontrolera — ista klasa greške kao 8.4/2.3 (obim procenjen, ne prebrojan).
 
 **Šta je urađeno:**
+
 1. **`@Public()` dekorator** (`common/decorators/public.decorator.ts`) — `SetMetadata(IS_PUBLIC_KEY, true)`, isti obrazac kao postojeći `@RequirePermission`.
 2. **`JwtAuthGuard`** sad koristi `Reflector.getAllAndOverride(IS_PUBLIC_KEY, [handler, class])` — `@Public()` na metodi ili na celoj klasi propušta zahtev bez provere tokena.
 3. **Globalna registracija** u `app.module.ts` (`APP_GUARD`, posle `ThrottlerGuard`) — svaki endpoint je od sada zaključan **podrazumevano**, bez ijednog izuzetka koji nije eksplicitno označen.
@@ -336,7 +342,7 @@ Problem je smer greške: ako sledeći kontroler zaboravi guard, endpoint je **ti
 
 **Provereno:** `tsc --noEmit` ne prijavljuje nijednu novu grešku u izmenjenim fajlovima (ostale, nepovezane greške potiču od needregenisanog Prisma klijenta posle paralelnog `git pull`-a, van obima ovog nalaza). DI graf potvrđen podizanjem cele Nest aplikacije (`NestFactory.create(AppModule).init()`) — prolazi bez greške sa globalnim guard-om. `JwtAuthGuard` unit testovi (7/7) prolaze, uz nov test koji dokazuje da `@Public()` stvarno propušta zahtev bez ijednog headera — bez toga bi tvrdnja „radi" počivala samo na čitanju koda, ne na dokazu (dok. 40, pravilo 3).
 
-### 3.2 `apps/api` nema ESLint — DELIMIČNO REŠENO 7.9.2026 (ESLint da, Prettier ne)
+### 3.2 `apps/api` nema ESLint — REŠENO 7.9.2026 (ESLint i Prettier)
 
 Panel i web imaju `eslint.config.mjs`; backend od 65.000 linija **nema ga uopšte**, niti `lint` skriptu. Nema ni Prettier nigde, pa formatiranje zavisi od toga koja je sesija pisala fajl.
 
@@ -350,13 +356,18 @@ Panel i web imaju `eslint.config.mjs`; backend od 65.000 linija **nema ga uopšt
 **Zatečeno pri prvom pokretanju:** 840 nalaza (4 greške, 836 upozorenja). 836 upozorenja je gotovo isključivo `@typescript-eslint/no-explicit-any` (nalaz 3.3 — 189 u produkcijskom kodu, ostatak u testovima) i par `no-unused-vars` — pravilo za oboje je već namerno upozorenje (isto obrazloženje kao `apps/panel/eslint.config.mjs`), ne blokira CI.
 
 **4 stvarne greške, sve ispravljene:**
+
 1. `common/reports/report-generator.ts:6` — `import PDFDocument = require('pdfkit')` je **namerno** (komentar u fajlu: ESM `import` prolazi kroz `tsc` ali puca u runtime-u, dokazano uživo 23.8.2026) — pravilo lokalno isključeno sa `eslint-disable-next-line` i obrazloženjem, kod nije menjan.
 2. `m11-compliance/travel-guarantee/travel-guarantee.service.spec.ts:74` — `require('@nestjs/common')` unutar testa nije imao razlog da postoji: `NotFoundException` nije bio uvezen na vrhu fajla. Pravi propust, ne namera — prebačeno u top-level `import`.
-3–4. `m15-ai-orkestracija/bi-terminal/bi-terminal.service.ts:219` i `omnisearch/omnisearch.service.ts:780` — `let messages` nikad nije reosmišljen (samo `.push()` posle), `prefer-const` je bio u pravu. Provereno grep-om kroz ostatak oba fajla pre izmene, ne samo poverovano alatu.
+   3–4. `m15-ai-orkestracija/bi-terminal/bi-terminal.service.ts:219` i `omnisearch/omnisearch.service.ts:780` — `let messages` nikad nije reosmišljen (samo `.push()` posle), `prefer-const` je bio u pravu. Provereno grep-om kroz ostatak oba fajla pre izmene, ne samo poverovano alatu.
 
 **Provereno:** `tsc --noEmit` čist, `npx eslint .` → 0 grešaka (exit 0), **1.048 testova u svih 126 test-fajlova prolazi** (pun paket, ne samo dirnuti fajlovi).
 
-**NIJE urađeno — Prettier.** Nije deo ovog prolaza: uvodi novu tehnologiju (`CLAUDE.md` — potvrda vlasnika pre uvođenja) i nosi poseban rizik (jednokratno preformatiranje celog repozitorijuma menja gotovo svaki fajl, otežava `git blame`/buduće diff-ove ako se uradi neoprezno). Ostaje otvoreno, zavedeno u backlog.
+**Prettier deo REŠEN 7.9.2026, posle izričite potvrde vlasnika** (`CLAUDE.md` — potvrda pre uvođenja nove tehnologije). Uveden u zaseban commit da se preformatiranje ne meša sa stvarnim izmenama: `.prettierrc.json` (single quotes, trailing comma, printWidth 100, LF), `.prettierignore` (build izlazi, `prisma/migrations`, generisani `00-PREGLED-DOKUMENTACIJE.html`, tuđa `maplibre` biblioteka), `format`/`format:check` skripte u korenu, `eslint-config-prettier` dodat na kraj sve tri `eslint.config.mjs` (api/panel/web) da isključi stilistička ESLint pravila koja bi se sudarala. Pokrenuto `prettier --write .` — 1189 fajlova (1082 koda, 107 `.md` dokumenata), samo stil (razmaci, navodnici, poravnanje tabela), nijedna izmena sadržaja.
+
+**Zamka nađena i ispravljena u istom prolazu:** Prettier je prelomio dvolinijski izraz u `apps/panel/src/app/(app)/znanje/[id]/page.tsx` tako da je `// eslint-disable-next-line react-hooks/purity` ostao iznad pogrešne linije (disable je i dalje pokrivao staru poziciju, a `Date.now()` se pomerio linijom niže) — ESLint je posle formatiranja prijavio grešku koja pre toga nije postojala. Ispravljeno pomeranjem komentara neposredno iznad linije sa `Date.now()`. Ovo je sada zavedeno kao opšta provera, ne samo ovaj slučaj — vidi novu zamku u `docs/analize/33-ZAMKE-I-OBAVEZNE-PROVERE.md`.
+
+**Provereno:** `tsc --noEmit` čist (api i panel), `npx eslint .` → 0 grešaka u sve tri aplikacije (api: 832 upozorenja, panel: 30, web: 0 — isti pre-postojeći `any`/SSR obrasci kao pre), **1059 testova (api) + 13 testova (panel) prolaze**, ceo repo `next build` nije ponovo pokretan jer Prettier ne dira JSX semantiku. `format:check` dodat kao prvi korak CI-ja (`.github/workflows/ci.yml`, `api-tests` posao) — pada pre bilo koje druge provere ako neko commituje neformatiran fajl.
 
 ### 3.3 189 mesta sa tipom `any`
 
@@ -402,6 +413,7 @@ Spojena je **isključivo tehnika**, ne sadržaj: nov `AssistantEngineService` (`
 **Šta je uklonjeno:** ~280 linija duplirane logike (selekcija kandidata, `ensureEmbeddings`, `askAnthropic`, pomoćne funkcije) iz oba servisa.
 
 **Provereno:**
+
 - `tsc --noEmit` čist, `eslint` 0 grešaka (832 upozorenja, sve pre-postojeća).
 - DI graf potvrđen podizanjem cele Nest aplikacije (`AssistantEngineService` registrovan nezavisno u oba modula, bez kružne zavisnosti — isti obrazac kao `AnthropicClientService`/`GeminiEmbeddingService`).
 - **1.059 unit testova** (127 test-fajlova) prolazi. RAG mehanika sad testirana JEDNOM (`assistant-engine.service.spec.ts`, 8 testova — heuristički fallback, prag preklapanja, `isPriority` prioritet nezavisno od embedding distance, pad na ključne reči kad embedding padne, HIGH/NONE/pad na heuristiku za Anthropic granu) umesto duplirano u oba modula. `help-assistant.service.spec.ts` (14 testova) i `knowledge-assistant.service.spec.ts` (9 testova) prepravljeni da mokuju `engine.resolveAnswer` i testiraju samo ono što je i dalje specifično za svoj modul.
@@ -421,11 +433,11 @@ Ovo **nije propust** — u kodu izričito piše „čeka potvrdu izgleda pre pra
 
 ## 4. Nisko — sitno, vredno kad se ionako dira taj fajl
 
-| # | Nalaz | Predlog |
-| :-- | :---- | :---- |
-| 4.1 | 18 mesta koristi `key={index}` u React listama | Zameniti stabilnim ključem (id/šifra) — sa indeksom se pri sortiranju/brisanju stanje reda „zalepi" za pogrešan podatak |
-| 4.2 | Nema nijednog `loading.tsx` | Skeleton za sporije ekrane (rezervacije, izveštaji) — Next.js ga prikazuje dok server radi |
-| 4.3 | `apps/panel`, `apps/web`, `apps/mobile` nemaju README | Kratak README po aplikaciji (pokretanje, env, gde šta stoji) — `apps/api` ima dobar primer |
+| #   | Nalaz                                                                        | Predlog                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| :-- | :--------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 4.1 | 18 mesta koristi `key={index}` u React listama                               | Zameniti stabilnim ključem (id/šifra) — sa indeksom se pri sortiranju/brisanju stanje reda „zalepi" za pogrešan podatak                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| 4.2 | Nema nijednog `loading.tsx`                                                  | Skeleton za sporije ekrane (rezervacije, izveštaji) — Next.js ga prikazuje dok server radi                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| 4.3 | `apps/panel`, `apps/web`, `apps/mobile` nemaju README                        | Kratak README po aplikaciji (pokretanje, env, gde šta stoji) — `apps/api` ima dobar primer                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 | 4.4 | ~~`.env` i `.env.example` se razilaze bez ikakve provere~~ — REŠENO 7.9.2026 | Već me ujelo 4.9.2026: `.env` je zaostao za 8 promenljivih, pa pozivnice i reset lozinke **tiho** nisu radili. `checkEnvDrift()` (`common/env-drift-check.ts`) sad poziva `main.ts` pre `NestFactory.create` — upozorenje na `console.warn`, ne rušenje. Dokazano na stvarnim fajlovima repozitorijuma: hvata 4 stvarno nedostajuće promenljive (`SMTP_PASSWORD`, `SMTP_SECURE`, `SMTP_USER`, `TELEGRAM_BOT_TOKEN`) — vlasnik ih još nije dostavio. 4 testa (uključujući dokaz da NE upozorava kad su fajlovi usklađeni, dok. 40 pravilo 3) |
 
 ---
@@ -446,13 +458,13 @@ Ovo su stvari kojih **nema**, a koje bi sprečile da se nalazi iz ovog spiska po
 
 Ovo su stvari koje sam našao, ali **već stoje zapisane**. Navodim ih da se vidi da su proverene i da ne bi delovalo kao nov nalaz:
 
-| Tema | Gde već stoji | Stanje |
-| :---- | :---- | :---- |
-| 31 ranjivost u zavisnostima, NestJS 10→12, Prisma 5→7, Next 14→16 | `27-BACKLOG` (linija 424) | Svesno odloženo do izbora hostinga, sa obrazloženjem. Napomena: brojke su od 13.8.2026 — danas je 31 ranjivost (9 high), a NestJS je u međuvremenu otišao na 12, Prisma na 7 |
-| Nema strožeg limita na `/iam/auth/login` | `36-BEZBEDNOSNA-ANALIZA` §3, stavka 1 | Otvoreno za prolaz pred lansiranje |
-| CORS nije eksplicitan; M19 WebSocket ima `origin: '*'` | `36-BEZBEDNOSNA-ANALIZA` §3, stavka 2 | Isto |
-| Bulk čitanje gostiju bez limita (M6) | `36-BEZBEDNOSNA-ANALIZA` §3, stavka 3 | Isto — nalaz 2.2 ovde je širi (paginacije nema **nigde**, ne samo u M6) |
-| Nema Row-Level Security u Postgresu | `36-BEZBEDNOSNA-ANALIZA` §3, stavka 5 | Isto |
+| Tema                                                              | Gde već stoji                         | Stanje                                                                                                                                                                       |
+| :---------------------------------------------------------------- | :------------------------------------ | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 31 ranjivost u zavisnostima, NestJS 10→12, Prisma 5→7, Next 14→16 | `27-BACKLOG` (linija 424)             | Svesno odloženo do izbora hostinga, sa obrazloženjem. Napomena: brojke su od 13.8.2026 — danas je 31 ranjivost (9 high), a NestJS je u međuvremenu otišao na 12, Prisma na 7 |
+| Nema strožeg limita na `/iam/auth/login`                          | `36-BEZBEDNOSNA-ANALIZA` §3, stavka 1 | Otvoreno za prolaz pred lansiranje                                                                                                                                           |
+| CORS nije eksplicitan; M19 WebSocket ima `origin: '*'`            | `36-BEZBEDNOSNA-ANALIZA` §3, stavka 2 | Isto                                                                                                                                                                         |
+| Bulk čitanje gostiju bez limita (M6)                              | `36-BEZBEDNOSNA-ANALIZA` §3, stavka 3 | Isto — nalaz 2.2 ovde je širi (paginacije nema **nigde**, ne samo u M6)                                                                                                      |
+| Nema Row-Level Security u Postgresu                               | `36-BEZBEDNOSNA-ANALIZA` §3, stavka 5 | Isto                                                                                                                                                                         |
 
 **Što je provereno i ispravno** (navodim jer je vredno znati da nije problem): nema tajni u kodu; `.env` nije u git-u; `helmet` je uključen; `ValidationPipe` odbija nepoznata polja; nema `console.log` u produkcijskom kodu; nema progutanih grešaka (`catch {}`); nema `@RequirePermission` na klasi kontrolera (zamka 13.5 izbegnuta); nema mrtvih komponenti u panelu; embedding je uredno deljen umesto dupliran.
 
@@ -472,4 +484,4 @@ Ako se ide redom po odnosu „koliko boli" naspram „koliko traje":
 
 ---
 
-*Nijedna izmena iz ovog dokumenta nije napravljena. Sledeći korak je tvoj izbor šta se radi i kojim redom.*
+_Nijedna izmena iz ovog dokumenta nije napravljena. Sledeći korak je tvoj izbor šta se radi i kojim redom._

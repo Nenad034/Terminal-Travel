@@ -37,14 +37,32 @@ export interface ContractPeriod {
   maxStayNights: number | null;
 }
 
-const MODE_LABELS: Record<AllotmentMode, string> = { FIXED: 'Fiksni alotman', ON_REQUEST: 'Na upit', CHARTER: 'Čarter', FIXED_LEASE: 'Fiksni zakup' };
-const AGE_CATEGORY_LABELS: Record<AgeCategory, string> = { ADULT: 'Odrasla osoba', CHILD: 'Dete', TEEN: 'Tinejdžer', INFANT: 'Beba' };
+const MODE_LABELS: Record<AllotmentMode, string> = {
+  FIXED: 'Fiksni alotman',
+  ON_REQUEST: 'Na upit',
+  CHARTER: 'Čarter',
+  FIXED_LEASE: 'Fiksni zakup',
+};
+const AGE_CATEGORY_LABELS: Record<AgeCategory, string> = {
+  ADULT: 'Odrasla osoba',
+  CHILD: 'Dete',
+  TEEN: 'Tinejdžer',
+  INFANT: 'Beba',
+};
 
 // M3 spec §2.3/§2.3a/§2.3c — backlog nalaz (docs/analize/27-BACKLOG-IDEJA-I-PREDLOZI.md, M3
 // sekcija, 28.8.2026): lista ugovora je postojala, ali nema detalj-ekrana za unos perioda/
 // cenovnika — sve je do sada bilo API-only. Ovaj panel zatvara taj gap za `ContractPeriod`
 // (RateLine/CancellationRule imaju svoj ekran, vidi periods/[periodId]/page.tsx).
-export default function PeriodsPanel({ contractId, periods, canEdit }: { contractId: string; periods: ContractPeriod[]; canEdit: boolean }) {
+export default function PeriodsPanel({
+  contractId,
+  periods,
+  canEdit,
+}: {
+  contractId: string;
+  periods: ContractPeriod[];
+  canEdit: boolean;
+}) {
   const [showForm, setShowForm] = useState(false);
 
   return (
@@ -58,7 +76,9 @@ export default function PeriodsPanel({ contractId, periods, canEdit }: { contrac
         )}
       </div>
 
-      {periods.length === 0 && <p className="text-xs text-ink-faint">Nijedan period još nije unet.</p>}
+      {periods.length === 0 && (
+        <p className="text-xs text-ink-faint">Nijedan period još nije unet.</p>
+      )}
 
       <div className="flex flex-col gap-1.5">
         {periods.map((p) => (
@@ -70,7 +90,8 @@ export default function PeriodsPanel({ contractId, periods, canEdit }: { contrac
             <div>
               <span className="font-medium text-ink">{p.roomType}</span>
               <span className="ml-2 text-ink-faint">
-                {new Date(p.stayFrom).toLocaleDateString('sr-RS')} – {new Date(p.stayTo).toLocaleDateString('sr-RS')}
+                {new Date(p.stayFrom).toLocaleDateString('sr-RS')} –{' '}
+                {new Date(p.stayTo).toLocaleDateString('sr-RS')}
               </span>
               {p.totalCapacity != null && (
                 <span className="ml-2 text-ink-faint">
@@ -112,13 +133,25 @@ function NewPeriodForm({ contractId }: { contractId: string }) {
           <DateField name="stayTo" required />
         </Field>
         <Field label="Šifra tipa sobe">
-          <input name="roomType" required className="input" placeholder="mora odgovarati room_types[].code (M2)" />
+          <input
+            name="roomType"
+            required
+            className="input"
+            placeholder="mora odgovarati room_types[].code (M2)"
+          />
         </Field>
       </div>
 
       <Field label="Vrsta alotmana">
         <input type="hidden" name="allotmentMode" value={mode} />
-        <ButtonGroup value={mode} onChange={setMode} options={(Object.keys(MODE_LABELS) as AllotmentMode[]).map((m) => ({ value: m, label: MODE_LABELS[m] }))} />
+        <ButtonGroup
+          value={mode}
+          onChange={setMode}
+          options={(Object.keys(MODE_LABELS) as AllotmentMode[]).map((m) => ({
+            value: m,
+            label: MODE_LABELS[m],
+          }))}
+        />
       </Field>
 
       {mode !== 'ON_REQUEST' && (
@@ -155,21 +188,33 @@ function NewPeriodForm({ contractId }: { contractId: string }) {
 
       <div>
         <div className="mb-1 flex items-center justify-between">
-          <span className="text-ink-faint">Uzrasna politika — izuzetak za ovaj period (opciono, M3 spec §2.3c)</span>
+          <span className="text-ink-faint">
+            Uzrasna politika — izuzetak za ovaj period (opciono, M3 spec §2.3c)
+          </span>
           <Button
             type="button"
             variant="outline"
             size="sm"
             className="h-auto px-2 py-1 text-[11px]"
-            onClick={() => setAgePolicy([...agePolicy, { category: 'CHILD', ageFrom: 0, ageTo: null, countsTowardCapacity: true }])}
+            onClick={() =>
+              setAgePolicy([
+                ...agePolicy,
+                { category: 'CHILD', ageFrom: 0, ageTo: null, countsTowardCapacity: true },
+              ])
+            }
           >
             + dodaj kategoriju
           </Button>
         </div>
-        {agePolicy.length === 0 && <p className="text-ink-faint">Bez izuzetka — koristi se opšta politika sobe (M2).</p>}
+        {agePolicy.length === 0 && (
+          <p className="text-ink-faint">Bez izuzetka — koristi se opšta politika sobe (M2).</p>
+        )}
         <div className="flex flex-col gap-1.5">
           {agePolicy.map((ap, i) => (
-            <div key={i} className="grid grid-cols-[1fr_1fr_1fr_auto_auto] items-end gap-1.5 rounded border border-border p-2">
+            <div
+              key={i}
+              className="grid grid-cols-[1fr_1fr_1fr_auto_auto] items-end gap-1.5 rounded border border-border p-2"
+            >
               <Field label="Kategorija">
                 <ButtonGroup
                   value={ap.category}
@@ -178,7 +223,10 @@ function NewPeriodForm({ contractId }: { contractId: string }) {
                     next[i] = { ...ap, category: c };
                     setAgePolicy(next);
                   }}
-                  options={(Object.keys(AGE_CATEGORY_LABELS) as AgeCategory[]).map((c) => ({ value: c, label: AGE_CATEGORY_LABELS[c] }))}
+                  options={(Object.keys(AGE_CATEGORY_LABELS) as AgeCategory[]).map((c) => ({
+                    value: c,
+                    label: AGE_CATEGORY_LABELS[c],
+                  }))}
                 />
               </Field>
               <Field label="Od uzrasta">
@@ -203,7 +251,10 @@ function NewPeriodForm({ contractId }: { contractId: string }) {
                   value={ap.ageTo ?? ''}
                   onChange={(e) => {
                     const next = [...agePolicy];
-                    next[i] = { ...ap, ageTo: e.target.value === '' ? null : Number(e.target.value) };
+                    next[i] = {
+                      ...ap,
+                      ageTo: e.target.value === '' ? null : Number(e.target.value),
+                    };
                     setAgePolicy(next);
                   }}
                 />
@@ -219,7 +270,13 @@ function NewPeriodForm({ contractId }: { contractId: string }) {
                   label="u kapacitet"
                 />
               </div>
-              <Button type="button" variant="ghost" size="sm" className="mb-2 h-auto px-2 py-1 text-ink-faint hover:text-danger" onClick={() => setAgePolicy(agePolicy.filter((_, idx) => idx !== i))}>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="mb-2 h-auto px-2 py-1 text-ink-faint hover:text-danger"
+                onClick={() => setAgePolicy(agePolicy.filter((_, idx) => idx !== i))}
+              >
                 ukloni
               </Button>
             </div>

@@ -9,7 +9,6 @@ import RevisionActions from './RevisionActions';
 import ResearchForm from './ResearchForm';
 import { Badge } from '@/components/ui/badge';
 
-
 interface ProposedTranslation {
   languageCode: string;
   title: string;
@@ -66,7 +65,10 @@ export default async function RevizijePage(props: { params: Promise<{ id: string
   return (
     <div className="p-6">
       <RegisterTab label={`Revizije — ${article.translation?.title ?? params.id.slice(0, 8)}`} />
-      <Link href={`/znanje/${params.id}`} className="mb-3 inline-flex items-center gap-1 text-xs text-ink-faint hover:text-ink">
+      <Link
+        href={`/znanje/${params.id}`}
+        className="mb-3 inline-flex items-center gap-1 text-xs text-ink-faint hover:text-ink"
+      >
         <Icon name="arrow-left" /> nazad na članak
       </Link>
 
@@ -81,10 +83,18 @@ export default async function RevizijePage(props: { params: Promise<{ id: string
       )}
 
       <div className="flex flex-col gap-3">
-        {revisions.length === 0 && <p className="rounded-lg border border-border bg-panel p-4 text-center text-xs text-ink-faint">Nema revizija.</p>}
+        {revisions.length === 0 && (
+          <p className="rounded-lg border border-border bg-panel p-4 text-center text-xs text-ink-faint">
+            Nema revizija.
+          </p>
+        )}
         {revisions.map((r) => {
-          const refSources = r.sourceIds.map((id) => sourceById.get(id)).filter((s): s is ArticleSource => !!s);
-          const allApproved = refSources.length === r.sourceIds.length && refSources.every((s) => s.status === 'APPROVED');
+          const refSources = r.sourceIds
+            .map((id) => sourceById.get(id))
+            .filter((s): s is ArticleSource => !!s);
+          const allApproved =
+            refSources.length === r.sourceIds.length &&
+            refSources.every((s) => s.status === 'APPROVED');
           return (
             <div key={r.id} className="rounded-lg border border-border bg-panel p-4">
               <div className="mb-2 flex items-center justify-between">
@@ -92,20 +102,28 @@ export default async function RevizijePage(props: { params: Promise<{ id: string
                   <TriggerBadge trigger={r.trigger} />
                   <RevisionStatusBadge status={r.status} />
                 </div>
-                <span className="text-[11px] text-ink-faint">{new Date(r.createdAt).toLocaleString('sr-RS')}</span>
+                <span className="text-[11px] text-ink-faint">
+                  {new Date(r.createdAt).toLocaleString('sr-RS')}
+                </span>
               </div>
 
               {r.proposedTranslations.length === 0 ? (
                 <div className="mb-2">
                   <p className="mb-1.5 text-xs italic text-ink-faint">
-                    Prazan placeholder — čeka da neko dostavi ažuriran tekst istraživanja (§4c, nema žive pretrage u v1).
+                    Prazan placeholder — čeka da neko dostavi ažuriran tekst istraživanja (§4c, nema
+                    žive pretrage u v1).
                   </p>
-                  {canEdit && r.status === 'PENDING_REVIEW' && <ResearchForm articleId={params.id} revisionId={r.id} />}
+                  {canEdit && r.status === 'PENDING_REVIEW' && (
+                    <ResearchForm articleId={params.id} revisionId={r.id} />
+                  )}
                 </div>
               ) : (
                 <div className="mb-2 flex flex-col gap-2">
                   {r.proposedTranslations.map((t) => (
-                    <div key={t.languageCode} className="rounded border border-border bg-panel2 p-2 text-xs">
+                    <div
+                      key={t.languageCode}
+                      className="rounded border border-border bg-panel2 p-2 text-xs"
+                    >
                       <div className="font-semibold text-ink">
                         {t.languageCode} · {t.title}
                       </div>
@@ -121,7 +139,10 @@ export default async function RevizijePage(props: { params: Promise<{ id: string
                 {refSources.map((s, i) => (
                   <span key={s.id}>
                     {i > 0 && ', '}
-                    <Link href={`/znanje/${params.id}/izvori`} className="text-accent hover:underline">
+                    <Link
+                      href={`/znanje/${params.id}/izvori`}
+                      className="text-accent hover:underline"
+                    >
                       {s.url}
                     </Link>{' '}
                     <SourceMiniBadge status={s.status} />
@@ -131,19 +152,25 @@ export default async function RevizijePage(props: { params: Promise<{ id: string
 
               {r.status === 'PENDING_REVIEW' && !allApproved && r.sourceIds.length > 0 && (
                 <p className="mb-2 rounded bg-warn-bg p-2 text-[11px] text-warn">
-                  Nije svaki referenciran izvor APPROVED — odobrenje ove revizije će biti odbijeno dok se svi izvori ne odobre (§4b/§9, kartica &quot;izvori&quot;).
+                  Nije svaki referenciran izvor APPROVED — odobrenje ove revizije će biti odbijeno
+                  dok se svi izvori ne odobre (§4b/§9, kartica &quot;izvori&quot;).
                 </p>
               )}
 
               {r.status !== 'PENDING_REVIEW' && (
                 <p className="text-[11px] text-ink-faint">
-                  {r.status === 'APPROVED' ? 'odobrio' : 'odbio'} {r.reviewedBy ?? '—'} {r.reviewedAt ? `· ${new Date(r.reviewedAt).toLocaleString('sr-RS')}` : ''}
+                  {r.status === 'APPROVED' ? 'odobrio' : 'odbio'} {r.reviewedBy ?? '—'}{' '}
+                  {r.reviewedAt ? `· ${new Date(r.reviewedAt).toLocaleString('sr-RS')}` : ''}
                 </p>
               )}
 
               {canApprove && r.status === 'PENDING_REVIEW' && (
                 <div className="mt-2 flex justify-end">
-                  <RevisionActions articleId={params.id} revisionId={r.id} disabled={!allApproved && r.sourceIds.length > 0} />
+                  <RevisionActions
+                    articleId={params.id}
+                    revisionId={r.id}
+                    disabled={!allApproved && r.sourceIds.length > 0}
+                  />
                 </div>
               )}
             </div>
@@ -155,7 +182,12 @@ export default async function RevizijePage(props: { params: Promise<{ id: string
 }
 
 function TriggerBadge({ trigger }: { trigger: string }) {
-  const label = trigger === 'INITIAL_CREATION' ? 'početna izrada' : trigger === 'SCHEDULED_REFRESH' ? '30-dnevno osvežavanje' : 'iz pitanja bez odgovora';
+  const label =
+    trigger === 'INITIAL_CREATION'
+      ? 'početna izrada'
+      : trigger === 'SCHEDULED_REFRESH'
+        ? '30-dnevno osvežavanje'
+        : 'iz pitanja bez odgovora';
   return (
     <Badge variant="secondary" className="text-ink-dim">
       {label}
@@ -170,6 +202,7 @@ function RevisionStatusBadge({ status }: { status: string }) {
 }
 
 function SourceMiniBadge({ status }: { status: string }) {
-  const tone = status === 'APPROVED' ? 'text-ok' : status === 'REJECTED' ? 'text-danger' : 'text-warn';
+  const tone =
+    status === 'APPROVED' ? 'text-ok' : status === 'REJECTED' ? 'text-danger' : 'text-warn';
   return <span className={`text-[11px] font-medium ${tone}`}>({status})</span>;
 }

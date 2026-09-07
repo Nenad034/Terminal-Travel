@@ -35,7 +35,9 @@ export function shiftDate(iso: string, days: number): string {
  * počinje kad se prethodna završi. Jednodnevna stavka (let) nema kraj različit od početka, pa se
  * uzima isti dan.
  */
-export function inheritedStayFrom(last: { stayFrom?: string; stayTo?: string } | undefined): string {
+export function inheritedStayFrom(
+  last: { stayFrom?: string; stayTo?: string } | undefined,
+): string {
   if (!last) return '';
   return last.stayTo || last.stayFrom || '';
 }

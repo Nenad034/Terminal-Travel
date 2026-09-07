@@ -18,8 +18,14 @@ interface MeResponse {
   roles: string[];
 }
 
-export async function login(email: string, password: string): Promise<{ requiresMfa: true; mfaToken: string } | { requiresMfa: false }> {
-  const res = await apiFetch<LoginResponse>('/iam/auth/login', { method: 'POST', body: { email, password } });
+export async function login(
+  email: string,
+  password: string,
+): Promise<{ requiresMfa: true; mfaToken: string } | { requiresMfa: false }> {
+  const res = await apiFetch<LoginResponse>('/iam/auth/login', {
+    method: 'POST',
+    body: { email, password },
+  });
   if (res.requiresMfa) {
     return { requiresMfa: true, mfaToken: res.mfaToken! };
   }
@@ -28,10 +34,13 @@ export async function login(email: string, password: string): Promise<{ requires
 }
 
 export async function verifyMfa(mfaToken: string, code: string): Promise<void> {
-  const res = await apiFetch<{ accessToken: string; refreshToken: string }>('/iam/auth/mfa/verify', {
-    method: 'POST',
-    body: { mfaToken, code },
-  });
+  const res = await apiFetch<{ accessToken: string; refreshToken: string }>(
+    '/iam/auth/mfa/verify',
+    {
+      method: 'POST',
+      body: { mfaToken, code },
+    },
+  );
   await finalizeSession(res.accessToken, res.refreshToken);
 }
 
@@ -47,7 +56,10 @@ export async function logout(): Promise<void> {
   const session = await getSession();
   if (session) {
     try {
-      await apiFetch('/iam/auth/logout', { method: 'POST', body: { refreshToken: session.refreshToken } });
+      await apiFetch('/iam/auth/logout', {
+        method: 'POST',
+        body: { refreshToken: session.refreshToken },
+      });
     } catch {
       // I dalje briši lokalnu sesiju i ako server poziv ne uspe (npr. bez signala) —
       // korisnik očekuje da je odjavljen na uređaju odmah.

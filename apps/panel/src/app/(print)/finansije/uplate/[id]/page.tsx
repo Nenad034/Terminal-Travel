@@ -32,12 +32,20 @@ function formatMoney(amountMinor: number, currency: string): string {
 // specifikacije čekova"). Namerno u sopstvenoj `(print)` route grupi (bez Shell bočne trake/
 // topbar-a iz (app)/layout.tsx) — čista strana za štampu, isti princip kao apps/web vaučer.
 // Auth se proverava OVDE direktno (ova grupa ne nasleđuje (app) proveru).
-export default async function CheckSpecificationPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function CheckSpecificationPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
   const params_ = await params;
   const me = await getMe();
   if (!me) redirect('/prijava');
   if (!hasPermission(me, 'M10', 'payment', 'VIEW')) {
-    return <div className="p-8 text-sm text-ink-faint">Nemate dozvolu za uvid u uplate (M10/payment/VIEW).</div>;
+    return (
+      <div className="p-8 text-sm text-ink-faint">
+        Nemate dozvolu za uvid u uplate (M10/payment/VIEW).
+      </div>
+    );
   }
 
   const payment = await apiFetch<PaymentDetail>(`/finance/payments/${params_.id}`).catch((err) =>
@@ -55,7 +63,8 @@ export default async function CheckSpecificationPage({ params }: { params: Promi
           <h1 className="text-xl font-semibold text-ink">Specifikacija čekova</h1>
           {payment.booking && (
             <p className="mt-1 text-sm text-ink-dim">
-              Rezervacija: <strong>{payment.booking.bookingNumber}</strong> — {payment.booking.buyerName}
+              Rezervacija: <strong>{payment.booking.bookingNumber}</strong> —{' '}
+              {payment.booking.buyerName}
             </p>
           )}
           <p className="text-sm text-ink-dim">
@@ -69,7 +78,9 @@ export default async function CheckSpecificationPage({ params }: { params: Promi
       </div>
 
       {payment.checkDetails.length === 0 ? (
-        <p className="text-sm text-ink-faint">Ova uplata nema specifikaciju čekova (metod {payment.method}).</p>
+        <p className="text-sm text-ink-faint">
+          Ova uplata nema specifikaciju čekova (metod {payment.method}).
+        </p>
       ) : (
         <table className="w-full border-collapse text-sm">
           <thead>
@@ -85,14 +96,21 @@ export default async function CheckSpecificationPage({ params }: { params: Promi
               <tr key={c.id} className="border-b border-border">
                 <td className="py-2 pr-3 text-ink">{c.bank.name}</td>
                 <td className="py-2 pr-3 text-ink">{c.checkNumber}</td>
-                <td className="py-2 pr-3 text-ink">{new Date(c.clearanceDate).toLocaleDateString('sr-RS')}</td>
-                <td className="py-2 text-right font-mono text-ink">{formatMoney(c.amount, payment.currency)}</td>
+                <td className="py-2 pr-3 text-ink">
+                  {new Date(c.clearanceDate).toLocaleDateString('sr-RS')}
+                </td>
+                <td className="py-2 text-right font-mono text-ink">
+                  {formatMoney(c.amount, payment.currency)}
+                </td>
               </tr>
             ))}
           </tbody>
           <tfoot>
             <tr>
-              <td colSpan={3} className="py-2 pr-3 text-right text-xs uppercase tracking-wide text-ink-faint">
+              <td
+                colSpan={3}
+                className="py-2 pr-3 text-right text-xs uppercase tracking-wide text-ink-faint"
+              >
                 Ukupno
               </td>
               <td className="py-2 text-right font-mono font-semibold text-ink">

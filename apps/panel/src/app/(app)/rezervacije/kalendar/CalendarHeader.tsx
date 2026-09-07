@@ -2,7 +2,14 @@
 
 import TabLink from '@/components/TabLink';
 import Icon from '@/components/Icon';
-import { buildHref, rangeLabel, shiftAnchor, todayIso, type CalendarFiltersShape, type CalendarView } from './calendar-utils';
+import {
+  buildHref,
+  rangeLabel,
+  shiftAnchor,
+  todayIso,
+  type CalendarFiltersShape,
+  type CalendarView,
+} from './calendar-utils';
 
 const VIEW_LABELS: Record<CalendarView, string> = { month: 'Mesec', week: 'Nedelja', day: 'Dan' };
 
@@ -10,7 +17,15 @@ const VIEW_LABELS: Record<CalendarView, string> = { month: 'Mesec', week: 'Nedel
 // (27.8.2026, na zahtev vlasnika: "napraviti kao Google kalendar sa svim funkcijama"). Svi
 // linkovi idu preko `TabLink` (navigateInTab), ne golog `<Link>` — isti razlog kao zamka 9.2
 // (docs/analize/33-ZAMKE-I-OBAVEZNE-PROVERE.md): pouzdanija navigacija unutar istog taba.
-export default function CalendarHeader({ view, date, filters }: { view: CalendarView; date: string; filters: CalendarFiltersShape }) {
+export default function CalendarHeader({
+  view,
+  date,
+  filters,
+}: {
+  view: CalendarView;
+  date: string;
+  filters: CalendarFiltersShape;
+}) {
   const prevHref = buildHref(view, shiftAnchor(view, date, -1), filters);
   const nextHref = buildHref(view, shiftAnchor(view, date, 1), filters);
   const todayHref = buildHref(view, todayIso(), filters);
@@ -18,14 +33,26 @@ export default function CalendarHeader({ view, date, filters }: { view: Calendar
   return (
     <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
       <div className="flex items-center gap-2">
-        <TabLink href={todayHref} label="Kalendar rezervacija" className="rounded border border-border px-2 py-1 text-xs hover:border-accent">
+        <TabLink
+          href={todayHref}
+          label="Kalendar rezervacija"
+          className="rounded border border-border px-2 py-1 text-xs hover:border-accent"
+        >
           danas
         </TabLink>
         <div className="flex items-center gap-1">
-          <TabLink href={prevHref} label="Kalendar rezervacija" className="flex h-6 w-6 items-center justify-center rounded border border-border text-xs hover:border-accent">
+          <TabLink
+            href={prevHref}
+            label="Kalendar rezervacija"
+            className="flex h-6 w-6 items-center justify-center rounded border border-border text-xs hover:border-accent"
+          >
             ‹
           </TabLink>
-          <TabLink href={nextHref} label="Kalendar rezervacija" className="flex h-6 w-6 items-center justify-center rounded border border-border text-xs hover:border-accent">
+          <TabLink
+            href={nextHref}
+            label="Kalendar rezervacija"
+            className="flex h-6 w-6 items-center justify-center rounded border border-border text-xs hover:border-accent"
+          >
             ›
           </TabLink>
         </div>

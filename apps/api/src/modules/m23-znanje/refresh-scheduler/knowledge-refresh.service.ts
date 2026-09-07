@@ -60,7 +60,9 @@ export class KnowledgeRefreshService {
         },
       });
 
-      const agent = await this.prisma.aIAgent.findFirst({ where: { agentRole: 'KNOWLEDGE_AGENT' } });
+      const agent = await this.prisma.aIAgent.findFirst({
+        where: { agentRole: 'KNOWLEDGE_AGENT' },
+      });
       // Deterministički kod (provera dospelog roka) — NIKAD ne zove AgentInvocationLogService
       // (isti princip kao M18 komentar uz taj servis, nijedan jezički model nije pozvan ovde).
       await this.auditLog.write({
@@ -77,7 +79,8 @@ export class KnowledgeRefreshService {
       created += 1;
     }
 
-    if (created > 0) this.logger.log(`Pripremljeno ${created} SCHEDULED_REFRESH revizija za pregled.`);
+    if (created > 0)
+      this.logger.log(`Pripremljeno ${created} SCHEDULED_REFRESH revizija za pregled.`);
     return created;
   }
 }

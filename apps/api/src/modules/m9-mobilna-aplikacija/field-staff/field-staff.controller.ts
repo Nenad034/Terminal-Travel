@@ -18,7 +18,11 @@ export class FieldStaffController {
 
   @Get('my-itinerary')
   @RequirePermission('M9', 'field-itinerary', 'VIEW')
-  myItinerary(@Query('from') from: string, @Query('to') to: string, @CurrentUser() actor: { userId: string }) {
+  myItinerary(
+    @Query('from') from: string,
+    @Query('to') to: string,
+    @CurrentUser() actor: { userId: string },
+  ) {
     return this.fieldStaff.myItinerary(actor.userId, new Date(from), new Date(to));
   }
 

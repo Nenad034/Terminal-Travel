@@ -18,10 +18,17 @@ describe('KnowledgeRefreshService.runDueRefreshes (M23 spec §4c/§9)', () => {
 
   it('kreira PENDING_REVIEW SCHEDULED_REFRESH reviziju za dospeo članak, bez diranja Article', async () => {
     const { service, prisma } = makeService();
-    prisma.article.findMany.mockResolvedValue([{ id: 'a1', status: 'PUBLISHED', nextRefreshDueAt: new Date('2020-01-01') }]);
+    prisma.article.findMany.mockResolvedValue([
+      { id: 'a1', status: 'PUBLISHED', nextRefreshDueAt: new Date('2020-01-01') },
+    ]);
     prisma.articleRevision.findFirst.mockResolvedValue(null);
     prisma.articleSource.findMany.mockResolvedValue([{ id: 's1', status: 'APPROVED' }]);
-    prisma.articleRevision.create.mockResolvedValue({ id: 'r1', articleId: 'a1', status: 'PENDING_REVIEW', trigger: 'SCHEDULED_REFRESH' });
+    prisma.articleRevision.create.mockResolvedValue({
+      id: 'r1',
+      articleId: 'a1',
+      status: 'PENDING_REVIEW',
+      trigger: 'SCHEDULED_REFRESH',
+    });
     prisma.aIAgent.findFirst.mockResolvedValue({ userId: 'agent-user-1' });
 
     const count = await service.runDueRefreshes();
@@ -29,7 +36,12 @@ describe('KnowledgeRefreshService.runDueRefreshes (M23 spec §4c/§9)', () => {
     expect(count).toBe(1);
     expect(prisma.articleRevision.create).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: expect.objectContaining({ articleId: 'a1', trigger: 'SCHEDULED_REFRESH', status: 'PENDING_REVIEW', sourceIds: ['s1'] }),
+        data: expect.objectContaining({
+          articleId: 'a1',
+          trigger: 'SCHEDULED_REFRESH',
+          status: 'PENDING_REVIEW',
+          sourceIds: ['s1'],
+        }),
       }),
     );
     // Kritično — nijedna izmena na Article dok revizija čeka.
@@ -38,7 +50,9 @@ describe('KnowledgeRefreshService.runDueRefreshes (M23 spec §4c/§9)', () => {
 
   it('preskače članak ako već postoji PENDING_REVIEW SCHEDULED_REFRESH revizija (izbegava dupliranje)', async () => {
     const { service, prisma } = makeService();
-    prisma.article.findMany.mockResolvedValue([{ id: 'a1', status: 'PUBLISHED', nextRefreshDueAt: new Date('2020-01-01') }]);
+    prisma.article.findMany.mockResolvedValue([
+      { id: 'a1', status: 'PUBLISHED', nextRefreshDueAt: new Date('2020-01-01') },
+    ]);
     prisma.articleRevision.findFirst.mockResolvedValue({ id: 'existing-r1' });
 
     const count = await service.runDueRefreshes();

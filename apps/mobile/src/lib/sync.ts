@@ -1,11 +1,20 @@
 import { apiFetch } from './api-client';
-import { clearQueue, getQueuedCheckIns, getQueuedIncidentNotes, replaceItineraryCache, type ItineraryItem } from './sqlite';
+import {
+  clearQueue,
+  getQueuedCheckIns,
+  getQueuedIncidentNotes,
+  replaceItineraryCache,
+  type ItineraryItem,
+} from './sqlite';
 
 // M9 spec §3.2 v1.4 — "čim se signal vrati, POST /mobile/staff/sync šalje ceo red čekanja
 // odjednom". Poziva se iz NetworkStatusProvider (shared) čim NetInfo prijavi vezu, i ručno
 // preko "sinhronizuj sada" dugmeta (SyncStatusBanner).
 export async function flushSyncQueue(): Promise<void> {
-  const [checkIns, incidentNotes] = await Promise.all([getQueuedCheckIns(), getQueuedIncidentNotes()]);
+  const [checkIns, incidentNotes] = await Promise.all([
+    getQueuedCheckIns(),
+    getQueuedIncidentNotes(),
+  ]);
   if (!checkIns.length && !incidentNotes.length) return;
 
   await apiFetch('/mobile/staff/sync', { method: 'POST', body: { checkIns, incidentNotes } });
@@ -15,7 +24,9 @@ export async function flushSyncQueue(): Promise<void> {
 }
 
 export async function refreshItinerary(fromISO: string, toISO: string): Promise<ItineraryItem[]> {
-  const items = await apiFetch<ItineraryItem[]>(`/mobile/staff/my-itinerary?from=${fromISO}&to=${toISO}`);
+  const items = await apiFetch<ItineraryItem[]>(
+    `/mobile/staff/my-itinerary?from=${fromISO}&to=${toISO}`,
+  );
   await replaceItineraryCache(items);
   return items;
 }

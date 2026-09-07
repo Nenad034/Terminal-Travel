@@ -37,8 +37,13 @@ export class ArticlesService {
     if (dto.subjectType === 'PRODUCT' && !dto.productId) {
       throw new BadRequestException('subject_type=PRODUCT zahteva product_id (M23 spec §2.1).');
     }
-    if ((dto.subjectType === 'DESTINATION' || dto.subjectType === 'COUNTRY') && !dto.destinationCountry) {
-      throw new BadRequestException('subject_type=DESTINATION/COUNTRY zahteva destination_country (M23 spec §2.1).');
+    if (
+      (dto.subjectType === 'DESTINATION' || dto.subjectType === 'COUNTRY') &&
+      !dto.destinationCountry
+    ) {
+      throw new BadRequestException(
+        'subject_type=DESTINATION/COUNTRY zahteva destination_country (M23 spec §2.1).',
+      );
     }
 
     const article = await this.prisma.article.create({
@@ -67,7 +72,9 @@ export class ArticlesService {
     if (dto.translations?.length) {
       for (const t of dto.translations) {
         await this.prisma.articleTranslation.upsert({
-          where: { articleId_languageCode: { articleId: article.id, languageCode: t.languageCode } },
+          where: {
+            articleId_languageCode: { articleId: article.id, languageCode: t.languageCode },
+          },
           create: {
             articleId: article.id,
             languageCode: t.languageCode,
@@ -75,7 +82,11 @@ export class ArticlesService {
             body: t.body,
             translationSource: t.translationSource ?? 'MANUAL',
           },
-          update: { title: t.title, body: t.body, translationSource: t.translationSource ?? 'MANUAL' },
+          update: {
+            title: t.title,
+            body: t.body,
+            translationSource: t.translationSource ?? 'MANUAL',
+          },
         });
       }
     }
@@ -109,7 +120,10 @@ export class ArticlesService {
   }
 
   async findOne(id: string, actorId: string, canSeeAllStatuses: boolean, lang?: LanguageCode) {
-    const article = await this.prisma.article.findUnique({ where: { id }, include: { translations: true } });
+    const article = await this.prisma.article.findUnique({
+      where: { id },
+      include: { translations: true },
+    });
     if (!article) throw new NotFoundException(`Article ${id} nije pronađen.`);
     if (!canSeeAllStatuses && article.status !== 'PUBLISHED') {
       throw new NotFoundException(`Article ${id} nije pronađen.`);
@@ -125,7 +139,8 @@ export class ArticlesService {
       where: { id },
       data: {
         status: dto.status,
-        destinationCountry: dto.destinationCountry !== undefined ? dto.destinationCountry : undefined,
+        destinationCountry:
+          dto.destinationCountry !== undefined ? dto.destinationCountry : undefined,
         destinationCity: dto.destinationCity !== undefined ? dto.destinationCity : undefined,
       },
     });
@@ -149,10 +164,15 @@ export class ArticlesService {
   async publish(id: string, actorId: string) {
     await assertHumanActor(this.prisma, actorId, 'Objava članka (M23/article/PUBLISH)');
 
-    const before = await this.prisma.article.findUnique({ where: { id }, include: { translations: true } });
+    const before = await this.prisma.article.findUnique({
+      where: { id },
+      include: { translations: true },
+    });
     if (!before) throw new NotFoundException(`Article ${id} nije pronađen.`);
     if (before.translations.length === 0) {
-      throw new BadRequestException('Članak nema nijedan prevod — nema šta da se objavi (M23 spec §2.1).');
+      throw new BadRequestException(
+        'Članak nema nijedan prevod — nema šta da se objavi (M23 spec §2.1).',
+      );
     }
 
     const after = await this.prisma.article.update({
@@ -179,7 +199,10 @@ export class ArticlesService {
     return after;
   }
 
-  private withResolvedTranslation<T extends { translations: ArticleTranslation[] }>(article: T, lang: LanguageCode | undefined) {
+  private withResolvedTranslation<T extends { translations: ArticleTranslation[] }>(
+    article: T,
+    lang: LanguageCode | undefined,
+  ) {
     const { translations, ...rest } = article as any;
     return { ...rest, translation: resolveArticleTranslation(translations, lang), translations };
   }

@@ -25,7 +25,13 @@ const ProductPreviewContext = createContext<ProductPreviewContextValue | null>(n
 
 // `onFirstShow` otvara desni panel (Shell.tsx) — isti "pojavljuje se čim ima šta da pokaže"
 // obrazac kao RowSummaryProvider/SelectionProvider.
-export function ProductPreviewProvider({ children, onFirstShow }: { children: React.ReactNode; onFirstShow?: () => void }) {
+export function ProductPreviewProvider({
+  children,
+  onFirstShow,
+}: {
+  children: React.ReactNode;
+  onFirstShow?: () => void;
+}) {
   const [items, setItems] = useState<ProductPreviewRef[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
 
@@ -41,7 +47,9 @@ export function ProductPreviewProvider({ children, onFirstShow }: { children: Re
   }
 
   return (
-    <ProductPreviewContext.Provider value={{ items, activeId, showPreview, setActiveId }}>{children}</ProductPreviewContext.Provider>
+    <ProductPreviewContext.Provider value={{ items, activeId, showPreview, setActiveId }}>
+      {children}
+    </ProductPreviewContext.Provider>
   );
 }
 

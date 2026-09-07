@@ -36,4 +36,4 @@ Isto pravilo kao u M6: AI agent sme da pripremi nacrt odgovora gostu. Ako taj na
 
 ---
 
-*Za tehničke detalje (tačna imena polja, redosled provera, API pozivi) vidi `14-SPECIFIKACIJA-M14-HELPDESK.md` u istom folderu i `docs/api/M14-helpdesk.md` — ovaj dokument je namerno pojednostavljen, ne zamenjuje ih.*
+_Za tehničke detalje (tačna imena polja, redosled provera, API pozivi) vidi `14-SPECIFIKACIJA-M14-HELPDESK.md` u istom folderu i `docs/api/M14-helpdesk.md` — ovaj dokument je namerno pojednostavljen, ne zamenjuje ih._

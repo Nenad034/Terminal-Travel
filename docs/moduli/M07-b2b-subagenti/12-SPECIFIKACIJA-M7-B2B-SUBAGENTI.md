@@ -22,20 +22,20 @@ M7 je do sada opisivao model podataka, proviziju i kreditni limit, ali ne i stva
 
 ### 2.0.1 Rute (isti princip kao M8 — portal nema sopstvenu bazu, samo poziva interne API-je)
 
-| Ruta | Sadržaj | Izvor podataka |
-| :---- | :---- | :---- |
-| `/b2b/prijava` | Prijava `SUBAGENT_ADMIN` naloga | M1 `/auth/*` |
-| `/b2b/pocetna` | Pregled: tekuće stanje duga naspram kreditnog limita, tekuća provizija/obimski status, aktivne rezervacije | M7 `/subagents/:id/outstanding-balance`, `/subagents/:id/volume-status` |
-| `/b2b/pretraga` | Rezultati pretrage (isti katalog kao M8, filtriran na `visible_channels` koji uključuje `B2B_PORTAL`, M2 poglavlje 5) | M5 `/search?channel=B2B_PORTAL` |
-| `/b2b/[tip]/[slug]` | Stranica proizvoda — **bez** identiteta dobavljača (M2 poglavlje 5.1) | M2 `/products/:id` |
-| `/b2b/rezervacija/ponuda` | Pregled ponude sa već primenjenom proviziom (M7 poglavlje 5) pre potvrde | M5 `/quotes/:id` |
-| `/b2b/rezervacija/putnici` | Unos podataka krajnjeg putnika kog subagent prijavljuje (poglavlje 7) | M6 `/guest-profiles` |
-| `/b2b/rezervacija/uslovi` | Prihvatanje uslova ugovora (clickwrap), subagent prihvata u ime sopstvenog naloga | M20 poglavlje 3.2, M5 `Quote.contract_terms_accepted` |
-| `/b2b/rezervacija/potvrda` | Potvrda, broj rezervacije, vaučer (odmah dostupan za subagenta unutar kredita, M5 poglavlje 6.3) | M5 `/bookings/:id` |
-| `/b2b/moje-rezervacije` | Lista rezervacija ovog subagenta, statusi, vaučeri | M5 `/bookings?client_account_id=...` |
-| `/b2b/moja-mreza` | Sopstveni direktni sub-subagenti — pregled, upravljanje provizijom (poglavlje 3) | M7 `/subagents/:id/children` |
-| `/b2b/profil` | Podaci naloga, kreditni limit/provizija (samo pregled — izmenu radi agencija ili roditeljski subagent) | M6 `/client-accounts/:id`, M7 `/subagents/:id` |
-| `/b2b/chat` | AI agent chat sa izvršnim ovlašćenjem (poglavlje 2.0.4) — vidljivo samo ako je `Subagent.ai_chat_enabled = true` | M7 `/subagents/:id/chat-messages`, `/subagents/:id/booking-requests` |
+| Ruta                       | Sadržaj                                                                                                               | Izvor podataka                                                          |
+| :------------------------- | :-------------------------------------------------------------------------------------------------------------------- | :---------------------------------------------------------------------- |
+| `/b2b/prijava`             | Prijava `SUBAGENT_ADMIN` naloga                                                                                       | M1 `/auth/*`                                                            |
+| `/b2b/pocetna`             | Pregled: tekuće stanje duga naspram kreditnog limita, tekuća provizija/obimski status, aktivne rezervacije            | M7 `/subagents/:id/outstanding-balance`, `/subagents/:id/volume-status` |
+| `/b2b/pretraga`            | Rezultati pretrage (isti katalog kao M8, filtriran na `visible_channels` koji uključuje `B2B_PORTAL`, M2 poglavlje 5) | M5 `/search?channel=B2B_PORTAL`                                         |
+| `/b2b/[tip]/[slug]`        | Stranica proizvoda — **bez** identiteta dobavljača (M2 poglavlje 5.1)                                                 | M2 `/products/:id`                                                      |
+| `/b2b/rezervacija/ponuda`  | Pregled ponude sa već primenjenom proviziom (M7 poglavlje 5) pre potvrde                                              | M5 `/quotes/:id`                                                        |
+| `/b2b/rezervacija/putnici` | Unos podataka krajnjeg putnika kog subagent prijavljuje (poglavlje 7)                                                 | M6 `/guest-profiles`                                                    |
+| `/b2b/rezervacija/uslovi`  | Prihvatanje uslova ugovora (clickwrap), subagent prihvata u ime sopstvenog naloga                                     | M20 poglavlje 3.2, M5 `Quote.contract_terms_accepted`                   |
+| `/b2b/rezervacija/potvrda` | Potvrda, broj rezervacije, vaučer (odmah dostupan za subagenta unutar kredita, M5 poglavlje 6.3)                      | M5 `/bookings/:id`                                                      |
+| `/b2b/moje-rezervacije`    | Lista rezervacija ovog subagenta, statusi, vaučeri                                                                    | M5 `/bookings?client_account_id=...`                                    |
+| `/b2b/moja-mreza`          | Sopstveni direktni sub-subagenti — pregled, upravljanje provizijom (poglavlje 3)                                      | M7 `/subagents/:id/children`                                            |
+| `/b2b/profil`              | Podaci naloga, kreditni limit/provizija (samo pregled — izmenu radi agencija ili roditeljski subagent)                | M6 `/client-accounts/:id`, M7 `/subagents/:id`                          |
+| `/b2b/chat`                | AI agent chat sa izvršnim ovlašćenjem (poglavlje 2.0.4) — vidljivo samo ako je `Subagent.ai_chat_enabled = true`      | M7 `/subagents/:id/chat-messages`, `/subagents/:id/booking-requests`    |
 
 ### 2.0.2 Tok pretrage i rezervacije (korak po korak, isti obrazac kao M8 poglavlje 3)
 
@@ -61,37 +61,39 @@ Cilj (vlasnikova formulacija): subagent može, kroz razgovor, da pretraži ponud
 
 Mogućnost **nije** uključena po difoltu za svaki `ACTIVE` subagent — agencija svesno uključuje za konkretnog partnera, isti oprez kao `MailboxAccess` dodela u M22:
 
-| Polje | Tip | Napomena |
-| :---- | :---- | :---- |
-| ai_chat_enabled | boolean, default `false` | uključuje Vlasnik/Direktor, ista dozvola kao `M7/subagent/EDIT` (poglavlje 10) |
+| Polje                                      | Tip                        | Napomena                                                                                                                                                                                                                                                                       |
+| :----------------------------------------- | :------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| ai_chat_enabled                            | boolean, default `false`   | uključuje Vlasnik/Direktor, ista dozvola kao `M7/subagent/EDIT` (poglavlje 10)                                                                                                                                                                                                 |
 | ai_chat_review_threshold_amount / currency | decimal / string, nullable | **obavezno popunjeno ako je `ai_chat_enabled = true`** — prag iznad kog rezervacija iz chat-a, i posle potvrde subagenta, ipak čeka pregled osoblja agencije pre izvršenja (poglavlje 2.0.4c). Postavlja se u istom koraku kao uključivanje, isti autoritet (Vlasnik/Direktor) |
 
 #### 2.0.4b Model podataka
 
 ##### `SubagentBookingRequest`
-| Polje | Tip | Napomena |
-| :---- | :---- | :---- |
-| id | UUID (PK) | |
-| subagent_id | UUID (FK → Subagent) | |
-| quote_id | UUID (FK → M5 Quote) | agent priprema kroz isti M5 tok kao portal forma (poglavlje 2.0.2, koraci 1–4), sa istom cenom (poglavlje 5) |
-| requires_staff_review | boolean | izračunato pri kreiranju: `Quote.total_price > Subagent.ai_chat_review_threshold_amount` (poglavlje 2.0.4a) |
-| status | enum: `AWAITING_SUBAGENT_CONFIRMATION`, `AWAITING_STAFF_REVIEW`, `EXECUTING`, `CONFIRMED`, `REJECTED`, `FAILED` | vidi tok u poglavlju 2.0.4c |
-| subagent_confirmed_at / subagent_confirmed_by | timestamp / UUID (FK → M1 User) | **isključivo nalog `SUBAGENT_ADMIN` istog `subagent_id`** — sistem odbija potvrdu sa bilo kog drugog naloga, uključujući drugog subagenta u istom lancu |
-| staff_reviewed_at / staff_reviewed_by | timestamp / UUID (FK → M1 User), nullable | popunjeno samo kad `requires_staff_review = true` (poglavlje 2.0.4c) — **nikad AI agent** |
-| staff_review_decision | enum: `APPROVED`, `REJECTED`, nullable | |
-| rejection_reason | string, nullable | popunjeno i za odbijanje subagenta i za odbijanje osoblja |
-| booking_id | UUID, nullable (FK → M5 Booking) | popunjeno posle uspešne M5 potvrde (poglavlje 2.0.4c, korak 5) |
-| created_at / updated_at | timestamp | |
+
+| Polje                                         | Tip                                                                                                             | Napomena                                                                                                                                                |
+| :-------------------------------------------- | :-------------------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| id                                            | UUID (PK)                                                                                                       |                                                                                                                                                         |
+| subagent_id                                   | UUID (FK → Subagent)                                                                                            |                                                                                                                                                         |
+| quote_id                                      | UUID (FK → M5 Quote)                                                                                            | agent priprema kroz isti M5 tok kao portal forma (poglavlje 2.0.2, koraci 1–4), sa istom cenom (poglavlje 5)                                            |
+| requires_staff_review                         | boolean                                                                                                         | izračunato pri kreiranju: `Quote.total_price > Subagent.ai_chat_review_threshold_amount` (poglavlje 2.0.4a)                                             |
+| status                                        | enum: `AWAITING_SUBAGENT_CONFIRMATION`, `AWAITING_STAFF_REVIEW`, `EXECUTING`, `CONFIRMED`, `REJECTED`, `FAILED` | vidi tok u poglavlju 2.0.4c                                                                                                                             |
+| subagent_confirmed_at / subagent_confirmed_by | timestamp / UUID (FK → M1 User)                                                                                 | **isključivo nalog `SUBAGENT_ADMIN` istog `subagent_id`** — sistem odbija potvrdu sa bilo kog drugog naloga, uključujući drugog subagenta u istom lancu |
+| staff_reviewed_at / staff_reviewed_by         | timestamp / UUID (FK → M1 User), nullable                                                                       | popunjeno samo kad `requires_staff_review = true` (poglavlje 2.0.4c) — **nikad AI agent**                                                               |
+| staff_review_decision                         | enum: `APPROVED`, `REJECTED`, nullable                                                                          |                                                                                                                                                         |
+| rejection_reason                              | string, nullable                                                                                                | popunjeno i za odbijanje subagenta i za odbijanje osoblja                                                                                               |
+| booking_id                                    | UUID, nullable (FK → M5 Booking)                                                                                | popunjeno posle uspešne M5 potvrde (poglavlje 2.0.4c, korak 5)                                                                                          |
+| created_at / updated_at                       | timestamp                                                                                                       |                                                                                                                                                         |
 
 ##### `SubagentChatMessage` — transkript razgovora (radi revizije spora oko rezervacije nastale ovim putem)
-| Polje | Tip | Napomena |
-| :---- | :---- | :---- |
-| id | UUID (PK) | |
-| subagent_id | UUID (FK → Subagent) | |
+
+| Polje              | Tip                                            | Napomena                                            |
+| :----------------- | :--------------------------------------------- | :-------------------------------------------------- |
+| id                 | UUID (PK)                                      |                                                     |
+| subagent_id        | UUID (FK → Subagent)                           |                                                     |
 | booking_request_id | UUID, nullable (FK → `SubagentBookingRequest`) | popunjeno čim razgovor dovede do konkretnog zahteva |
-| sender_type | enum: `SUBAGENT`, `AI_AGENT` | |
-| body | text | |
-| created_at | timestamp | |
+| sender_type        | enum: `SUBAGENT`, `AI_AGENT`                   |                                                     |
+| body               | text                                           |                                                     |
+| created_at         | timestamp                                      |                                                     |
 
 #### 2.0.4c Tok — dva nezavisna gejta pre izvršenja
 
@@ -100,8 +102,7 @@ Mogućnost **nije** uključena po difoltu za svaki `ACTIVE` subagent — agencij
 3. **Potvrda subagenta (Gejt A — uvek, bez izuzetka)** — agent prikazuje kompletan sažetak (proizvod, cena, putnik, uslovi) i traži eksplicitnu potvrdu. `SubagentBookingRequest.status = AWAITING_SUBAGENT_CONFIRMATION` dok se ne dobije — nivo **"Predloži pa čovek odobri"** (`subagent_chat.booking_confirm`, M15 poglavlje 4), gde je "čovek" sam subagent koji potvrđuje sopstvenu porudžbinu, ne osoblje agencije. Bez ove potvrde, agent ne sme pozvati M5 potvrdu rezervacije ni pod kojim uslovom.
 4. **Pregled osoblja (Gejt B — samo iznad praga)** — ako `requires_staff_review = true` (poglavlje 2.0.4a), status prelazi u `AWAITING_STAFF_REVIEW` i zahtev se pojavljuje u M15 Agent Inbox (poglavlje 6 te specifikacije) — Vlasnik, Direktor ili Sales Manager odobrava ili odbija, **nikad AI agent**, nezavisno od toga što je subagent već potvrdio u koraku 3. Ako `requires_staff_review = false`, ovaj korak se preskače.
 
-**Isti obrazac ponovo iskorišćen za ručne stavke van kataloga** (dopuna, 18.8.2026, na zahtev vlasnika) — kad subagent kreira `MANUAL` stavku (proizvod van M2 kataloga, npr. hotel dogovoren direktno sa gostom), pregled osoblja je **uvek** obavezan, ne samo iznad praga, i subagent ne unosi cenu uopšte (osoblje je unosi pri pregledu) — isti krug (Vlasnik, Direktor, Sales Manager), isti M15 Agent Inbox, nov mehanizam definisan u M5 spec poglavlju 3.0f.4 (`M5/manual-item/REVIEW`), ne u ovom poglavlju.
-5. **Izvršenje** — tek posle oba primenjiva gejta, sistem poziva **isti** M5 tok potvrde kao portal forma (poglavlje 2.0.2, korak 5 — garancija pa kreditni limit, M5 poglavlje 4 korak 1, M7 poglavlje 4) — deterministički poziv, ne nova AI odluka. Uspeh: `status = CONFIRMED`, `booking_id` popunjeno, vaučer se automatski izdaje pod istim uslovom kao svaki drugi B2B kanal (M5 poglavlje 6.3, nepromenjeno). Neuspeh (npr. kapacitet u međuvremenu prodat, kreditni limit ipak prekoračen jer je stanje duga promenjeno između koraka 3 i 5): `status = FAILED`, agent objašnjava razlog subagentu u chat-u.
+**Isti obrazac ponovo iskorišćen za ručne stavke van kataloga** (dopuna, 18.8.2026, na zahtev vlasnika) — kad subagent kreira `MANUAL` stavku (proizvod van M2 kataloga, npr. hotel dogovoren direktno sa gostom), pregled osoblja je **uvek** obavezan, ne samo iznad praga, i subagent ne unosi cenu uopšte (osoblje je unosi pri pregledu) — isti krug (Vlasnik, Direktor, Sales Manager), isti M15 Agent Inbox, nov mehanizam definisan u M5 spec poglavlju 3.0f.4 (`M5/manual-item/REVIEW`), ne u ovom poglavlju. 5. **Izvršenje** — tek posle oba primenjiva gejta, sistem poziva **isti** M5 tok potvrde kao portal forma (poglavlje 2.0.2, korak 5 — garancija pa kreditni limit, M5 poglavlje 4 korak 1, M7 poglavlje 4) — deterministički poziv, ne nova AI odluka. Uspeh: `status = CONFIRMED`, `booking_id` popunjeno, vaučer se automatski izdaje pod istim uslovom kao svaki drugi B2B kanal (M5 poglavlje 6.3, nepromenjeno). Neuspeh (npr. kapacitet u međuvremenu prodat, kreditni limit ipak prekoračen jer je stanje duga promenjeno između koraka 3 i 5): `status = FAILED`, agent objašnjava razlog subagentu u chat-u.
 
 #### 2.0.4d Plaćanje — nikad kroz chat direktno
 
@@ -118,14 +119,15 @@ Agent nema pristup ničemu van sopstvenog `subagent_id` konteksta (isto ogranič
 **Tehnički mehanizam (isti obrazac kao M17 "Horizont" paleta i njen prekidač tamnog/svetlog moda, uklj. birač teme, `29-DIZAJN-SISTEM-UI.md` poglavlje 2):** portal ne piše boje direktno u komponente — čita ih iz jednog centralnog sloja CSS promenljivih ("dizajn tokeni"), koji se pri svakom zahtevu popunjava iz `SubagentBranding` zapisa ulogovanog naloga, sa padom (fallback) na baznu **"Horizont"** paletu (isti par tamna/svetla kao M17 — usklađeno 17.8.2026, poglavlje 2.0.6 ispod: M7 sad koristi identičan interfejs kao M17, ne M8) kad polje nije postavljeno. Posledica: promena brenda je promena podataka, ne izmena koda — ništa u poslovnoj logici (pretraga, rezervacija, provizija, kreditni limit) se ne dodiruje.
 
 #### `SubagentBranding`
-| Polje | Tip | Napomena |
-| :---- | :---- | :---- |
-| id | UUID (PK) | |
-| subagent_id | UUID (FK → `Subagent`, unique) | jedan zapis po subagentu |
-| display_name | string, nullable | naziv prikazan na portalu ako se razlikuje od pravnog naziva (M6 `ClientAccount.name`) |
-| logo_url | string, nullable | otpremljen fajl, isti obrazac skladištenja kao M2 `Product.media` |
-| primary_color / secondary_color | string (hex), nullable | **samo dve boje u v1** — ne pun set tokena, radi jednostavnosti i da izbegnemo nečitljive kombinacije |
-| updated_at | timestamp | |
+
+| Polje                           | Tip                            | Napomena                                                                                              |
+| :------------------------------ | :----------------------------- | :---------------------------------------------------------------------------------------------------- |
+| id                              | UUID (PK)                      |                                                                                                       |
+| subagent_id                     | UUID (FK → `Subagent`, unique) | jedan zapis po subagentu                                                                              |
+| display_name                    | string, nullable               | naziv prikazan na portalu ako se razlikuje od pravnog naziva (M6 `ClientAccount.name`)                |
+| logo_url                        | string, nullable               | otpremljen fajl, isti obrazac skladištenja kao M2 `Product.media`                                     |
+| primary_color / secondary_color | string (hex), nullable         | **samo dve boje u v1** — ne pun set tokena, radi jednostavnosti i da izbegnemo nečitljive kombinacije |
+| updated_at                      | timestamp                      |                                                                                                       |
 
 **Ovlašćenje za izmenu:** isključivo `SUBAGENT_ADMIN` nalog tog istog `subagent_id` (ista provera vlasništva kao ostatak portala, poglavlje 6) — nikad drugi subagent, nikad osoblje agencije kroz redovan tok. **Bez gejta za odobrenje** (svesna odluka vlasnika, avgust 2026) — subagent vidi izmenu odmah. Svaka izmena se ipak upisuje u M1 audit log (princip #5 Master dokumenta, "sve se može revidovati") — bezbednosni ventil ostaje ljudski, ne tehnički: ako subagent otpremi neprimeren logo, Vlasnik/Direktor može ručno da obriše `SubagentBranding` zapis kroz M17 (isti `M7/subagent/EDIT` obim dozvole kao poglavlje 2.0.4a), vraćajući portal na baznu paletu, bez potrebe za posebnim moderacionim tokom u v1.
 
@@ -133,6 +135,7 @@ Agent nema pristup ničemu van sopstvenog `subagent_id` konteksta (isto ogranič
 **API:** `GET/PUT /b2b/subagents/:id/branding` — `PUT` odbija svaki poziv gde `:id` ne odgovara `subagent_id` prijavljenog naloga, čak i ako je pozivalac inače `SUBAGENT_ADMIN` (isti obrazac kao ownership-scoping problem već zabeležen u M20 poglavlju "Otvoreno za dalje" — ovde se rešava od starta, ne ostavlja kao gap).
 
 **Namerno van obima v1** (upisano i u poglavlje 13):
+
 - Sopstveni domen/poddomen po subagentu (DNS/hosting je zaseban trošak/odluka, ne dizajn pitanje).
 - Potpuno uklanjanje pomena "Terminal Travel" iz podnožja/pravnog teksta — zakonski, tur-operator mora biti raspoznatljiv u dokumentima koje izdaje (garancija putovanja, ugovor); potvrditi obim sa pravnikom pre nego što se bilo šta od pravnog teksta uslovi brendom.
 - Više od dve boje / pun set tokena po subagentu — proširuje se ako v1 pokaže potrebu.
@@ -142,6 +145,7 @@ Agent nema pristup ničemu van sopstvenog `subagent_id` konteksta (isto ogranič
 **Interfejs:** portal koristi **identičan vizuelni i interakcioni obrazac kao M17** (`29-DIZAJN-SISTEM-UI.md` poglavlje 7, izmenjeno 17.8.2026) — isti tri-panelni raspored (levi navigator/stablo, centar prikaz, desni panel za izdvajanje sa mogućnošću dva panela jedan pored drugog, dizajn dokument poglavlje 5b), ista komandna paleta (poglavlje 4), isti obrazac AI razgovora sa plutajućim kontekstom iznad unosa (poglavlje 6c). Ovo zamenjuje raniju pretpostavku da je M7 pojednostavljen, B2C-stila izlog (poglavlje 2.0.1–2.0.2 rute i tok i dalje važe kao mapa ekrana, samo se sad prikazuju kroz M17-obrazac umesto kroz M8-obrazac) — subagenti su redovni, profesionalni korisnici pod istim vremenskim pritiskom kao interni tim, ne povremeni gost.
 
 **Obim podataka (potvrđeno, izričito ograničenje na prodajni tok):** subagent vidi **sve što vidi i prodajni agent agencije unutar prodajnog toka** — pretragu, ponude, rezervacije, itinerare, vaučere, sopstvene fakture/proviziju/kreditni limit (poglavlje 4/5) — sa tri stalna izuzetka koja važe na svakom ekranu gde bi se pojavila:
+
 1. **Marža** (`MarkupRule` iznos/procenat, M3/M5) — nikad prikazana, ista logika kao M2 poglavlje 5.1 dobavljača-slepi serializer, sad primenjena i na cenu, ne samo na identitet dobavljača.
 2. **Nabavna cena** (`RateLine.price`/API neto cena pre markup-a) — subagent vidi isključivo finalnu cenu sa već primenjenom proviziom (postojeće poglavlje 5), nikad osnovicu iz koje je izvedena.
 3. **Naziv/identitet dobavljača** (`Supplier.name`, već važeće pravilo M2 poglavlje 5.1) — proširuje se na svaki novi ekran koji M17-obrazac uvodi (npr. detalj ugovora ako ikad postane vidljiv), ne samo na postojeći prikaz proizvoda.
@@ -153,6 +157,7 @@ Agent nema pristup ničemu van sopstvenog `subagent_id` konteksta (isto ogranič
 **Šta je franšiza, u ovom modelu:** pravno odvojena firma koja nastupa **u ime agencije** na drugoj lokaciji (sopstven brend, ali fiskalizacija/SEF/YUTA garancija putovanja identični kao kod bilo kog M7 subagenta danas — Terminal Travel ostaje organizator, franšiza ništa od toga ne izdaje sama). Komercijalno je **potpuno obična M7 stavka** — cenovnik, provizija, sakrivena nabavna cena/marža/dobavljač (poglavlje 2.0.6), prodaja isključivo iz M2 kataloga matične agencije (bez sopstvenih M3 ugovora). Razlikuje se isključivo po **privilegiji pristupa**: umesto jednog `SUBAGENT_ADMIN` portal naloga (poglavlje 8), franšiza dobija više punih `STAFF` naloga sa istim ulogama kao matična agencija (Prodajni agent, Sales Manager, Direktor) i pun M17 interfejs — ne suženi "prodajni tok" iz poglavlja 2.0.6.
 
 **Model:** `Subagent.privilege_level` (novo polje, poglavlje 2.1) — `STANDARD` (podrazumevano, postojeće ponašanje, nepromenjeno) ili `FRANCHISE`. Za `FRANCHISE` čvor:
+
 - Zaposleni nose `User.account_type = STAFF` (ne `SUBAGENT_CONTACT`) sa `linked_profile_id` postavljenim na taj `Subagent.id` (M1 spec §3.1a) — dobijaju pune M1 uloge i pun M17 pristup, RBAC evaluacija (M1 §3.6) radi identično kao za zaposlenog matične agencije.
 - **Tri stalna izuzetka iz poglavlja 2.0.6 (marža/nabavna cena/identitet dobavljača) i dalje važe**, primenjena na M17 kad ga koristi franšizni `STAFF` nalog — isti serializer/whitelist mehanizam (`resolveApiContext`, M5 poglavlje 6.2), sad sa dodatnom granom: `STAFF` sa `linked_profile_id → Subagent{privilege_level=FRANCHISE}` dobija `FRANCHISE_PANEL` kontekst (M5 poglavlje 6.2 dopuna), ne `INTERNAL_PANEL`, iako inače koristi identičan M17 UI.
 - **Samostalno upravljanje sopstvenim zaposlenima** — isti princip kao poglavlje 6 (subagent upravlja sopstvenom decom u hijerarhiji), ovde primenjen na `STAFF` naloge: franšizni lokalni `Direktor` sme da poziva/uklanja/menja uloge isključivo `STAFF` nalozima sa istim `linked_profile_id` (M1 spec, poglavlje 5, dopuna). Vlasnik/Direktor matične agencije zadržavaju neograničen pristup preko cele mreže.
@@ -162,6 +167,7 @@ Agent nema pristup ničemu van sopstvenog `subagent_id` konteksta (isto ogranič
 **Odobravanje:** isti tok kao svaki novi subagent (poglavlje 9) — `PENDING_APPROVAL → ACTIVE` isključivo od strane Vlasnika/Direktora agencije, koji tada bira `privilege_level = FRANCHISE` (ne može ga sam subagent postaviti).
 
 **Namerno van obima ovog prolaza** (samo specifikacija, bez koda):
+
 - Prava multi-tenant izolacija za NEPOVEZANE agencije (ideja "TT kao softver za tuđe agencije, uz naknadu") — svesno odbačena za sad kao poseban, mnogo veći poduhvat; zavedeno u `docs/analize/27-BACKLOG-IDEJA-I-PREDLOZI.md`, ne meša se sa franšizom.
 - Sopstveni domen/poddomen po franšizi — ista napomena kao poglavlje 2.0.5, DNS/hosting odluka za kasnije.
 
@@ -170,18 +176,19 @@ Agent nema pristup ničemu van sopstvenog `subagent_id` konteksta (isto ogranič
 ## 2. Model podataka
 
 ### 2.1 `Subagent`
-| Polje | Tip | Napomena |
-| :---- | :---- | :---- |
-| id | UUID (PK) | |
-| client_account_id | UUID (FK → M6 ClientAccount, unique) | mora biti `account_type = LEGAL_ENTITY` |
-| parent_subagent_id | UUID, nullable (FK → self) | `null` = direktan partner agencije (Tier 1) |
-| status | enum: `PENDING_APPROVAL`, `ACTIVE`, `SUSPENDED` | |
-| privilege_level | enum: `STANDARD`, `FRANCHISE` | dopuna 31.8.2026, poglavlje 2.0.7 — `FRANCHISE` otvara pun M17 pristup sopstvenim `STAFF` nalozima umesto jednog `SUBAGENT_ADMIN` portal naloga; bira ga isključivo Vlasnik/Direktor pri odobravanju (poglavlje 9) |
-| commission_percentage | decimal | vidi poglavlje 3 — ko ga postavlja zavisi od `parent_subagent_id` |
-| credit_limit / credit_limit_currency | decimal / string | |
-| approved_by | UUID, nullable (FK → M1 User) | ko je odobrio prelazak u `ACTIVE` |
-| approved_at | timestamp, nullable | |
-| created_at / updated_at | timestamp | |
+
+| Polje                                | Tip                                             | Napomena                                                                                                                                                                                                           |
+| :----------------------------------- | :---------------------------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| id                                   | UUID (PK)                                       |                                                                                                                                                                                                                    |
+| client_account_id                    | UUID (FK → M6 ClientAccount, unique)            | mora biti `account_type = LEGAL_ENTITY`                                                                                                                                                                            |
+| parent_subagent_id                   | UUID, nullable (FK → self)                      | `null` = direktan partner agencije (Tier 1)                                                                                                                                                                        |
+| status                               | enum: `PENDING_APPROVAL`, `ACTIVE`, `SUSPENDED` |                                                                                                                                                                                                                    |
+| privilege_level                      | enum: `STANDARD`, `FRANCHISE`                   | dopuna 31.8.2026, poglavlje 2.0.7 — `FRANCHISE` otvara pun M17 pristup sopstvenim `STAFF` nalozima umesto jednog `SUBAGENT_ADMIN` portal naloga; bira ga isključivo Vlasnik/Direktor pri odobravanju (poglavlje 9) |
+| commission_percentage                | decimal                                         | vidi poglavlje 3 — ko ga postavlja zavisi od `parent_subagent_id`                                                                                                                                                  |
+| credit_limit / credit_limit_currency | decimal / string                                |                                                                                                                                                                                                                    |
+| approved_by                          | UUID, nullable (FK → M1 User)                   | ko je odobrio prelazak u `ACTIVE`                                                                                                                                                                                  |
+| approved_at                          | timestamp, nullable                             |                                                                                                                                                                                                                    |
+| created_at / updated_at              | timestamp                                       |                                                                                                                                                                                                                    |
 
 **`current_outstanding_balance`** se **ne čuva** kao polje — računa se uživo kao zbir `Booking.total_price` za sve rezervacije ovog `client_account_id` gde je `payment_status` u (`UNPAID`, `PARTIALLY_PAID`, `INVOICE_PENDING`), umanjen za primljene delimične uplate (M10). Isti princip kao istorija putovanja u M6 — jedan izvor istine, ne duplirano stanje.
 
@@ -198,33 +205,35 @@ Agent nema pristup ničemu van sopstvenog `subagent_id` konteksta (isto ogranič
 Pored fiksne `commission_percentage`, subagent može imati stepenaste pragove: **ako** u posmatranom periodu dostigne određeni obim prodaje, **onda** mu se provizija automatski podiže na viši procenat — dok se prag ne dostigne, ostaje na osnovnoj (ili prethodnoj) proviziji. Autoritet ko postavlja ove pragove je **isti kao za osnovnu proviziju** (poglavlje 3): agencija za Tier 1, roditeljski subagent za svoju decu.
 
 #### `CommissionVolumeTier`
-| Polje | Tip | Napomena |
-| :---- | :---- | :---- |
-| id | UUID (PK) | |
-| subagent_id | UUID (FK → Subagent) | pragovi su specifični za svaki subagentski odnos, ne globalni (za razliku od M6 `LoyaltyTier`, jer su B2B ugovori pojedinačno pregovarani) |
-| rank | integer | redosled (viši broj = viši prag) |
-| threshold_metric | enum: `TOTAL_SALES_RSD`, `BOOKING_COUNT`, `NIGHT_COUNT` | isti izbor metrika kao M6 `LoyaltyTier`, radi doslednosti |
-| threshold_period | enum: `CALENDAR_QUARTER`, `CALENDAR_YEAR`, `ROLLING_12_MONTHS` | obimski bonusi se obično mere po kraćem periodu nego lojalnost |
-| threshold_value | decimal | prag ("Ako"), npr. 50.000 EUR |
-| resulting_commission_percentage | decimal, nullable | procenat koji važi kad je prag dostignut ("Onda") |
-| resulting_commission_fixed_amount | decimal, nullable | fiksan iznos po rezervaciji, dodatno uz procenat — isti obrazac kao `MarkupRule` u M5 (bar jedno od dva mora biti postavljeno) |
-| resulting_commission_currency | string, nullable | valuta fiksnog iznosa |
-| retroactive | boolean, default false | **potvrđeno:** ako je `true`, prelazak praga usred perioda ne menja samo buduće rezervacije (poglavlje 3.1) nego pokreće i jednokratni obračun rabata za ceo dotadašnji promet u periodu (poglavlje 3.2) |
-| created_by | UUID (FK → M1 User ili roditeljski subagent) | |
-| created_at | timestamp | |
+
+| Polje                             | Tip                                                            | Napomena                                                                                                                                                                                                 |
+| :-------------------------------- | :------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| id                                | UUID (PK)                                                      |                                                                                                                                                                                                          |
+| subagent_id                       | UUID (FK → Subagent)                                           | pragovi su specifični za svaki subagentski odnos, ne globalni (za razliku od M6 `LoyaltyTier`, jer su B2B ugovori pojedinačno pregovarani)                                                               |
+| rank                              | integer                                                        | redosled (viši broj = viši prag)                                                                                                                                                                         |
+| threshold_metric                  | enum: `TOTAL_SALES_RSD`, `BOOKING_COUNT`, `NIGHT_COUNT`        | isti izbor metrika kao M6 `LoyaltyTier`, radi doslednosti                                                                                                                                                |
+| threshold_period                  | enum: `CALENDAR_QUARTER`, `CALENDAR_YEAR`, `ROLLING_12_MONTHS` | obimski bonusi se obično mere po kraćem periodu nego lojalnost                                                                                                                                           |
+| threshold_value                   | decimal                                                        | prag ("Ako"), npr. 50.000 EUR                                                                                                                                                                            |
+| resulting_commission_percentage   | decimal, nullable                                              | procenat koji važi kad je prag dostignut ("Onda")                                                                                                                                                        |
+| resulting_commission_fixed_amount | decimal, nullable                                              | fiksan iznos po rezervaciji, dodatno uz procenat — isti obrazac kao `MarkupRule` u M5 (bar jedno od dva mora biti postavljeno)                                                                           |
+| resulting_commission_currency     | string, nullable                                               | valuta fiksnog iznosa                                                                                                                                                                                    |
+| retroactive                       | boolean, default false                                         | **potvrđeno:** ako je `true`, prelazak praga usred perioda ne menja samo buduće rezervacije (poglavlje 3.1) nego pokreće i jednokratni obračun rabata za ceo dotadašnji promet u periodu (poglavlje 3.2) |
+| created_by                        | UUID (FK → M1 User ili roditeljski subagent)                   |                                                                                                                                                                                                          |
+| created_at                        | timestamp                                                      |                                                                                                                                                                                                          |
 
 I ovde važi ista formula i isti redosled kao `MarkupRule` (M5, poglavlje 2): `rezultujuća_provizija_cena = osnovna_cena * (1 - percentage / 100) - fixed_amount`.
 
 #### `SubagentVolumeStatus`
-| Polje | Tip | Napomena |
-| :---- | :---- | :---- |
-| id | UUID (PK) | |
-| subagent_id | UUID (FK, unique) | |
-| calculated_metric_value | decimal | tekuća vrednost u posmatranom periodu |
-| current_tier_id | UUID, nullable (FK → CommissionVolumeTier) | najviši prag koji je trenutno dostignut |
-| effective_commission_percentage | decimal | `CommissionVolumeTier.resulting_commission_percentage` ako je prag dostignut, inače `Subagent.commission_percentage` — **ovo polje se koristi u formuli cene iz poglavlja 5**, ne osnovna provizija direktno |
-| period_start / period_end | date | tekući prozor merenja (zavisi od `threshold_period`) |
-| last_recalculated_at | timestamp | |
+
+| Polje                           | Tip                                        | Napomena                                                                                                                                                                                                     |
+| :------------------------------ | :----------------------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| id                              | UUID (PK)                                  |                                                                                                                                                                                                              |
+| subagent_id                     | UUID (FK, unique)                          |                                                                                                                                                                                                              |
+| calculated_metric_value         | decimal                                    | tekuća vrednost u posmatranom periodu                                                                                                                                                                        |
+| current_tier_id                 | UUID, nullable (FK → CommissionVolumeTier) | najviši prag koji je trenutno dostignut                                                                                                                                                                      |
+| effective_commission_percentage | decimal                                    | `CommissionVolumeTier.resulting_commission_percentage` ako je prag dostignut, inače `Subagent.commission_percentage` — **ovo polje se koristi u formuli cene iz poglavlja 5**, ne osnovna provizija direktno |
+| period_start / period_end       | date                                       | tekući prozor merenja (zavisi od `threshold_period`)                                                                                                                                                         |
+| last_recalculated_at            | timestamp                                  |                                                                                                                                                                                                              |
 
 **Automatski preračun:** isti obrazac kao M6 lojalnost — pretplata na `booking.confirmed`/`booking.cancelled` iz M5 Event Bus-a, ponovni izračun `calculated_metric_value` i `current_tier_id` za pogođenog subagenta.
 
@@ -239,18 +248,19 @@ Kad se dostigne prag sa `retroactive = true` **usred perioda**, promena za budu�
 preko svih rezervacija tog subagenta potvrđenih u tekućem periodu **pre** prelaska praga.
 
 #### `CommissionRebate`
-| Polje | Tip | Napomena |
-| :---- | :---- | :---- |
-| id | UUID (PK) | |
-| subagent_id | UUID (FK → Subagent) | |
-| triggering_tier_id | UUID (FK → CommissionVolumeTier) | koji prag je pokrenuo obračun |
-| period_start / period_end | date | |
-| calculated_amount / currency | decimal / string | rezultat formule iznad |
-| status | enum: `DRAFT`, `APPROVED`, `APPLIED`, `REJECTED` | |
-| approved_by | UUID, nullable (FK → M1 User) | **obavezno ljudski nalog** — direktan uticaj na novac, isti obrazac kao M10 slanje fiskalnog dokumenta ("Predloži pa čovek odobri" iz poglavlja 7 Master dokumenta) |
-| approved_at | timestamp, nullable | |
-| applied_at | timestamp, nullable | |
-| created_at | timestamp | |
+
+| Polje                        | Tip                                              | Napomena                                                                                                                                                            |
+| :--------------------------- | :----------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| id                           | UUID (PK)                                        |                                                                                                                                                                     |
+| subagent_id                  | UUID (FK → Subagent)                             |                                                                                                                                                                     |
+| triggering_tier_id           | UUID (FK → CommissionVolumeTier)                 | koji prag je pokrenuo obračun                                                                                                                                       |
+| period_start / period_end    | date                                             |                                                                                                                                                                     |
+| calculated_amount / currency | decimal / string                                 | rezultat formule iznad                                                                                                                                              |
+| status                       | enum: `DRAFT`, `APPROVED`, `APPLIED`, `REJECTED` |                                                                                                                                                                     |
+| approved_by                  | UUID, nullable (FK → M1 User)                    | **obavezno ljudski nalog** — direktan uticaj na novac, isti obrazac kao M10 slanje fiskalnog dokumenta ("Predloži pa čovek odobri" iz poglavlja 7 Master dokumenta) |
+| approved_at                  | timestamp, nullable                              |                                                                                                                                                                     |
+| applied_at                   | timestamp, nullable                              |                                                                                                                                                                     |
+| created_at                   | timestamp                                        |                                                                                                                                                                     |
 
 **Tok:** sistem automatski kreira `CommissionRebate` u statusu `DRAFT` čim se pređe `retroactive` prag (nivo "Autonomno" — samo obračun, ništa se ne menja). Vlasnik, Direktor ili Računovođa pregleda i prevodi u `APPROVED` (`POST /subagents/:id/commission-rebates/:rebateId/approve`) — ovo je ljudska odluka, ne knjiženje. Ako se odbije (`REJECTED`), ostaje trajno vidljiv u audit logu sa razlogom.
 
@@ -296,8 +306,8 @@ Ne zahteva novu strukturu — već pokriveno postojećim modelom: `Booking.clien
 
 M1 specifikacija (poglavlje 8) je namerno ostavila B2B uloge za kasnije. Dodaje se:
 
-| Uloga | Opseg |
-| :---- | :---- |
+| Uloga            | Opseg                                                                                                                                                                                                                                                                                                                      |
+| :--------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `SUBAGENT_ADMIN` | Portal nalog subagenta (bilo kog nivoa). Pristup: sopstveni `Subagent`/`ClientAccount` profil, sopstvene rezervacije preko M5 (sa automatski primenjenim popustom iz poglavlja 5), upravljanje sopstvenim direktnim sub-subagentima (poglavlje 3 i 6). Nema pristup internom panelu (M17) niti podacima drugih subagenata. |
 
 ---
@@ -310,17 +320,17 @@ Novi subagent se registruje sa statusom `PENDING_APPROVAL` — ne može da naru�
 
 ## 10. Dozvole (registruju se u M1 katalog dozvola)
 
-| Dozvola | Podrazumevana dodela po ulozi |
-| :---- | :---- |
-| `M7/subagent/VIEW` (ceo lanac) | Vlasnik, Direktor, Sales Manager |
-| `M7/subagent/CREATE`, `APPROVE`, `EDIT` (kreditni limit, Tier 1 provizija, `privilege_level`) | Vlasnik, Direktor |
-| `M7/subagent/MANAGE_OWN_NETWORK` (sopstveni sub-subagenti) | `SUBAGENT_ADMIN` — samo za sopstvenu decu u hijerarhiji |
-| `M1/user/CREATE`, `EDIT` za franšizne `STAFF` naloge (dopuna 31.8.2026, poglavlje 2.0.7) | Vlasnik, Direktor agencije (bezuslovno); franšizni lokalni `Direktor` — samo za `STAFF` naloge sa istim `linked_profile_id` (M1 spec, poglavlje 5) |
-| `M7/commission-rebate/VIEW` | Vlasnik, Direktor, Računovođa |
-| `M7/commission-rebate/APPROVE` | Vlasnik, Direktor, Računovođa — **nikad AI agent** |
-| `M7/subagent-chat/VIEW` | Vlasnik, Direktor, Sales Manager (svi); `SUBAGENT_ADMIN` — samo sopstveni `subagent_id` |
-| `M7/subagent-chat/CONFIRM` | `SUBAGENT_ADMIN` — isključivo sopstveni `subagent_id` (poglavlje 2.0.4b/c) |
-| `M7/subagent-chat/STAFF_REVIEW` | Vlasnik, Direktor, Sales Manager — odobrenje/odbijanje zahteva iznad praga (poglavlje 2.0.4c, korak 4) — **nikad AI agent** |
+| Dozvola                                                                                       | Podrazumevana dodela po ulozi                                                                                                                      |
+| :-------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `M7/subagent/VIEW` (ceo lanac)                                                                | Vlasnik, Direktor, Sales Manager                                                                                                                   |
+| `M7/subagent/CREATE`, `APPROVE`, `EDIT` (kreditni limit, Tier 1 provizija, `privilege_level`) | Vlasnik, Direktor                                                                                                                                  |
+| `M7/subagent/MANAGE_OWN_NETWORK` (sopstveni sub-subagenti)                                    | `SUBAGENT_ADMIN` — samo za sopstvenu decu u hijerarhiji                                                                                            |
+| `M1/user/CREATE`, `EDIT` za franšizne `STAFF` naloge (dopuna 31.8.2026, poglavlje 2.0.7)      | Vlasnik, Direktor agencije (bezuslovno); franšizni lokalni `Direktor` — samo za `STAFF` naloge sa istim `linked_profile_id` (M1 spec, poglavlje 5) |
+| `M7/commission-rebate/VIEW`                                                                   | Vlasnik, Direktor, Računovođa                                                                                                                      |
+| `M7/commission-rebate/APPROVE`                                                                | Vlasnik, Direktor, Računovođa — **nikad AI agent**                                                                                                 |
+| `M7/subagent-chat/VIEW`                                                                       | Vlasnik, Direktor, Sales Manager (svi); `SUBAGENT_ADMIN` — samo sopstveni `subagent_id`                                                            |
+| `M7/subagent-chat/CONFIRM`                                                                    | `SUBAGENT_ADMIN` — isključivo sopstveni `subagent_id` (poglavlje 2.0.4b/c)                                                                         |
+| `M7/subagent-chat/STAFF_REVIEW`                                                               | Vlasnik, Direktor, Sales Manager — odobrenje/odbijanje zahteva iznad praga (poglavlje 2.0.4c, korak 4) — **nikad AI agent**                        |
 
 ---
 
@@ -328,23 +338,23 @@ Novi subagent se registruje sa statusom `PENDING_APPROVAL` — ne može da naru�
 
 Prefiks: `/api/v1/b2b`
 
-| Endpoint | Metod | Opis |
-| :---- | :---- | :---- |
-| `/subagents` | GET / POST | lista (agencija vidi sve) / registracija novog (status `PENDING_APPROVAL`) |
-| `/subagents/:id/approve` | POST | Vlasnik/Direktor — postavlja kreditni limit i (ako Tier 1) proviziju |
-| `/subagents/:id` | GET / PATCH | |
-| `/subagents/:id/children` | GET / POST | sopstveni sub-subagenti — dostupno agenciji i roditeljskom `SUBAGENT_ADMIN`-u |
-| `/subagents/:id/children/:childId/commission` | PATCH | roditeljski subagent menja proviziju deteta, uz ogradu iz poglavlja 3 |
-| `/subagents/:id/outstanding-balance` | GET | uživo izračunato stanje duga naspram kreditnog limita |
-| `/subagents/:id/volume-tiers` | GET / POST / PATCH | pragovi obimskog bonusa (poglavlje 3.1) — postavlja ih isti autoritet kao osnovnu proviziju |
-| `/subagents/:id/volume-status` | GET | tekući obim, dostignut prag, i `effective_commission_percentage` — koristi ga M5 pri kreiranju ponude |
-| `/subagents/:id/commission-rebates` | GET | lista rabata, svih statusa |
-| `/subagents/:id/commission-rebates/:rebateId/approve` | POST | ljudska potvrda, zahteva `M7/commission-rebate/APPROVE` |
-| `/subagents/:id/commission-rebates/:rebateId/reject` | POST | odbijanje, sa razlogom |
-| `/subagents/:id/chat-messages` | GET / POST | transkript razgovora (poglavlje 2.0.4b), zahteva `M7/subagent-chat/VIEW` |
-| `/subagents/:id/booking-requests` | GET / POST | pregled / kreiranje `SubagentBookingRequest` (agent priprema, poglavlje 2.0.4c koraci 1–2) |
-| `/subagents/:id/booking-requests/:requestId/confirm` | POST | potvrda subagenta (Gejt A), zahteva `M7/subagent-chat/CONFIRM`, samo sopstveni nalog |
-| `/subagents/:id/booking-requests/:requestId/staff-review` | POST | odobrenje/odbijanje osoblja (Gejt B), zahteva `M7/subagent-chat/STAFF_REVIEW`, samo kad `requires_staff_review = true` |
+| Endpoint                                                  | Metod              | Opis                                                                                                                   |
+| :-------------------------------------------------------- | :----------------- | :--------------------------------------------------------------------------------------------------------------------- |
+| `/subagents`                                              | GET / POST         | lista (agencija vidi sve) / registracija novog (status `PENDING_APPROVAL`)                                             |
+| `/subagents/:id/approve`                                  | POST               | Vlasnik/Direktor — postavlja kreditni limit i (ako Tier 1) proviziju                                                   |
+| `/subagents/:id`                                          | GET / PATCH        |                                                                                                                        |
+| `/subagents/:id/children`                                 | GET / POST         | sopstveni sub-subagenti — dostupno agenciji i roditeljskom `SUBAGENT_ADMIN`-u                                          |
+| `/subagents/:id/children/:childId/commission`             | PATCH              | roditeljski subagent menja proviziju deteta, uz ogradu iz poglavlja 3                                                  |
+| `/subagents/:id/outstanding-balance`                      | GET                | uživo izračunato stanje duga naspram kreditnog limita                                                                  |
+| `/subagents/:id/volume-tiers`                             | GET / POST / PATCH | pragovi obimskog bonusa (poglavlje 3.1) — postavlja ih isti autoritet kao osnovnu proviziju                            |
+| `/subagents/:id/volume-status`                            | GET                | tekući obim, dostignut prag, i `effective_commission_percentage` — koristi ga M5 pri kreiranju ponude                  |
+| `/subagents/:id/commission-rebates`                       | GET                | lista rabata, svih statusa                                                                                             |
+| `/subagents/:id/commission-rebates/:rebateId/approve`     | POST               | ljudska potvrda, zahteva `M7/commission-rebate/APPROVE`                                                                |
+| `/subagents/:id/commission-rebates/:rebateId/reject`      | POST               | odbijanje, sa razlogom                                                                                                 |
+| `/subagents/:id/chat-messages`                            | GET / POST         | transkript razgovora (poglavlje 2.0.4b), zahteva `M7/subagent-chat/VIEW`                                               |
+| `/subagents/:id/booking-requests`                         | GET / POST         | pregled / kreiranje `SubagentBookingRequest` (agent priprema, poglavlje 2.0.4c koraci 1–2)                             |
+| `/subagents/:id/booking-requests/:requestId/confirm`      | POST               | potvrda subagenta (Gejt A), zahteva `M7/subagent-chat/CONFIRM`, samo sopstveni nalog                                   |
+| `/subagents/:id/booking-requests/:requestId/staff-review` | POST               | odobrenje/odbijanje osoblja (Gejt B), zahteva `M7/subagent-chat/STAFF_REVIEW`, samo kad `requires_staff_review = true` |
 
 ---
 

@@ -33,7 +33,9 @@ async function bootstrap() {
   // M1 spec §6: svi endpoint-i dokumentovani OpenAPI semom pre implementacije.
   const config = new DocumentBuilder()
     .setTitle('Terminal API')
-    .setDescription('M1 (Core/Identitet) — docs/moduli/M01-core-identitet/02-SPECIFIKACIJA-M1-CORE-IDENTITET.md')
+    .setDescription(
+      'M1 (Core/Identitet) — docs/moduli/M01-core-identitet/02-SPECIFIKACIJA-M1-CORE-IDENTITET.md',
+    )
     .setVersion('0.1')
     .addBearerAuth()
     .build();

@@ -60,7 +60,9 @@ export default function BookingNotesCard({
             className="w-full rounded border border-border bg-panel2 px-3 py-2 text-sm text-ink placeholder:text-ink-faint focus:border-accent focus:outline-none"
           />
           <div className="mt-2 flex items-center justify-between">
-            <p className="text-[11px] text-ink-faint">Beleška se ne može naknadno izmeniti — pogrešnu obrišite i upišite novu.</p>
+            <p className="text-[11px] text-ink-faint">
+              Beleška se ne može naknadno izmeniti — pogrešnu obrišite i upišite novu.
+            </p>
             <SubmitButton />
           </div>
           {state.error && <p className="mt-2 text-xs text-danger">{state.error}</p>}
@@ -81,34 +83,42 @@ export default function BookingNotesCard({
             </span>
             {fieldCount > 0 && (
               <label className="flex cursor-pointer items-center gap-1.5">
-                <input type="checkbox" checked={samoTeren} onChange={(e) => setSamoTeren(e.target.checked)} />
+                <input
+                  type="checkbox"
+                  checked={samoTeren}
+                  onChange={(e) => setSamoTeren(e.target.checked)}
+                />
                 prikaži samo napomene sa terena
               </label>
             )}
           </div>
           <ul className="space-y-2">
-          {shown.map((note) => (
-            <li
-              key={note.id}
-              className={`rounded-lg border bg-panel p-3 ${
-                note.origin === 'FIELD_REP' ? 'border-l-4 border-l-warn border-y-border border-r-border' : 'border-border'
-              }`}
-            >
-              <div className="mb-1.5 flex items-center justify-between gap-3 text-[11px] text-ink-faint">
-                <span className="flex flex-wrap items-center gap-1.5">
-                  <ActorLabel name={note.authorName} origin="STAFF" />
-                  {note.origin === 'FIELD_REP' && (
-                    <span className="rounded bg-warn-bg px-1.5 py-0.5 font-medium text-warn">sa terena — predstavnik</span>
+            {shown.map((note) => (
+              <li
+                key={note.id}
+                className={`rounded-lg border bg-panel p-3 ${
+                  note.origin === 'FIELD_REP'
+                    ? 'border-l-4 border-l-warn border-y-border border-r-border'
+                    : 'border-border'
+                }`}
+              >
+                <div className="mb-1.5 flex items-center justify-between gap-3 text-[11px] text-ink-faint">
+                  <span className="flex flex-wrap items-center gap-1.5">
+                    <ActorLabel name={note.authorName} origin="STAFF" />
+                    {note.origin === 'FIELD_REP' && (
+                      <span className="rounded bg-warn-bg px-1.5 py-0.5 font-medium text-warn">
+                        sa terena — predstavnik
+                      </span>
+                    )}
+                    <span>· {new Date(note.createdAt).toLocaleString('sr-RS')}</span>
+                  </span>
+                  {canDelete && (note.createdBy === currentUserId || isVlasnikOrDirektor) && (
+                    <DeleteNoteForm bookingId={bookingId} noteId={note.id} />
                   )}
-                  <span>· {new Date(note.createdAt).toLocaleString('sr-RS')}</span>
-                </span>
-                {canDelete && (note.createdBy === currentUserId || isVlasnikOrDirektor) && (
-                  <DeleteNoteForm bookingId={bookingId} noteId={note.id} />
-                )}
-              </div>
-              <p className="whitespace-pre-wrap text-sm text-ink">{note.body}</p>
-            </li>
-          ))}
+                </div>
+                <p className="whitespace-pre-wrap text-sm text-ink">{note.body}</p>
+              </li>
+            ))}
           </ul>
         </>
       )}
@@ -126,7 +136,10 @@ function SubmitButton() {
 }
 
 function DeleteNoteForm({ bookingId, noteId }: { bookingId: string; noteId: string }) {
-  const [state, formAction] = useActionState(deleteBookingNote.bind(null, bookingId, noteId), initialState);
+  const [state, formAction] = useActionState(
+    deleteBookingNote.bind(null, bookingId, noteId),
+    initialState,
+  );
   return (
     <form action={formAction}>
       <button type="submit" className="text-[11px] text-danger hover:underline">

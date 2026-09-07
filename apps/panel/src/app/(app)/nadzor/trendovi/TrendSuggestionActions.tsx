@@ -42,7 +42,13 @@ function ApproveButton() {
 function RejectButton() {
   const { pending } = useFormStatus();
   return (
-    <Button type="submit" disabled={pending} variant="outline" size="sm" className="hover:border-danger hover:text-danger">
+    <Button
+      type="submit"
+      disabled={pending}
+      variant="outline"
+      size="sm"
+      className="hover:border-danger hover:text-danger"
+    >
       {pending ? 'Odbijam…' : 'odbij'}
     </Button>
   );

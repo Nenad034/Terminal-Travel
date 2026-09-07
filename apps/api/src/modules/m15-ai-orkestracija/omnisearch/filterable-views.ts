@@ -21,20 +21,53 @@ export interface FilterableView {
   label: string;
   listPath: string;
   fields: Record<string, FilterFieldDef>;
-  permission: { module: string; resource: string; action: string } | ((values: Record<string, string[]>) => { module: string; resource: string; action: string });
+  permission:
+    | { module: string; resource: string; action: string }
+    | ((values: Record<string, string[]>) => { module: string; resource: string; action: string });
 }
 
-const BOOKING_STATUSES = ['PENDING_SUPPLIER_CONFIRMATION', 'CONFIRMED', 'MODIFIED', 'CANCELLED', 'COMPLETED'] as const;
+const BOOKING_STATUSES = [
+  'PENDING_SUPPLIER_CONFIRMATION',
+  'CONFIRMED',
+  'MODIFIED',
+  'CANCELLED',
+  'COMPLETED',
+] as const;
 const PAYMENT_STATUSES = ['UNPAID', 'PARTIALLY_PAID', 'PAID', 'INVOICE_PENDING'] as const;
 const TIP_NASTUPANJA = ['ORGANIZATOR', 'POSREDNIK'] as const;
-const PRODUCT_TYPES = ['ACCOMMODATION', 'PACKAGE', 'TRANSFER', 'EXCURSION', 'FLIGHT', 'INSURANCE', 'TRANSPORT', 'TICKET', 'EVENT', 'CRUISE'] as const;
-const CONTENT_TYPES = ['BLOG_POST', 'SOCIAL_POST', 'EMAIL_NEWSLETTER', 'BANNER', 'STATIC_PAGE'] as const;
+const PRODUCT_TYPES = [
+  'ACCOMMODATION',
+  'PACKAGE',
+  'TRANSFER',
+  'EXCURSION',
+  'FLIGHT',
+  'INSURANCE',
+  'TRANSPORT',
+  'TICKET',
+  'EVENT',
+  'CRUISE',
+] as const;
+const CONTENT_TYPES = [
+  'BLOG_POST',
+  'SOCIAL_POST',
+  'EMAIL_NEWSLETTER',
+  'BANNER',
+  'STATIC_PAGE',
+] as const;
 const CONTENT_STATUSES = ['DRAFT', 'PENDING_APPROVAL', 'APPROVED', 'PUBLISHED'] as const;
 const SEVERITIES = ['INFO', 'WARNING', 'CRITICAL'] as const;
 const SIGNAL_TYPES = [
-  'PROVIDER_ERROR_SPIKE', 'PAYMENT_FAILURE_SPIKE', 'GUEST_REGISTRATION_FAILED', 'FIELD_INCIDENT_URGENT',
-  'AUTH_ANOMALY', 'TOKEN_USAGE_ANOMALY', 'RECONCILIATION_MISMATCH', 'PROVIDER_DEGRADED',
-  'LOW_CAPACITY_CRITICAL', 'HELP_AGENT_ABUSE_PATTERN', 'PAYMENT_DEADLINE_MISSED',
+  'PROVIDER_ERROR_SPIKE',
+  'PAYMENT_FAILURE_SPIKE',
+  'GUEST_REGISTRATION_FAILED',
+  'FIELD_INCIDENT_URGENT',
+  'AUTH_ANOMALY',
+  'TOKEN_USAGE_ANOMALY',
+  'RECONCILIATION_MISMATCH',
+  'PROVIDER_DEGRADED',
+  'LOW_CAPACITY_CRITICAL',
+  'HELP_AGENT_ABUSE_PATTERN',
+  'PAYMENT_DEADLINE_MISSED',
 ] as const;
 const AUDIENCES = ['STAFF', 'SUBAGENT', 'BUSINESS_CLIENT', 'PUBLIC_GUEST'] as const;
 const CONFIDENCES = ['HIGH', 'LOW', 'NONE'] as const;
@@ -56,14 +89,21 @@ export const FILTERABLE_VIEWS: Record<string, FilterableView> = {
     fields: {
       status: { description: 'Status rezervacije', enumValues: BOOKING_STATUSES, multi: true },
       paymentStatus: { description: 'Status uplate', enumValues: PAYMENT_STATUSES, multi: true },
-      tipNastupanja: { description: 'Tip nastupanja agencije', enumValues: TIP_NASTUPANJA, multi: true },
+      tipNastupanja: {
+        description: 'Tip nastupanja agencije',
+        enumValues: TIP_NASTUPANJA,
+        multi: true,
+      },
       productType: { description: 'Tip proizvoda', enumValues: PRODUCT_TYPES, multi: true },
       buyerName: { description: 'Ime/naziv nosioca rezervacije (deo teksta)' },
       bookingNumber: { description: 'Broj rezervacije (deo teksta), npr. TT-2027-...' },
       currency: { description: 'Valuta, npr. EUR' },
       destinationCity: { description: 'Grad destinacije' },
       destinationCountry: { description: 'Država destinacije' },
-      hasTravelGuarantee: { description: 'Da li postoji garancija putovanja', enumValues: ['true', 'false'] },
+      hasTravelGuarantee: {
+        description: 'Da li postoji garancija putovanja',
+        enumValues: ['true', 'false'],
+      },
       createdFrom: { description: 'Datum kreiranja OD, YYYY-MM-DD' },
       createdTo: { description: 'Datum kreiranja DO, YYYY-MM-DD' },
       stayFrom: { description: 'Datum dolaska OD, YYYY-MM-DD' },
@@ -117,7 +157,11 @@ export const FILTERABLE_VIEWS: Record<string, FilterableView> = {
     id: 'reports',
     label: 'Izveštaji',
     listPath: '/izvestaji',
-    permission: (values) => ({ module: 'M13', resource: REPORT_RESOURCE_BY_TAB[values.tab?.[0] ?? ''] ?? 'report:sales', action: 'VIEW' }),
+    permission: (values) => ({
+      module: 'M13',
+      resource: REPORT_RESOURCE_BY_TAB[values.tab?.[0] ?? ''] ?? 'report:sales',
+      action: 'VIEW',
+    }),
     fields: {
       tab: { description: 'Koji izveštaj', enumValues: REPORT_TABS, required: true },
       from: { description: 'Datum OD, YYYY-MM-DD' },
@@ -128,7 +172,10 @@ export const FILTERABLE_VIEWS: Record<string, FilterableView> = {
       providerCode: { description: 'Kôd M4 provajdera (profitabilnost)' },
       channel: { description: 'Prodajni kanal (profitabilnost/prodaja)' },
       productType: { description: 'Tip proizvoda (prodaja)', enumValues: PRODUCT_TYPES },
-      groupBy: { description: 'Razvrstavanje (smeštaj: jedna vrednost iz room_type/board_type/stars/accommodation_type; dinamički: dimenzije odvojene zarezom)' },
+      groupBy: {
+        description:
+          'Razvrstavanje (smeštaj: jedna vrednost iz room_type/board_type/stars/accommodation_type; dinamički: dimenzije odvojene zarezom)',
+      },
     },
   },
 };
@@ -146,10 +193,15 @@ function toArray(value: unknown): string[] {
  * nedozvoljena enum vrednost → čitljiva greška vraćena MODELU, ne tiha ignoracija) i vraća
  * gotov query string + normalizovane vrednosti (potrebne za permission() kod `reports`).
  */
-export function buildFilterQuery(view: FilterableView, filters: Record<string, unknown>): { qs: string; values: Record<string, string[]> } | { error: string } {
+export function buildFilterQuery(
+  view: FilterableView,
+  filters: Record<string, unknown>,
+): { qs: string; values: Record<string, string[]> } | { error: string } {
   const unknownKeys = Object.keys(filters).filter((k) => !(k in view.fields));
   if (unknownKeys.length > 0) {
-    return { error: `Nepoznato polje "${unknownKeys[0]}" za pogled "${view.id}". Dozvoljena polja: ${Object.keys(view.fields).join(', ')}.` };
+    return {
+      error: `Nepoznato polje "${unknownKeys[0]}" za pogled "${view.id}". Dozvoljena polja: ${Object.keys(view.fields).join(', ')}.`,
+    };
   }
 
   const values: Record<string, string[]> = {};
@@ -167,7 +219,9 @@ export function buildFilterQuery(view: FilterableView, filters: Record<string, u
     if (def.enumValues) {
       const invalid = raw.find((v) => !def.enumValues!.includes(v));
       if (invalid) {
-        return { error: `Nedozvoljena vrednost "${invalid}" za polje "${key}". Dozvoljeno: ${def.enumValues.join(', ')}.` };
+        return {
+          error: `Nedozvoljena vrednost "${invalid}" za polje "${key}". Dozvoljeno: ${def.enumValues.join(', ')}.`,
+        };
       }
     }
     values[key] = raw;

@@ -55,11 +55,17 @@ function NotificationCard({
   supplierPhone: string;
 }) {
   const isSupplier = notification.target === 'SUPPLIER';
-  const contactLabel = isSupplier ? `Dobavljač — ${supplierName}` : `Klijent/nalogodavac — ${buyerName}`;
+  const contactLabel = isSupplier
+    ? `Dobavljač — ${supplierName}`
+    : `Klijent/nalogodavac — ${buyerName}`;
   const contactEmail = isSupplier ? supplierEmail : buyerEmail;
   const contactPhone = isSupplier ? supplierPhone : buyerPhone;
-  const mailSubject = isSupplier ? `Potvrda dostupnosti — rezervacija ${bookingNumber}` : `Rezervacija ${bookingNumber}`;
-  const mailGreeting = isSupplier ? `Poštovani,\n\nu vezi sa rezervacijom ${bookingNumber}: ` : `Poštovani/a ${buyerName},\n\n`;
+  const mailSubject = isSupplier
+    ? `Potvrda dostupnosti — rezervacija ${bookingNumber}`
+    : `Rezervacija ${bookingNumber}`;
+  const mailGreeting = isSupplier
+    ? `Poštovani,\n\nu vezi sa rezervacijom ${bookingNumber}: `
+    : `Poštovani/a ${buyerName},\n\n`;
   const mailtoHref = `mailto:${contactEmail}?subject=${encodeURIComponent(mailSubject)}&body=${encodeURIComponent(mailGreeting)}`;
   const smsHref = `sms:${contactPhone.replace(/\s+/g, '')}`;
   const telHref = `tel:${contactPhone.replace(/\s+/g, '')}`;
@@ -80,24 +86,45 @@ function NotificationCard({
           {contactLabel}
         </div>
         <div className="mb-2 flex items-center justify-between gap-2">
-          <a href={telHref} className="truncate font-mono text-ink hover:text-accent hover:underline">
+          <a
+            href={telHref}
+            className="truncate font-mono text-ink hover:text-accent hover:underline"
+          >
             {contactPhone}
           </a>
           <div className="flex flex-shrink-0 items-center gap-1">
-            <a href={telHref} title="Pozovi" className="flex h-6 w-6 items-center justify-center rounded text-ink-faint hover:bg-panel2 hover:text-accent">
+            <a
+              href={telHref}
+              title="Pozovi"
+              className="flex h-6 w-6 items-center justify-center rounded text-ink-faint hover:bg-panel2 hover:text-accent"
+            >
               <Icon name="device-mobile" />
             </a>
-            <a href={smsHref} title="Pošalji SMS" className="flex h-6 w-6 items-center justify-center rounded text-ink-faint hover:bg-panel2 hover:text-accent">
+            <a
+              href={smsHref}
+              title="Pošalji SMS"
+              className="flex h-6 w-6 items-center justify-center rounded text-ink-faint hover:bg-panel2 hover:text-accent"
+            >
               <Icon name="comment" />
             </a>
-            <a href={whatsappHref} target="_blank" rel="noopener noreferrer" title="WhatsApp" className="flex h-6 w-6 items-center justify-center rounded text-ink-faint hover:bg-panel2 hover:text-accent">
+            <a
+              href={whatsappHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              title="WhatsApp"
+              className="flex h-6 w-6 items-center justify-center rounded text-ink-faint hover:bg-panel2 hover:text-accent"
+            >
               <Icon name="comment-discussion" />
             </a>
           </div>
         </div>
         <div className="flex items-center justify-between gap-2">
           <span className="truncate text-ink-faint">{contactEmail}</span>
-          <a href={mailtoHref} title="Pošalji mejl" className="flex flex-shrink-0 items-center gap-1 rounded px-1.5 py-0.5 text-ink-faint hover:bg-panel2 hover:text-accent">
+          <a
+            href={mailtoHref}
+            title="Pošalji mejl"
+            className="flex flex-shrink-0 items-center gap-1 rounded px-1.5 py-0.5 text-ink-faint hover:bg-panel2 hover:text-accent"
+          >
             <Icon name="mail" /> Pošalji mejl
           </a>
         </div>
@@ -128,10 +155,20 @@ export default function UrgentModal({
   onClose: () => void;
 }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
-      <div className="flex max-h-[85vh] w-full max-w-sm flex-col gap-2" onClick={(e) => e.stopPropagation()}>
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+      onClick={onClose}
+    >
+      <div
+        className="flex max-h-[85vh] w-full max-w-sm flex-col gap-2"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="flex items-center justify-end">
-          <button onClick={onClose} title="Zatvori sve" className="flex h-6 w-6 items-center justify-center rounded bg-panel text-danger shadow hover:opacity-70">
+          <button
+            onClick={onClose}
+            title="Zatvori sve"
+            className="flex h-6 w-6 items-center justify-center rounded bg-panel text-danger shadow hover:opacity-70"
+          >
             <Icon name="close" />
           </button>
         </div>

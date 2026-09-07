@@ -29,28 +29,57 @@ export class AgentInboxService {
     const sources: AgentInboxSource[] = [];
 
     if (await this.permissions.hasPermission(userId, 'M3', 'pricelist-import', 'VIEW')) {
-      const count = await this.prisma.pricelistImportRow.count({ where: { reviewStatus: 'PENDING' } });
-      sources.push({ moduleCode: 'M3', actionCode: 'pricelist_import.approve_row', label: 'Stavke cenovnika na čekanju odobrenja', count });
+      const count = await this.prisma.pricelistImportRow.count({
+        where: { reviewStatus: 'PENDING' },
+      });
+      sources.push({
+        moduleCode: 'M3',
+        actionCode: 'pricelist_import.approve_row',
+        label: 'Stavke cenovnika na čekanju odobrenja',
+        count,
+      });
     }
 
     if (await this.permissions.hasPermission(userId, 'M5', 'supplier-manifest', 'VIEW')) {
       const count = await this.prisma.supplierManifest.count({ where: { status: 'DRAFT' } });
-      sources.push({ moduleCode: 'M5', actionCode: 'supplier_manifest.send', label: 'Operativne liste spremne za slanje dobavljaču', count });
+      sources.push({
+        moduleCode: 'M5',
+        actionCode: 'supplier_manifest.send',
+        label: 'Operativne liste spremne za slanje dobavljaču',
+        count,
+      });
     }
 
     if (await this.permissions.hasPermission(userId, 'M7', 'commission-rebate', 'VIEW')) {
       const count = await this.prisma.commissionRebate.count({ where: { status: 'DRAFT' } });
-      sources.push({ moduleCode: 'M7', actionCode: 'commission_rebate.apply', label: 'Rabati provizije na čekanju odobrenja', count });
+      sources.push({
+        moduleCode: 'M7',
+        actionCode: 'commission_rebate.apply',
+        label: 'Rabati provizije na čekanju odobrenja',
+        count,
+      });
     }
 
     if (await this.permissions.hasPermission(userId, 'M12', 'content', 'VIEW')) {
       const count = await this.prisma.contentPiece.count({ where: { status: 'PENDING_APPROVAL' } });
-      sources.push({ moduleCode: 'M12', actionCode: 'content.approve_publish', label: 'Marketinški sadržaj na čekanju odobrenja', count });
+      sources.push({
+        moduleCode: 'M12',
+        actionCode: 'content.approve_publish',
+        label: 'Marketinški sadržaj na čekanju odobrenja',
+        count,
+      });
     }
 
     if (await this.permissions.hasPermission(userId, 'M14', 'ticket', 'VIEW')) {
-      const count = await this.prisma.ticketMessage.count({ where: { senderType: 'AI_DRAFT', sentBy: null } });
-      sources.push({ moduleCode: 'M14', actionCode: 'ticket_response.send_with_price_or_obligation', label: 'Nacrti odgovora na čekanju slanja', count });
+      const count = await this.prisma.ticketMessage.count({
+        where: { senderType: 'AI_DRAFT', sentBy: null },
+      });
+      sources.push({
+        moduleCode: 'M14',
+        actionCode: 'ticket_response.send_with_price_or_obligation',
+        label: 'Nacrti odgovora na čekanju slanja',
+        count,
+      });
     }
 
     return sources;

@@ -2,7 +2,13 @@
 
 import Icon from '@/components/Icon';
 import { useSelection } from '@/components/SelectionContext';
-import { MOCK_FLIGHTS, applyFlightFilters, flightFiltersFromParams, minutesOfDay, type MockFlight } from '@/lib/mock-flights';
+import {
+  MOCK_FLIGHTS,
+  applyFlightFilters,
+  flightFiltersFromParams,
+  minutesOfDay,
+  type MockFlight,
+} from '@/lib/mock-flights';
 import { flightBestScore } from '@/lib/search-sort';
 import { useSearchFilters } from '@/components/SearchFiltersContext';
 import { commonFiltersFrom } from '@/lib/search-filters';
@@ -75,28 +81,31 @@ export default function FlightResultsMock({
       if (priceMax != null && f.price > priceMax) return false;
       return true;
     });
-    return applyFlightFilters(base, filters)
-      // M5 spec §3.0g.8 / §3.0d.1 — "Najjeftiniji" ili "Najbolji" (kombinacija cene, trajanja i
-      // presedanja), isti princip kao Google Flights. Formula je u `flightBestScore`.
-      .sort((a, b) => {
-        if (sort === 'BEST') {
-          return (
-            flightBestScore(a.price, a.durationMinutes, a.stops) - flightBestScore(b.price, b.durationMinutes, b.stops)
-          );
-        }
-        if (sort === 'DURATION_ASC') return a.durationMinutes - b.durationMinutes;
-        if (sort === 'DEPART_ASC') return minutesOfDay(a.departTime) - minutesOfDay(b.departTime);
-        if (sort === 'PRICE_DESC') return b.price - a.price;
-        return a.price - b.price;
-      })
-      .map((f) => ({
-        ...f,
-        id: `${f.id}-${idSuffix}`,
-        fromCity: from.trim() || f.fromCity,
-        fromCode: from.trim() ? codeFor(from, f.fromCode) : f.fromCode,
-        toCity: to.trim() || f.toCity,
-        toCode: to.trim() ? codeFor(to, f.toCode) : f.toCode,
-      }));
+    return (
+      applyFlightFilters(base, filters)
+        // M5 spec §3.0g.8 / §3.0d.1 — "Najjeftiniji" ili "Najbolji" (kombinacija cene, trajanja i
+        // presedanja), isti princip kao Google Flights. Formula je u `flightBestScore`.
+        .sort((a, b) => {
+          if (sort === 'BEST') {
+            return (
+              flightBestScore(a.price, a.durationMinutes, a.stops) -
+              flightBestScore(b.price, b.durationMinutes, b.stops)
+            );
+          }
+          if (sort === 'DURATION_ASC') return a.durationMinutes - b.durationMinutes;
+          if (sort === 'DEPART_ASC') return minutesOfDay(a.departTime) - minutesOfDay(b.departTime);
+          if (sort === 'PRICE_DESC') return b.price - a.price;
+          return a.price - b.price;
+        })
+        .map((f) => ({
+          ...f,
+          id: `${f.id}-${idSuffix}`,
+          fromCity: from.trim() || f.fromCity,
+          fromCode: from.trim() ? codeFor(from, f.fromCode) : f.fromCode,
+          toCity: to.trim() || f.toCity,
+          toCode: to.trim() ? codeFor(to, f.toCode) : f.toCode,
+        }))
+    );
   }
 
   function select(f: MockFlight, date?: string) {
@@ -129,10 +138,30 @@ export default function FlightResultsMock({
         }))
       : tripType === 'ROUND_TRIP'
         ? [
-            { label: 'Polazak', from: originCity ?? '', to: destinationCity ?? '', date: stayFrom, idSuffix: 'out' },
-            { label: 'Povratak', from: destinationCity ?? '', to: originCity ?? '', date: returnDate ?? undefined, idSuffix: 'ret' },
+            {
+              label: 'Polazak',
+              from: originCity ?? '',
+              to: destinationCity ?? '',
+              date: stayFrom,
+              idSuffix: 'out',
+            },
+            {
+              label: 'Povratak',
+              from: destinationCity ?? '',
+              to: originCity ?? '',
+              date: returnDate ?? undefined,
+              idSuffix: 'ret',
+            },
           ]
-        : [{ label: 'Let', from: originCity ?? '', to: destinationCity ?? '', date: stayFrom, idSuffix: 'ow' }];
+        : [
+            {
+              label: 'Let',
+              from: originCity ?? '',
+              to: destinationCity ?? '',
+              date: stayFrom,
+              idSuffix: 'ow',
+            },
+          ];
 
   return (
     <div>
@@ -151,7 +180,9 @@ export default function FlightResultsMock({
               </h3>
             )}
             {flights.length === 0 ? (
-              <p className="text-center text-xs text-ink-faint">Nema letova za zadate kriterijume.</p>
+              <p className="text-center text-xs text-ink-faint">
+                Nema letova za zadate kriterijume.
+              </p>
             ) : (
               <div className="flex flex-col gap-2">
                 {flights.map((f) => {
@@ -163,7 +194,9 @@ export default function FlightResultsMock({
                       onClick={() => select(f, leg.date)}
                       disabled={selected}
                       className={`flex items-center gap-4 rounded-lg border bg-panel p-3 text-left ${
-                        selected ? 'border-accent bg-accent-soft/40' : 'border-border hover:border-accent'
+                        selected
+                          ? 'border-accent bg-accent-soft/40'
+                          : 'border-border hover:border-accent'
                       }`}
                     >
                       <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-panel2 text-accent">
@@ -188,7 +221,9 @@ export default function FlightResultsMock({
                           <div className="text-[11px] text-ink-faint">{f.toCode}</div>
                         </div>
                       </div>
-                      <div className="w-24 flex-shrink-0 text-[11px] text-ink-faint">{CABIN_CLASS_LABELS[f.cabinClass]}</div>
+                      <div className="w-24 flex-shrink-0 text-[11px] text-ink-faint">
+                        {CABIN_CLASS_LABELS[f.cabinClass]}
+                      </div>
                       <div className="flex-shrink-0 font-mono text-sm font-semibold text-ink">
                         {selected ? '✓ ' : ''}
                         {money(f.price, f.currency)}

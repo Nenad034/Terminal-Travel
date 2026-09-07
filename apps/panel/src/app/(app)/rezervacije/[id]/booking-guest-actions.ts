@@ -15,15 +15,26 @@ function extractMessage(err: ApiError): string {
   return Array.isArray(body.message) ? body.message.join(', ') : body.message;
 }
 
-export async function addBookingGuest(bookingId: string, bookingItemId: string, _prev: GuestCrudFormState, formData: FormData): Promise<GuestCrudFormState> {
+export async function addBookingGuest(
+  bookingId: string,
+  bookingItemId: string,
+  _prev: GuestCrudFormState,
+  formData: FormData,
+): Promise<GuestCrudFormState> {
   const guestFirstName = String(formData.get('guestFirstName') ?? '').trim();
   const guestLastName = String(formData.get('guestLastName') ?? '').trim();
   if (!guestFirstName || !guestLastName) return { error: 'Unesite ime i prezime.', ok: null };
 
   try {
-    await apiFetch(`/sales/bookings/items/${bookingItemId}/guests`, { method: 'POST', body: { guestFirstName, guestLastName } });
+    await apiFetch(`/sales/bookings/items/${bookingItemId}/guests`, {
+      method: 'POST',
+      body: { guestFirstName, guestLastName },
+    });
   } catch (err) {
-    return { error: err instanceof ApiError ? extractMessage(err) : 'Dodavanje putnika nije uspelo.', ok: null };
+    return {
+      error: err instanceof ApiError ? extractMessage(err) : 'Dodavanje putnika nije uspelo.',
+      ok: null,
+    };
   }
   revalidatePath(`/rezervacije/${bookingId}`);
   return { error: null, ok: 'Putnik je dodat.' };
@@ -41,9 +52,15 @@ export async function updateBookingGuest(
   if (!guestFirstName || !guestLastName) return { error: 'Unesite ime i prezime.', ok: null };
 
   try {
-    await apiFetch(`/sales/bookings/items/${bookingItemId}/guests/${guestId}`, { method: 'PATCH', body: { guestFirstName, guestLastName } });
+    await apiFetch(`/sales/bookings/items/${bookingItemId}/guests/${guestId}`, {
+      method: 'PATCH',
+      body: { guestFirstName, guestLastName },
+    });
   } catch (err) {
-    return { error: err instanceof ApiError ? extractMessage(err) : 'Izmena podataka putnika nije uspela.', ok: null };
+    return {
+      error: err instanceof ApiError ? extractMessage(err) : 'Izmena podataka putnika nije uspela.',
+      ok: null,
+    };
   }
   revalidatePath(`/rezervacije/${bookingId}`);
   return { error: null, ok: 'Podaci putnika su izmenjeni.' };
@@ -57,9 +74,14 @@ export async function deleteBookingGuest(
   _formData: FormData,
 ): Promise<GuestCrudFormState> {
   try {
-    await apiFetch(`/sales/bookings/items/${bookingItemId}/guests/${guestId}`, { method: 'DELETE' });
+    await apiFetch(`/sales/bookings/items/${bookingItemId}/guests/${guestId}`, {
+      method: 'DELETE',
+    });
   } catch (err) {
-    return { error: err instanceof ApiError ? extractMessage(err) : 'Brisanje putnika nije uspelo.', ok: null };
+    return {
+      error: err instanceof ApiError ? extractMessage(err) : 'Brisanje putnika nije uspelo.',
+      ok: null,
+    };
   }
   revalidatePath(`/rezervacije/${bookingId}`);
   return { error: null, ok: 'Putnik je uklonjen.' };

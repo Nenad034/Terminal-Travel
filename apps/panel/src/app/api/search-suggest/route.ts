@@ -21,11 +21,15 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const result = await apiFetch(`/sales/search/${kind}?${params.toString()}`, { requireAuth: true });
+    const result = await apiFetch(`/sales/search/${kind}?${params.toString()}`, {
+      requireAuth: true,
+    });
     return NextResponse.json(result);
   } catch (err) {
     if (err instanceof ApiError) {
-      return NextResponse.json(err.body ?? { message: 'Predlozi nisu dostupni' }, { status: err.status });
+      return NextResponse.json(err.body ?? { message: 'Predlozi nisu dostupni' }, {
+        status: err.status,
+      });
     }
     throw err;
   }

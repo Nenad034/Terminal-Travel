@@ -6,6 +6,7 @@
 **Verzija:** 1.23 — Zavisnost ka M5 za §5.2 ispravljena — Računovođa dobija `M5/booking/VIEW`+`VIEW_ALL` (3.9.2026, uživo CI nalaz). §5.2 ručan unos uplate interno ažurira `Booking.payment_status` preko M5 `BookingsService.updatePaymentStatus`, koja sprovodi sopstvenu proveru vlasništva (M5 spec poglavlje 6.6) nad identitetom pozivaoca — Računovođa je imala `M10/payment/RECORD` ali nijednu M5 dozvolu, pa je uplata za rezervaciju koju lično ne vodi vraćala 404. Rešeno na M5 strani (`seed.ts`, M5 spec v2.16) — ovaj upis je čisto cross-referenca, bez izmene M10 koda/ponašanja. Poglavlje 10 (tabela dozvola) dopunjeno napomenom o zavisnosti.
 **Verzija:** 1.22 — Korekcija ručno unete uplate (2.9.2026, na zahtev vlasnika, poglavlje 5.2b, novo): `PATCH /finance/payments/:id` dozvoljava izmenu uplate (bilo koje ručne metode osim `CARD`) dok fiskalni dokument za tu rezervaciju nije `SUBMITTED`/`ISSUED`; `GET /finance/payments(/:id)` sad vraća `editable: boolean`; svaka izmena upisuje pun `beforeState`/`afterState` u audit log (`M10/payment.updated`). Panel: dugme "izmeni" u redu uplate (kartica Finansije rezervacije i `/finansije/fiskalni-dokumenti/:id`) otvara istu formu kao unos, predpopunjenu, gasi se sam po uspešnom čuvanju. **Provera:** 5 novih jediničnih testova (20/20 u modulu `payments`), tsc čist, uživo potvrđeno kroz pravu VLASNIK sesiju (BANK_TRANSFER i CHECK izmena, oba vidljiva u audit logu sa punim sadržajem).
 **Verzija:** 1.21 — Novi ručni načini plaćanja (CARD_MANUAL/CHECK/ADMINISTRATIVE_BAN) + banka + specifikacija čekova (2.9.2026, na zahtev vlasnika, poglavlje 5.2 dopunjeno). `PaymentMethod` enum dobija tri nove vrednosti pored postojećih (BANK_TRANSFER/CASH/CARD):
+
 - **`CARD_MANUAL`** — kartica naplaćena VAN online gateway-a (npr. POS terminal u kancelariji), uneta ručno kroz isti "Zabeleži uplatu" put kao BANK_TRANSFER/CASH. Namerno ODVOJENO od postojećeg `CARD` (koji ostaje isključivo za automatski webhook tok §7.2, sa `gateway_provider`/`gateway_transaction_id`/`gateway_idempotency_key`, `recorded_by = null`) — mešanje bi pokvarilo tu invarijantu.
 - **`CHECK`** — ček; svaka CHECK uplata nosi **specifikaciju čekova** (nov model `PaymentCheckDetail`: `bank_id`, `amount`, `check_number`, `clearance_date` — jedna uplata može biti pokrivena VIŠE fizičkih čekova, uobičajena praksa). Zbir `amount` svih redova specifikacije MORA biti jednak `Payment.amount` — proverava `PaymentsService.recordManualPayment` pre upisa, odbija sa `400` ako se ne poklapa.
 - **`ADMINISTRATIVE_BAN`** — administrativna zabrana; bez dodatnih polja, isti tretman kao CASH (samo evidencija).
@@ -50,14 +51,15 @@ M6 (CRM) i M7 (B2B) još ne postoje kad M10 dolazi na red (Faza 2 pre Faze 3/4).
 Ugovori (M3) mogu biti u EUR ili drugoj valuti, ali **fiskalni dokument prema srpskom zakonu mora biti u RSD**. Rešenje:
 
 ### 3.1 `ExchangeRateSnapshot`
-| Polje | Tip | Napomena |
-| :---- | :---- | :---- |
-| id | UUID (PK) | |
-| currency | string | npr. `EUR` |
-| rate_date | date | |
-| nbs_middle_rate | decimal | srednji kurs Narodne banke Srbije na taj dan |
-| source | enum: `NBS_API`, `MANUAL` | dok se ne poveže automatski izvor, unosi se ručno |
-| created_at | timestamp | |
+
+| Polje           | Tip                       | Napomena                                          |
+| :-------------- | :------------------------ | :------------------------------------------------ |
+| id              | UUID (PK)                 |                                                   |
+| currency        | string                    | npr. `EUR`                                        |
+| rate_date       | date                      |                                                   |
+| nbs_middle_rate | decimal                   | srednji kurs Narodne banke Srbije na taj dan      |
+| source          | enum: `NBS_API`, `MANUAL` | dok se ne poveže automatski izvor, unosi se ručno |
+| created_at      | timestamp                 |                                                   |
 
 Svaki `FiscalDocument` čuva i originalni iznos (iz `Booking.total_price`, u izvornoj valuti) i RSD iznos, izračunat po `nbs_middle_rate` **na dan uplate** (dan kad je odgovarajući `Payment` primljen, poglavlje 5.2 — dopuna avgust 2026, na zahtev vlasnika, zamenjuje raniju verziju koja je kurs vezivala za dan izdavanja dokumenta) — ne na dan rezervacije ako se ta dva datuma razlikuju.
 
@@ -91,6 +93,7 @@ Ručni unos (`POST /finance/exchange-rates`, `source = MANUAL`) ostaje netaknut 
 Svaki novčani iznos u M10 (i kroz ceo lanac M3 → M5 → M10) čuva se kao **`integer` u najmanjoj jedinici valute** (RSD → para, EUR → cent), **nikad kao `decimal`/float** — sprečava greške zaokruživanja koje se akumuliraju kroz sabiranje/množenje/konverziju cena (npr. `Booking.total_price` iz M5 → PDV izračun → `FiscalDocument.amount_rsd`). Ovo je kanonski izvor pravila za ceo sistem — M3 (poglavlje 2) i M5 (poglavlje 2) upućuju ovde. Potvrđeno poređenjem sa PrimeTravel `supplier_integration_guide.md`, koji ovo eksplicitno propisuje kao `{ amountCents: number, currency: "EUR" }` obrazac (vidi `22-ANALIZA-PRIMETRAVEL-NALAZI.md` poglavlje 1).
 
 **Izuzeci — nisu novčani iznosi, ostaju `decimal`:**
+
 - Kursevi (`nbs_middle_rate`) — odnos dve valute, ne iznos u valuti.
 - Procenti (`percentage`, `vat_rate`, `refund_percentage`, `discount_percentage`) — količnik, ne iznos.
 
@@ -109,6 +112,7 @@ Dodaje se polje na `Booking` (M5): `tip_nastupanja`, enum `ORGANIZATOR` | `POSRE
 ### 4.2 Obračun kod organizatora — PDV na maržu
 
 Kad je `tip_nastupanja = ORGANIZATOR`:
+
 - Poreska osnovica = prodajna cena (`Booking.total_price`) − nabavna cena turističke usluge (zbir `base_cost` svih `BookingItem`, iz M5).
 - PDV se obračunava **samo na tu razliku (maržu)**, po opštoj poreskoj stopi (trenutno 20%): `pdv_u_marzi = marza_bruto × 20/120`; `marza_neto = marza_bruto − pdv_u_marzi`.
 - PDV se **nikad ne iskazuje posebno** na fiskalnom dokumentu koji dobija gost/nalogodavac — vidljiva je samo ukupna cena.
@@ -129,27 +133,28 @@ Novo polje: `vat_calculation_basis`, enum `MARZA` (poglavlje 4.2) | `PROVIZIJA` 
 ## 5. Model podataka
 
 ### 5.1 `FiscalDocument`
-| Polje | Tip | Napomena |
-| :---- | :---- | :---- |
-| id | UUID (PK), interni | |
-| booking_id | UUID (FK → M5 Booking) | |
-| document_type | enum: `SEF_EFAKTURA`, `ESIR_RACUN`, `KNJIZNO_ODOBRENJE` | vidi poglavlje 2 za prva dva; `KNJIZNO_ODOBRENJE` dodato avgust 2026, vidi poglavlje 5.1a |
-| status | enum: `DRAFT`, `SUBMITTED`, `ISSUED`, `REJECTED`, `STORNIRANO` | vidi poglavlje 6 — `SUBMITTED` je nepovratan korak |
-| vat_calculation_basis | enum: `MARZA`, `PROVIZIJA`, `PUNA_OSNOVICA` | vidi poglavlje 4.4 |
-| external_reference | string, nullable | broj fakture kod SEF-a ili fiskalni broj/QR kod ESIR-a — **ovo je pravno merodavan identifikator, ne interni `id`** |
-| amount_original / currency_original | integer / string | iz Booking-a, u najmanjoj jedinici valute (poglavlje 3.2) |
-| amount_rsd | integer | posle konverzije (poglavlje 3), u para |
-| vat_rate / vat_amount | decimal / integer | `vat_rate` procenat (decimal, izuzetak iz poglavlja 3.2); `vat_amount` iznos u najmanjoj jedinici valute — obračunato po osnovici iz `vat_calculation_basis` (poglavlje 4) |
-| exchange_rate_snapshot_id | UUID (FK), nullable | koji kurs je korišćen, radi sledljivosti |
-| buyer_name_snapshot | string | ime/naziv nalogodavca (iz M6) u trenutku slanja — dodato u M6 specifikaciji, poglavlje 6/8, jer fiskalni dokument mora ostati istorijski tačan i ako se profil nalogodavca kasnije promeni |
-| buyer_tax_id_snapshot | string, nullable | PIB u trenutku slanja, ako je pravno lice |
-| buyer_acceptance_status | enum: `N/A`, `PENDING`, `ACCEPTED`, `REJECTED`, `EXPIRED`, nullable | **samo za `SEF_EFAKTURA`** — `N/A` za `ESIR_RACUN` (ne postoji koncept prihvatanja kod fiskalnog računa) |
-| buyer_acceptance_deadline | date, nullable | **samo za `SEF_EFAKTURA`** — 15 dana od `submitted_at`; ako kupac ne odgovori do tada, status prelazi u `EXPIRED` (zakonska posledica prihvatanja/odbijanja potvrđuje se sa knjigovođom, poglavlje 9) |
-| pdf_url / xml_url | string, nullable | lokalna kopija konačnog dokumenta (EU cloud skladište) — SEF/ESIR ostaju pravni izvor istine, ovo je samo naša arhiva |
-| submitted_by | UUID (FK → M1 User) | **obavezno ljudski nalog — nikad AI agent, vidi poglavlje 6** |
-| submitted_at / issued_at | timestamp | |
-| related_subagent_id | UUID, nullable (FK → M7 Subagent) | **samo za `KNJIZNO_ODOBRENJE`** — vidi poglavlje 5.1a; `null` za `SEF_EFAKTURA`/`ESIR_RACUN` |
-| credited_rebate_id | UUID, nullable (FK → M7 CommissionRebate) | **samo za `KNJIZNO_ODOBRENJE`** — koji rabat je ovaj dokument realizovao, radi sledljivosti |
+
+| Polje                               | Tip                                                                 | Napomena                                                                                                                                                                                              |
+| :---------------------------------- | :------------------------------------------------------------------ | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| id                                  | UUID (PK), interni                                                  |                                                                                                                                                                                                       |
+| booking_id                          | UUID (FK → M5 Booking)                                              |                                                                                                                                                                                                       |
+| document_type                       | enum: `SEF_EFAKTURA`, `ESIR_RACUN`, `KNJIZNO_ODOBRENJE`             | vidi poglavlje 2 za prva dva; `KNJIZNO_ODOBRENJE` dodato avgust 2026, vidi poglavlje 5.1a                                                                                                             |
+| status                              | enum: `DRAFT`, `SUBMITTED`, `ISSUED`, `REJECTED`, `STORNIRANO`      | vidi poglavlje 6 — `SUBMITTED` je nepovratan korak                                                                                                                                                    |
+| vat_calculation_basis               | enum: `MARZA`, `PROVIZIJA`, `PUNA_OSNOVICA`                         | vidi poglavlje 4.4                                                                                                                                                                                    |
+| external_reference                  | string, nullable                                                    | broj fakture kod SEF-a ili fiskalni broj/QR kod ESIR-a — **ovo je pravno merodavan identifikator, ne interni `id`**                                                                                   |
+| amount_original / currency_original | integer / string                                                    | iz Booking-a, u najmanjoj jedinici valute (poglavlje 3.2)                                                                                                                                             |
+| amount_rsd                          | integer                                                             | posle konverzije (poglavlje 3), u para                                                                                                                                                                |
+| vat_rate / vat_amount               | decimal / integer                                                   | `vat_rate` procenat (decimal, izuzetak iz poglavlja 3.2); `vat_amount` iznos u najmanjoj jedinici valute — obračunato po osnovici iz `vat_calculation_basis` (poglavlje 4)                            |
+| exchange_rate_snapshot_id           | UUID (FK), nullable                                                 | koji kurs je korišćen, radi sledljivosti                                                                                                                                                              |
+| buyer_name_snapshot                 | string                                                              | ime/naziv nalogodavca (iz M6) u trenutku slanja — dodato u M6 specifikaciji, poglavlje 6/8, jer fiskalni dokument mora ostati istorijski tačan i ako se profil nalogodavca kasnije promeni            |
+| buyer_tax_id_snapshot               | string, nullable                                                    | PIB u trenutku slanja, ako je pravno lice                                                                                                                                                             |
+| buyer_acceptance_status             | enum: `N/A`, `PENDING`, `ACCEPTED`, `REJECTED`, `EXPIRED`, nullable | **samo za `SEF_EFAKTURA`** — `N/A` za `ESIR_RACUN` (ne postoji koncept prihvatanja kod fiskalnog računa)                                                                                              |
+| buyer_acceptance_deadline           | date, nullable                                                      | **samo za `SEF_EFAKTURA`** — 15 dana od `submitted_at`; ako kupac ne odgovori do tada, status prelazi u `EXPIRED` (zakonska posledica prihvatanja/odbijanja potvrđuje se sa knjigovođom, poglavlje 9) |
+| pdf_url / xml_url                   | string, nullable                                                    | lokalna kopija konačnog dokumenta (EU cloud skladište) — SEF/ESIR ostaju pravni izvor istine, ovo je samo naša arhiva                                                                                 |
+| submitted_by                        | UUID (FK → M1 User)                                                 | **obavezno ljudski nalog — nikad AI agent, vidi poglavlje 6**                                                                                                                                         |
+| submitted_at / issued_at            | timestamp                                                           |                                                                                                                                                                                                       |
+| related_subagent_id                 | UUID, nullable (FK → M7 Subagent)                                   | **samo za `KNJIZNO_ODOBRENJE`** — vidi poglavlje 5.1a; `null` za `SEF_EFAKTURA`/`ESIR_RACUN`                                                                                                          |
+| credited_rebate_id                  | UUID, nullable (FK → M7 CommissionRebate)                           | **samo za `KNJIZNO_ODOBRENJE`** — koji rabat je ovaj dokument realizovao, radi sledljivosti                                                                                                           |
 
 ### 5.1a `KNJIZNO_ODOBRENJE` — primena M7 retroaktivnog rabata (dopuna, avgust 2026 — rešava nalaz iz `VALIDACIJA-WORKFLOW-B2B.md`)
 
@@ -162,21 +167,22 @@ M7 poglavlje 3.2 opisuje da se odobren `CommissionRebate` "knjiži kao umanjenje
 **Ograda — potrebna potvrda knjigovođe pre implementacije, isto obrazloženje kao poglavlje 6.3 (tehnički ugovor SEF/ESIR):** tačan tehnički format kojim SEF prihvata knjižno odobrenje (da li je to zaseban dokument tip u SEF API-ju, ili se realizuje kao redovna e-faktura sa negativnim iznosom, ili na neki treći način) nije ovde definisan — ovaj dokument samo predviđa mesto u modelu podataka (`document_type`, `related_subagent_id`, `credited_rebate_id`) i nivo autonomije, ne tačan SEF tehnički ugovor.
 
 ### 5.2 `Payment`
-| Polje | Tip | Napomena |
-| :---- | :---- | :---- |
-| id | UUID (PK) | |
-| booking_id | UUID (FK → M5 Booking), nullable | **nullable** — kod kartičnog plaćanja uplata se pokreće pre nego što rezervacija uopšte postoji (vidi poglavlje 7.2); popunjava se čim/ako se rezervacija uspešno potvrdi |
-| quote_id | UUID (FK → M5 Quote), nullable | popunjeno za kartično plaćanje dok `booking_id` još ne postoji |
-| amount / currency | integer / string | u najmanjoj jedinici valute (poglavlje 3.2) |
-| method | enum: `BANK_TRANSFER`, `CASH`, `CARD`, `CARD_MANUAL`, `CHECK`, `ADMINISTRATIVE_BAN` | poslednja tri dodata 2.9.2026 (§5.2a) — svi ručni, kao `BANK_TRANSFER`/`CASH`. `CARD` ostaje isključivo automatski webhook tok (poglavlje 7.2), `CARD_MANUAL` je odvojena vrednost za karticu naplaćenu VAN gateway-a (npr. POS terminal), namerno ne deli invarijante sa `CARD` |
-| status | enum: `PENDING`, `RECEIVED`, `FAILED`, `REFUNDED`, `VOIDED` | `VOIDED` — kartica naplaćena, ali booking potvrda ipak nije uspela (vidi 7.2), iznos se automatski poništava/vraća |
-| reference | string, nullable | poziv na broj / izvod banke — za `BANK_TRANSFER`/`CASH`/ostale ručne metode |
-| bank_id | UUID (FK → `Bank`, §5.2a), nullable | dopuna 2.9.2026 — banka za `BANK_TRANSFER`/`CARD_MANUAL` ("odabrati banku iz baze banaka" / "za kartice takođe od koje banke"); prazno za CASH/CARD/ADMINISTRATIVE_BAN; za CHECK banka ide PO ČEKU (§5.2a), ne ovde |
-| gateway_provider | string, nullable | naziv sertifikovanog PCI-DSS platnog provajdera — samo za `CARD` |
-| gateway_transaction_id | string, nullable | referenca transakcije kod provajdera — samo za `CARD` |
-| gateway_idempotency_key | string, nullable | sprečava duplu naplatu pri ponovljenom pozivu — samo za `CARD` |
-| received_at | timestamp, nullable | |
-| recorded_by | UUID (FK → M1 User), nullable | ko je ručno uneo prijem uplate — **null za `CARD`**, jer se ta uplata beleži automatski preko povratnog poziva (webhook) provajdera, ne ručno |
+
+| Polje                   | Tip                                                                                 | Napomena                                                                                                                                                                                                                                                                         |
+| :---------------------- | :---------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| id                      | UUID (PK)                                                                           |                                                                                                                                                                                                                                                                                  |
+| booking_id              | UUID (FK → M5 Booking), nullable                                                    | **nullable** — kod kartičnog plaćanja uplata se pokreće pre nego što rezervacija uopšte postoji (vidi poglavlje 7.2); popunjava se čim/ako se rezervacija uspešno potvrdi                                                                                                        |
+| quote_id                | UUID (FK → M5 Quote), nullable                                                      | popunjeno za kartično plaćanje dok `booking_id` još ne postoji                                                                                                                                                                                                                   |
+| amount / currency       | integer / string                                                                    | u najmanjoj jedinici valute (poglavlje 3.2)                                                                                                                                                                                                                                      |
+| method                  | enum: `BANK_TRANSFER`, `CASH`, `CARD`, `CARD_MANUAL`, `CHECK`, `ADMINISTRATIVE_BAN` | poslednja tri dodata 2.9.2026 (§5.2a) — svi ručni, kao `BANK_TRANSFER`/`CASH`. `CARD` ostaje isključivo automatski webhook tok (poglavlje 7.2), `CARD_MANUAL` je odvojena vrednost za karticu naplaćenu VAN gateway-a (npr. POS terminal), namerno ne deli invarijante sa `CARD` |
+| status                  | enum: `PENDING`, `RECEIVED`, `FAILED`, `REFUNDED`, `VOIDED`                         | `VOIDED` — kartica naplaćena, ali booking potvrda ipak nije uspela (vidi 7.2), iznos se automatski poništava/vraća                                                                                                                                                               |
+| reference               | string, nullable                                                                    | poziv na broj / izvod banke — za `BANK_TRANSFER`/`CASH`/ostale ručne metode                                                                                                                                                                                                      |
+| bank_id                 | UUID (FK → `Bank`, §5.2a), nullable                                                 | dopuna 2.9.2026 — banka za `BANK_TRANSFER`/`CARD_MANUAL` ("odabrati banku iz baze banaka" / "za kartice takođe od koje banke"); prazno za CASH/CARD/ADMINISTRATIVE_BAN; za CHECK banka ide PO ČEKU (§5.2a), ne ovde                                                              |
+| gateway_provider        | string, nullable                                                                    | naziv sertifikovanog PCI-DSS platnog provajdera — samo za `CARD`                                                                                                                                                                                                                 |
+| gateway_transaction_id  | string, nullable                                                                    | referenca transakcije kod provajdera — samo za `CARD`                                                                                                                                                                                                                            |
+| gateway_idempotency_key | string, nullable                                                                    | sprečava duplu naplatu pri ponovljenom pozivu — samo za `CARD`                                                                                                                                                                                                                   |
+| received_at             | timestamp, nullable                                                                 |                                                                                                                                                                                                                                                                                  |
+| recorded_by             | UUID (FK → M1 User), nullable                                                       | ko je ručno uneo prijem uplate — **null za `CARD`**, jer se ta uplata beleži automatski preko povratnog poziva (webhook) provajdera, ne ručno                                                                                                                                    |
 
 #### 5.2a `Bank` i `PaymentCheckDetail` (dopuna, 2.9.2026, na zahtev vlasnika)
 
@@ -184,14 +190,14 @@ M7 poglavlje 3.2 opisuje da se odobren `CommissionRebate` "knjiži kao umanjenje
 
 **`PaymentCheckDetail`** — "specifikacija čekova": jedna `CHECK` uplata može biti pokrivena više fizičkih čekova (uobičajena praksa, često sa različitim rokovima realizacije, ređe iz različitih banaka), otuda zaseban model umesto polja direktno na `Payment`.
 
-| Polje | Tip | Napomena |
-| :---- | :---- | :---- |
-| id | UUID (PK) | |
-| payment_id | UUID (FK → `Payment`) | |
-| bank_id | UUID (FK → `Bank`) | |
-| amount | integer | ista konvencija (najmanja jedinica valute) |
-| check_number | string | broj čeka |
-| clearance_date | date | datum realizacije |
+| Polje          | Tip                   | Napomena                                   |
+| :------------- | :-------------------- | :----------------------------------------- |
+| id             | UUID (PK)             |                                            |
+| payment_id     | UUID (FK → `Payment`) |                                            |
+| bank_id        | UUID (FK → `Bank`)    |                                            |
+| amount         | integer               | ista konvencija (najmanja jedinica valute) |
+| check_number   | string                | broj čeka                                  |
+| clearance_date | date                  | datum realizacije                          |
 
 Zbir `amount` svih redova specifikacije za jednu uplatu MORA biti jednak `Payment.amount` — proverava `PaymentsService.recordManualPayment` pre upisa (`400` ako se ne poklapa), nije baza-nivo ograničenje (zahteva agregaciju preko FK-a, van domašaja proste Postgres provere).
 
@@ -206,6 +212,7 @@ Kad zbir `RECEIVED` uplata za `booking_id` dostigne `Booking.total_price`, M10 p
 Svaka ručno uneta uplata (svih 5 metoda iz §5.2a osim `CARD`) može se **izmeniti nakon unosa** — najčešći slučaj je greška pri ručnom kucanju specifikacije čekova (broj čeka, iznos, banka), ali obuhvata sve editabilne kolone (`amount`, `currency`, `method`, `reference`, `bank_id`, `check_details[]`).
 
 **Uslov za dozvoljenu izmenu (servisna provera, ne UI odluka):**
+
 - `method !== 'CARD'` — `CARD` uplata je isključivo automatski webhook zapis (§7.2), nikad ručno menjana.
 - `Payment.booking_id` mora postojati (kartično plaćanje pre potvrde rezervacije, §7.2, nema šta da se menja pre nego što `booking_id` postoji).
 - Za `booking_id` te uplate **ne sme postojati** `FiscalDocument` sa statusom `SUBMITTED` ili `ISSUED` — vlasnikovo "već je kreiran račun i urađena fiskalizacija" tumači se kao ova dva statusa; automatski pripremljen `DRAFT` nacrt (poglavlje 6.0) **ne blokira** izmenu, jer nacrt sam po sebi ništa ne šalje spolja i uobičajeno se priprema odmah po potvrdi rezervacije, pre nego što je poslednja uplata uopšte stigla.
@@ -217,7 +224,7 @@ Svaka ručno uneta uplata (svih 5 metoda iz §5.2a osim `CARD`) može se **izmen
 
 **Audit trag (`AuditLogService`, append-only, isti mehanizam kao svaka druga izmena u sistemu):** svaka izmena upisuje `M10/payment.updated` sa punim `beforeState`/`afterState` snapshot-om uplate (uključujući `checkDetails[]` pre/posle) — ovo je direktan odgovor na vlasnikov zahtev "sve to beležiti u logovima", jer se korekcija ručnog unosa (posebno specifikacije čekova) mora moći rekonstruisati unazad.
 
-**Poznato ograničenje (namerno neizmenjeno u ovom prolazu):** ako se izmenom `amount` uplata koja je već dovela `Booking.payment_status` do `PAID` smanji ispod `Booking.total_price`, servis **ne vraća** status na `PARTIALLY_PAID`/`UNPAID` automatski — samo poziva istu `onBookingPaymentReceived` proveru koja status samo *podiže*, nikad ne spušta. Redak slučaj (korekcija naniže posle dostignutog punog iznosa) prijavljen kao otvorena stavka (poglavlje 12) dok se ne odluči da li spuštanje statusa treba biti automatsko ili ručno (ima posledice niz tok — vaučer već generisan, poglavlje 6 M5 specifikacije).
+**Poznato ograničenje (namerno neizmenjeno u ovom prolazu):** ako se izmenom `amount` uplata koja je već dovela `Booking.payment_status` do `PAID` smanji ispod `Booking.total_price`, servis **ne vraća** status na `PARTIALLY_PAID`/`UNPAID` automatski — samo poziva istu `onBookingPaymentReceived` proveru koja status samo _podiže_, nikad ne spušta. Redak slučaj (korekcija naniže posle dostignutog punog iznosa) prijavljen kao otvorena stavka (poglavlje 12) dok se ne odluči da li spuštanje statusa treba biti automatsko ili ručno (ima posledice niz tok — vaučer već generisan, poglavlje 6 M5 specifikacije).
 
 **Provera:** 5 novih jediničnih testova u `payments.service.spec.ts` (uspešna izmena + audit log sadržaj, `CARD` odbijen, `SUBMITTED` fiskalni dokument blokira, `DRAFT` fiskalni dokument NE blokira, neusklađen zbir čekova odbijen), 20/20 u modulu `payments`, tsc čist. Uživo kroz pravu VLASNIK sesiju: izmena `BANK_TRANSFER` uplate bez banke (obavezno polje pri izmeni, isto kao pri unosu) i izmena `CHECK` uplate (referenca), oba potvrđena u listi uplata i u audit logu (`beforeState`/`afterState` sa punim sadržajem uplate).
 
@@ -232,36 +239,38 @@ Potvrđeno poređenjem sa PrimeTravel analizom, koja navodi automatsku rekonsili
 
 ### 5.4 `ClientPaymentSchedule` — rok akontacije i pune uplate prema gostu/nalogodavcu (dopuna, avgust 2026 — zatvara problem #4 iz `Problemi koje zelimo da resimo ovom aplikacijom.md`, gap #4 iz `24-GAP-ANALIZA-PROBLEMI-VS-ARHITEKTURA.md`)
 
-Simetrično `SupplierObligation.due_date` (poglavlje 8.1) ka dobavljaču, M10 do sada nije pratio konkretan ugovoreni rok naplate od gosta/nalogodavca — postojao je samo opšti nadzor da li je vaučer izdat bez pune uplate (M5 poglavlje 6.1, dnevni podsetnik dok je `payment_status != PAID`), što je različito od praćenja da li je probijen *rok*. Ova dopuna zatvara tu razliku, bez zamene M5 poglavlja 6.1 (obe provere ostaju, hvataju različite situacije — isti obrazac kao razlika između M10 poglavlja 5.3 i 6.2).
+Simetrično `SupplierObligation.due_date` (poglavlje 8.1) ka dobavljaču, M10 do sada nije pratio konkretan ugovoreni rok naplate od gosta/nalogodavca — postojao je samo opšti nadzor da li je vaučer izdat bez pune uplate (M5 poglavlje 6.1, dnevni podsetnik dok je `payment_status != PAID`), što je različito od praćenja da li je probijen _rok_. Ova dopuna zatvara tu razliku, bez zamene M5 poglavlja 6.1 (obe provere ostaju, hvataju različite situacije — isti obrazac kao razlika između M10 poglavlja 5.3 i 6.2).
 
 **Izvor pravila — globalna politika agencije, potvrđeno na zahtev vlasnika (avgust 2026):** rok i procenat akontacije **nisu** po ugovoru sa dobavljačem niti ručno po rezervaciji — jedna, agencijska politika važi za sve rezervacije, dok se ne pokaže stvarna potreba za izuzecima po dobavljaču/proizvodu (isti princip opreza kao "ne graditi unapred" iz Master dokumenta).
 
 #### 5.4.1 `PaymentTermsConfig`
+
 Jedan aktivan zapis (singleton — sistem uvek čita najnoviji `updated_at`), uređuje Vlasnik/Direktor:
 
-| Polje | Tip | Napomena |
-| :---- | :---- | :---- |
-| id | UUID (PK) | |
-| deposit_percentage | decimal | % od `Booking.total_price` koji čini akontaciju — izuzetak iz poglavlja 3.2 (procenat, ne iznos) |
-| deposit_due_days_after_confirmation | integer | rok za akontaciju, broj dana od `booking.confirmed` |
-| balance_due_days_before_stay | integer | rok za balans (punu uplatu), broj dana pre najranijeg datuma početka putovanja u rezervaciji |
-| escalation_days_after_due | integer | koliko dana posle probijenog roka signal eskalira sa `WARNING` na `CRITICAL` (poglavlje 5.4.3) |
-| updated_by | UUID (FK → M1 User) | |
-| updated_at | timestamp | |
+| Polje                               | Tip                 | Napomena                                                                                         |
+| :---------------------------------- | :------------------ | :----------------------------------------------------------------------------------------------- |
+| id                                  | UUID (PK)           |                                                                                                  |
+| deposit_percentage                  | decimal             | % od `Booking.total_price` koji čini akontaciju — izuzetak iz poglavlja 3.2 (procenat, ne iznos) |
+| deposit_due_days_after_confirmation | integer             | rok za akontaciju, broj dana od `booking.confirmed`                                              |
+| balance_due_days_before_stay        | integer             | rok za balans (punu uplatu), broj dana pre najranijeg datuma početka putovanja u rezervaciji     |
+| escalation_days_after_due           | integer             | koliko dana posle probijenog roka signal eskalira sa `WARNING` na `CRITICAL` (poglavlje 5.4.3)   |
+| updated_by                          | UUID (FK → M1 User) |                                                                                                  |
+| updated_at                          | timestamp           |                                                                                                  |
 
 #### 5.4.2 `ClientPaymentSchedule`
+
 Kreira se automatski po `booking.confirmed` (isti trigger obrazac kao poglavlje 6.0/8.0), nivo **"Autonomno"** — čisto deterministično računanje iz već postojećih podataka, bez novog rizika. Vrednosti iz `PaymentTermsConfig` se **snimaju u trenutku kreiranja** (ne žive vezano na konfiguraciju) — kasnija izmena politike ne menja retroaktivno već kreirane rasporede, isti princip kao `buyer_name_snapshot` na `FiscalDocument` (poglavlje 5.1).
 
-| Polje | Tip | Napomena |
-| :---- | :---- | :---- |
-| id | UUID (PK) | |
-| booking_id | UUID (FK → M5 Booking), unique | |
-| deposit_amount | integer | `round(Booking.total_price × deposit_percentage / 100)`, u najmanjoj jedinici valute (poglavlje 3.2) |
-| deposit_due_date | date | `booking.confirmed_at + deposit_due_days_after_confirmation` (snapshot vrednost) |
-| deposit_status | enum: `PENDING`, `MET`, `OVERDUE` | vidi poglavlje 5.4.3 |
-| balance_due_date | date | `MIN(BookingItem.stay_from svih stavki rezervacije) − balance_due_days_before_stay` (snapshot vrednost) |
-| balance_status | enum: `PENDING`, `MET`, `OVERDUE` | vidi poglavlje 5.4.3 |
-| created_at | timestamp | |
+| Polje            | Tip                               | Napomena                                                                                                |
+| :--------------- | :-------------------------------- | :------------------------------------------------------------------------------------------------------ |
+| id               | UUID (PK)                         |                                                                                                         |
+| booking_id       | UUID (FK → M5 Booking), unique    |                                                                                                         |
+| deposit_amount   | integer                           | `round(Booking.total_price × deposit_percentage / 100)`, u najmanjoj jedinici valute (poglavlje 3.2)    |
+| deposit_due_date | date                              | `booking.confirmed_at + deposit_due_days_after_confirmation` (snapshot vrednost)                        |
+| deposit_status   | enum: `PENDING`, `MET`, `OVERDUE` | vidi poglavlje 5.4.3                                                                                    |
+| balance_due_date | date                              | `MIN(BookingItem.stay_from svih stavki rezervacije) − balance_due_days_before_stay` (snapshot vrednost) |
+| balance_status   | enum: `PENDING`, `MET`, `OVERDUE` | vidi poglavlje 5.4.3                                                                                    |
+| created_at       | timestamp                         |                                                                                                         |
 
 #### 5.4.3 Praćenje statusa i eskalacija — upozorenje pa eskalacija, nikad automatska radnja nad rezervacijom
 
@@ -292,6 +301,7 @@ U skladu sa poglavljem 7 Master dokumenta ("Nikad autonomno — fiskalizacija"),
 **Napomena — tačan tehnički ugovor sa SEF-om i ESIR-om nije deo ove specifikacije.** SEF verzija 4.0.0 (objavljena 2.7.2026) je u vreme pisanja ovog dokumenta još u demo okruženju; tačna polja, format XML-a i način autentikacije prema SEF-u i prema sertifikovanom ESIR/fiskalnom uređaju moraju se potvrditi sa knjigovođom i zvaničnom tehničkom dokumentacijom SEF-a **neposredno pre implementacije ovog dela**, ne pretpostaviti unapred — ovo je jedan od domena gde Master dokument (poglavlje 1.2) eksplicitno predviđa uključivanje ljudskog stručnjaka.
 
 ### 6.1 Storno/otkazivanje fiskalnog dokumenta
+
 Ako se rezervacija otkaže (M5) posle izdavanja fiskalnog dokumenta, kreira se novi `FiscalDocument` sa `document_type` istim kao original i `status` tokom kroz `DRAFT → SUBMITTED → STORNIRANO`, referencirajući originalni dokument — storno ide kroz isti sistem (SEF/ESIR), nikad se originalni dokument ne briše niti menja lokalno.
 
 **Ručno/odmah slanje** (`POST /fiscal-documents/:id/storno`, `FiscalDocumentsService.storno`) kreira storno dokument i odmah ga šalje ka fiskalnom gateway-u — završava direktno u `STORNIRANO`. **Dvostepena priprema** (dodato pri implementaciji M14, avgust 2026 — M14 poglavlje 3.2): kad M14 tiket kategorije `REKLAMACIJA` bude rešen uz odluku o povraćaju (`Ticket.refund_decision = true`), M14 emituje `ticket.resolved_with_refund` (Event Bus) koji `M10EventSubscribersService` sluša; `FiscalDocumentsService.prepareStornoDraftForBooking(bookingId)` kreira storno-nacrt u statusu `DRAFT` (referencira original preko `storno_of_document_id`, ali NE šalje ka gateway-u odmah). Kad neko iz tima to naknadno potvrdi kroz `POST /fiscal-documents/:id/submit` (isti endpoint kao svaki drugi nacrt), `submit()` prepoznaje `storno_of_document_id` i završava dokument direktno u `STORNIRANO` (ne u `SUBMITTED`) — isti krajnji ishod kao odmah-pošalji put iznad, samo sa ljudskom potvrdom umetnutom između pripreme i slanja. M10 ne uvozi M14 direktno (izbegava kružnu zavisnost, isti obrazac kao M7↔M10 `credit_note.submitted`).
@@ -359,29 +369,33 @@ Poglavlje 8 do sada je definisalo model `SupplierObligation` i tok odobravanja, 
 Simetrično potraživanjima od gostiju (poglavlje 5.2 `Payment`), M10 mora da prati i šta agencija duguje dobavljačima za nabavljene turističke usluge — ovo do sada nije postojalo nigde u M10 (modul je pokrivao samo naplatu od gostiju).
 
 ### 8.1 `SupplierObligation`
-| Polje | Tip | Napomena |
-| :---- | :---- | :---- |
-| id | UUID (PK) | |
-| supplier_id | UUID (FK → M3 Supplier) | |
-| booking_item_id | UUID (FK → M5 BookingItem), nullable | veza ka konkretnoj prodatoj stavci — **obavezna pre nego što obaveza pređe u `APPROVED`** (poglavlje 8.3) |
-| invoice_reference | string, nullable | broj ulazne fakture dobavljača |
-| amount_original / currency_original | integer / string | iz M3 `RateLine` cene ili stvarne ulazne fakture ako se razlikuje, u najmanjoj jedinici valute (poglavlje 3.2) |
-| exchange_rate_snapshot_id_at_invoice | UUID (FK → `ExchangeRateSnapshot`), nullable | kurs na dan prijema fakture dobavljača |
-| amount_rsd_at_invoice | integer, nullable | u para |
-| due_date | date | rok plaćanja — datum fakture/kreiranja obaveze + `Contract.payment_terms_days` (M3 spec §2.2, dopuna v1.9); podrazumevanih 30 dana kad `payment_terms_days` nije uneto |
-| status | enum: `PENDING`, `APPROVED`, `PAID`, `DISPUTED` | `DISPUTED` — obaveza osporena (npr. dobavljač fakturisao pogrešan iznos), ne plaća se dok se ne razreši |
-| paid_at | timestamp, nullable | |
-| exchange_rate_snapshot_id_at_payment | UUID (FK → `ExchangeRateSnapshot`), nullable | kurs na dan stvarnog plaćanja |
-| exchange_rate_difference | integer, nullable | `(kurs_na_dan_placanja − kurs_na_dan_fakture) × amount_original`, zaokruženo na najbližu paru — popunjava se automatski pri prelasku u `PAID`, pozitivna ili negativna |
-| created_at / updated_at | timestamp | |
+
+| Polje                                | Tip                                             | Napomena                                                                                                                                                               |
+| :----------------------------------- | :---------------------------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| id                                   | UUID (PK)                                       |                                                                                                                                                                        |
+| supplier_id                          | UUID (FK → M3 Supplier)                         |                                                                                                                                                                        |
+| booking_item_id                      | UUID (FK → M5 BookingItem), nullable            | veza ka konkretnoj prodatoj stavci — **obavezna pre nego što obaveza pređe u `APPROVED`** (poglavlje 8.3)                                                              |
+| invoice_reference                    | string, nullable                                | broj ulazne fakture dobavljača                                                                                                                                         |
+| amount_original / currency_original  | integer / string                                | iz M3 `RateLine` cene ili stvarne ulazne fakture ako se razlikuje, u najmanjoj jedinici valute (poglavlje 3.2)                                                         |
+| exchange_rate_snapshot_id_at_invoice | UUID (FK → `ExchangeRateSnapshot`), nullable    | kurs na dan prijema fakture dobavljača                                                                                                                                 |
+| amount_rsd_at_invoice                | integer, nullable                               | u para                                                                                                                                                                 |
+| due_date                             | date                                            | rok plaćanja — datum fakture/kreiranja obaveze + `Contract.payment_terms_days` (M3 spec §2.2, dopuna v1.9); podrazumevanih 30 dana kad `payment_terms_days` nije uneto |
+| status                               | enum: `PENDING`, `APPROVED`, `PAID`, `DISPUTED` | `DISPUTED` — obaveza osporena (npr. dobavljač fakturisao pogrešan iznos), ne plaća se dok se ne razreši                                                                |
+| paid_at                              | timestamp, nullable                             |                                                                                                                                                                        |
+| exchange_rate_snapshot_id_at_payment | UUID (FK → `ExchangeRateSnapshot`), nullable    | kurs na dan stvarnog plaćanja                                                                                                                                          |
+| exchange_rate_difference             | integer, nullable                               | `(kurs_na_dan_placanja − kurs_na_dan_fakture) × amount_original`, zaokruženo na najbližu paru — popunjava se automatski pri prelasku u `PAID`, pozitivna ili negativna |
+| created_at / updated_at              | timestamp                                       |                                                                                                                                                                        |
 
 ### 8.2 Alarm pred rok
+
 Sistem upozorava Računovođu **5 dana pre `due_date`** ako status još nije `PAID` — nivo **"Autonomno"** iz poglavlja 7 Master dokumenta (čisto informativno, isti obrazac kao upozorenje pred rok povrata alotmana u M3 poglavlje 4).
 
 ### 8.3 Ograda — uparivanje pre odobrenja plaćanja
+
 Obaveza mora imati popunjen `booking_item_id` (identifikovan, proverljiv trošak) pre nego što pređe iz `PENDING` u `APPROVED` — sprečava plaćanje neidentifikovanih/nepotvrđenih troškova. Prelazak u `APPROVED` je ljudska radnja (Računovođa), nikad AI agent — isti nivo opreza kao slanje fiskalnog dokumenta (poglavlje 6).
 
 ### 8.4 BSP poravnanje (avio karte)
+
 Za avio dobavljače koji posluju preko IATA BSP sistema, plaćanje ide **nedeljno, kroz direktno zaduženje IATA BSP naloga agencije**, ne pojedinačno po karti. Kad M4 dobije avio/GDS adapter (Master dokument poglavlje 4, otvoreno), `SupplierObligation` zapisi za avio stavke agregiraju se u nedeljni obračun umesto pojedinačnog `due_date` po stavci — tačan mehanizam ostaje otvoren dok avio adapter ne dođe na red (poglavlje 11).
 
 ### 8.5 Isplate dobavljačima u stranoj valuti i refundacije gostu (dopuna, avgust 2026 — poređenjem sa Travelsoft Pay portfolio modelom)
@@ -391,34 +405,37 @@ Poglavlje 8 do sada je pratilo **koliko** se duguje dobavljaču i po kom kursu (
 **Ograda — namerno mala odluka za sad:** ovo poglavlje ostaje deo M10, ne postaje zaseban modul, dok ne postoji stvaran drugi/treći platni provajder ili obim koji bi opravdao samostalan presek — isti princip kao odluka da se M10 ne cepa dok stvarna potreba to ne pokaže.
 
 #### 8.5.1 Dopuna `SupplierObligation` (poglavlje 8.1)
+
 Novo polje: `payment_method`, enum `BANK_TRANSFER` | `VIRTUAL_CARD` — bira se pri prelasku u `APPROVED` (poglavlje 8.3), podrazumevano `BANK_TRANSFER` dok virtuelne kartice ne budu ugovorene sa platnim provajderom.
 
 #### 8.5.2 `SupplierPaymentInstruction`
-| Polje | Tip | Napomena |
-| :---- | :---- | :---- |
-| id | UUID (PK) | |
-| supplier_obligation_id | UUID (FK → SupplierObligation) | |
-| method | enum (isto kao 8.5.1) | |
-| bank_iban / bank_swift | string, nullable | samo za `BANK_TRANSFER`, iz M3 `Supplier` profila |
-| virtual_card_reference | string, nullable | token/referenca kod platnog provajdera, samo za `VIRTUAL_CARD` — **nikad pun broj kartice u bazi**, isti princip kao poglavlje 7.1 za naplatu od gosta |
-| status | enum: `PENDING`, `EXECUTED`, `FAILED` | |
-| executed_by | UUID (FK → M1 User) | **obavezno ljudski nalog — nikad AI agent**, isti nivo opreza kao poglavlje 8.3 (odobrenje obaveze) |
-| executed_at | timestamp, nullable | |
-| created_at | timestamp | |
+
+| Polje                  | Tip                                   | Napomena                                                                                                                                               |
+| :--------------------- | :------------------------------------ | :----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| id                     | UUID (PK)                             |                                                                                                                                                        |
+| supplier_obligation_id | UUID (FK → SupplierObligation)        |                                                                                                                                                        |
+| method                 | enum (isto kao 8.5.1)                 |                                                                                                                                                        |
+| bank_iban / bank_swift | string, nullable                      | samo za `BANK_TRANSFER`, iz M3 `Supplier` profila                                                                                                      |
+| virtual_card_reference | string, nullable                      | token/referenca kod platnog provajdera, samo za `VIRTUAL_CARD` — **nikad pun broj kartice u bazi**, isti princip kao poglavlje 7.1 za naplatu od gosta |
+| status                 | enum: `PENDING`, `EXECUTED`, `FAILED` |                                                                                                                                                        |
+| executed_by            | UUID (FK → M1 User)                   | **obavezno ljudski nalog — nikad AI agent**, isti nivo opreza kao poglavlje 8.3 (odobrenje obaveze)                                                    |
+| executed_at            | timestamp, nullable                   |                                                                                                                                                        |
+| created_at             | timestamp                             |                                                                                                                                                        |
 
 #### 8.5.3 `RefundInstruction` — refundacija gosta van kartičnog toka
+
 Za uplate primljene preko `BANK_TRANSFER`/`CASH` (poglavlje 5.2) koje treba delimično ili u celosti vratiti (otkazivanje ili izmena rezervacije sa manjom cenom, M5 poglavlje 6), M10 izlaže eksplicitan zapis umesto slobodnog teksta u napomeni:
 
-| Polje | Tip | Napomena |
-| :---- | :---- | :---- |
-| id | UUID (PK) | |
-| payment_id | UUID (FK → Payment, poglavlje 5.2) | originalna uplata koja se refundira |
-| amount / currency | integer / string | u najmanjoj jedinici valute (poglavlje 3.2); može biti manje od originalne uplate (delimičan povraćaj) |
-| method | enum: `BANK_TRANSFER`, `CASH` | kartični povraćaj i dalje ide isključivo kroz `PaymentGatewayAdapter.refundOrVoid` (poglavlje 7.1) — ovaj entitet ga ne zamenjuje |
-| status | enum: `PENDING`, `APPROVED`, `EXECUTED`, `FAILED` | |
-| approved_by | UUID (FK → M1 User) | **nikad AI agent** — nivo "Nikad autonomno" iz poglavlja 7 Master dokumenta, isto obrazloženje kao slanje fiskalnog dokumenta (poglavlje 6) |
-| executed_by | UUID (FK → M1 User), nullable | ko je stvarno pokrenuo transfer, popunjava se pri prelasku u `EXECUTED` |
-| created_at / executed_at | timestamp | |
+| Polje                    | Tip                                               | Napomena                                                                                                                                    |
+| :----------------------- | :------------------------------------------------ | :------------------------------------------------------------------------------------------------------------------------------------------ |
+| id                       | UUID (PK)                                         |                                                                                                                                             |
+| payment_id               | UUID (FK → Payment, poglavlje 5.2)                | originalna uplata koja se refundira                                                                                                         |
+| amount / currency        | integer / string                                  | u najmanjoj jedinici valute (poglavlje 3.2); može biti manje od originalne uplate (delimičan povraćaj)                                      |
+| method                   | enum: `BANK_TRANSFER`, `CASH`                     | kartični povraćaj i dalje ide isključivo kroz `PaymentGatewayAdapter.refundOrVoid` (poglavlje 7.1) — ovaj entitet ga ne zamenjuje           |
+| status                   | enum: `PENDING`, `APPROVED`, `EXECUTED`, `FAILED` |                                                                                                                                             |
+| approved_by              | UUID (FK → M1 User)                               | **nikad AI agent** — nivo "Nikad autonomno" iz poglavlja 7 Master dokumenta, isto obrazloženje kao slanje fiskalnog dokumenta (poglavlje 6) |
+| executed_by              | UUID (FK → M1 User), nullable                     | ko je stvarno pokrenuo transfer, popunjava se pri prelasku u `EXECUTED`                                                                     |
+| created_at / executed_at | timestamp                                         |                                                                                                                                             |
 
 **Redosled:** `RefundInstruction` mora imati `status = APPROVED` pre nego što pređe u `EXECUTED` — dva odvojena ljudska koraka (odobrenje pa izvršenje), isti obrazac kao dvostepeni tok fiskalizacije (poglavlje 6).
 
@@ -427,28 +444,30 @@ Za uplate primljene preko `BANK_TRANSFER`/`CASH` (poglavlje 5.2) koje treba deli
 Poglavlje 8.0 opisuje da `invoice_reference` na `SupplierObligation` "se popunjava naknadno, ručno" kad stigne stvarna ulazna faktura — to ostaje tačan krajnji ishod, ali sam unos više ne mora biti ručno prekucavanje. Isti obrazac kao M3 poglavlje 4.2 (`PricelistImport` — AI OCR/parsiranje cenovnika), primenjen ovde na ulazne/konačne fakture dobavljača umesto na cenovnike; jedina suštinska razlika je meta mapiranja (`SupplierObligation` preko `BookingItem`, umesto `M2 Product`).
 
 #### 8.6.1 `SupplierInvoiceImport`
-| Polje | Tip | Napomena |
-| :---- | :---- | :---- |
-| id | UUID (PK) | |
-| supplier_id | UUID (FK → M3 Supplier) | |
-| source_file_url | string | originalni fajl, EU cloud skladište |
-| source_format | enum: `PDF`, `EXCEL`, `WORD`, `HTML`, `EMAIL`, `SCANNED_PDF` | isti skup kao M3 poglavlje 4.2.1; `SCANNED_PDF` ide kroz OCR pre parsiranja |
-| status | enum: `PROCESSING`, `READY_FOR_REVIEW`, `COMPLETED`, `REJECTED` | |
-| created_by / created_at | UUID / timestamp | |
+
+| Polje                   | Tip                                                             | Napomena                                                                    |
+| :---------------------- | :-------------------------------------------------------------- | :-------------------------------------------------------------------------- |
+| id                      | UUID (PK)                                                       |                                                                             |
+| supplier_id             | UUID (FK → M3 Supplier)                                         |                                                                             |
+| source_file_url         | string                                                          | originalni fajl, EU cloud skladište                                         |
+| source_format           | enum: `PDF`, `EXCEL`, `WORD`, `HTML`, `EMAIL`, `SCANNED_PDF`    | isti skup kao M3 poglavlje 4.2.1; `SCANNED_PDF` ide kroz OCR pre parsiranja |
+| status                  | enum: `PROCESSING`, `READY_FOR_REVIEW`, `COMPLETED`, `REJECTED` |                                                                             |
+| created_by / created_at | UUID / timestamp                                                |                                                                             |
 
 #### 8.6.2 `SupplierInvoiceImportRow` — jedan red = jedna fakturisana stavka (gost/termin/iznos)
-| Polje | Tip | Napomena |
-| :---- | :---- | :---- |
-| id | UUID (PK) | |
-| supplier_invoice_import_id | UUID (FK) | |
-| extracted_guest_name | string | tekst tačno kako piše u izvornom dokumentu, pre mapiranja |
-| extracted_stay_from / extracted_stay_to | date | |
-| extracted_amount / extracted_currency | integer / string | u najmanjoj jedinici valute (poglavlje 3.2) — konvertuje se pri ekstrakciji, isto kao M3 `PricelistImportRow` |
-| extracted_invoice_reference | string | broj fakture/stavke kako piše u dokumentu |
-| matched_supplier_obligation_id | UUID, nullable (FK → `SupplierObligation`, poglavlje 8.1) | kandidat pronađen matching-om (poglavlje 8.6.3) |
-| match_confidence | decimal (0–100), nullable | |
-| review_status | enum: `PENDING`, `CONFIRMED`, `MANUALLY_MATCHED`, `REJECTED` | |
-| reviewed_by | UUID (FK → M1 User), nullable | |
+
+| Polje                                   | Tip                                                          | Napomena                                                                                                      |
+| :-------------------------------------- | :----------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------ |
+| id                                      | UUID (PK)                                                    |                                                                                                               |
+| supplier_invoice_import_id              | UUID (FK)                                                    |                                                                                                               |
+| extracted_guest_name                    | string                                                       | tekst tačno kako piše u izvornom dokumentu, pre mapiranja                                                     |
+| extracted_stay_from / extracted_stay_to | date                                                         |                                                                                                               |
+| extracted_amount / extracted_currency   | integer / string                                             | u najmanjoj jedinici valute (poglavlje 3.2) — konvertuje se pri ekstrakciji, isto kao M3 `PricelistImportRow` |
+| extracted_invoice_reference             | string                                                       | broj fakture/stavke kako piše u dokumentu                                                                     |
+| matched_supplier_obligation_id          | UUID, nullable (FK → `SupplierObligation`, poglavlje 8.1)    | kandidat pronađen matching-om (poglavlje 8.6.3)                                                               |
+| match_confidence                        | decimal (0–100), nullable                                    |                                                                                                               |
+| review_status                           | enum: `PENDING`, `CONFIRMED`, `MANUALLY_MATCHED`, `REJECTED` |                                                                                                               |
+| reviewed_by                             | UUID (FK → M1 User), nullable                                |                                                                                                               |
 
 #### 8.6.3 Matching — determinizam, ne slobodan AI izbor
 
@@ -459,6 +478,7 @@ Redovi sa `match_confidence ≥ 85%` (isti prag kao M3 poglavlje 4.2.3, radi dos
 #### 8.6.4 Nivo autonomije — ekstrakcija sama, upis u obavezu tek posle potvrde
 
 Isti dvostepeni obrazac kao M3 poglavlje 4.2.4:
+
 - **Ekstrakcija podataka i predlog mapiranja** (`PROCESSING → READY_FOR_REVIEW`) je nivo **"Autonomno"** — čisto informativna priprema, ništa se još ne piše u stvarni `SupplierObligation`.
 - **Upis potvrđenog reda** (`review_status → CONFIRMED`/`MANUALLY_MATCHED`) u `SupplierObligation.invoice_reference`, uz eventualnu korekciju `amount_original` ako se razlikuje od automatski kreirane vrednosti (poglavlje 8.0) i ponovni izračun `exchange_rate_snapshot_id_at_invoice`/`amount_rsd_at_invoice` po kursu na dan prijema fakture (poglavlje 3), je nivo **"Predloži pa čovek odobri"** — zahteva Računovođu (isti nosilac dozvole kao ručna korekcija iz poglavlja 8.0), pre nego što obaveza uopšte može preći u `APPROVED` (poglavlje 8.3 ostaje sledeći, nepromenjen korak).
 - Red bez pouzdanog kandidata koji se ne razreši ni ručnim mapiranjem (npr. faktura za trošak van sistema `SupplierObligation`) prelazi u `REJECTED` bez efekta na bilo koji finansijski zapis.
@@ -467,27 +487,27 @@ Isti dvostepeni obrazac kao M3 poglavlje 4.2.4:
 
 ## 9. Dozvole (registruju se u M1 katalog dozvola)
 
-| Dozvola | Podrazumevana dodela po ulozi |
-| :---- | :---- |
-| `M10/fiscal-document/VIEW` | Vlasnik, Direktor, Računovođa |
-| `M10/fiscal-document/CREATE_DRAFT` | Vlasnik, Direktor, Računovođa (i AI agent, nivo "Autonomno" — samo nacrt) |
-| `M10/fiscal-document/SUBMIT` | Vlasnik, Direktor, Računovođa — **nikad AI agent**, sprovedeno na nivou koda, ne samo dozvole |
-| `M10/payment/VIEW`, `RECORD` | Vlasnik, Direktor, Računovođa — `RECORD` se odnosi samo na ručni unos (`BANK_TRANSFER`/`CASH`); `CARD` uplate beleži sistem automatski preko webhook-a, bez ove dozvole. **Zavisnost (dopuna 3.9.2026):** `RECORD` interno ažurira `Booking.payment_status` preko M5, što zahteva i `M5/booking/VIEW_ALL` (M5 spec poglavlje 6.6) — bez nje uplata za tuđu rezervaciju vraća 404. Računovođa je dobila tu M5 dozvolu istim datumom. |
-| `M10/exchange-rate/VIEW`, `EDIT` | Vlasnik, Direktor, Računovođa |
-| `M10/payment-gateway-config/VIEW`, `EDIT` | Vlasnik, Direktor — podešavanje kredencijala platnog provajdera |
-| `M10/supplier-obligation/VIEW` | Vlasnik, Direktor, Računovođa |
-| `M10/supplier-obligation/APPROVE` | Vlasnik, Direktor, Računovođa — **nikad AI agent** (poglavlje 8.3) |
-| `M10/supplier-payment-instruction/VIEW` | Vlasnik, Direktor, Računovođa |
-| `M10/supplier-payment-instruction/CREATE` | Vlasnik, Direktor, Računovođa — *sastavljanje* naloga (dopuna 4.9.2026; ranije je bilo dovoljno `VIEW`) |
-| `M10/supplier-payment-instruction/EXECUTE` | Vlasnik, Direktor — **nikad AI agent** (poglavlje 8.5.2) |
-| `M10/refund-instruction/VIEW` | Vlasnik, Direktor, Računovođa |
-| `M10/refund-instruction/CREATE` | Vlasnik, Direktor, Računovođa — *sastavljanje* zahteva (dopuna 4.9.2026) |
-| `M10/refund-instruction/APPROVE`, `EXECUTE` | Vlasnik, Direktor — **nikad AI agent** (poglavlje 8.5.3) |
-| `M10/payment-terms-config/VIEW` | Vlasnik, Direktor, Računovođa |
-| `M10/payment-terms-config/EDIT` | Vlasnik, Direktor — menja globalnu politiku akontacije/balansa (poglavlje 5.4.1) |
-| `M10/client-payment-schedule/VIEW` | Vlasnik, Direktor, Računovođa, Prodajni agent (svi podrazumevano, isti `VIEW_ALL` obrazac kao M5 poglavlje 6.6/M1 §3.9a) |
-| `M10/supplier-invoice-import/VIEW`, `CREATE` | Vlasnik, Direktor, Računovođa — `CREATE` pokreće upload/ekstrakciju (i AI agent, nivo "Autonomno" — samo ekstrakcija, poglavlje 8.6.4) |
-| `M10/supplier-invoice-import/REVIEW` | Vlasnik, Direktor, Računovođa — potvrda/ručno mapiranje reda i upis u `SupplierObligation` — **nikad AI agent** (poglavlje 8.6.4) |
+| Dozvola                                      | Podrazumevana dodela po ulozi                                                                                                                                                                                                                                                                                                                                                                                                       |
+| :------------------------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `M10/fiscal-document/VIEW`                   | Vlasnik, Direktor, Računovođa                                                                                                                                                                                                                                                                                                                                                                                                       |
+| `M10/fiscal-document/CREATE_DRAFT`           | Vlasnik, Direktor, Računovođa (i AI agent, nivo "Autonomno" — samo nacrt)                                                                                                                                                                                                                                                                                                                                                           |
+| `M10/fiscal-document/SUBMIT`                 | Vlasnik, Direktor, Računovođa — **nikad AI agent**, sprovedeno na nivou koda, ne samo dozvole                                                                                                                                                                                                                                                                                                                                       |
+| `M10/payment/VIEW`, `RECORD`                 | Vlasnik, Direktor, Računovođa — `RECORD` se odnosi samo na ručni unos (`BANK_TRANSFER`/`CASH`); `CARD` uplate beleži sistem automatski preko webhook-a, bez ove dozvole. **Zavisnost (dopuna 3.9.2026):** `RECORD` interno ažurira `Booking.payment_status` preko M5, što zahteva i `M5/booking/VIEW_ALL` (M5 spec poglavlje 6.6) — bez nje uplata za tuđu rezervaciju vraća 404. Računovođa je dobila tu M5 dozvolu istim datumom. |
+| `M10/exchange-rate/VIEW`, `EDIT`             | Vlasnik, Direktor, Računovođa                                                                                                                                                                                                                                                                                                                                                                                                       |
+| `M10/payment-gateway-config/VIEW`, `EDIT`    | Vlasnik, Direktor — podešavanje kredencijala platnog provajdera                                                                                                                                                                                                                                                                                                                                                                     |
+| `M10/supplier-obligation/VIEW`               | Vlasnik, Direktor, Računovođa                                                                                                                                                                                                                                                                                                                                                                                                       |
+| `M10/supplier-obligation/APPROVE`            | Vlasnik, Direktor, Računovođa — **nikad AI agent** (poglavlje 8.3)                                                                                                                                                                                                                                                                                                                                                                  |
+| `M10/supplier-payment-instruction/VIEW`      | Vlasnik, Direktor, Računovođa                                                                                                                                                                                                                                                                                                                                                                                                       |
+| `M10/supplier-payment-instruction/CREATE`    | Vlasnik, Direktor, Računovođa — _sastavljanje_ naloga (dopuna 4.9.2026; ranije je bilo dovoljno `VIEW`)                                                                                                                                                                                                                                                                                                                             |
+| `M10/supplier-payment-instruction/EXECUTE`   | Vlasnik, Direktor — **nikad AI agent** (poglavlje 8.5.2)                                                                                                                                                                                                                                                                                                                                                                            |
+| `M10/refund-instruction/VIEW`                | Vlasnik, Direktor, Računovođa                                                                                                                                                                                                                                                                                                                                                                                                       |
+| `M10/refund-instruction/CREATE`              | Vlasnik, Direktor, Računovođa — _sastavljanje_ zahteva (dopuna 4.9.2026)                                                                                                                                                                                                                                                                                                                                                            |
+| `M10/refund-instruction/APPROVE`, `EXECUTE`  | Vlasnik, Direktor — **nikad AI agent** (poglavlje 8.5.3)                                                                                                                                                                                                                                                                                                                                                                            |
+| `M10/payment-terms-config/VIEW`              | Vlasnik, Direktor, Računovođa                                                                                                                                                                                                                                                                                                                                                                                                       |
+| `M10/payment-terms-config/EDIT`              | Vlasnik, Direktor — menja globalnu politiku akontacije/balansa (poglavlje 5.4.1)                                                                                                                                                                                                                                                                                                                                                    |
+| `M10/client-payment-schedule/VIEW`           | Vlasnik, Direktor, Računovođa, Prodajni agent (svi podrazumevano, isti `VIEW_ALL` obrazac kao M5 poglavlje 6.6/M1 §3.9a)                                                                                                                                                                                                                                                                                                            |
+| `M10/supplier-invoice-import/VIEW`, `CREATE` | Vlasnik, Direktor, Računovođa — `CREATE` pokreće upload/ekstrakciju (i AI agent, nivo "Autonomno" — samo ekstrakcija, poglavlje 8.6.4)                                                                                                                                                                                                                                                                                              |
+| `M10/supplier-invoice-import/REVIEW`         | Vlasnik, Direktor, Računovođa — potvrda/ručno mapiranje reda i upis u `SupplierObligation` — **nikad AI agent** (poglavlje 8.6.4)                                                                                                                                                                                                                                                                                                   |
 
 ---
 
@@ -495,72 +515,73 @@ Isti dvostepeni obrazac kao M3 poglavlje 4.2.4:
 
 Prefiks: `/api/v1/finance`
 
-| Endpoint | Metod | Opis |
-| :---- | :---- | :---- |
-| `/fiscal-documents/draft` | POST | priprema nacrt iz `booking_id` (sme AI agent, i sistem sam po `booking.confirmed`, poglavlje 6.0), automatski određuje `vat_calculation_basis` iz `Booking.tip_nastupanja` (poglavlje 4.4) |
-| `/fiscal-documents/credit-note/draft` | POST | priprema `KNJIZNO_ODOBRENJE` nacrt iz `credited_rebate_id` (M7 `CommissionRebate`, poglavlje 5.1a) — zaseban endpoint jer nema `booking_id` |
-| `/fiscal-documents/:id/submit` | POST | šalje ka SEF/ESIR — zahteva `M10/fiscal-document/SUBMIT`, samo ljudski nalog |
-| `/fiscal-documents/:id` | GET | |
-| `/fiscal-documents/:id/storno` | POST | pokreće storno tok |
-| `/payments` | GET / POST | pregled / ručan unos prijema uplate (`BANK_TRANSFER`/`CASH`, bez sistemskog limita gotovine — poglavlje 5.2) |
-| `/payments/card/initiate` | POST | pokreće `PaymentGatewayAdapter.initiatePayment` za dati `quote_id` |
-| `/payments/card/webhook` | POST | povratni poziv provajdera — jedini način na koji se `CARD` uplata beleži kao `RECEIVED`; zahteva `x-payment-webhook-signature` (poglavlje 7.2, dopuna 28.8.2026) |
-| `/exchange-rates` | GET / POST | pregled / unos dnevnog kursa |
-| `/supplier-obligations` | GET / POST | pregled / kreiranje obaveze prema dobavljaču |
-| `/supplier-obligations/:id/approve` | POST | zahteva `M10/supplier-obligation/APPROVE`; odbija ako `booking_item_id` nije popunjen |
-| `/supplier-obligations/:id/pay` | POST | beleži plaćanje, izračunava `exchange_rate_difference` |
-| `/reconciliation/mismatches` | GET | lista `Booking` zapisa koji ne prolaze proveru iz poglavlja 5.3 (nedostaje uplata i/ili fiskalni dokument) |
-| `/supplier-payment-instructions` | GET / POST | pregled (`VIEW`) / kreiranje instrukcije za isplatu (`CREATE`, poglavlje 8.5.2) |
-| `/supplier-payment-instructions/:id/execute` | POST | zahteva `M10/supplier-payment-instruction/EXECUTE`, samo ljudski nalog |
-| `/refund-instructions` | GET / POST | pregled (`VIEW`) / kreiranje zahteva za refundaciju van kartičnog toka (`CREATE`, poglavlje 8.5.3) |
-| `/refund-instructions/:id/approve` | POST | zahteva `M10/refund-instruction/APPROVE` |
-| `/refund-instructions/:id/execute` | POST | zahteva `M10/refund-instruction/EXECUTE`, dozvoljeno samo posle `APPROVED` |
-| `/payment-terms-config` | GET / PUT | pregled / izmena globalne politike akontacije i balansa (poglavlje 5.4.1), zahteva `M10/payment-terms-config/EDIT` za `PUT` |
-| `/client-payment-schedules` | GET | lista, filtrirano po `booking_id`/`deposit_status`/`balance_status` (poglavlje 5.4.2) |
-| `/supplier-invoice-imports` | GET / POST | pregled / upload fajla, pokreće AI ekstrakciju (poglavlje 8.6.1), zahteva `M10/supplier-invoice-import/CREATE` |
-| `/supplier-invoice-imports/:id` | GET | detalji uvoza sa svim `SupplierInvoiceImportRow` redovima |
-| `/supplier-invoice-imports/:id/rows/:rowId/confirm` | POST | potvrđuje predloženo (ili ručno zadato) mapiranje, upisuje u `SupplierObligation` — zahteva `M10/supplier-invoice-import/REVIEW` |
-| `/supplier-invoice-imports/:id/rows/:rowId/reject` | POST | odbacuje red bez efekta na finansijske zapise |
+| Endpoint                                            | Metod      | Opis                                                                                                                                                                                       |
+| :-------------------------------------------------- | :--------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/fiscal-documents/draft`                           | POST       | priprema nacrt iz `booking_id` (sme AI agent, i sistem sam po `booking.confirmed`, poglavlje 6.0), automatski određuje `vat_calculation_basis` iz `Booking.tip_nastupanja` (poglavlje 4.4) |
+| `/fiscal-documents/credit-note/draft`               | POST       | priprema `KNJIZNO_ODOBRENJE` nacrt iz `credited_rebate_id` (M7 `CommissionRebate`, poglavlje 5.1a) — zaseban endpoint jer nema `booking_id`                                                |
+| `/fiscal-documents/:id/submit`                      | POST       | šalje ka SEF/ESIR — zahteva `M10/fiscal-document/SUBMIT`, samo ljudski nalog                                                                                                               |
+| `/fiscal-documents/:id`                             | GET        |                                                                                                                                                                                            |
+| `/fiscal-documents/:id/storno`                      | POST       | pokreće storno tok                                                                                                                                                                         |
+| `/payments`                                         | GET / POST | pregled / ručan unos prijema uplate (`BANK_TRANSFER`/`CASH`, bez sistemskog limita gotovine — poglavlje 5.2)                                                                               |
+| `/payments/card/initiate`                           | POST       | pokreće `PaymentGatewayAdapter.initiatePayment` za dati `quote_id`                                                                                                                         |
+| `/payments/card/webhook`                            | POST       | povratni poziv provajdera — jedini način na koji se `CARD` uplata beleži kao `RECEIVED`; zahteva `x-payment-webhook-signature` (poglavlje 7.2, dopuna 28.8.2026)                           |
+| `/exchange-rates`                                   | GET / POST | pregled / unos dnevnog kursa                                                                                                                                                               |
+| `/supplier-obligations`                             | GET / POST | pregled / kreiranje obaveze prema dobavljaču                                                                                                                                               |
+| `/supplier-obligations/:id/approve`                 | POST       | zahteva `M10/supplier-obligation/APPROVE`; odbija ako `booking_item_id` nije popunjen                                                                                                      |
+| `/supplier-obligations/:id/pay`                     | POST       | beleži plaćanje, izračunava `exchange_rate_difference`                                                                                                                                     |
+| `/reconciliation/mismatches`                        | GET        | lista `Booking` zapisa koji ne prolaze proveru iz poglavlja 5.3 (nedostaje uplata i/ili fiskalni dokument)                                                                                 |
+| `/supplier-payment-instructions`                    | GET / POST | pregled (`VIEW`) / kreiranje instrukcije za isplatu (`CREATE`, poglavlje 8.5.2)                                                                                                            |
+| `/supplier-payment-instructions/:id/execute`        | POST       | zahteva `M10/supplier-payment-instruction/EXECUTE`, samo ljudski nalog                                                                                                                     |
+| `/refund-instructions`                              | GET / POST | pregled (`VIEW`) / kreiranje zahteva za refundaciju van kartičnog toka (`CREATE`, poglavlje 8.5.3)                                                                                         |
+| `/refund-instructions/:id/approve`                  | POST       | zahteva `M10/refund-instruction/APPROVE`                                                                                                                                                   |
+| `/refund-instructions/:id/execute`                  | POST       | zahteva `M10/refund-instruction/EXECUTE`, dozvoljeno samo posle `APPROVED`                                                                                                                 |
+| `/payment-terms-config`                             | GET / PUT  | pregled / izmena globalne politike akontacije i balansa (poglavlje 5.4.1), zahteva `M10/payment-terms-config/EDIT` za `PUT`                                                                |
+| `/client-payment-schedules`                         | GET        | lista, filtrirano po `booking_id`/`deposit_status`/`balance_status` (poglavlje 5.4.2)                                                                                                      |
+| `/supplier-invoice-imports`                         | GET / POST | pregled / upload fajla, pokreće AI ekstrakciju (poglavlje 8.6.1), zahteva `M10/supplier-invoice-import/CREATE`                                                                             |
+| `/supplier-invoice-imports/:id`                     | GET        | detalji uvoza sa svim `SupplierInvoiceImportRow` redovima                                                                                                                                  |
+| `/supplier-invoice-imports/:id/rows/:rowId/confirm` | POST       | potvrđuje predloženo (ili ručno zadato) mapiranje, upisuje u `SupplierObligation` — zahteva `M10/supplier-invoice-import/REVIEW`                                                           |
+| `/supplier-invoice-imports/:id/rows/:rowId/reject`  | POST       | odbacuje red bez efekta na finansijske zapise                                                                                                                                              |
 
 ---
 
 ## 11. Izlazni kriterijum (M10 deo Faze 2)
 
-- [x] Za rezervaciju sa pravnim licem kao nalogodavcem, sistem automatski bira `SEF_EFAKTURA`; za fizičko lice, `ESIR_RACUN`. *(dokazano e2e testom, avgust 2026)*
-- [x] Nacrt fiskalnog dokumenta ispravno konvertuje iznos u RSD po NBS srednjem kursu na dan uplate; ako uplata stigne posle pripreme nacrta, `amount_rsd` se ispravno preračunava pre `SUBMIT`-a (poglavlje 3). *(dokazano unit testom — prepareDraft EUR konverzija i submit() preračun kad je booking u međuvremenu PAID po drugačijem kursu; RSD prolaz bez konverzije dodatno dokazan e2e testom)*
-- [x] `vat_calculation_basis` se ispravno određuje iz `Booking.tip_nastupanja` (`MARZA` za organizatora, `PROVIZIJA` za posrednika), i PDV se obračunava po formuli iz poglavlja 4. *(dokazano unit + e2e testom; "bez posebnog iskazivanja PDV-a gostu" je strukturno tačno — nijedan API odgovor ne izlaže PDV odvojeno gostu, samo internom Računovođa/Direktor/Vlasnik uvidu)*
-- [x] Pokušaj izmene `Booking.tip_nastupanja` posle kreiranja rezervacije se odbija. *(strukturno zagarantovano — `ModifyBookingDto` (M5) ne izlaže ovo polje, `tipNastupanja` se piše isključivo jednom, u `BookingsService.confirmQuote`, nijedan drugi poziv ga ne dodiruje)*
-- [x] Slanje (`SUBMIT`) je fizički nemoguće bez ljudskog naloga — pokušaj preko API-ja bez odgovarajuće dozvole/uloge se odbija. *(dokazano e2e testom — 403 bez M10/fiscal-document/SUBMIT dozvole)*
-- [x] Svaki `SUBMIT` i `STORNO` upisan je u M1 audit log sa identitetom osobe koja je potvrdila. *(SUBMIT dokazano e2e čitanjem stvarnog AuditLogEntry; STORNO dokazano unit testom, isti kod obrazac)*
+- [x] Za rezervaciju sa pravnim licem kao nalogodavcem, sistem automatski bira `SEF_EFAKTURA`; za fizičko lice, `ESIR_RACUN`. _(dokazano e2e testom, avgust 2026)_
+- [x] Nacrt fiskalnog dokumenta ispravno konvertuje iznos u RSD po NBS srednjem kursu na dan uplate; ako uplata stigne posle pripreme nacrta, `amount_rsd` se ispravno preračunava pre `SUBMIT`-a (poglavlje 3). _(dokazano unit testom — prepareDraft EUR konverzija i submit() preračun kad je booking u međuvremenu PAID po drugačijem kursu; RSD prolaz bez konverzije dodatno dokazan e2e testom)_
+- [x] `vat_calculation_basis` se ispravno određuje iz `Booking.tip_nastupanja` (`MARZA` za organizatora, `PROVIZIJA` za posrednika), i PDV se obračunava po formuli iz poglavlja 4. _(dokazano unit + e2e testom; "bez posebnog iskazivanja PDV-a gostu" je strukturno tačno — nijedan API odgovor ne izlaže PDV odvojeno gostu, samo internom Računovođa/Direktor/Vlasnik uvidu)_
+- [x] Pokušaj izmene `Booking.tip_nastupanja` posle kreiranja rezervacije se odbija. _(strukturno zagarantovano — `ModifyBookingDto` (M5) ne izlaže ovo polje, `tipNastupanja` se piše isključivo jednom, u `BookingsService.confirmQuote`, nijedan drugi poziv ga ne dodiruje)_
+- [x] Slanje (`SUBMIT`) je fizički nemoguće bez ljudskog naloga — pokušaj preko API-ja bez odgovarajuće dozvole/uloge se odbija. _(dokazano e2e testom — 403 bez M10/fiscal-document/SUBMIT dozvole)_
+- [x] Svaki `SUBMIT` i `STORNO` upisan je u M1 audit log sa identitetom osobe koja je potvrdila. _(SUBMIT dokazano e2e čitanjem stvarnog AuditLogEntry; STORNO dokazano unit testom, isti kod obrazac)_
 - [ ] `buyer_acceptance_deadline` se ispravno postavlja na 15 dana od slanja SEF fakture — **dokazano** (e2e i unit test). Prelazak statusa u `EXPIRED` kad kupac ne odgovori u roku — **nije implementirano**: nema periodičnog posla koji proverava istekle rokove i menja `buyer_acceptance_status`; ostaje za sledeći prolaz.
 - [ ] Prijem uplate (delimičan i pun iznos) ispravno ažurira `payment_status` na Booking-u u M5 — **dokazano** e2e testom (pun iznos → PAID) i unit testom (delimičan → PARTIALLY_PAID). Da prelazak u `PAID` stvarno pokreće generisanje vaučera — **nije posebno provereno u ovoj sesiji**: `PaymentsService` poziva istu `BookingsService.updatePaymentStatus` funkciju koju M5 već koristi i koja interno zove `maybeIssueVoucher` (M5 spec §6), ali lanac do stvarno izdatog vaučera nije ovde e2e testiran.
-- [x] Nijedan broj kartice se nigde ne čuva — sistem drži samo `gateway_transaction_id`/token. *(strukturno zagarantovano — `Payment` model nema nijedno polje predviđeno za broj kartice, samo `gatewayTransactionId`/`gatewayIdempotencyKey`; nije pisan poseban test koji greba bazu/logove za obrazac broja kartice)*
-- [x] Test: kartično plaćanje uspe, ali M5 potvrda rezervacije zatim ne uspe (simuliran nestanak kapaciteta) → `Payment` prelazi u `VOIDED`, novac se automatski vraća. *(dokazano unit testom, `PaymentsService.handleCardWebhook`)*
-- [x] Ponovljen klik/mrežni prekid pri kartičnom plaćanju (isti `gateway_idempotency_key`) ne rezultuje duplom naplatom. *(dokazano unit testom nad `MockPaymentGatewayAdapter` — isti ključ vraća istu transakciju; i nad `PaymentsService.handleCardWebhook` — ponovljen webhook je idempotentan)*
-- [x] `SupplierObligation` ne može preći u `APPROVED` bez popunjenog `booking_item_id`. *(dokazano unit + e2e testom)*
-- [x] Alarm 5 dana pre `due_date` neplaćene obaveze prema dobavljaču se ispravno generiše. *(dokazano unit testom, `M10AlarmsService`/`SupplierObligationsService.findDueSoon`)*
-- [x] `exchange_rate_difference` se ispravno izračunava pri plaćanju obaveze kad se kurs na dan fakture razlikuje od kursa na dan plaćanja. *(dokazano unit + e2e testom)*
-- [x] Nijedno novčano polje (`amount_original`, `amount_rsd`, `vat_amount`, `amount`, `amount_rsd_at_invoice`, `exchange_rate_difference`) nije tipa `decimal`/float. *(garantovano Prisma šemom — sva navedena polja su `Int`; kursevi (`nbsMiddleRate`) i procenti (`vatRate`, `depositPercentage`) ostaju `Decimal`, u skladu sa izuzetkom iz poglavlja 3.2)*
-- [x] Test-slučaj: potvrđena rezervacija bez izdatog fiskalnog dokumenta se ispravno prepoznaje kroz `/reconciliation/mismatches`. *(dokazano unit testom, `ReconciliationService`; `reconciliation_mismatch` Event Bus signal sad ima stvarnog pretplatnika — M18 `M18EventSubscribersService` kreira `HealthSignal(RECONCILIATION_MISMATCH)`, avgust 2026)*
-- [x] `SupplierPaymentInstruction.status` ne može preći u `EXECUTED` bez ljudskog naloga (`executed_by` popunjen). *(dokazano unit testom; AI agent nema dozvolu `M10/supplier-payment-instruction/EXECUTE` — nije dodeljena nijednoj ulozi koju AI agent nalog koristi)*
-- [x] `RefundInstruction` ne može preći u `EXECUTED` bez prethodnog `APPROVED`. *(dokazano unit testom)*
+- [x] Nijedan broj kartice se nigde ne čuva — sistem drži samo `gateway_transaction_id`/token. _(strukturno zagarantovano — `Payment` model nema nijedno polje predviđeno za broj kartice, samo `gatewayTransactionId`/`gatewayIdempotencyKey`; nije pisan poseban test koji greba bazu/logove za obrazac broja kartice)_
+- [x] Test: kartično plaćanje uspe, ali M5 potvrda rezervacije zatim ne uspe (simuliran nestanak kapaciteta) → `Payment` prelazi u `VOIDED`, novac se automatski vraća. _(dokazano unit testom, `PaymentsService.handleCardWebhook`)_
+- [x] Ponovljen klik/mrežni prekid pri kartičnom plaćanju (isti `gateway_idempotency_key`) ne rezultuje duplom naplatom. _(dokazano unit testom nad `MockPaymentGatewayAdapter` — isti ključ vraća istu transakciju; i nad `PaymentsService.handleCardWebhook` — ponovljen webhook je idempotentan)_
+- [x] `SupplierObligation` ne može preći u `APPROVED` bez popunjenog `booking_item_id`. _(dokazano unit + e2e testom)_
+- [x] Alarm 5 dana pre `due_date` neplaćene obaveze prema dobavljaču se ispravno generiše. _(dokazano unit testom, `M10AlarmsService`/`SupplierObligationsService.findDueSoon`)_
+- [x] `exchange_rate_difference` se ispravno izračunava pri plaćanju obaveze kad se kurs na dan fakture razlikuje od kursa na dan plaćanja. _(dokazano unit + e2e testom)_
+- [x] Nijedno novčano polje (`amount_original`, `amount_rsd`, `vat_amount`, `amount`, `amount_rsd_at_invoice`, `exchange_rate_difference`) nije tipa `decimal`/float. _(garantovano Prisma šemom — sva navedena polja su `Int`; kursevi (`nbsMiddleRate`) i procenti (`vatRate`, `depositPercentage`) ostaju `Decimal`, u skladu sa izuzetkom iz poglavlja 3.2)_
+- [x] Test-slučaj: potvrđena rezervacija bez izdatog fiskalnog dokumenta se ispravno prepoznaje kroz `/reconciliation/mismatches`. _(dokazano unit testom, `ReconciliationService`; `reconciliation_mismatch` Event Bus signal sad ima stvarnog pretplatnika — M18 `M18EventSubscribersService` kreira `HealthSignal(RECONCILIATION_MISMATCH)`, avgust 2026)_
+- [x] `SupplierPaymentInstruction.status` ne može preći u `EXECUTED` bez ljudskog naloga (`executed_by` popunjen). _(dokazano unit testom; AI agent nema dozvolu `M10/supplier-payment-instruction/EXECUTE` — nije dodeljena nijednoj ulozi koju AI agent nalog koristi)_
+- [x] `RefundInstruction` ne može preći u `EXECUTED` bez prethodnog `APPROVED`. _(dokazano unit testom)_
 - [ ] Broj kartice se nigde ne pojavljuje u `virtual_card_reference` — **nije programski sprovedeno**: polje je slobodan string, ništa ne sprečava da neko unese pun broj kartice; oslanja se na proces (isti otvoren rizik kao ograničenje gotovine u poglavlju 5.2), ne na kod. Ostaje otvorena stavka.
-- [x] `FiscalDocument` nacrt se automatski priprema (bez ručnog poziva) čim `Booking` pređe u `CONFIRMED`. *(dokazano unit testom, `M10EventSubscribersService` — pretplata na M5 `booking.confirmed`; sam LISTEN/NOTIFY transportni sloj dokazan zasebno u `EventListenerService` testovima, nije ponovo testiran ovde da bi se izbegla flaky async e2e provera)*
-- [x] `SupplierObligation` se automatski kreira sa popunjenim `booking_item_id` čim `BookingItem` (CONTRACTED) pređe u `item_status = CONFIRMED`; API-sourced stavke ne generišu ovaj zapis pojedinačno. *(dokazano unit testom)*
-- [x] `FiscalDocument` u statusu `DRAFT` duže od 24h generiše `HealthSignal`. *(dokazano unit testom, `M10AlarmsService`/`FiscalDocumentsService.findStaleDrafts`)*
-- [x] `KNJIZNO_ODOBRENJE` dokument se ispravno priprema sa `booking_id = null` i popunjenim `related_subagent_id`/`credited_rebate_id`. *(dokazano unit testom, `prepareCreditNoteDraft`)*
-- [x] Odobren M7 `CommissionRebate` (`DRAFT → APPROVED`) automatski pokreće M10 `KNJIZNO_ODOBRENJE` nacrt sa stvarnim `buyer_name_snapshot` (M6 `ClientAccount.company_name`); slanje tog dokumenta (M10 `submit()`) vraća M7 rabat u `APPLIED` preko Event Bus-a. *(dopuna avgust 2026 — stvarno povezivanje sa M7, ranije čekalo M7 implementaciju, vidi poglavlje 1.1/5.1a; dokazano unit testovima na obe strane i e2e kraj-do-kraja u `apps/api/test/m7-exit-criteria.e2e-spec.ts`)*
-- [x] `ClientPaymentSchedule` se automatski kreira po `booking.confirmed`, sa snimljenim vrednostima iz `PaymentTermsConfig` u tom trenutku; kasnija izmena politike ne menja retroaktivno već kreirane rasporede. *(dokazano unit testom — snapshot je strukturno zagarantovan, vrednosti se kopiraju u red, ne referenciraju FK ka konfiguraciji)*
-- [x] Probijen `deposit_due_date`/`balance_due_date` generiše `HealthSignal` tipa `PAYMENT_DEADLINE_MISSED` sa `severity = WARNING`, eskalira na `CRITICAL`, bez automatske izmene rezervacije. *(dokazano unit testom, `ClientPaymentSchedulesService.checkOverdueAndEscalate`)*
-- [x] Deterministički matching algoritam (§8.6.3) predlaže mapiranje ka `SupplierObligation` sa `match_confidence ≥ 85%`, odbija kandidate bez preklapanja perioda ili sa nedovoljnim poklapanjem imena. *(dokazano unit testom, `findBestSupplierObligationMatch`)* **Ograda, isti obrazac kao M3 `PricelistImport` §4.2.1:** stvarna AI ekstrakcija (OCR/parsiranje ulazne fakture koja bi kreirala `SupplierInvoiceImportRow` zapise) namerno nije povezana — čeka odluku o AI provajderu, isti gap kao M3.
-- [x] Potvrda reda (`CONFIRMED`/`MANUALLY_MATCHED`) ispravno upisuje `invoice_reference` i po potrebi koriguje `amount_original`/`amount_rsd_at_invoice`, samo uz ljudsku potvrdu — nijedan `SupplierObligation` se ne menja automatski. *(dokazano unit testom, `confirmRow`)*
-- [x] **E2E test `§5.2 — uplata dovodi Booking do PAID` prolazi.** *(pao 3–4.9.2026, rešeno 4.9.2026 — paket prolazi 6/6.*
+- [x] `FiscalDocument` nacrt se automatski priprema (bez ručnog poziva) čim `Booking` pređe u `CONFIRMED`. _(dokazano unit testom, `M10EventSubscribersService` — pretplata na M5 `booking.confirmed`; sam LISTEN/NOTIFY transportni sloj dokazan zasebno u `EventListenerService` testovima, nije ponovo testiran ovde da bi se izbegla flaky async e2e provera)_
+- [x] `SupplierObligation` se automatski kreira sa popunjenim `booking_item_id` čim `BookingItem` (CONTRACTED) pređe u `item_status = CONFIRMED`; API-sourced stavke ne generišu ovaj zapis pojedinačno. _(dokazano unit testom)_
+- [x] `FiscalDocument` u statusu `DRAFT` duže od 24h generiše `HealthSignal`. _(dokazano unit testom, `M10AlarmsService`/`FiscalDocumentsService.findStaleDrafts`)_
+- [x] `KNJIZNO_ODOBRENJE` dokument se ispravno priprema sa `booking_id = null` i popunjenim `related_subagent_id`/`credited_rebate_id`. _(dokazano unit testom, `prepareCreditNoteDraft`)_
+- [x] Odobren M7 `CommissionRebate` (`DRAFT → APPROVED`) automatski pokreće M10 `KNJIZNO_ODOBRENJE` nacrt sa stvarnim `buyer_name_snapshot` (M6 `ClientAccount.company_name`); slanje tog dokumenta (M10 `submit()`) vraća M7 rabat u `APPLIED` preko Event Bus-a. _(dopuna avgust 2026 — stvarno povezivanje sa M7, ranije čekalo M7 implementaciju, vidi poglavlje 1.1/5.1a; dokazano unit testovima na obe strane i e2e kraj-do-kraja u `apps/api/test/m7-exit-criteria.e2e-spec.ts`)_
+- [x] `ClientPaymentSchedule` se automatski kreira po `booking.confirmed`, sa snimljenim vrednostima iz `PaymentTermsConfig` u tom trenutku; kasnija izmena politike ne menja retroaktivno već kreirane rasporede. _(dokazano unit testom — snapshot je strukturno zagarantovan, vrednosti se kopiraju u red, ne referenciraju FK ka konfiguraciji)_
+- [x] Probijen `deposit_due_date`/`balance_due_date` generiše `HealthSignal` tipa `PAYMENT_DEADLINE_MISSED` sa `severity = WARNING`, eskalira na `CRITICAL`, bez automatske izmene rezervacije. _(dokazano unit testom, `ClientPaymentSchedulesService.checkOverdueAndEscalate`)_
+- [x] Deterministički matching algoritam (§8.6.3) predlaže mapiranje ka `SupplierObligation` sa `match_confidence ≥ 85%`, odbija kandidate bez preklapanja perioda ili sa nedovoljnim poklapanjem imena. _(dokazano unit testom, `findBestSupplierObligationMatch`)_ **Ograda, isti obrazac kao M3 `PricelistImport` §4.2.1:** stvarna AI ekstrakcija (OCR/parsiranje ulazne fakture koja bi kreirala `SupplierInvoiceImportRow` zapise) namerno nije povezana — čeka odluku o AI provajderu, isti gap kao M3.
+- [x] Potvrda reda (`CONFIRMED`/`MANUALLY_MATCHED`) ispravno upisuje `invoice_reference` i po potrebi koriguje `amount_original`/`amount_rsd_at_invoice`, samo uz ljudsku potvrdu — nijedan `SupplierObligation` se ne menja automatski. _(dokazano unit testom, `confirmRow`)_
+- [x] **E2E test `§5.2 — uplata dovodi Booking do PAID` prolazi.** _(pao 3–4.9.2026, rešeno 4.9.2026 — paket prolazi 6/6._
 
-  ***Stvaran uzrok (drugačiji od prvobitne pretpostavke):** lokalna razvojna baza bila je zastarela u odnosu na `apps/api/prisma/seed/seed.ts`. Ispravka od 3.9.2026 — dodavanje `M5/booking/VIEW` i `M5/booking/VIEW_ALL` ulozi `RACUNOVODJA`, jer M10 `recordManualPayment` → `onBookingPaymentReceived` interno poziva M5 `BookingsService.updatePaymentStatus`, koja sprovodi sopstvenu proveru vlasništva (`assertBookingAccessible`) — upisana je u seed skriptu, ali seed nije ponovo pokrenut nad već zasejanom bazom. Računovođa je u bazi i dalje imao nula M5 dozvola, pa je `updatePaymentStatus` vraćao `404 Rezervacija nije pronađena.` Rešeno pokretanjem `npx prisma db seed` (skripta je u celosti `upsert`, bez brisanja — bezbedna nad postojećim podacima). Nijedna izmena koda nije bila potrebna.*
+  _**Stvaran uzrok (drugačiji od prvobitne pretpostavke):** lokalna razvojna baza bila je zastarela u odnosu na `apps/api/prisma/seed/seed.ts`. Ispravka od 3.9.2026 — dodavanje `M5/booking/VIEW` i `M5/booking/VIEW_ALL` ulozi `RACUNOVODJA`, jer M10 `recordManualPayment` → `onBookingPaymentReceived` interno poziva M5 `BookingsService.updatePaymentStatus`, koja sprovodi sopstvenu proveru vlasništva (`assertBookingAccessible`) — upisana je u seed skriptu, ali seed nije ponovo pokrenut nad već zasejanom bazom. Računovođa je u bazi i dalje imao nula M5 dozvola, pa je `updatePaymentStatus` vraćao `404 Rezervacija nije pronađena.` Rešeno pokretanjem `npx prisma db seed` (skripta je u celosti `upsert`, bez brisanja — bezbedna nad postojećim podacima). Nijedna izmena koda nije bila potrebna._
 
-  ***Zašto je prvobitna dijagnoza promašila:** zaključak "problem je u `createConfirmedBookingFixture()`" izveden je iz pretpostavke da je jedini `404` na toj putanji onaj iz `payments.service.ts` ("Booking ... nije pronađen"). Stvarna poruka u odgovoru bila je "Rezervacija nije pronađena." — iz sasvim drugog modula (`m5-rezervacije/bookings/bookings.service.ts`). Ispisivanje `res.body` (a ne samo statusa) vodilo je do uzroka u jednom prolazu. Zamka 12.4 u `docs/analize/33-ZAMKE-I-OBAVEZNE-PROVERE.md`.)*
-- [x] API dokumentacija (`docs/api/M10-finansije.md`) postoji sa primerima zahteva/odgovora za svaki endpoint iz poglavlja 10 — obavezna stavka po CLAUDE.md. *(napisana 3.9.2026; fiskalni dokument i kursna lista uhvaćeni stvarnim pozivima nad lokalnom bazom, ostali odeljci izvedeni iz koda jer su tabele `payments`/`supplier_obligations`/`banks`/`refund_instructions` prazne — svaki takav odeljak je u dokumentu označen)*
-- [x] **Kreiranje naloga za isplatu dobavljaču i naloga za povraćaj gostu traži dozvolu jaču od `VIEW`.** *(rešeno 4.9.2026: uvedene `M10/supplier-payment-instruction/CREATE` i `M10/refund-instruction/CREATE`, dodeljene Vlasniku/Direktoru/Računovođi; `POST /finance/supplier-payment-instructions` i `POST /finance/refund-instructions` sada traže njih umesto `VIEW`. Izvršenje (`EXECUTE`) i odobrenje (`APPROVE`) ostaju nepromenjeni — Vlasnik/Direktor, nikad AI agent. Dokazano e2e testom: nalog sa samo `VIEW` dobija 403 na kreiranje, a i dalje vidi listu)*
+  _**Zašto je prvobitna dijagnoza promašila:** zaključak "problem je u `createConfirmedBookingFixture()`" izveden je iz pretpostavke da je jedini `404` na toj putanji onaj iz `payments.service.ts` ("Booking ... nije pronađen"). Stvarna poruka u odgovoru bila je "Rezervacija nije pronađena." — iz sasvim drugog modula (`m5-rezervacije/bookings/bookings.service.ts`). Ispisivanje `res.body` (a ne samo statusa) vodilo je do uzroka u jednom prolazu. Zamka 12.4 u `docs/analize/33-ZAMKE-I-OBAVEZNE-PROVERE.md`.)_
+
+- [x] API dokumentacija (`docs/api/M10-finansije.md`) postoji sa primerima zahteva/odgovora za svaki endpoint iz poglavlja 10 — obavezna stavka po CLAUDE.md. _(napisana 3.9.2026; fiskalni dokument i kursna lista uhvaćeni stvarnim pozivima nad lokalnom bazom, ostali odeljci izvedeni iz koda jer su tabele `payments`/`supplier_obligations`/`banks`/`refund_instructions` prazne — svaki takav odeljak je u dokumentu označen)_
+- [x] **Kreiranje naloga za isplatu dobavljaču i naloga za povraćaj gostu traži dozvolu jaču od `VIEW`.** _(rešeno 4.9.2026: uvedene `M10/supplier-payment-instruction/CREATE` i `M10/refund-instruction/CREATE`, dodeljene Vlasniku/Direktoru/Računovođi; `POST /finance/supplier-payment-instructions` i `POST /finance/refund-instructions` sada traže njih umesto `VIEW`. Izvršenje (`EXECUTE`) i odobrenje (`APPROVE`) ostaju nepromenjeni — Vlasnik/Direktor, nikad AI agent. Dokazano e2e testom: nalog sa samo `VIEW` dobija 403 na kreiranje, a i dalje vidi listu)_
 
 ---
 

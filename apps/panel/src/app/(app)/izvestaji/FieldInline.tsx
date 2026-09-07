@@ -15,7 +15,9 @@ export default function FieldInline({
 }) {
   return (
     <div className="flex h-9 min-w-[140px] flex-1 items-center gap-1.5 rounded border border-border bg-panel px-2 text-xs">
-      <span className="flex-shrink-0 text-[10px] uppercase tracking-wide text-ink-faint">{label}</span>
+      <span className="flex-shrink-0 text-[10px] uppercase tracking-wide text-ink-faint">
+        {label}
+      </span>
       {children}
     </div>
   );

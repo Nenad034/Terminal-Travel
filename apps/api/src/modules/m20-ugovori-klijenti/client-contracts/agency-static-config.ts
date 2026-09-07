@@ -19,10 +19,17 @@ export class AgencyStaticConfigService {
   } {
     return {
       agencyName: this.config.get<string>('AGENCY_NAME') ?? 'Terminal Travel',
-      agencyAddress: this.config.get<string>('AGENCY_ADDRESS') ?? '(adresa nije podešena — AGENCY_ADDRESS)',
-      agencyLicenseNumber: this.config.get<string>('AGENCY_LICENSE_NUMBER') ?? '(broj licence nije podešen — AGENCY_LICENSE_NUMBER)',
-      emergencyContact: this.config.get<string>('AGENCY_EMERGENCY_CONTACT') ?? '(kontakt nije podešen — AGENCY_EMERGENCY_CONTACT)',
-      priceChangeComplaintDeadlineDays: Number(this.config.get<string>('AGENCY_PRICE_CHANGE_COMPLAINT_DEADLINE_DAYS') ?? 8),
+      agencyAddress:
+        this.config.get<string>('AGENCY_ADDRESS') ?? '(adresa nije podešena — AGENCY_ADDRESS)',
+      agencyLicenseNumber:
+        this.config.get<string>('AGENCY_LICENSE_NUMBER') ??
+        '(broj licence nije podešen — AGENCY_LICENSE_NUMBER)',
+      emergencyContact:
+        this.config.get<string>('AGENCY_EMERGENCY_CONTACT') ??
+        '(kontakt nije podešen — AGENCY_EMERGENCY_CONTACT)',
+      priceChangeComplaintDeadlineDays: Number(
+        this.config.get<string>('AGENCY_PRICE_CHANGE_COMPLAINT_DEADLINE_DAYS') ?? 8,
+      ),
     };
   }
 }

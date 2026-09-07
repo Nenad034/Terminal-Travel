@@ -40,7 +40,9 @@ describe('M13 — izlazni kriterijum (e2e)', () => {
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
     app = moduleRef.createNestApplication();
     app.setGlobalPrefix('api/v1');
-    app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }));
+    app.useGlobalPipes(
+      new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }),
+    );
     app.useGlobalFilters(new PrismaExceptionFilter());
     await app.init();
     prisma = app.get(PrismaService);
@@ -59,18 +61,28 @@ describe('M13 — izlazni kriterijum (e2e)', () => {
       // booking.confirmed (emitovan ili preko M5 automatike) triggeruje M11/M20 pretplatnike —
       // isti FK cleanup redosled kao M7/M14 e2e testovi.
       await prisma.postTripSurvey.deleteMany({ where: { bookingId: { in: createdBookingIds } } });
-      await prisma.travelGuaranteeRegistration.deleteMany({ where: { bookingId: { in: createdBookingIds } } });
+      await prisma.travelGuaranteeRegistration.deleteMany({
+        where: { bookingId: { in: createdBookingIds } },
+      });
       await prisma.clientContract.deleteMany({ where: { bookingId: { in: createdBookingIds } } });
-      await prisma.bookingItemGuest.deleteMany({ where: { bookingItem: { bookingId: { in: createdBookingIds } } } });
+      await prisma.bookingItemGuest.deleteMany({
+        where: { bookingItem: { bookingId: { in: createdBookingIds } } },
+      });
       await prisma.bookingItem.deleteMany({ where: { bookingId: { in: createdBookingIds } } });
       await prisma.booking.deleteMany({ where: { id: { in: createdBookingIds } } });
     }
-    if (createdSubagentIds.length) await prisma.subagent.deleteMany({ where: { id: { in: createdSubagentIds } } });
-    if (createdClientAccountIds.length) await prisma.clientAccount.deleteMany({ where: { id: { in: createdClientAccountIds } } });
-    if (createdProductIds.length) await prisma.product.deleteMany({ where: { id: { in: createdProductIds } } });
-    if (createdContractIds.length) await prisma.contract.deleteMany({ where: { id: { in: createdContractIds } } });
-    if (createdSupplierIds.length) await prisma.supplier.deleteMany({ where: { id: { in: createdSupplierIds } } });
-    if (createdMarkupRuleIds.length) await prisma.markupRule.deleteMany({ where: { id: { in: createdMarkupRuleIds } } });
+    if (createdSubagentIds.length)
+      await prisma.subagent.deleteMany({ where: { id: { in: createdSubagentIds } } });
+    if (createdClientAccountIds.length)
+      await prisma.clientAccount.deleteMany({ where: { id: { in: createdClientAccountIds } } });
+    if (createdProductIds.length)
+      await prisma.product.deleteMany({ where: { id: { in: createdProductIds } } });
+    if (createdContractIds.length)
+      await prisma.contract.deleteMany({ where: { id: { in: createdContractIds } } });
+    if (createdSupplierIds.length)
+      await prisma.supplier.deleteMany({ where: { id: { in: createdSupplierIds } } });
+    if (createdMarkupRuleIds.length)
+      await prisma.markupRule.deleteMany({ where: { id: { in: createdMarkupRuleIds } } });
     if (createdUserIds.length) {
       await prisma.userRole.deleteMany({ where: { userId: { in: createdUserIds } } });
       await prisma.user.deleteMany({ where: { id: { in: createdUserIds } } });
@@ -89,7 +101,9 @@ describe('M13 — izlazni kriterijum (e2e)', () => {
     });
     createdUserIds.push(user.id);
     const role = await prisma.role.findUniqueOrThrow({ where: { name: roleName } });
-    await prisma.userRole.create({ data: { userId: user.id, roleId: role.id, assignedBy: user.id } });
+    await prisma.userRole.create({
+      data: { userId: user.id, roleId: role.id, assignedBy: user.id },
+    });
     const accessToken = jwt.sign({ sub: user.id, sessionId: 'e2e-test-session' });
     return { user, accessToken };
   }
@@ -110,7 +124,10 @@ describe('M13 — izlazni kriterijum (e2e)', () => {
     return account;
   }
 
-  async function createBooking(clientAccountId: string, overrides: Partial<{ channel: string; totalPrice: number; currency: string }> = {}) {
+  async function createBooking(
+    clientAccountId: string,
+    overrides: Partial<{ channel: string; totalPrice: number; currency: string }> = {},
+  ) {
     const booking = await prisma.booking.create({
       data: {
         bookingNumber: `TT-M13-E2E-${testRunId}-${Math.random().toString(36).slice(2)}`,
@@ -132,7 +149,15 @@ describe('M13 — izlazni kriterijum (e2e)', () => {
   }
 
   // Supplier + Contract + ACCOMMODATION Product (CONTRACTED) + ContractPeriod + RateLine.
-  async function createContractedProductFixture(overrides: { destinationCountry?: string; destinationCity?: string; roomType?: string; boardType?: string; stars?: number } = {}) {
+  async function createContractedProductFixture(
+    overrides: {
+      destinationCountry?: string;
+      destinationCity?: string;
+      roomType?: string;
+      boardType?: string;
+      stars?: number;
+    } = {},
+  ) {
     const supplier = await prisma.supplier.create({
       data: {
         name: `M13 E2E Dobavljač ${testRunId}-${Math.random().toString(36).slice(2)}`,
@@ -172,7 +197,14 @@ describe('M13 — izlazni kriterijum (e2e)', () => {
         status: 'ACTIVE',
         attributes: { accommodation_type: 'HOTEL', stars: overrides.stars ?? 4 },
         translations: {
-          create: [{ languageCode: 'sr', name: `Hotel M13 Test ${testRunId}`, description: 'opis', slug: `hotel-m13-${testRunId}-${Math.random().toString(36).slice(2)}` }],
+          create: [
+            {
+              languageCode: 'sr',
+              name: `Hotel M13 Test ${testRunId}`,
+              description: 'opis',
+              slug: `hotel-m13-${testRunId}-${Math.random().toString(36).slice(2)}`,
+            },
+          ],
         },
       },
     });
@@ -189,17 +221,27 @@ describe('M13 — izlazni kriterijum (e2e)', () => {
     });
 
     const rateLine = await prisma.rateLine.create({
-      data: { contractPeriodId: contractPeriod.id, boardType: overrides.boardType ?? 'HALF_BOARD', occupancy: '2+0', priceBasis: 'PER_ROOM_PER_NIGHT', price: 10000 },
+      data: {
+        contractPeriodId: contractPeriod.id,
+        boardType: overrides.boardType ?? 'HALF_BOARD',
+        occupancy: '2+0',
+        priceBasis: 'PER_ROOM_PER_NIGHT',
+        price: 10000,
+      },
     });
 
-    const markupRule = await prisma.markupRule.create({ data: { scopeType: 'M3_SUPPLIER', scopeId: supplier.id, percentage: 20 } });
+    const markupRule = await prisma.markupRule.create({
+      data: { scopeType: 'M3_SUPPLIER', scopeId: supplier.id, percentage: 20 },
+    });
     createdMarkupRuleIds.push(markupRule.id);
 
     return { supplier, contract, product, rateLine, markupRule };
   }
 
   // API-sourced ACCOMMODATION Product (M4) — nema rate_line/room_type/board_type (§3.1 ograda).
-  async function createApiProductFixture(overrides: { destinationCountry?: string; destinationCity?: string } = {}) {
+  async function createApiProductFixture(
+    overrides: { destinationCountry?: string; destinationCity?: string } = {},
+  ) {
     const product = await prisma.product.create({
       data: {
         type: 'ACCOMMODATION',
@@ -210,7 +252,14 @@ describe('M13 — izlazni kriterijum (e2e)', () => {
         status: 'ACTIVE',
         attributes: { accommodation_type: 'HOTEL', stars: 3 },
         translations: {
-          create: [{ languageCode: 'sr', name: `API Hotel M13 Test ${testRunId}`, description: 'opis', slug: `api-hotel-m13-${testRunId}-${Math.random().toString(36).slice(2)}` }],
+          create: [
+            {
+              languageCode: 'sr',
+              name: `API Hotel M13 Test ${testRunId}`,
+              description: 'opis',
+              slug: `api-hotel-m13-${testRunId}-${Math.random().toString(36).slice(2)}`,
+            },
+          ],
         },
       },
     });
@@ -221,7 +270,12 @@ describe('M13 — izlazni kriterijum (e2e)', () => {
   async function createBookingItem(
     bookingId: string,
     fixture: { product: { id: string }; rateLine?: { id: string }; markupRule?: { id: string } },
-    overrides: Partial<{ baseCost: number; finalPrice: number; guestCount: number; sourceType: 'CONTRACTED' | 'API' }> = {},
+    overrides: Partial<{
+      baseCost: number;
+      finalPrice: number;
+      guestCount: number;
+      sourceType: 'CONTRACTED' | 'API';
+    }> = {},
   ) {
     const item = await prisma.bookingItem.create({
       data: {
@@ -234,7 +288,8 @@ describe('M13 — izlazni kriterijum (e2e)', () => {
         baseCost: overrides.baseCost ?? 10000,
         baseCostCurrency: 'EUR',
         rateLineId: fixture.rateLine?.id,
-        markupRuleId: fixture.markupRule?.id ?? (await ensureFallbackMarkupRule(fixture.product.id)),
+        markupRuleId:
+          fixture.markupRule?.id ?? (await ensureFallbackMarkupRule(fixture.product.id)),
         finalPrice: overrides.finalPrice ?? 12000,
         finalPriceCurrency: 'EUR',
         itemStatus: 'CONFIRMED',
@@ -243,14 +298,20 @@ describe('M13 — izlazni kriterijum (e2e)', () => {
     const guestCount = overrides.guestCount ?? 2;
     for (let i = 0; i < guestCount; i++) {
       await prisma.bookingItemGuest.create({
-        data: { bookingItemId: item.id, guestFirstName: `Gost${i}`, guestLastName: `M13-${testRunId}` },
+        data: {
+          bookingItemId: item.id,
+          guestFirstName: `Gost${i}`,
+          guestLastName: `M13-${testRunId}`,
+        },
       });
     }
     return item;
   }
 
   async function ensureFallbackMarkupRule(productId: string) {
-    const rule = await prisma.markupRule.create({ data: { scopeType: 'M2_PRODUCT', scopeId: productId, percentage: 15 } });
+    const rule = await prisma.markupRule.create({
+      data: { scopeType: 'M2_PRODUCT', scopeId: productId, percentage: 15 },
+    });
     createdMarkupRuleIds.push(rule.id);
     return rule.id;
   }
@@ -260,10 +321,16 @@ describe('M13 — izlazni kriterijum (e2e)', () => {
       const { accessToken } = await createInternalUser(SYSTEM_ROLES.VLASNIK);
       const account = await createClientAccount();
       const booking = await createBooking(account.id, { channel: 'B2C_SITE' });
-      const fixture = await createContractedProductFixture({ destinationCountry: 'RS', destinationCity: 'Zlatibor-Profit' });
+      const fixture = await createContractedProductFixture({
+        destinationCountry: 'RS',
+        destinationCity: 'Zlatibor-Profit',
+      });
       await createBookingItem(booking.id, fixture, { baseCost: 10000, finalPrice: 12000 });
 
-      await eventBus.emit('M5', 'booking.confirmed', { bookingId: booking.id, bookingNumber: booking.bookingNumber });
+      await eventBus.emit('M5', 'booking.confirmed', {
+        bookingId: booking.id,
+        bookingNumber: booking.bookingNumber,
+      });
       await wait(500);
 
       const fact = await prisma.factBooking.findFirst({ where: { bookingId: booking.id } });
@@ -289,7 +356,9 @@ describe('M13 — izlazni kriterijum (e2e)', () => {
 
     it('korisnik bez report:profitability/VIEW dobija 403', async () => {
       const { accessToken } = await createInternalUser(SYSTEM_ROLES.PRODAJNI_AGENT);
-      const res = await request(app.getHttpServer()).get('/api/v1/bi/reports/profitability').set(authed(accessToken));
+      const res = await request(app.getHttpServer())
+        .get('/api/v1/bi/reports/profitability')
+        .set(authed(accessToken));
       expect(res.status).toBe(403);
     });
   });
@@ -298,8 +367,14 @@ describe('M13 — izlazni kriterijum (e2e)', () => {
     it('BookingItem kreirana bez emitovanog Event Bus događaja (simulacija izgubljenog eventa) nema FactBooking dok se ne pokrene rekonsilijacija', async () => {
       const account = await createClientAccount();
       const booking = await createBooking(account.id, { channel: 'B2B_PORTAL' });
-      const fixture = await createContractedProductFixture({ destinationCountry: 'RS', destinationCity: 'Zlatibor-Recon' });
-      const item = await createBookingItem(booking.id, fixture, { baseCost: 8000, finalPrice: 9500 });
+      const fixture = await createContractedProductFixture({
+        destinationCountry: 'RS',
+        destinationCity: 'Zlatibor-Recon',
+      });
+      const item = await createBookingItem(booking.id, fixture, {
+        baseCost: 8000,
+        finalPrice: 9500,
+      });
 
       // Namerno NE emitujemo booking.confirmed — simulira izgubljen Event Bus događaj.
       const missing = await prisma.factBooking.findUnique({ where: { bookingItemId: item.id } });
@@ -315,7 +390,9 @@ describe('M13 — izlazni kriterijum (e2e)', () => {
 
     it('POST /bi/reconciliation/run (Vlasnik/Direktor) pokreće istu proveru ručno preko API-ja', async () => {
       const { accessToken } = await createInternalUser(SYSTEM_ROLES.VLASNIK);
-      const res = await request(app.getHttpServer()).post('/api/v1/bi/reconciliation/run').set(authed(accessToken));
+      const res = await request(app.getHttpServer())
+        .post('/api/v1/bi/reconciliation/run')
+        .set(authed(accessToken));
       expect(res.status).toBe(201);
       expect(res.body.ranAt).toBeDefined();
     });
@@ -325,15 +402,25 @@ describe('M13 — izlazni kriterijum (e2e)', () => {
     it('rebuildAll() posle brisanja daje isti FactBooking red za postojeću stavku', async () => {
       const account = await createClientAccount();
       const booking = await createBooking(account.id);
-      const fixture = await createContractedProductFixture({ destinationCountry: 'RS', destinationCity: 'Zlatibor-Rebuild' });
-      const item = await createBookingItem(booking.id, fixture, { baseCost: 7000, finalPrice: 8400 });
+      const fixture = await createContractedProductFixture({
+        destinationCountry: 'RS',
+        destinationCity: 'Zlatibor-Rebuild',
+      });
+      const item = await createBookingItem(booking.id, fixture, {
+        baseCost: 7000,
+        finalPrice: 8400,
+      });
       await factSync.syncBookingItem(item.id);
 
-      const before = await prisma.factBooking.findUniqueOrThrow({ where: { bookingItemId: item.id } });
+      const before = await prisma.factBooking.findUniqueOrThrow({
+        where: { bookingItemId: item.id },
+      });
 
       await factSync.rebuildAll();
 
-      const after = await prisma.factBooking.findUniqueOrThrow({ where: { bookingItemId: item.id } });
+      const after = await prisma.factBooking.findUniqueOrThrow({
+        where: { bookingItemId: item.id },
+      });
       expect(after.margin).toBe(before.margin);
       expect(after.destinationCity).toBe(before.destinationCity);
       expect(after.supplierName).toBe(before.supplierName);
@@ -346,11 +433,25 @@ describe('M13 — izlazni kriterijum (e2e)', () => {
     it('agregira ispravno preko CONTRACTED i API stavki, sa jasnom naznakom nerazvrstanih', async () => {
       const account = await createClientAccount();
       const booking = await createBooking(account.id);
-      const contractedFixture = await createContractedProductFixture({ destinationCountry: 'IT', destinationCity: 'Rim', roomType: 'DELUXE', boardType: 'ALL_INCLUSIVE', stars: 5 });
-      const contractedItem = await createBookingItem(booking.id, contractedFixture, { guestCount: 3 });
+      const contractedFixture = await createContractedProductFixture({
+        destinationCountry: 'IT',
+        destinationCity: 'Rim',
+        roomType: 'DELUXE',
+        boardType: 'ALL_INCLUSIVE',
+        stars: 5,
+      });
+      const contractedItem = await createBookingItem(booking.id, contractedFixture, {
+        guestCount: 3,
+      });
 
-      const apiFixture = await createApiProductFixture({ destinationCountry: 'IT', destinationCity: 'Rim' });
-      const apiItem = await createBookingItem(booking.id, apiFixture, { guestCount: 2, sourceType: 'API' });
+      const apiFixture = await createApiProductFixture({
+        destinationCountry: 'IT',
+        destinationCity: 'Rim',
+      });
+      const apiItem = await createBookingItem(booking.id, apiFixture, {
+        guestCount: 2,
+        sourceType: 'API',
+      });
 
       await factSync.syncBookingItem(contractedItem.id);
       await factSync.syncBookingItem(apiItem.id);
@@ -403,12 +504,26 @@ describe('M13 — izlazni kriterijum (e2e)', () => {
       const { accessToken } = await createInternalUser(SYSTEM_ROLES.VLASNIK);
       const account = await createClientAccount();
       const booking = await createBooking(account.id, { channel: 'B2C_SITE' });
-      const fixture = await createContractedProductFixture({ destinationCountry: 'FR', destinationCity: 'Pariz' });
-      const item = await createBookingItem(booking.id, fixture, { baseCost: 10000, finalPrice: 15000 });
+      const fixture = await createContractedProductFixture({
+        destinationCountry: 'FR',
+        destinationCity: 'Pariz',
+      });
+      const item = await createBookingItem(booking.id, fixture, {
+        baseCost: 10000,
+        finalPrice: 15000,
+      });
       await factSync.syncBookingItem(item.id);
 
       const payment = await prisma.payment.create({
-        data: { bookingId: booking.id, amount: 6000, currency: 'RSD', method: 'BANK_TRANSFER', status: 'RECEIVED', receivedAt: new Date(), recordedBy: 'e2e-test' },
+        data: {
+          bookingId: booking.id,
+          amount: 6000,
+          currency: 'RSD',
+          method: 'BANK_TRANSFER',
+          status: 'RECEIVED',
+          receivedAt: new Date(),
+          recordedBy: 'e2e-test',
+        },
       });
       createdPaymentIds.push(payment.id);
       await factSync.syncPayment(payment.id);
@@ -430,7 +545,10 @@ describe('M13 — izlazni kriterijum (e2e)', () => {
 
     it('nepoznata dimenzija u group_by vraća 400', async () => {
       const { accessToken } = await createInternalUser(SYSTEM_ROLES.VLASNIK);
-      const res = await request(app.getHttpServer()).get('/api/v1/bi/reports/dynamic').query({ group_by: 'ne_postoji' }).set(authed(accessToken));
+      const res = await request(app.getHttpServer())
+        .get('/api/v1/bi/reports/dynamic')
+        .query({ group_by: 'ne_postoji' })
+        .set(authed(accessToken));
       expect(res.status).toBe(400);
     });
   });
@@ -440,14 +558,24 @@ describe('M13 — izlazni kriterijum (e2e)', () => {
       const { accessToken } = await createInternalUser(SYSTEM_ROLES.VLASNIK);
       const account = await createClientAccount();
       const booking = await createBooking(account.id); // bez referralTrackingCode
-      const fixture = await createContractedProductFixture({ destinationCountry: 'GR', destinationCity: 'Solun' });
-      const item = await createBookingItem(booking.id, fixture, { baseCost: 5000, finalPrice: 6000 });
+      const fixture = await createContractedProductFixture({
+        destinationCountry: 'GR',
+        destinationCity: 'Solun',
+      });
+      const item = await createBookingItem(booking.id, fixture, {
+        baseCost: 5000,
+        finalPrice: 6000,
+      });
       await factSync.syncBookingItem(item.id);
 
-      const fact = await prisma.factBooking.findUniqueOrThrow({ where: { bookingItemId: item.id } });
+      const fact = await prisma.factBooking.findUniqueOrThrow({
+        where: { bookingItemId: item.id },
+      });
       expect(fact.referralContentId).toBeNull(); // bez referral_tracking_code na Booking-u → null (spec §4.3), bez obzira što M12 sad postoji
 
-      const res = await request(app.getHttpServer()).get('/api/v1/bi/reports/marketing').set(authed(accessToken));
+      const res = await request(app.getHttpServer())
+        .get('/api/v1/bi/reports/marketing')
+        .set(authed(accessToken));
       expect(res.status).toBe(200);
       expect(res.body.withoutKnownOrigin.count).toBeGreaterThanOrEqual(1);
       expect(res.body.byContent.every((b: any) => b.key !== null)).toBe(true);

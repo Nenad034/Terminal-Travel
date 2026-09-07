@@ -1,7 +1,13 @@
 'use client';
 
 import { useRouter, useSearchParams } from 'next/navigation';
-import { computeRange, rangeLabel, shiftAnchor, todayIso, type CalendarView } from '@/lib/calendar-date';
+import {
+  computeRange,
+  rangeLabel,
+  shiftAnchor,
+  todayIso,
+  type CalendarView,
+} from '@/lib/calendar-date';
 
 const VIEW_LABELS: Record<CalendarView, string> = { month: 'Mesec', week: 'Nedelja', day: 'Dan' };
 const STATE_KEYS = ['stayFrom', 'stayTo', 'periodView', 'periodAnchor'];
@@ -24,7 +30,10 @@ export default function PeriodQuickFilter() {
   const searchParams = useSearchParams();
 
   const periodViewRaw = searchParams.get('periodView');
-  const periodView = periodViewRaw && ['month', 'week', 'day'].includes(periodViewRaw) ? (periodViewRaw as CalendarView) : null;
+  const periodView =
+    periodViewRaw && ['month', 'week', 'day'].includes(periodViewRaw)
+      ? (periodViewRaw as CalendarView)
+      : null;
   const anchor = searchParams.get('periodAnchor') ?? todayIso();
 
   function go(view: CalendarView, anchorIso: string) {
@@ -52,7 +61,9 @@ export default function PeriodQuickFilter() {
           onClick={() => go(v, periodView === v ? anchor : todayIso())}
           title={`Prikaz po ${VIEW_LABELS[v].toLowerCase()}u`}
           className={`flex h-[26px] items-center gap-1 rounded-full border px-2.5 text-[11px] font-semibold ${
-            v === periodView ? 'border-accent bg-accent-soft text-accent-strong' : 'border-ink-faint text-ink-faint hover:border-accent hover:text-ink'
+            v === periodView
+              ? 'border-accent bg-accent-soft text-accent-strong'
+              : 'border-ink-faint text-ink-faint hover:border-accent hover:text-ink'
           }`}
         >
           {VIEW_LABELS[v]}
@@ -67,7 +78,9 @@ export default function PeriodQuickFilter() {
           >
             ‹
           </button>
-          <span className="whitespace-nowrap font-mono text-[11px] text-ink">{rangeLabel(periodView, anchor)}</span>
+          <span className="whitespace-nowrap font-mono text-[11px] text-ink">
+            {rangeLabel(periodView, anchor)}
+          </span>
           <button
             onClick={() => go(periodView, shiftAnchor(periodView, anchor, 1))}
             title="Sledeći period"
@@ -75,7 +88,11 @@ export default function PeriodQuickFilter() {
           >
             ›
           </button>
-          <button onClick={clear} title="Ukloni brzi period" className="flex h-[26px] w-[22px] items-center justify-center rounded text-ink-faint hover:text-danger">
+          <button
+            onClick={clear}
+            title="Ukloni brzi period"
+            className="flex h-[26px] w-[22px] items-center justify-center rounded text-ink-faint hover:text-danger"
+          >
             ✕
           </button>
         </>

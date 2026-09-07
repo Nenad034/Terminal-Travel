@@ -20,10 +20,18 @@ export default function CreateClientForm() {
     return (
       <div className="mb-4 rounded-lg border border-ok bg-ok-bg p-4 text-sm">
         <p className="font-semibold text-ink">
-          Klijent „{state.clientName}“ registrovan. Sačuvajte kredencijal — prikazuje se samo ovaj put:
+          Klijent „{state.clientName}“ registrovan. Sačuvajte kredencijal — prikazuje se samo ovaj
+          put:
         </p>
-        <code className="mt-2 block break-all rounded bg-panel px-2 py-1.5 text-xs text-ink">{state.credential}</code>
-        <Button onClick={() => setOpen(false)} variant="outline" size="sm" className="mt-3 h-auto px-2 py-1 text-[11px]">
+        <code className="mt-2 block break-all rounded bg-panel px-2 py-1.5 text-xs text-ink">
+          {state.credential}
+        </code>
+        <Button
+          onClick={() => setOpen(false)}
+          variant="outline"
+          size="sm"
+          className="mt-3 h-auto px-2 py-1 text-[11px]"
+        >
           Zatvori
         </Button>
       </div>
@@ -69,8 +77,8 @@ export default function CreateClientForm() {
         </Button>
       </div>
       <p className="mt-2 text-[11px] text-ink-faint">
-        Novi klijent počinje kao PENDING/READ_ONLY (M16 spec §3.1) — aktivacija i prelazak na READ_WRITE su odvojeni,
-        ručni koraci ispod.
+        Novi klijent počinje kao PENDING/READ_ONLY (M16 spec §3.1) — aktivacija i prelazak na
+        READ_WRITE su odvojeni, ručni koraci ispod.
       </p>
     </form>
   );

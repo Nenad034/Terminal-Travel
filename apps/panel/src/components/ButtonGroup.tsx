@@ -22,7 +22,9 @@ export function ButtonGroup<T extends string>({
           onClick={() => onChange(o.value)}
           aria-pressed={value === o.value}
           className={`rounded border px-2 py-1 text-xs ${
-            value === o.value ? 'border-accent bg-accent-soft text-accent-strong' : 'border-border text-ink-faint hover:border-accent hover:text-ink'
+            value === o.value
+              ? 'border-accent bg-accent-soft text-accent-strong'
+              : 'border-border text-ink-faint hover:border-accent hover:text-ink'
           }`}
         >
           {o.label}
@@ -34,14 +36,24 @@ export function ButtonGroup<T extends string>({
 
 // Višestruk izbor / boolean prekidač — prvi klik uključuje, drugi klik na ISTO dugme isključuje
 // (vlasnikovo "dva klika za ono što ne želim" kad je dugme već bilo uključeno).
-export function ToggleButton({ active, onToggle, label }: { active: boolean; onToggle: () => void; label: string }) {
+export function ToggleButton({
+  active,
+  onToggle,
+  label,
+}: {
+  active: boolean;
+  onToggle: () => void;
+  label: string;
+}) {
   return (
     <button
       type="button"
       onClick={onToggle}
       aria-pressed={active}
       className={`rounded border px-2 py-1 text-xs ${
-        active ? 'border-accent bg-accent-soft text-accent-strong' : 'border-border text-ink-faint hover:border-accent hover:text-ink'
+        active
+          ? 'border-accent bg-accent-soft text-accent-strong'
+          : 'border-border text-ink-faint hover:border-accent hover:text-ink'
       }`}
     >
       {label}

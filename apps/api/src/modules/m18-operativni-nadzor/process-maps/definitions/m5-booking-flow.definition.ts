@@ -16,8 +16,16 @@ export const M5_BOOKING_FLOW_PROCESS_MAP: ProcessMapDefinition = {
     // emisija, ne audit log) — čvor namerno pokriva OBA slučaja, ne samo stvarno potvrđene.
     { id: 'booking-created', label: 'Rezervacija kreirana', matchActions: ['booking.confirmed'] },
     { id: 'booking-modified', label: 'Rezervacija izmenjena', matchActions: ['booking.modified'] },
-    { id: 'payment-status-changed', label: 'Status plaćanja promenjen', matchActions: ['booking.payment_status_changed'] },
-    { id: 'voucher-override', label: 'Vaučer bez pune uplate', matchActions: ['booking.voucher_override_issued'] },
+    {
+      id: 'payment-status-changed',
+      label: 'Status plaćanja promenjen',
+      matchActions: ['booking.payment_status_changed'],
+    },
+    {
+      id: 'voucher-override',
+      label: 'Vaučer bez pune uplate',
+      matchActions: ['booking.voucher_override_issued'],
+    },
     { id: 'booking-cancelled', label: 'Rezervacija otkazana', matchActions: ['booking.cancelled'] },
   ],
 };

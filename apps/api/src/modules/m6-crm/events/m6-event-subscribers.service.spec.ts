@@ -4,7 +4,10 @@ import { M6EventSubscribersService } from './m6-event-subscribers.service';
 describe('M6EventSubscribersService', () => {
   function makeService() {
     const eventListener = { on: jest.fn() };
-    const prisma: any = { booking: { findUnique: jest.fn() }, user: { update: jest.fn().mockResolvedValue({}) } };
+    const prisma: any = {
+      booking: { findUnique: jest.fn() },
+      user: { update: jest.fn().mockResolvedValue({}) },
+    };
     const loyaltyStatus = { recalculate: jest.fn() };
     const postTripSurveys = { createForBooking: jest.fn() };
     const clientAccounts = { create: jest.fn() };
@@ -27,7 +30,11 @@ describe('M6EventSubscribersService', () => {
   it('registruje handler za M1 user.registered.guest pri pokretanju', () => {
     const { service, eventListener } = makeService();
     service.onModuleInit();
-    expect(eventListener.on).toHaveBeenCalledWith('M1', 'user.registered.guest', expect.any(Function));
+    expect(eventListener.on).toHaveBeenCalledWith(
+      'M1',
+      'user.registered.guest',
+      expect.any(Function),
+    );
   });
 
   describe('user.registered.guest', () => {
@@ -44,7 +51,10 @@ describe('M6EventSubscribersService', () => {
         fullName: 'Gost Gostić',
         email: 'gost@tt.rs',
       });
-      expect(prisma.user.update).toHaveBeenCalledWith({ where: { id: 'user-1' }, data: { linkedProfileId: 'account-1' } });
+      expect(prisma.user.update).toHaveBeenCalledWith({
+        where: { id: 'user-1' },
+        data: { linkedProfileId: 'account-1' },
+      });
     });
   });
 });

@@ -11,7 +11,15 @@ const initialState: FormState = { error: null };
 // M23/article-revision/APPROVE, nikad AI. Backend odbija approve (400) ako bilo koji referenciran
 // ArticleSource nije APPROVED (§9 izlazni kriterijum) — poruka greške dolazi odatle, ova
 // komponenta je samo prosleđuje.
-export default function RevisionActions({ articleId, revisionId, disabled }: { articleId: string; revisionId: string; disabled?: boolean }) {
+export default function RevisionActions({
+  articleId,
+  revisionId,
+  disabled,
+}: {
+  articleId: string;
+  revisionId: string;
+  disabled?: boolean;
+}) {
   const approveAction = reviewRevision.bind(null, articleId, revisionId, 'approve');
   const rejectAction = reviewRevision.bind(null, articleId, revisionId, 'reject');
   const [approveState, approveFormAction] = useActionState(approveAction, initialState);
@@ -27,8 +35,12 @@ export default function RevisionActions({ articleId, revisionId, disabled }: { a
           <RejectBtn />
         </form>
       </div>
-      {approveState.error && <span className="max-w-xs text-right text-[11px] text-danger">{approveState.error}</span>}
-      {rejectState.error && <span className="max-w-xs text-right text-[11px] text-danger">{rejectState.error}</span>}
+      {approveState.error && (
+        <span className="max-w-xs text-right text-[11px] text-danger">{approveState.error}</span>
+      )}
+      {rejectState.error && (
+        <span className="max-w-xs text-right text-[11px] text-danger">{rejectState.error}</span>
+      )}
     </div>
   );
 }
@@ -39,7 +51,11 @@ function ApproveBtn({ disabled }: { disabled?: boolean }) {
     <Button
       type="submit"
       disabled={pending || disabled}
-      title={disabled ? 'Svi referencirani izvori moraju biti APPROVED pre odobrenja revizije (§4b/§9).' : undefined}
+      title={
+        disabled
+          ? 'Svi referencirani izvori moraju biti APPROVED pre odobrenja revizije (§4b/§9).'
+          : undefined
+      }
       size="sm"
     >
       {pending ? 'Odobravam…' : 'odobri'}
@@ -50,7 +66,13 @@ function ApproveBtn({ disabled }: { disabled?: boolean }) {
 function RejectBtn() {
   const { pending } = useFormStatus();
   return (
-    <Button type="submit" disabled={pending} variant="outline" size="sm" className="hover:border-danger hover:text-danger">
+    <Button
+      type="submit"
+      disabled={pending}
+      variant="outline"
+      size="sm"
+      className="hover:border-danger hover:text-danger"
+    >
       {pending ? 'Odbijam…' : 'odbij'}
     </Button>
   );

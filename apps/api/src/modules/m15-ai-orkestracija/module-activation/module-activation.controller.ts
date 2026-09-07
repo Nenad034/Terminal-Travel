@@ -23,7 +23,11 @@ export class ModuleActivationController {
 
   @Patch(':code/activation')
   @RequirePermission('M15', 'module-activation', 'ACTIVATE')
-  update(@Param('code') code: string, @Body() dto: UpdateActivationDto, @CurrentUser() actor: { userId: string }) {
+  update(
+    @Param('code') code: string,
+    @Body() dto: UpdateActivationDto,
+    @CurrentUser() actor: { userId: string },
+  ) {
     return this.activation.update(code, dto.status, actor.userId);
   }
 }

@@ -21,7 +21,8 @@ describe('applyMarkup (M5 spec §2.1)', () => {
 
   it('ista ulazna cena uvek daje istu izlaznu cenu (determinizam)', () => {
     const results = new Set<number>();
-    for (let i = 0; i < 5; i++) results.add(applyMarkup(12345, { percentage: 12.5, fixedAmount: 200 }));
+    for (let i = 0; i < 5; i++)
+      results.add(applyMarkup(12345, { percentage: 12.5, fixedAmount: 200 }));
     expect(results.size).toBe(1);
   });
 

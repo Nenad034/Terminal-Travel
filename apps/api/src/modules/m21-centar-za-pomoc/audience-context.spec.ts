@@ -28,7 +28,10 @@ describe('resolveHelpAudience (M21 spec §2.3, avgust 2026 PUBLIC_GUEST dopuna)'
 
   it('SUBAGENT_CONTACT nalog vraća SUBAGENT (nema regresije)', async () => {
     const prisma = makePrisma();
-    prisma.user.findUnique.mockResolvedValue({ accountType: 'SUBAGENT_CONTACT', linkedProfileId: null });
+    prisma.user.findUnique.mockResolvedValue({
+      accountType: 'SUBAGENT_CONTACT',
+      linkedProfileId: null,
+    });
     expect(await resolveHelpAudience(prisma as any, 'u2')).toBe('SUBAGENT');
   });
 
@@ -55,7 +58,10 @@ describe('resolveHelpAudience (M21 spec §2.3, avgust 2026 PUBLIC_GUEST dopuna)'
 
   it('nalog bez rešive publike (npr. SUPPLIER_CONTACT) i dalje vraća null', async () => {
     const prisma = makePrisma();
-    prisma.user.findUnique.mockResolvedValue({ accountType: 'SUPPLIER_CONTACT', linkedProfileId: null });
+    prisma.user.findUnique.mockResolvedValue({
+      accountType: 'SUPPLIER_CONTACT',
+      linkedProfileId: null,
+    });
     expect(await resolveHelpAudience(prisma as any, 'u6')).toBeNull();
   });
 

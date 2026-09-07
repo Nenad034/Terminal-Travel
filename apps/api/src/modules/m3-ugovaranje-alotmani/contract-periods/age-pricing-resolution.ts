@@ -28,7 +28,12 @@ export function resolveAgePricing(
   if (exactIndex) return exactIndex;
 
   const conditional = forCategory
-    .filter((c) => c.occupantIndex === null && c.minAdultsPresent !== null && c.minAdultsPresent <= adultsPresent)
+    .filter(
+      (c) =>
+        c.occupantIndex === null &&
+        c.minAdultsPresent !== null &&
+        c.minAdultsPresent <= adultsPresent,
+    )
     .sort((a, b) => (b.minAdultsPresent ?? 0) - (a.minAdultsPresent ?? 0));
   if (conditional.length > 0) return conditional[0];
 

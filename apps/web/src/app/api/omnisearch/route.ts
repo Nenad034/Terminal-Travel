@@ -17,7 +17,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(result);
   } catch (err) {
     if (err instanceof ApiError) {
-      return NextResponse.json(err.body ?? { message: 'Pretraga trenutno nije dostupna' }, { status: err.status });
+      return NextResponse.json(err.body ?? { message: 'Pretraga trenutno nije dostupna' }, {
+        status: err.status,
+      });
     }
     throw err;
   }

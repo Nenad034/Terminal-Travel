@@ -64,7 +64,9 @@ export default function NotificationBell() {
         setConversationId(obavestenja.id);
         const lastMessageAt = obavestenja.lastMessage?.sentAt ?? null;
         const lastReadAt = obavestenja.lastReadAt ?? null;
-        setUnread(Boolean(lastMessageAt && (!lastReadAt || new Date(lastMessageAt) > new Date(lastReadAt))));
+        setUnread(
+          Boolean(lastMessageAt && (!lastReadAt || new Date(lastMessageAt) > new Date(lastReadAt))),
+        );
       } catch {
         // bez podataka — zvono ostaje u mirnom stanju
       }
@@ -91,7 +93,9 @@ export default function NotificationBell() {
     setOpen(next);
     if (!next || !conversationId) return;
     try {
-      const res = await fetch(`/api/chat/conversations/${conversationId}/messages`, { cache: 'no-store' });
+      const res = await fetch(`/api/chat/conversations/${conversationId}/messages`, {
+        cache: 'no-store',
+      });
       if (res.ok) {
         const messages: MessageItem[] = await res.json();
         setItems(messages.map(parseHistoryItem).reverse());
@@ -114,7 +118,9 @@ export default function NotificationBell() {
         // tagove, kao sto su u levoj") — isti jezik kao `ActivityBar.tsx` bedž (36px, `rounded-md`,
         // `bg-panel`/`bg-accent-soft`), otkad je ovo dugme preseljeno iz `TopBar.tsx` u `RightRail.tsx`.
         className={`relative flex h-[36px] w-[36px] flex-shrink-0 items-center justify-center rounded-md ${
-          open ? 'bg-accent-soft text-accent-strong' : 'bg-panel text-ink-faint hover:bg-panel2 hover:text-ink'
+          open
+            ? 'bg-accent-soft text-accent-strong'
+            : 'bg-panel text-ink-faint hover:bg-panel2 hover:text-ink'
         }`}
       >
         <Icon name="bell" />
@@ -123,17 +129,27 @@ export default function NotificationBell() {
       {open && (
         <div className="absolute right-0 top-full z-50 mt-1 w-80 rounded-lg border border-border bg-panel py-1 text-xs shadow-lg">
           {items === null && <p className="px-3 py-2 text-ink-faint">Učitavanje…</p>}
-          {items !== null && items.length === 0 && <p className="px-3 py-2 text-ink-faint">Nema obaveštenja.</p>}
+          {items !== null && items.length === 0 && (
+            <p className="px-3 py-2 text-ink-faint">Nema obaveštenja.</p>
+          )}
           {items !== null && items.length > 0 && (
             <div className="max-h-96 overflow-y-auto">
               {items.map((item) => (
                 <div key={item.id} className="border-b border-border px-3 py-2 last:border-b-0">
                   <div className="mb-0.5 flex items-center gap-1.5">
-                    <span className={`h-1.5 w-1.5 flex-shrink-0 rounded-full ${item.severity === 'danger' ? 'bg-danger' : 'bg-accent'}`} />
+                    <span
+                      className={`h-1.5 w-1.5 flex-shrink-0 rounded-full ${item.severity === 'danger' ? 'bg-danger' : 'bg-accent'}`}
+                    />
                     <span className="font-medium text-ink">{item.title}</span>
                   </div>
-                  {item.detail && <p className="mb-1 line-clamp-3 font-mono text-[11px] text-ink-faint">{item.detail}</p>}
-                  <span className="text-[11px] text-ink-faint">{new Date(item.sentAt).toLocaleString('sr-RS')}</span>
+                  {item.detail && (
+                    <p className="mb-1 line-clamp-3 font-mono text-[11px] text-ink-faint">
+                      {item.detail}
+                    </p>
+                  )}
+                  <span className="text-[11px] text-ink-faint">
+                    {new Date(item.sentAt).toLocaleString('sr-RS')}
+                  </span>
                 </div>
               ))}
             </div>

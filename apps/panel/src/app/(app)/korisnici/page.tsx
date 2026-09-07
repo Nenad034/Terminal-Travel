@@ -6,8 +6,14 @@ import Icon from '@/components/Icon';
 import TabLink from '@/components/TabLink';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 
 interface UserRow {
   id: string;
@@ -35,7 +41,9 @@ export default async function KorisniciPage(props: { searchParams: Promise<{ q?:
   }
 
   const q = searchParams?.q?.toLowerCase().trim();
-  const filtered = q ? users.filter((u) => u.fullName.toLowerCase().includes(q) || u.email.toLowerCase().includes(q)) : users;
+  const filtered = q
+    ? users.filter((u) => u.fullName.toLowerCase().includes(q) || u.email.toLowerCase().includes(q))
+    : users;
 
   return (
     <div className="p-6">
@@ -62,7 +70,12 @@ export default async function KorisniciPage(props: { searchParams: Promise<{ q?:
 
       {!error && (
         <form className="mb-3 flex gap-2 text-xs" action="/korisnici">
-          <input name="q" defaultValue={searchParams?.q ?? ''} placeholder="pretraga po imenu ili email-u" className="input flex-1" />
+          <input
+            name="q"
+            defaultValue={searchParams?.q ?? ''}
+            placeholder="pretraga po imenu ili email-u"
+            className="input flex-1"
+          />
           <Button type="submit" variant="secondary" size="sm">
             traži
           </Button>
@@ -93,7 +106,11 @@ export default async function KorisniciPage(props: { searchParams: Promise<{ q?:
               {filtered.map((u) => (
                 <TableRow key={u.id} className="cursor-pointer">
                   <TableCell className="p-0">
-                    <TabLink href={`/korisnici/${u.id}`} label={u.fullName} className="flex h-full w-full items-center px-3.5 py-2.5 font-medium text-ink">
+                    <TabLink
+                      href={`/korisnici/${u.id}`}
+                      label={u.fullName}
+                      className="flex h-full w-full items-center px-3.5 py-2.5 font-medium text-ink"
+                    >
                       {u.fullName}
                     </TabLink>
                   </TableCell>
@@ -111,8 +128,16 @@ export default async function KorisniciPage(props: { searchParams: Promise<{ q?:
                   <TableCell>
                     <StatusBadge status={u.status} />
                   </TableCell>
-                  <TableCell>{u.mfaEnabled ? <Badge variant="ok">uključeno</Badge> : <Badge variant="warn">isključeno</Badge>}</TableCell>
-                  <TableCell className="text-ink-faint">{u.lastLoginAt ? new Date(u.lastLoginAt).toLocaleString('sr-RS') : 'nikad'}</TableCell>
+                  <TableCell>
+                    {u.mfaEnabled ? (
+                      <Badge variant="ok">uključeno</Badge>
+                    ) : (
+                      <Badge variant="warn">isključeno</Badge>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-ink-faint">
+                    {u.lastLoginAt ? new Date(u.lastLoginAt).toLocaleString('sr-RS') : 'nikad'}
+                  </TableCell>
                 </TableRow>
               ))}
               {filtered.length === 0 && (

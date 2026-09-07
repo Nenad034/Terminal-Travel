@@ -12,7 +12,11 @@ export function AcceptButton({ id }: { id: string }) {
   const [state, formAction] = useActionState(boundAction, initialState);
   return (
     <form action={formAction} className="inline-flex items-center gap-2">
-      <Btn label="Evidentiraj prihvatanje (skenirani potpis)" pendingLabel="Beležim…" tone="accent" />
+      <Btn
+        label="Evidentiraj prihvatanje (skenirani potpis)"
+        pendingLabel="Beležim…"
+        tone="accent"
+      />
       {state.error && <span className="text-[11px] text-danger">{state.error}</span>}
     </form>
   );
@@ -29,10 +33,23 @@ export function VoidButton({ id }: { id: string }) {
   );
 }
 
-function Btn({ label, pendingLabel, tone }: { label: string; pendingLabel: string; tone: 'accent' | 'danger' }) {
+function Btn({
+  label,
+  pendingLabel,
+  tone,
+}: {
+  label: string;
+  pendingLabel: string;
+  tone: 'accent' | 'danger';
+}) {
   const { pending } = useFormStatus();
   return (
-    <Button type="submit" disabled={pending} variant={tone === 'accent' ? 'default' : 'destructive'} size="sm">
+    <Button
+      type="submit"
+      disabled={pending}
+      variant={tone === 'accent' ? 'default' : 'destructive'}
+      size="sm"
+    >
       {pending ? pendingLabel : label}
     </Button>
   );

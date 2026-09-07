@@ -47,11 +47,16 @@ export default function PermissionOverrides({
   return (
     <div className="flex flex-col gap-3">
       {overrides.length === 0 ? (
-        <p className="text-xs text-ink-faint">Nema pojedinačnih izuzetaka — korisnik prati samo dozvole svojih uloga.</p>
+        <p className="text-xs text-ink-faint">
+          Nema pojedinačnih izuzetaka — korisnik prati samo dozvole svojih uloga.
+        </p>
       ) : (
         <div className="flex flex-col gap-2">
           {overrides.map((o) => (
-            <div key={o.id} className="flex items-start justify-between gap-3 rounded border border-border bg-panel2 p-2.5 text-xs">
+            <div
+              key={o.id}
+              className="flex items-start justify-between gap-3 rounded border border-border bg-panel2 p-2.5 text-xs"
+            >
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
                   <Badge variant={o.effect === 'ALLOW' ? 'ok' : 'danger'}>{o.effect}</Badge>
@@ -61,7 +66,8 @@ export default function PermissionOverrides({
                 </div>
                 <p className="mt-1 text-ink-dim">{o.reason}</p>
                 <p className="mt-1 text-[11px] text-ink-faint">
-                  dodelio {o.grantedBy.slice(0, 8)}… · {new Date(o.grantedAt).toLocaleDateString('sr-RS')}
+                  dodelio {o.grantedBy.slice(0, 8)}… ·{' '}
+                  {new Date(o.grantedAt).toLocaleDateString('sr-RS')}
                   {o.expiresAt && ` · ističe ${new Date(o.expiresAt).toLocaleDateString('sr-RS')}`}
                 </p>
               </div>
@@ -73,9 +79,19 @@ export default function PermissionOverrides({
 
       {canCreate &&
         (showForm ? (
-          <CreateOverrideForm userId={userId} permissions={permissions} onDone={() => setShowForm(false)} />
+          <CreateOverrideForm
+            userId={userId}
+            permissions={permissions}
+            onDone={() => setShowForm(false)}
+          />
         ) : (
-          <Button type="button" onClick={() => setShowForm(true)} variant="outline" size="sm" className="self-start">
+          <Button
+            type="button"
+            onClick={() => setShowForm(true)}
+            variant="outline"
+            size="sm"
+            className="self-start"
+          >
             + dodaj izuzetak
           </Button>
         ))}
@@ -88,20 +104,38 @@ function RemoveOverrideButton({ userId, overrideId }: { userId: string; override
   const [, formAction] = useActionState(boundAction, initialState);
   return (
     <form action={formAction}>
-      <Button type="submit" variant="ghost" size="sm" className="h-auto px-2 py-1 text-[11px] text-danger hover:text-danger">
+      <Button
+        type="submit"
+        variant="ghost"
+        size="sm"
+        className="h-auto px-2 py-1 text-[11px] text-danger hover:text-danger"
+      >
         ukloni
       </Button>
     </form>
   );
 }
 
-function CreateOverrideForm({ userId, permissions, onDone }: { userId: string; permissions: PermissionOption[]; onDone: () => void }) {
+function CreateOverrideForm({
+  userId,
+  permissions,
+  onDone,
+}: {
+  userId: string;
+  permissions: PermissionOption[];
+  onDone: () => void;
+}) {
   const boundAction = createPermissionOverride.bind(null, userId);
   const [state, formAction] = useActionState(boundAction, initialState);
 
   return (
-    <form action={formAction} className="flex flex-col gap-2 rounded border border-border bg-panel2 p-3 text-xs">
-      {state.error && <p className="rounded bg-danger-bg p-2 text-[11px] text-danger">{state.error}</p>}
+    <form
+      action={formAction}
+      className="flex flex-col gap-2 rounded border border-border bg-panel2 p-3 text-xs"
+    >
+      {state.error && (
+        <p className="rounded bg-danger-bg p-2 text-[11px] text-danger">{state.error}</p>
+      )}
       <label className="text-ink-faint">
         dozvola
         <select name="permissionId" required className="input mt-1">
@@ -121,7 +155,14 @@ function CreateOverrideForm({ userId, permissions, onDone }: { userId: string; p
       </label>
       <label className="text-ink-faint">
         razlog (obavezno)
-        <textarea name="reason" required minLength={3} rows={2} className="input mt-1" placeholder="Zašto je ovaj izuzetak potreban?" />
+        <textarea
+          name="reason"
+          required
+          minLength={3}
+          rows={2}
+          className="input mt-1"
+          placeholder="Zašto je ovaj izuzetak potreban?"
+        />
       </label>
       <label className="text-ink-faint">
         rok isteka (opciono)

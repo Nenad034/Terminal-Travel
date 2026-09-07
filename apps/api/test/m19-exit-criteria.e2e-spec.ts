@@ -35,7 +35,9 @@ describe('M19 — izlazni kriterijum (e2e)', () => {
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
     app = moduleRef.createNestApplication();
     app.setGlobalPrefix('api/v1');
-    app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }));
+    app.useGlobalPipes(
+      new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }),
+    );
     app.useGlobalFilters(new PrismaExceptionFilter());
     await app.init();
     prisma = app.get(PrismaService);
@@ -46,12 +48,18 @@ describe('M19 — izlazni kriterijum (e2e)', () => {
   afterAll(async () => {
     // Redosled brisanja poštuje FK zavisnosti (Message/ConversationParticipant/
     // SupplierConversationAccess -> Conversation; SupplierContact -> Supplier).
-    const conversations = await prisma.conversation.findMany({ where: { createdBy: { in: createdUserIds } } });
+    const conversations = await prisma.conversation.findMany({
+      where: { createdBy: { in: createdUserIds } },
+    });
     const conversationIds = conversations.map((c) => c.id);
     if (conversationIds.length) {
       await prisma.message.deleteMany({ where: { conversationId: { in: conversationIds } } });
-      await prisma.supplierConversationAccess.deleteMany({ where: { conversationId: { in: conversationIds } } });
-      await prisma.conversationParticipant.deleteMany({ where: { conversationId: { in: conversationIds } } });
+      await prisma.supplierConversationAccess.deleteMany({
+        where: { conversationId: { in: conversationIds } },
+      });
+      await prisma.conversationParticipant.deleteMany({
+        where: { conversationId: { in: conversationIds } },
+      });
       await prisma.conversation.deleteMany({ where: { id: { in: conversationIds } } });
     }
     // Sistemska "Obaveštenja" konverzacija (InAppNotificationsService) — obriši i tu, pošto
@@ -63,11 +71,15 @@ describe('M19 — izlazni kriterijum (e2e)', () => {
     const notifConvoIds = [...new Set(systemNotifConvos.map((c) => c.conversationId))];
     if (notifConvoIds.length) {
       await prisma.message.deleteMany({ where: { conversationId: { in: notifConvoIds } } });
-      await prisma.conversationParticipant.deleteMany({ where: { conversationId: { in: notifConvoIds } } });
+      await prisma.conversationParticipant.deleteMany({
+        where: { conversationId: { in: notifConvoIds } },
+      });
       await prisma.conversation.deleteMany({ where: { id: { in: notifConvoIds } } });
     }
     if (createdSupplierIds.length) {
-      await prisma.supplierContact.deleteMany({ where: { supplierId: { in: createdSupplierIds } } });
+      await prisma.supplierContact.deleteMany({
+        where: { supplierId: { in: createdSupplierIds } },
+      });
       await prisma.supplier.deleteMany({ where: { id: { in: createdSupplierIds } } });
     }
     if (createdUserIds.length) {
@@ -90,7 +102,9 @@ describe('M19 — izlazni kriterijum (e2e)', () => {
     });
     createdUserIds.push(user.id);
     const role = await prisma.role.findUniqueOrThrow({ where: { name: roleName } });
-    await prisma.userRole.create({ data: { userId: user.id, roleId: role.id, assignedBy: user.id } });
+    await prisma.userRole.create({
+      data: { userId: user.id, roleId: role.id, assignedBy: user.id },
+    });
     const accessToken = jwt.sign({ sub: user.id, sessionId: 'e2e-test-session' });
     return { user, accessToken };
   }
@@ -196,7 +210,13 @@ describe('M19 — izlazni kriterijum (e2e)', () => {
     });
     createdSupplierIds.push(supplier.id);
     const contact = await prisma.supplierContact.create({
-      data: { supplierId: supplier.id, fullName: 'Ana Kontakt', email: `ana-kontakt-${testRunId}@primer.rs`, phone: '060222222', status: 'ACTIVE' },
+      data: {
+        supplierId: supplier.id,
+        fullName: 'Ana Kontakt',
+        email: `ana-kontakt-${testRunId}@primer.rs`,
+        phone: '060222222',
+        status: 'ACTIVE',
+      },
     });
 
     const convoRes = await request(app.getHttpServer())
@@ -221,7 +241,9 @@ describe('M19 — izlazni kriterijum (e2e)', () => {
     const dbContact = await prisma.supplierContact.findUniqueOrThrow({ where: { id: contact.id } });
     expect(dbContact.linkedUserId).toBe(contactUserId);
 
-    const resetToken = await prisma.passwordResetToken.findFirst({ where: { userId: contactUserId } });
+    const resetToken = await prisma.passwordResetToken.findFirst({
+      where: { userId: contactUserId },
+    });
     expect(resetToken).not.toBeNull();
 
     // Kontakt aktivira nalog (isti tok kao M1 activateAccount preko AuthController), pa se
@@ -230,7 +252,10 @@ describe('M19 — izlazni kriterijum (e2e)', () => {
       .post('/api/v1/iam/auth/activate')
       .send({ token: inviteRes.body.inviteToken, newPassword: 'DovoljnoJakaLozinka123!' });
     expect(activateRes.status).toBe(201);
-    const contactAccessToken = jwt.sign({ sub: contactUserId, sessionId: 'e2e-supplier-contact-session' });
+    const contactAccessToken = jwt.sign({
+      sub: contactUserId,
+      sessionId: 'e2e-supplier-contact-session',
+    });
 
     const listAsContact = await request(app.getHttpServer())
       .get('/api/v1/chat/conversations')
@@ -388,7 +413,11 @@ describe('M19 — izlazni kriterijum (e2e)', () => {
           if (entry.isDirectory()) walk(full);
           else if (entry.isFile() && entry.name.endsWith('.ts')) {
             const content = fs.readFileSync(full, 'utf-8');
-            if (content.includes("eventListener.on('M19'") || content.includes('eventListener.on("M19"')) matches++;
+            if (
+              content.includes("eventListener.on('M19'") ||
+              content.includes('eventListener.on("M19"')
+            )
+              matches++;
           }
         }
       };

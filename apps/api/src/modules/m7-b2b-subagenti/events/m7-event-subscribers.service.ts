@@ -34,7 +34,9 @@ export class M7EventSubscribersService implements OnModuleInit {
   private async recalculateForBooking(bookingId: string): Promise<void> {
     const booking = await this.prisma.booking.findUnique({ where: { id: bookingId } });
     if (!booking) return;
-    const subagent = await this.prisma.subagent.findUnique({ where: { clientAccountId: booking.clientAccountId } });
+    const subagent = await this.prisma.subagent.findUnique({
+      where: { clientAccountId: booking.clientAccountId },
+    });
     if (!subagent) return; // rezervacija nije od subagenta — ništa za preračun (M7 spec §3.1)
     await this.volumeStatus.recalculate(subagent.id);
   }

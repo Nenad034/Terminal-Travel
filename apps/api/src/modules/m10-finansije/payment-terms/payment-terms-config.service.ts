@@ -12,9 +12,13 @@ export class PaymentTermsConfigService {
   ) {}
 
   async getActive() {
-    const config = await this.prisma.paymentTermsConfig.findFirst({ orderBy: { updatedAt: 'desc' } });
+    const config = await this.prisma.paymentTermsConfig.findFirst({
+      orderBy: { updatedAt: 'desc' },
+    });
     if (!config) {
-      throw new NotFoundException('Politika akontacije/balansa (PaymentTermsConfig) još nije podešena (M10 spec §5.4.1).');
+      throw new NotFoundException(
+        'Politika akontacije/balansa (PaymentTermsConfig) još nije podešena (M10 spec §5.4.1).',
+      );
     }
     return config;
   }

@@ -25,7 +25,10 @@ export class ModelTierResolverService {
   constructor(private readonly prisma: PrismaService) {}
 
   async resolve(params: ResolveTierParams): Promise<ResolvedTier> {
-    const securityFloorTier = this.applySecurityFloor(params.requestedTier, params.securityCritical);
+    const securityFloorTier = this.applySecurityFloor(
+      params.requestedTier,
+      params.securityCritical,
+    );
     const degraded = await this.isDegraded(params.agentId, params.providerName);
 
     if (!degraded) {
@@ -47,10 +50,17 @@ export class ModelTierResolverService {
     const now = new Date();
 
     const [agentBudgets, providerQuotas] = await Promise.all([
-      this.prisma.aIAgentBudget.findMany({ where: { agentId, periodStart: { lte: now }, periodEnd: { gt: now } } }),
-      this.prisma.aIProviderQuota.findMany({ where: { providerName, periodStart: { lte: now }, periodEnd: { gt: now } } }),
+      this.prisma.aIAgentBudget.findMany({
+        where: { agentId, periodStart: { lte: now }, periodEnd: { gt: now } },
+      }),
+      this.prisma.aIProviderQuota.findMany({
+        where: { providerName, periodStart: { lte: now }, periodEnd: { gt: now } },
+      }),
     ]);
 
-    return agentBudgets.some((b) => b.enforcementState === 'DEGRADED') || providerQuotas.some((q) => q.enforcementState === 'DEGRADED');
+    return (
+      agentBudgets.some((b) => b.enforcementState === 'DEGRADED') ||
+      providerQuotas.some((q) => q.enforcementState === 'DEGRADED')
+    );
   }
 }

@@ -5,7 +5,12 @@ import { useFormStatus } from 'react-dom';
 import { useActionState } from 'react';
 import Icon from '@/components/Icon';
 import TabLink from '@/components/TabLink';
-import { grantSupplierAccess, inviteSupplierContact, revokeSupplierAccess, FormState } from './actions';
+import {
+  grantSupplierAccess,
+  inviteSupplierContact,
+  revokeSupplierAccess,
+  FormState,
+} from './actions';
 import { Button } from '@/components/ui/button';
 
 const initialGrantState: FormState = { error: null };
@@ -20,7 +25,10 @@ interface ConversationSummary {
 
 interface ConversationDetail {
   id: string;
-  participants: { userId: string; user: { id: string; fullName: string; accountType: string } | null }[];
+  participants: {
+    userId: string;
+    user: { id: string; fullName: string; accountType: string } | null;
+  }[];
 }
 
 interface AccessEntry {
@@ -57,24 +65,34 @@ export default function SupplierConversationRow({
 }) {
   const [manageOpen, setManageOpen] = useState(false);
 
-  const supplierContactParticipant = (detail?.participants ?? []).find((p) => p.user?.accountType === 'SUPPLIER_CONTACT');
+  const supplierContactParticipant = (detail?.participants ?? []).find(
+    (p) => p.user?.accountType === 'SUPPLIER_CONTACT',
+  );
   const availableContacts = contacts.filter((c) => !c.linkedUserId);
 
   return (
     <div className="rounded-lg border border-border bg-panel p-4">
       <div className="flex items-center justify-between">
         <div>
-          <TabLink href={`/chat/${conversation.id}`} label={supplierName} className="flex items-center gap-1.5 text-sm font-medium text-ink hover:text-accent">
+          <TabLink
+            href={`/chat/${conversation.id}`}
+            label={supplierName}
+            className="flex items-center gap-1.5 text-sm font-medium text-ink hover:text-accent"
+          >
             <Icon name="globe" /> {supplierName}
           </TabLink>
           <p className="mt-0.5 text-xs text-ink-faint">
-            {conversation.lastMessage ? (conversation.lastMessage.body ?? '(poruka obrisana)') : 'Nema poruka.'}
-            {conversation.lastMessage && ` · ${new Date(conversation.lastMessage.sentAt).toLocaleString('sr-RS')}`}
+            {conversation.lastMessage
+              ? (conversation.lastMessage.body ?? '(poruka obrisana)')
+              : 'Nema poruka.'}
+            {conversation.lastMessage &&
+              ` · ${new Date(conversation.lastMessage.sentAt).toLocaleString('sr-RS')}`}
           </p>
           <p className="mt-0.5 text-[11px] text-ink-faint">
             {supplierContactParticipant ? (
               <>
-                <Icon name="check" className="text-ok" /> kontakt dobavljača povezan: {supplierContactParticipant.user?.fullName}
+                <Icon name="check" className="text-ok" /> kontakt dobavljača povezan:{' '}
+                {supplierContactParticipant.user?.fullName}
               </>
             ) : (
               'kontakt-osoba dobavljača još nema portal nalog'
@@ -82,7 +100,12 @@ export default function SupplierConversationRow({
           </p>
         </div>
         {canGrant && (
-          <Button type="button" onClick={() => setManageOpen((v) => !v)} variant="outline" size="sm">
+          <Button
+            type="button"
+            onClick={() => setManageOpen((v) => !v)}
+            variant="outline"
+            size="sm"
+          >
             {manageOpen ? 'zatvori upravljanje' : 'upravljaj pristupom'}
           </Button>
         )}
@@ -93,11 +116,16 @@ export default function SupplierConversationRow({
           <div>
             <h3 className="mb-1 text-[11px] font-semibold text-ink-faint">Tim sa pristupom</h3>
             <ul className="mb-2 flex flex-col gap-1 text-xs">
-              {access.length === 0 && <li className="text-ink-faint">Niko još nema eksplicitno dodeljen pristup.</li>}
+              {access.length === 0 && (
+                <li className="text-ink-faint">Niko još nema eksplicitno dodeljen pristup.</li>
+              )}
               {access.map((a) => (
                 <li key={a.id} className="flex items-center justify-between">
                   <span>
-                    {a.userId} <span className="text-ink-faint">· dodeljeno {new Date(a.grantedAt).toLocaleDateString('sr-RS')}</span>
+                    {a.userId}{' '}
+                    <span className="text-ink-faint">
+                      · dodeljeno {new Date(a.grantedAt).toLocaleDateString('sr-RS')}
+                    </span>
                   </span>
                   <RevokeButton conversationId={conversation.id} userId={a.userId} />
                 </li>
@@ -107,11 +135,17 @@ export default function SupplierConversationRow({
           </div>
 
           <div>
-            <h3 className="mb-1 text-[11px] font-semibold text-ink-faint">Pozovi kontakt-osobu dobavljača</h3>
+            <h3 className="mb-1 text-[11px] font-semibold text-ink-faint">
+              Pozovi kontakt-osobu dobavljača
+            </h3>
             {supplierContactParticipant ? (
-              <p className="text-xs text-ink-faint">Ovaj razgovor već ima dodeljenu kontakt-osobu (§9.3 — tačno jedna po razgovoru).</p>
+              <p className="text-xs text-ink-faint">
+                Ovaj razgovor već ima dodeljenu kontakt-osobu (§9.3 — tačno jedna po razgovoru).
+              </p>
             ) : availableContacts.length === 0 ? (
-              <p className="text-xs text-ink-faint">Nema kontakt-osoba bez portal naloga za ovog dobavljača (M3/supplier-contact).</p>
+              <p className="text-xs text-ink-faint">
+                Nema kontakt-osoba bez portal naloga za ovog dobavljača (M3/supplier-contact).
+              </p>
             ) : (
               <InviteContactForm conversationId={conversation.id} contacts={availableContacts} />
             )}
@@ -127,8 +161,15 @@ function GrantAccessForm({ conversationId }: { conversationId: string }) {
   const [state, formAction] = useActionState(boundAction, initialGrantState);
   return (
     <form action={formAction} className="flex gap-2">
-      {state.error && <p className="w-full rounded bg-danger-bg p-1.5 text-[11px] text-danger">{state.error}</p>}
-      <input name="userId" required placeholder="ID korisnika (UUID, M1 User)" className="input flex-1 text-xs" />
+      {state.error && (
+        <p className="w-full rounded bg-danger-bg p-1.5 text-[11px] text-danger">{state.error}</p>
+      )}
+      <input
+        name="userId"
+        required
+        placeholder="ID korisnika (UUID, M1 User)"
+        className="input flex-1 text-xs"
+      />
       <GrantSubmit />
     </form>
   );
@@ -137,7 +178,13 @@ function GrantAccessForm({ conversationId }: { conversationId: string }) {
 function GrantSubmit() {
   const { pending } = useFormStatus();
   return (
-    <Button type="submit" disabled={pending} variant="outline" size="sm" className="h-auto border-accent px-2.5 py-1 text-[11px] text-accent-strong hover:bg-accent-soft">
+    <Button
+      type="submit"
+      disabled={pending}
+      variant="outline"
+      size="sm"
+      className="h-auto border-accent px-2.5 py-1 text-[11px] text-accent-strong hover:bg-accent-soft"
+    >
       {pending ? 'Dodeljujem…' : 'dodeli pristup'}
     </Button>
   );
@@ -153,15 +200,24 @@ function RevokeButton({ conversationId, userId }: { conversationId: string; user
   );
 }
 
-function InviteContactForm({ conversationId, contacts }: { conversationId: string; contacts: SupplierContactRow[] }) {
+function InviteContactForm({
+  conversationId,
+  contacts,
+}: {
+  conversationId: string;
+  contacts: SupplierContactRow[];
+}) {
   const boundAction = inviteSupplierContact.bind(null, conversationId);
   const [state, formAction] = useActionState(boundAction, initialInviteState);
   return (
     <form action={formAction} className="flex flex-col gap-2">
-      {state.error && <p className="rounded bg-danger-bg p-1.5 text-[11px] text-danger">{state.error}</p>}
+      {state.error && (
+        <p className="rounded bg-danger-bg p-1.5 text-[11px] text-danger">{state.error}</p>
+      )}
       {state.inviteToken && (
         <p className="break-all rounded bg-ok-bg p-1.5 text-[11px] text-ok">
-          Pozivnica kreirana — link tim ručno prosleđuje dobavljaču (§9.7): <code>{state.inviteToken}</code>
+          Pozivnica kreirana — link tim ručno prosleđuje dobavljaču (§9.7):{' '}
+          <code>{state.inviteToken}</code>
         </p>
       )}
       <div className="flex gap-2">
@@ -182,7 +238,13 @@ function InviteContactForm({ conversationId, contacts }: { conversationId: strin
 function InviteSubmit() {
   const { pending } = useFormStatus();
   return (
-    <Button type="submit" disabled={pending} variant="outline" size="sm" className="h-auto border-accent px-2.5 py-1 text-[11px] text-accent-strong hover:bg-accent-soft">
+    <Button
+      type="submit"
+      disabled={pending}
+      variant="outline"
+      size="sm"
+      className="h-auto border-accent px-2.5 py-1 text-[11px] text-accent-strong hover:bg-accent-soft"
+    >
       {pending ? 'Šaljem…' : 'pozovi kontakt'}
     </Button>
   );

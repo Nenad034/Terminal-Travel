@@ -29,7 +29,10 @@ export class ItinerariesService {
       if (identity.accountType === 'GUEST' || identity.accountType === 'AI_AGENT') {
         clientAccountId = identity.ownProfileId ?? undefined;
       } else if (identity.accountType === 'SUBAGENT_CONTACT' && identity.ownProfileId) {
-        clientAccountId = (await this.subagentBridge.resolveClientAccountIdForSubagentContact(identity.ownProfileId)) ?? undefined;
+        clientAccountId =
+          (await this.subagentBridge.resolveClientAccountIdForSubagentContact(
+            identity.ownProfileId,
+          )) ?? undefined;
       }
     }
     return this.prisma.itinerary.create({
@@ -50,7 +53,11 @@ export class ItinerariesService {
   async findAll(clientAccountId: string | undefined, actorUserId?: string) {
     let effectiveClientAccountId = clientAccountId;
     if (actorUserId) {
-      const { context, ownClientAccountId } = await resolveApiContext(this.prisma, this.subagentBridge, actorUserId);
+      const { context, ownClientAccountId } = await resolveApiContext(
+        this.prisma,
+        this.subagentBridge,
+        actorUserId,
+      );
       if (context !== 'INTERNAL_PANEL') effectiveClientAccountId = ownClientAccountId ?? undefined;
     }
     return this.prisma.itinerary.findMany({
@@ -69,7 +76,11 @@ export class ItinerariesService {
     });
     if (!itinerary) throw new NotFoundException(`Itinerary ${id} nije pronađen.`);
     if (actorUserId) {
-      const { context, ownClientAccountId } = await resolveApiContext(this.prisma, this.subagentBridge, actorUserId);
+      const { context, ownClientAccountId } = await resolveApiContext(
+        this.prisma,
+        this.subagentBridge,
+        actorUserId,
+      );
       if (context !== 'INTERNAL_PANEL' && itinerary.clientAccountId !== ownClientAccountId) {
         throw new NotFoundException(`Itinerary ${id} nije pronađen.`);
       }
@@ -125,7 +136,9 @@ export class ItinerariesService {
   async convertToQuote(id: string, actor: { userId?: string } | null) {
     const itinerary = await this.findOne(id, actor?.userId);
     if (itinerary.status !== 'DRAFT') {
-      throw new BadRequestException(`Itinerary ${id} nije u statusu DRAFT (već konvertovan ili napušten).`);
+      throw new BadRequestException(
+        `Itinerary ${id} nije u statusu DRAFT (već konvertovan ili napušten).`,
+      );
     }
 
     const included = itinerary.segments.filter((s) => s.isIncluded);
@@ -214,7 +227,9 @@ export class ItinerariesService {
   async abandon(id: string, actorUserId?: string) {
     const itinerary = await this.findOne(id, actorUserId);
     if (itinerary.status !== 'DRAFT') {
-      throw new BadRequestException(`Itinerary ${id} nije u statusu DRAFT (već konvertovan ili napušten).`);
+      throw new BadRequestException(
+        `Itinerary ${id} nije u statusu DRAFT (već konvertovan ili napušten).`,
+      );
     }
     return this.prisma.itinerary.update({ where: { id }, data: { status: 'ABANDONED' } });
   }

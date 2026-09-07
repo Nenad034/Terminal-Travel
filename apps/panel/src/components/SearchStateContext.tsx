@@ -97,11 +97,18 @@ export function SearchStateProvider({ children }: { children: React.ReactNode })
       const old = before.get(key);
       if (!old) next.added.push({ key, label: o.label, current: o.price, currency: o.currency });
       else if (old.price !== o.price) {
-        next.changed.push({ key, label: o.label, previous: old.price, current: o.price, currency: o.currency });
+        next.changed.push({
+          key,
+          label: o.label,
+          previous: old.price,
+          current: o.price,
+          currency: o.currency,
+        });
       }
     }
     for (const [key, o] of before) {
-      if (!after.has(key)) next.gone.push({ key, label: o.label, previous: o.price, currency: o.currency });
+      if (!after.has(key))
+        next.gone.push({ key, label: o.label, previous: o.price, currency: o.currency });
     }
 
     setDiff(next);
@@ -114,7 +121,15 @@ export function SearchStateProvider({ children }: { children: React.ReactNode })
 
   return (
     <SearchStateContext.Provider
-      value={{ criteriaFor, rememberCriteria, forgetCriteria, armRefresh, recordOffers, diff, clearDiff }}
+      value={{
+        criteriaFor,
+        rememberCriteria,
+        forgetCriteria,
+        armRefresh,
+        recordOffers,
+        diff,
+        clearDiff,
+      }}
     >
       {children}
     </SearchStateContext.Provider>

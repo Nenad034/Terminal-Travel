@@ -48,7 +48,12 @@ export class AuditLogController {
       {
         module,
         actorId,
-        actions: action ? action.split(',').map((a) => a.trim()).filter(Boolean) : undefined,
+        actions: action
+          ? action
+              .split(',')
+              .map((a) => a.trim())
+              .filter(Boolean)
+          : undefined,
         q,
         from: from ? new Date(from) : undefined,
         to: to ? endOfDayIfDateOnly(to) : undefined,

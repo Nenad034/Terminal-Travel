@@ -6,7 +6,6 @@ import Icon from '@/components/Icon';
 import TabLink from '@/components/TabLink';
 import { Button } from '@/components/ui/button';
 
-
 interface GuestProfile {
   id: string;
   fullName: string;
@@ -19,7 +18,9 @@ interface GuestProfile {
 }
 
 // M6 spec §2.2, §9 — GET /guest-profiles (opciono filtrirano po linkedClientAccountId).
-export default async function GuestProfilesPage(props: { searchParams: Promise<{ linkedClientAccountId?: string }> }) {
+export default async function GuestProfilesPage(props: {
+  searchParams: Promise<{ linkedClientAccountId?: string }>;
+}) {
   const searchParams = await props.searchParams;
   const me = await getMe();
   const canCreate = hasPermission(me, 'M6', 'guest-profile', 'CREATE');
@@ -27,7 +28,9 @@ export default async function GuestProfilesPage(props: { searchParams: Promise<{
   let guests: GuestProfile[] = [];
   let error: string | null = null;
   try {
-    const qs = searchParams?.linkedClientAccountId ? `?linkedClientAccountId=${encodeURIComponent(searchParams.linkedClientAccountId)}` : '';
+    const qs = searchParams?.linkedClientAccountId
+      ? `?linkedClientAccountId=${encodeURIComponent(searchParams.linkedClientAccountId)}`
+      : '';
     guests = await apiFetch<GuestProfile[]>(`/crm/guest-profiles${qs}`);
   } catch {
     error = 'Nemate dozvolu za uvid u profile gostiju (M6/guest-profile/VIEW).';
@@ -59,10 +62,16 @@ export default async function GuestProfilesPage(props: { searchParams: Promise<{
       {searchParams?.linkedClientAccountId && (
         <p className="mb-3 text-xs text-ink-faint">
           filtrirano po nalogodavcu{' '}
-          <Link href={`/crm/${searchParams.linkedClientAccountId}`} className="text-accent hover:underline">
+          <Link
+            href={`/crm/${searchParams.linkedClientAccountId}`}
+            className="text-accent hover:underline"
+          >
             {searchParams.linkedClientAccountId.slice(0, 8)}…
           </Link>{' '}
-          · <Link href="/crm/gosti" className="text-ink-faint hover:text-ink">obriši filter</Link>
+          ·{' '}
+          <Link href="/crm/gosti" className="text-ink-faint hover:text-ink">
+            obriši filter
+          </Link>
         </p>
       )}
 
@@ -70,7 +79,9 @@ export default async function GuestProfilesPage(props: { searchParams: Promise<{
 
       {!error && (
         <div className="overflow-hidden rounded-lg border border-border">
-          {guests.length === 0 && <p className="p-4 text-center text-xs text-ink-faint">Nema profila gostiju.</p>}
+          {guests.length === 0 && (
+            <p className="p-4 text-center text-xs text-ink-faint">Nema profila gostiju.</p>
+          )}
           {guests.map((g) => (
             <TabLink
               key={g.id}

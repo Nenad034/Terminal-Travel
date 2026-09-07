@@ -26,8 +26,19 @@ import { M18OperativniNadzorModule } from '../m18-operativni-nadzor/m18-operativ
 // kao sopstveni provider umesto uvoza celog M15 modula (isti minimalan-DI princip kao ostali
 // direktni provideri ovog modula).
 @Module({
-  imports: [AuthModule, PermissionsModule, AuditLogModule, EventBusModule, M18OperativniNadzorModule],
-  controllers: [ConversationsController, PresenceController, SupplierConversationsController, SupplierDraftController],
+  imports: [
+    AuthModule,
+    PermissionsModule,
+    AuditLogModule,
+    EventBusModule,
+    M18OperativniNadzorModule,
+  ],
+  controllers: [
+    ConversationsController,
+    PresenceController,
+    SupplierConversationsController,
+    SupplierDraftController,
+  ],
   providers: [
     ConversationsService,
     PresenceService,

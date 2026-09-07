@@ -1,4 +1,13 @@
-import { Body, Controller, Get, NotFoundException, Param, Post, Res, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  NotFoundException,
+  Param,
+  Post,
+  Res,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import type { Response } from 'express';
 import { BiTerminalService } from './bi-terminal.service';
@@ -34,8 +43,14 @@ export class BiTerminalController {
   @RequirePermission('M15', 'bi-terminal', 'VIEW')
   download(@Param('id') id: string, @Res() res: Response) {
     const report = getReport(id);
-    if (!report) throw new NotFoundException('Izveštaj je istekao ili ne postoji — ponovo zatraži u terminalu.');
-    res.set({ 'Content-Type': report.mimeType, 'Content-Disposition': `attachment; filename="${report.fileName}"` });
+    if (!report)
+      throw new NotFoundException(
+        'Izveštaj je istekao ili ne postoji — ponovo zatraži u terminalu.',
+      );
+    res.set({
+      'Content-Type': report.mimeType,
+      'Content-Disposition': `attachment; filename="${report.fileName}"`,
+    });
     res.send(report.buffer);
   }
 
@@ -44,7 +59,11 @@ export class BiTerminalController {
   // samo priprema fajl preko `generate_report`, poslati ga sme jedino stvaran klik ovde).
   @Post('reports/:id/send-chat')
   @RequirePermission('M15', 'bi-terminal', 'VIEW')
-  sendChat(@Param('id') id: string, @Body() dto: SendReportChatDto, @CurrentUser() actor: { userId: string }) {
+  sendChat(
+    @Param('id') id: string,
+    @Body() dto: SendReportChatDto,
+    @CurrentUser() actor: { userId: string },
+  ) {
     return this.biTerminal.sendReportToChat(id, dto.conversationId, actor.userId);
   }
 

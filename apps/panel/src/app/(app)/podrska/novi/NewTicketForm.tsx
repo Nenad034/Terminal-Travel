@@ -15,7 +15,10 @@ export default function NewTicketForm({ defaultBookingId = '' }: { defaultBookin
   const [state, formAction] = useActionState(createTicket, initialState);
 
   return (
-    <form action={formAction} className="flex flex-col gap-3 rounded-lg border border-border bg-panel p-5">
+    <form
+      action={formAction}
+      className="flex flex-col gap-3 rounded-lg border border-border bg-panel p-5"
+    >
       {state.error && <p className="rounded bg-danger-bg p-3 text-sm text-danger">{state.error}</p>}
 
       <Field label="naslov">
@@ -40,7 +43,11 @@ export default function NewTicketForm({ defaultBookingId = '' }: { defaultBookin
         </select>
       </Field>
       <Field label="nalogodavac (M6 ClientAccount ID, opciono)">
-        <input name="requesterClientAccountId" className="input" placeholder="UUID — ostavite prazno ako nije poznat" />
+        <input
+          name="requesterClientAccountId"
+          className="input"
+          placeholder="UUID — ostavite prazno ako nije poznat"
+        />
       </Field>
       {/* Predpopunjeno kad se dolazi sa ekrana rezervacije (kartica "Reklamacije",
           M5 spec §4.5) — ručno kucanje UUID-a je bio jedini raniji način. */}

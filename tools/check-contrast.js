@@ -77,7 +77,10 @@ function readTokenBlocks(css) {
   const re = /([^{}]+)\{([^{}]*)\}/g;
   let m;
   while ((m = re.exec(css)) !== null) {
-    const selector = m[1].replace(/\/\*[\s\S]*?\*\//g, '').trim().replace(/\s+/g, ' ');
+    const selector = m[1]
+      .replace(/\/\*[\s\S]*?\*\//g, '')
+      .trim()
+      .replace(/\s+/g, ' ');
     const body = m[2];
     if (!/--bg\s*:/.test(body)) continue;
 
@@ -103,7 +106,9 @@ function readTokenBlocks(css) {
     else name = selector;
 
     if (blocks[name]) {
-      console.error(`Upozorenje: dva bloka su prepoznata kao "${name}" — selektor "${selector}" prepisuje raniji.`);
+      console.error(
+        `Upozorenje: dva bloka su prepoznata kao "${name}" — selektor "${selector}" prepisuje raniji.`,
+      );
     }
     blocks[name] = tokens;
   }
@@ -127,9 +132,28 @@ const SPECIAL_PAIRS = [
   { fg: '--accent-ink', bg: '--accent', min: 4.5, note: 'tekst na punom dugmetu' },
   // §2a tvrdo pravilo: na accent-soft ide accent-strong, NIKAD accent — oba se mere da se
   // vidi da pravilo i dalje ima razlog da postoji, ne samo da trenutna vrednost prolazi.
-  { fg: '--accent-strong', bg: '--accent-soft', min: 4.5, over: '--panel', note: 'tekst na mekom akcentu (pravilo §2a)' },
-  { fg: '--accent', bg: '--accent-soft', min: 4.5, over: '--panel', note: 'ZABRANJENO pravilom §2a — meri se da se pokaže zašto', expectFail: true },
-  { fg: '--accent2', bg: '--accent2-soft', min: 4.5, over: '--panel', note: 'sekundarni akcent na svojoj mekoj pozadini' },
+  {
+    fg: '--accent-strong',
+    bg: '--accent-soft',
+    min: 4.5,
+    over: '--panel',
+    note: 'tekst na mekom akcentu (pravilo §2a)',
+  },
+  {
+    fg: '--accent',
+    bg: '--accent-soft',
+    min: 4.5,
+    over: '--panel',
+    note: 'ZABRANJENO pravilom §2a — meri se da se pokaže zašto',
+    expectFail: true,
+  },
+  {
+    fg: '--accent2',
+    bg: '--accent2-soft',
+    min: 4.5,
+    over: '--panel',
+    note: 'sekundarni akcent na svojoj mekoj pozadini',
+  },
 ];
 
 /** Granice i linije — prag 3:1, ne 4.5:1 (§2a). */
@@ -152,7 +176,9 @@ function main() {
   const names = Object.keys(blocks).filter((n) => !modeArg || n.startsWith(modeArg));
 
   if (names.length === 0) {
-    console.error(`Nijedan blok tokena nije pronađen u ${CSS_PATH}` + (modeArg ? ` za mod "${modeArg}"` : ''));
+    console.error(
+      `Nijedan blok tokena nije pronađen u ${CSS_PATH}` + (modeArg ? ` za mod "${modeArg}"` : ''),
+    );
     process.exit(2);
   }
 
@@ -183,7 +209,14 @@ function main() {
         const c = composite(parseHex(bgHex), base);
         bgHex = `#${[c.r, c.g, c.b].map((v) => v.toString(16).padStart(2, '0')).join('')}`;
       }
-      rows.push({ fg: p.fg, bg: p.bg, min: p.min, ratio: contrast(t[p.fg], bgHex), note: p.note, expectFail: p.expectFail });
+      rows.push({
+        fg: p.fg,
+        bg: p.bg,
+        min: p.min,
+        ratio: contrast(t[p.fg], bgHex),
+        note: p.note,
+        expectFail: p.expectFail,
+      });
     }
 
     for (const r of rows) {
@@ -194,7 +227,9 @@ function main() {
       if (!pass || showAll) {
         const flag = pass ? 'OK  ' : known ? 'ZNAN' : 'PAD ';
         const label = `${r.fg} na ${r.bg}`.padEnd(34);
-        console.log(`  ${flag} ${label} ${fmt(r.ratio)}:1  (prag ${r.min}:1)${r.note ? '  — ' + r.note : ''}`);
+        console.log(
+          `  ${flag} ${label} ${fmt(r.ratio)}:1  (prag ${r.min}:1)${r.note ? '  — ' + r.note : ''}`,
+        );
       }
     }
 

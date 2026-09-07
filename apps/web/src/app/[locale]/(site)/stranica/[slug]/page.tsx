@@ -3,7 +3,6 @@ import type { Metadata } from 'next';
 import { apiFetch, ApiError } from '@/lib/api-client';
 import type { PublicContent } from '@/lib/types';
 
-
 // M8 spec poglavlje 2/6 — opšte stranice sajta (npr. "O nama", "Kontakt"), čitaju objavljen
 // sadržaj iz M12 preko javnog, negardovanog endpoint-a (M12 spec §7, PublicContentController).
 const LOCAL_BUSINESS_SLUGS = new Set(['o-nama', 'kontakt']);
@@ -27,7 +26,10 @@ export async function generateMetadata({
   const { locale, slug } = await params;
   const content = await fetchContent(locale, slug);
   if (!content?.translation) return {};
-  return { title: `${content.translation.title} — Terminal Travel`, description: content.translation.body?.slice(0, 160) };
+  return {
+    title: `${content.translation.title} — Terminal Travel`,
+    description: content.translation.body?.slice(0, 160),
+  };
 }
 
 export default async function StaticContentPage({
@@ -54,15 +56,28 @@ export default async function StaticContentPage({
   const breadcrumbLd = {
     '@context': 'https://schema.org',
     '@type': 'BreadcrumbList',
-    itemListElement: [{ '@type': 'ListItem', position: 1, name: content.translation.title, item: `/${locale}/stranica/${slug}` }],
+    itemListElement: [
+      {
+        '@type': 'ListItem',
+        position: 1,
+        name: content.translation.title,
+        item: `/${locale}/stranica/${slug}`,
+      },
+    ],
   };
 
   return (
     <div className="mx-auto max-w-2xl">
       {jsonLd && (
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
       )}
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }} />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }}
+      />
       <h1 className="mb-6 text-2xl font-semibold text-ink">{content.translation.title}</h1>
       <p className="whitespace-pre-line text-ink-dim">{content.translation.body}</p>
     </div>

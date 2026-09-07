@@ -445,7 +445,7 @@ code,
 }
 .tt-map-price {
   margin-top: 6px;
-  font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+  font-family: ui-monospace, 'Cascadia Code', Consolas, monospace;
   font-size: 15px;
   font-weight: 700;
   color: var(--text);
@@ -466,7 +466,7 @@ code,
   color: var(--text-dim);
 }
 .tt-map-offer-price {
-  font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+  font-family: ui-monospace, 'Cascadia Code', Consolas, monospace;
   font-weight: 600;
   color: var(--text);
 }

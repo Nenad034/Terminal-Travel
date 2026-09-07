@@ -1,4 +1,10 @@
-import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { EmailCorrespondentType, EmailThread } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { AuditLogService } from '../../m1-core-identitet/audit-log/audit-log.service';
@@ -40,17 +46,28 @@ export class EmailThreadsService {
   ) {}
 
   private async accessibleMailboxIds(userId: string): Promise<string[]> {
-    const rows = await this.prisma.mailboxAccess.findMany({ where: { userId }, select: { mailboxId: true } });
+    const rows = await this.prisma.mailboxAccess.findMany({
+      where: { userId },
+      select: { mailboxId: true },
+    });
     return rows.map((r) => r.mailboxId);
   }
 
-  private async requireAccess(mailboxId: string, userId: string, minLevel: 'VIEW' | 'REPLY'): Promise<void> {
+  private async requireAccess(
+    mailboxId: string,
+    userId: string,
+    minLevel: 'VIEW' | 'REPLY',
+  ): Promise<void> {
     const access = await this.mailboxes.findAccess(mailboxId, userId);
     if (!access) {
-      throw new ForbiddenException(`Nemaš MailboxAccess za sanduče ${mailboxId} — pristup se dodeljuje pojedinačno (§2.2).`);
+      throw new ForbiddenException(
+        `Nemaš MailboxAccess za sanduče ${mailboxId} — pristup se dodeljuje pojedinačno (§2.2).`,
+      );
     }
     if (minLevel === 'REPLY' && access.accessLevel !== 'REPLY') {
-      throw new ForbiddenException(`MailboxAccess nivo VIEW ne dozvoljava odgovaranje — potreban je REPLY (§2.2).`);
+      throw new ForbiddenException(
+        `MailboxAccess nivo VIEW ne dozvoljava odgovaranje — potreban je REPLY (§2.2).`,
+      );
     }
   }
 
@@ -62,7 +79,10 @@ export class EmailThreadsService {
   // MailboxAccess na svako sanduče koje vidi u ovom nizu). Ranije je bilo dostupno samo preko
   // GET /email/mailboxes koji zahteva M22/mailbox/VIEW (Vlasnik/Direktor) — obična osoba sa
   // MailboxAccess bez tog admin prava nije mogla da vidi naziv sandučeta na koje sama gleda.
-  async findMany(actorUserId: string, filter: FindThreadsFilter): Promise<EmailThreadWithMailbox[]> {
+  async findMany(
+    actorUserId: string,
+    filter: FindThreadsFilter,
+  ): Promise<EmailThreadWithMailbox[]> {
     const accessible = await this.accessibleMailboxIds(actorUserId);
     if (accessible.length === 0) return [];
 
@@ -83,7 +103,10 @@ export class EmailThreadsService {
     });
   }
 
-  async findOne(id: string, actorUserId: string): Promise<EmailThreadWithMailbox & { messages: unknown[] }> {
+  async findOne(
+    id: string,
+    actorUserId: string,
+  ): Promise<EmailThreadWithMailbox & { messages: unknown[] }> {
     const thread = await this.prisma.emailThread.findUnique({
       where: { id },
       include: {
@@ -96,7 +119,11 @@ export class EmailThreadsService {
     return thread;
   }
 
-  private async loadThreadWithAccess(threadId: string, actorUserId: string, minLevel: 'VIEW' | 'REPLY'): Promise<EmailThread> {
+  private async loadThreadWithAccess(
+    threadId: string,
+    actorUserId: string,
+    minLevel: 'VIEW' | 'REPLY',
+  ): Promise<EmailThread> {
     const thread = await this.prisma.emailThread.findUnique({ where: { id: threadId } });
     if (!thread) throw new NotFoundException(`EmailThread ${threadId} nije pronađen.`);
     await this.requireAccess(thread.mailboxId, actorUserId, minLevel);
@@ -113,7 +140,11 @@ export class EmailThreadsService {
     const sentBy = dto.send ? actorUserId : null;
     if (dto.send) {
       const adapter = this.providerFactory.getAdapter(mailbox);
-      const result = await adapter.sendMessage(mailbox, { toAddresses: [], subject: thread.subject, body: dto.body });
+      const result = await adapter.sendMessage(mailbox, {
+        toAddresses: [],
+        subject: thread.subject,
+        body: dto.body,
+      });
       providerMessageId = result.providerMessageId;
     }
 
@@ -156,15 +187,21 @@ export class EmailThreadsService {
     const mailbox = await this.mailboxes.findOne(thread.mailboxId);
 
     const message = await this.prisma.emailMessage.findUnique({ where: { id: messageId } });
-    if (!message || message.threadId !== threadId) throw new NotFoundException(`EmailMessage ${messageId} nije pronađen u niti ${threadId}.`);
-    if (message.direction !== 'OUTBOUND') throw new BadRequestException('Samo OUTBOUND poruke (nacrti) se šalju preko ove rute.');
+    if (!message || message.threadId !== threadId)
+      throw new NotFoundException(`EmailMessage ${messageId} nije pronađen u niti ${threadId}.`);
+    if (message.direction !== 'OUTBOUND')
+      throw new BadRequestException('Samo OUTBOUND poruke (nacrti) se šalju preko ove rute.');
     // Ponovno slanje je dozvoljeno dok isporuke NIJE bilo (5.9.2026) — inače bi poruka
     // zaglavljena na neispravnom provajderu ostala zauvek neposlata, bez načina da se pošalje
     // kad se provajder podesi. Odbija se samo ono što je stvarno otišlo.
     if (message.deliveredAt) throw new BadRequestException('Poruka je već poslata.');
 
     const adapter = this.providerFactory.getAdapter(mailbox);
-    const result = await adapter.sendMessage(mailbox, { toAddresses: message.toAddresses, subject: thread.subject, body: message.body });
+    const result = await adapter.sendMessage(mailbox, {
+      toAddresses: message.toAddresses,
+      subject: thread.subject,
+      body: message.body,
+    });
 
     // ISPRAVKA 5.9.2026 (dok. 39 nalaz 1.2, M22 §2.4): ranije je poruka bezuslovno dobijala
     // `sentBy` i izmišljen `providerMessageId` od mock adaptera, pa se u bazi nije razlikovala
@@ -185,7 +222,10 @@ export class EmailThreadsService {
       },
     });
 
-    await this.prisma.emailThread.update({ where: { id: threadId }, data: { lastMessageAt: new Date(), status: 'OPEN' } });
+    await this.prisma.emailThread.update({
+      where: { id: threadId },
+      data: { lastMessageAt: new Date(), status: 'OPEN' },
+    });
 
     await this.auditLog.write({
       actorType: 'HUMAN',
@@ -207,7 +247,10 @@ export class EmailThreadsService {
     const booking = await this.prisma.booking.findUnique({ where: { id: dto.bookingId } });
     if (!booking) throw new NotFoundException(`Booking ${dto.bookingId} nije pronađen.`);
 
-    const thread = await this.prisma.emailThread.update({ where: { id: threadId }, data: { relatedBookingId: dto.bookingId } });
+    const thread = await this.prisma.emailThread.update({
+      where: { id: threadId },
+      data: { relatedBookingId: dto.bookingId },
+    });
 
     await this.auditLog.write({
       actorType: 'HUMAN',
@@ -225,17 +268,27 @@ export class EmailThreadsService {
   // EmailThread.related_supplier_manifest_id/related_supplier_change_notice_id — NIKAD ne poziva
   // M5 confirmSupplier() niti bilo koji M5 servis/endpoint. Konačna M5 potvrda ostaje isključivo
   // ljudski klik na M5/supplier-confirmation/CONFIRM, van ovog modula.
-  async linkSupplierAnnouncement(threadId: string, dto: LinkSupplierAnnouncementDto, actorUserId: string) {
+  async linkSupplierAnnouncement(
+    threadId: string,
+    dto: LinkSupplierAnnouncementDto,
+    actorUserId: string,
+  ) {
     await this.loadThreadWithAccess(threadId, actorUserId, 'REPLY');
 
     const data: { relatedSupplierManifestId?: string; relatedSupplierChangeNoticeId?: string } = {};
     if (dto.announcementType === 'SUPPLIER_MANIFEST') {
-      const manifest = await this.prisma.supplierManifest.findUnique({ where: { id: dto.announcementId } });
-      if (!manifest) throw new NotFoundException(`SupplierManifest ${dto.announcementId} nije pronađen.`);
+      const manifest = await this.prisma.supplierManifest.findUnique({
+        where: { id: dto.announcementId },
+      });
+      if (!manifest)
+        throw new NotFoundException(`SupplierManifest ${dto.announcementId} nije pronađen.`);
       data.relatedSupplierManifestId = manifest.id;
     } else {
-      const changeNotice = await this.prisma.supplierChangeNotice.findUnique({ where: { id: dto.announcementId } });
-      if (!changeNotice) throw new NotFoundException(`SupplierChangeNotice ${dto.announcementId} nije pronađen.`);
+      const changeNotice = await this.prisma.supplierChangeNotice.findUnique({
+        where: { id: dto.announcementId },
+      });
+      if (!changeNotice)
+        throw new NotFoundException(`SupplierChangeNotice ${dto.announcementId} nije pronađen.`);
       data.relatedSupplierChangeNoticeId = changeNotice.id;
     }
 
@@ -274,7 +327,11 @@ export class EmailThreadsService {
       let relatedSupplierChangeNoticeId: string | null = null;
 
       if (mailbox.isSupplierUnifiedInbox) {
-        const referenceMatch = await this.referenceMatcher.match(raw.subject, raw.body, raw.fromAddress);
+        const referenceMatch = await this.referenceMatcher.match(
+          raw.subject,
+          raw.body,
+          raw.fromAddress,
+        );
         relatedSupplierManifestId = referenceMatch.relatedSupplierManifestId;
         relatedSupplierChangeNoticeId = referenceMatch.relatedSupplierChangeNoticeId;
       }

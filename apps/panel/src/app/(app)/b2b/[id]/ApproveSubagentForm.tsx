@@ -17,7 +17,14 @@ export default function ApproveSubagentForm({ id, isTier1 }: { id: string; isTie
     <form action={formAction} className="flex flex-wrap items-end gap-3">
       <label className="text-xs text-ink-faint">
         kreditni limit
-        <input name="creditLimit" type="number" min={0} step="0.01" required className="input mt-1" />
+        <input
+          name="creditLimit"
+          type="number"
+          min={0}
+          step="0.01"
+          required
+          className="input mt-1"
+        />
       </label>
       <label className="text-xs text-ink-faint">
         valuta
@@ -26,7 +33,15 @@ export default function ApproveSubagentForm({ id, isTier1 }: { id: string; isTie
       {isTier1 && (
         <label className="text-xs text-ink-faint">
           provizija %
-          <input name="commissionPercentage" type="number" min={0} max={100} step="0.01" required className="input mt-1 w-24" />
+          <input
+            name="commissionPercentage"
+            type="number"
+            min={0}
+            max={100}
+            step="0.01"
+            required
+            className="input mt-1 w-24"
+          />
         </label>
       )}
       <SubmitButton />

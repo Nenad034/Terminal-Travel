@@ -66,23 +66,45 @@ export class ProviderRegistryService {
     }
 
     const timeoutMs = Math.max(config.timeoutSearchMs, config.timeoutBookingMs);
-    const authConfig = JSON.parse(decryptSecret(config.authConfigEncrypted)) as Record<string, unknown>;
+    const authConfig = JSON.parse(decryptSecret(config.authConfigEncrypted)) as Record<
+      string,
+      unknown
+    >;
 
     switch (config.providerCode) {
       case 'travelgate': {
         const cfg = authConfig as unknown as TravelgateAuthConfig;
-        return new TravelgateAdapter(config.providerCode, cfg.endpoint, new ApiKeyStrategy(cfg.apiKey, 'TGX-Auth-API-Key'), timeoutMs);
+        return new TravelgateAdapter(
+          config.providerCode,
+          cfg.endpoint,
+          new ApiKeyStrategy(cfg.apiKey, 'TGX-Auth-API-Key'),
+          timeoutMs,
+        );
       }
       case 'solvex': {
         const cfg = authConfig as unknown as SolvexAuthConfig;
-        return new SolvexAdapter(config.providerCode, cfg.endpoint, cfg.login, cfg.password, timeoutMs, this.dictionaryCache);
+        return new SolvexAdapter(
+          config.providerCode,
+          cfg.endpoint,
+          cfg.login,
+          cfg.password,
+          timeoutMs,
+          this.dictionaryCache,
+        );
       }
       case 'webhotelier': {
         const cfg = authConfig as unknown as WebHotelierAuthConfig;
-        return new WebHotelierAdapter(config.providerCode, cfg.endpoint, new BasicAuthStrategy(cfg.username, cfg.password), timeoutMs);
+        return new WebHotelierAdapter(
+          config.providerCode,
+          cfg.endpoint,
+          new BasicAuthStrategy(cfg.username, cfg.password),
+          timeoutMs,
+        );
       }
       default:
-        throw new Error(`Nema registrovanog adaptera za provider_code=${config.providerCode} (M4 spec §9)`);
+        throw new Error(
+          `Nema registrovanog adaptera za provider_code=${config.providerCode} (M4 spec §9)`,
+        );
     }
   }
 }

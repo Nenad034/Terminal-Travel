@@ -31,7 +31,9 @@ describe('M1 — izlazni kriterijum (e2e)', () => {
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
     app = moduleRef.createNestApplication();
     app.setGlobalPrefix('api/v1');
-    app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }));
+    app.useGlobalPipes(
+      new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }),
+    );
     app.useGlobalFilters(new PrismaExceptionFilter());
     await app.init();
     prisma = app.get(PrismaService);
@@ -75,7 +77,9 @@ describe('M1 — izlazni kriterijum (e2e)', () => {
 
     if (opts.roleName) {
       const role = await prisma.role.findUniqueOrThrow({ where: { name: opts.roleName } });
-      await prisma.userRole.create({ data: { userId: user.id, roleId: role.id, assignedBy: user.id } });
+      await prisma.userRole.create({
+        data: { userId: user.id, roleId: role.id, assignedBy: user.id },
+      });
     }
     return user;
   }
@@ -104,7 +108,9 @@ describe('M1 — izlazni kriterijum (e2e)', () => {
       });
 
       await expect(
-        prisma.$executeRawUnsafe(`UPDATE audit_log_entries SET action = 'izmenjeno' WHERE id = '${entry.id}'`),
+        prisma.$executeRawUnsafe(
+          `UPDATE audit_log_entries SET action = 'izmenjeno' WHERE id = '${entry.id}'`,
+        ),
       ).rejects.toThrow(/append-only/);
     });
 
@@ -132,7 +138,10 @@ describe('M1 — izlazni kriterijum (e2e)', () => {
     // prijaviti (zamka 13.6 — test koji opisuje zatečeno stanje umesto željenog pravila).
     // Sada login vraća uzak setupToken koji otvara ISKLJUČIVO podešavanje 2FA.
     it('interna uloga (VLASNIK) bez podešene 2FA dobija setupToken, ne grešku', async () => {
-      const user = await createUser({ email: `vlasnik-${testRunId}@tt-test.rs`, roleName: SYSTEM_ROLES.VLASNIK });
+      const user = await createUser({
+        email: `vlasnik-${testRunId}@tt-test.rs`,
+        roleName: SYSTEM_ROLES.VLASNIK,
+      });
 
       const res = await request(app.getHttpServer())
         .post('/api/v1/iam/auth/login')
@@ -144,7 +153,10 @@ describe('M1 — izlazni kriterijum (e2e)', () => {
     });
 
     it('setupToken NIJE pristupni token — ne otvara nijedan zaštićen endpoint', async () => {
-      const user = await createUser({ email: `vlasnik-uzak-${testRunId}@tt-test.rs`, roleName: SYSTEM_ROLES.VLASNIK });
+      const user = await createUser({
+        email: `vlasnik-uzak-${testRunId}@tt-test.rs`,
+        roleName: SYSTEM_ROLES.VLASNIK,
+      });
       const loginRes = await request(app.getHttpServer())
         .post('/api/v1/iam/auth/login')
         .send({ email: user.email, password: 'ispravna-lozinka-123' });
@@ -159,7 +171,10 @@ describe('M1 — izlazni kriterijum (e2e)', () => {
     });
 
     it('pun tok prvog podešavanja 2FA: login → setup/start → setup/confirm → prijavljen', async () => {
-      const user = await createUser({ email: `vlasnik-setup-${testRunId}@tt-test.rs`, roleName: SYSTEM_ROLES.VLASNIK });
+      const user = await createUser({
+        email: `vlasnik-setup-${testRunId}@tt-test.rs`,
+        roleName: SYSTEM_ROLES.VLASNIK,
+      });
 
       const loginRes = await request(app.getHttpServer())
         .post('/api/v1/iam/auth/login')
@@ -173,7 +188,9 @@ describe('M1 — izlazni kriterijum (e2e)', () => {
       expect(startRes.body.otpauthUrl).toContain('otpauth://');
       expect(startRes.body.recoveryCodes).toHaveLength(10);
 
-      const secret = new URL(startRes.body.otpauthUrl.replace('otpauth://', 'https://')).searchParams.get('secret')!;
+      const secret = new URL(
+        startRes.body.otpauthUrl.replace('otpauth://', 'https://'),
+      ).searchParams.get('secret')!;
       const confirmRes = await request(app.getHttpServer())
         .post('/api/v1/iam/auth/mfa/setup/confirm')
         .send({ setupToken, code: authenticator.generate(secret) });
@@ -193,12 +210,17 @@ describe('M1 — izlazni kriterijum (e2e)', () => {
     });
 
     it('pogrešan kod pri podešavanju odbija i broji se u isto zaključavanje kao pogrešna lozinka', async () => {
-      const user = await createUser({ email: `vlasnik-los-kod-${testRunId}@tt-test.rs`, roleName: SYSTEM_ROLES.VLASNIK });
+      const user = await createUser({
+        email: `vlasnik-los-kod-${testRunId}@tt-test.rs`,
+        roleName: SYSTEM_ROLES.VLASNIK,
+      });
       const loginRes = await request(app.getHttpServer())
         .post('/api/v1/iam/auth/login')
         .send({ email: user.email, password: 'ispravna-lozinka-123' });
       const { setupToken } = loginRes.body;
-      await request(app.getHttpServer()).post('/api/v1/iam/auth/mfa/setup/start').send({ setupToken });
+      await request(app.getHttpServer())
+        .post('/api/v1/iam/auth/mfa/setup/start')
+        .send({ setupToken });
 
       const res = await request(app.getHttpServer())
         .post('/api/v1/iam/auth/mfa/setup/confirm')
@@ -211,7 +233,10 @@ describe('M1 — izlazni kriterijum (e2e)', () => {
     });
 
     it('Gost bez 2FA sme da se prijavi (2FA opciona za Gosta)', async () => {
-      const user = await createUser({ email: `gost-${testRunId}@tt-test.rs`, roleName: SYSTEM_ROLES.GOST });
+      const user = await createUser({
+        email: `gost-${testRunId}@tt-test.rs`,
+        roleName: SYSTEM_ROLES.GOST,
+      });
 
       const res = await request(app.getHttpServer())
         .post('/api/v1/iam/auth/login')
@@ -248,7 +273,10 @@ describe('M1 — izlazni kriterijum (e2e)', () => {
     });
 
     it('posle 5 uzastopnih pogrešnih lozinki nalog se zaključava i ispravna lozinka i dalje ne prolazi (M1 spec §5)', async () => {
-      const user = await createUser({ email: `lockout-${testRunId}@tt-test.rs`, roleName: SYSTEM_ROLES.GOST });
+      const user = await createUser({
+        email: `lockout-${testRunId}@tt-test.rs`,
+        roleName: SYSTEM_ROLES.GOST,
+      });
 
       for (let i = 0; i < 5; i++) {
         const res = await request(app.getHttpServer())
@@ -292,7 +320,9 @@ describe('M1 — izlazni kriterijum (e2e)', () => {
         .send({ mfaToken: inviterLogin.body.mfaToken, code: authenticator.generate(secret) });
       const adminToken = inviterMfa.body.accessToken;
 
-      const role = await prisma.role.findUniqueOrThrow({ where: { name: SYSTEM_ROLES.RACUNOVODJA } });
+      const role = await prisma.role.findUniqueOrThrow({
+        where: { name: SYSTEM_ROLES.RACUNOVODJA },
+      });
       const email = `pozvani-${testRunId}@tt-test.rs`;
       const inviteRes = await request(app.getHttpServer())
         .post('/api/v1/iam/users')
@@ -333,7 +363,10 @@ describe('M1 — izlazni kriterijum (e2e)', () => {
         .post('/api/v1/iam/auth/login')
         .send({ email, password: 'moja-nova-lozinka-12' });
       expect(afterActivation.status).toBe(201);
-      expect(afterActivation.body).toEqual({ requiresMfaSetup: true, setupToken: expect.any(String) });
+      expect(afterActivation.body).toEqual({
+        requiresMfaSetup: true,
+        setupToken: expect.any(String),
+      });
 
       // Token za aktivaciju je jednokratan — ponovljena upotreba mora pasti.
       const reuse = await request(app.getHttpServer())
@@ -440,7 +473,9 @@ describe('M1 — izlazni kriterijum (e2e)', () => {
         where: { module: 'M1', action: 'role.permissions_changed', resourceId: roleId },
       });
       expect(entries.length).toBeGreaterThan(0);
-      expect((entries[0].afterState as { permissions: string[] }).permissions).toContain('M1/role/VIEW');
+      expect((entries[0].afterState as { permissions: string[] }).permissions).toContain(
+        'M1/role/VIEW',
+      );
     });
 
     it('odbija nepostojeću dozvolu i ne dodaje nijednu iz istog zahteva (fail-closed)', async () => {
@@ -464,7 +499,10 @@ describe('M1 — izlazni kriterijum (e2e)', () => {
       const adminToken = await vlasnikToken('d');
       const roleId = await createRole(adminToken, `E2E_ULOGA_403_${testRunId}`);
 
-      const gost = await createUser({ email: `gost-role-${testRunId}@tt-test.rs`, roleName: SYSTEM_ROLES.GOST });
+      const gost = await createUser({
+        email: `gost-role-${testRunId}@tt-test.rs`,
+        roleName: SYSTEM_ROLES.GOST,
+      });
       const gostLogin = await request(app.getHttpServer())
         .post('/api/v1/iam/auth/login')
         .send({ email: gost.email, password: 'ispravna-lozinka-123' });
@@ -483,8 +521,14 @@ describe('M1 — izlazni kriterijum (e2e)', () => {
 
   describe('UserPermissionOverride ima trenutni efekat bez ponovne prijave (izlazni kriterijum, stavka 3)', () => {
     it('override dodat posle izdavanja access tokena odmah utiče na sledeći zahtev istim tokenom', async () => {
-      const user = await createUser({ email: `override-${testRunId}@tt-test.rs`, roleName: SYSTEM_ROLES.GOST });
-      const owner = await createUser({ email: `owner-${testRunId}@tt-test.rs`, roleName: SYSTEM_ROLES.VLASNIK });
+      const user = await createUser({
+        email: `override-${testRunId}@tt-test.rs`,
+        roleName: SYSTEM_ROLES.GOST,
+      });
+      const owner = await createUser({
+        email: `owner-${testRunId}@tt-test.rs`,
+        roleName: SYSTEM_ROLES.VLASNIK,
+      });
 
       const loginRes = await request(app.getHttpServer())
         .post('/api/v1/iam/auth/login')
@@ -520,7 +564,10 @@ describe('M1 — izlazni kriterijum (e2e)', () => {
 
   describe('Svaka izmena ostavlja trag u audit logu (izlazni kriterijum, stavka 4)', () => {
     it('uspešna prijava upisuje AuditLogEntry sa actorId korisnika', async () => {
-      const user = await createUser({ email: `audit-${testRunId}@tt-test.rs`, roleName: SYSTEM_ROLES.GOST });
+      const user = await createUser({
+        email: `audit-${testRunId}@tt-test.rs`,
+        roleName: SYSTEM_ROLES.GOST,
+      });
 
       await request(app.getHttpServer())
         .post('/api/v1/iam/auth/login')

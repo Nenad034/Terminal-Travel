@@ -50,13 +50,19 @@ export default function RealResults({
 }) {
   const filters = useSearchFilters();
   const { addItem } = useSelection();
-  const { priceMin, priceMax, availability, refundable, boardTypes, amenityTags, stars } = commonFiltersFrom(filters);
+  const { priceMin, priceMax, availability, refundable, boardTypes, amenityTags, stars } =
+    commonFiltersFrom(filters);
 
   const filtered = results
     // Sadržaji i kategorija filtriraju CEO proizvod (pripadaju objektu), refundabilnost i cena
     // pojedinačnu ponudu (pripadaju ponudi) — zato dva odvojena koraka, M5 §3.0c.3/§3.0c.3c.
     .filter((r) => amenitiesMatch(r.amenities, amenityTags) && starsMatch(r.stars, stars))
-    .map((r) => ({ ...r, offers: r.offers.filter((o) => offerMatches(o, { priceMin, priceMax, availability, refundable, boardTypes })) }))
+    .map((r) => ({
+      ...r,
+      offers: r.offers.filter((o) =>
+        offerMatches(o, { priceMin, priceMax, availability, refundable, boardTypes }),
+      ),
+    }))
     // §3.0b.2 — proizvod bez ijedne preostale ponude ne postoji u rezultatima.
     .filter((r) => r.offers.length > 0);
 
@@ -93,7 +99,8 @@ export default function RealResults({
         image: r.thumbnail?.url,
         productType: r.type,
         offers: r.offers.slice(0, 3).map((o) => ({
-          label: [o.roomTypeName ?? o.roomTypeCode, o.boardType].filter(Boolean).join(' · ') || r.type,
+          label:
+            [o.roomTypeName ?? o.roomTypeCode, o.boardType].filter(Boolean).join(' · ') || r.type,
           price: o.finalPrice,
           currency: o.finalPriceCurrency,
         })),
@@ -111,7 +118,10 @@ export default function RealResults({
         onSelect={(id) => {
           const r = sorted.find((x) => x.productId === id);
           if (!r || r.offers.length === 0) return;
-          const offer = r.offers.reduce((min, o) => (o.finalPrice < min.finalPrice ? o : min), r.offers[0]);
+          const offer = r.offers.reduce(
+            (min, o) => (o.finalPrice < min.finalPrice ? o : min),
+            r.offers[0],
+          );
           addItem({
             key: `${r.productId}:${offer.rateLineId ?? offer.providerQuoteReference ?? 'na'}`,
             productId: r.productId,
@@ -134,7 +144,11 @@ export default function RealResults({
   }
 
   if (sorted.length === 0) {
-    return <p className="rounded-lg border border-border bg-panel p-4 text-center text-xs text-ink-dim">{emptyMessage}</p>;
+    return (
+      <p className="rounded-lg border border-border bg-panel p-4 text-center text-xs text-ink-dim">
+        {emptyMessage}
+      </p>
+    );
   }
 
   const cardResults = sorted.filter((r) => CARD_TYPES.has(r.type));
@@ -160,7 +174,13 @@ export default function RealResults({
   );
 }
 
-function ResultCard({ result: r, quoteDefaults }: { result: SearchResult; quoteDefaults: QuoteDefaults }) {
+function ResultCard({
+  result: r,
+  quoteDefaults,
+}: {
+  result: SearchResult;
+  quoteDefaults: QuoteDefaults;
+}) {
   return (
     <div className="overflow-hidden rounded-lg border border-border bg-panel">
       <div className="flex aspect-[16/10] items-center justify-center bg-panel-2 text-ink-faint">
@@ -172,7 +192,11 @@ function ResultCard({ result: r, quoteDefaults }: { result: SearchResult; quoteD
         )}
       </div>
       <div className="p-3">
-        <ProductPreviewButton productId={r.productId} name={r.name} className="text-left font-medium text-ink hover:text-accent" />
+        <ProductPreviewButton
+          productId={r.productId}
+          name={r.name}
+          className="text-left font-medium text-ink hover:text-accent"
+        />
         <div className="mb-2 text-xs text-ink-faint">
           {r.destinationCity}, {r.destinationCountry} · {r.type}
         </div>
@@ -188,7 +212,8 @@ function ResultCard({ result: r, quoteDefaults }: { result: SearchResult; quoteD
               <span className="text-ink-dim">{o.roomTypeName ?? o.roomTypeCode ?? r.type}</span>
               <div className="flex items-center gap-2">
                 <span className="font-mono font-semibold text-ink">
-                  {(o.finalPrice / 100).toLocaleString('sr-RS', { minimumFractionDigits: 2 })} {o.finalPriceCurrency}
+                  {(o.finalPrice / 100).toLocaleString('sr-RS', { minimumFractionDigits: 2 })}{' '}
+                  {o.finalPriceCurrency}
                 </span>
                 <QuoteButton
                   productId={r.productId}
@@ -214,11 +239,21 @@ function ResultCard({ result: r, quoteDefaults }: { result: SearchResult; quoteD
   );
 }
 
-function ResultRowGroup({ result: r, quoteDefaults }: { result: SearchResult; quoteDefaults: QuoteDefaults }) {
+function ResultRowGroup({
+  result: r,
+  quoteDefaults,
+}: {
+  result: SearchResult;
+  quoteDefaults: QuoteDefaults;
+}) {
   return (
     <div className="rounded-lg border border-border bg-panel p-4">
       <div className="mb-2">
-        <ProductPreviewButton productId={r.productId} name={r.name} className="text-left font-medium text-ink hover:text-accent" />
+        <ProductPreviewButton
+          productId={r.productId}
+          name={r.name}
+          className="text-left font-medium text-ink hover:text-accent"
+        />
         <div className="text-xs text-ink-faint">
           {r.destinationCity}, {r.destinationCountry} · {r.type} · {r.sourceType}
         </div>
@@ -238,7 +273,8 @@ function ResultRowGroup({ result: r, quoteDefaults }: { result: SearchResult; qu
             </div>
             <div className="flex items-center gap-3">
               <span className="font-mono text-sm font-semibold text-ink">
-                {(o.finalPrice / 100).toLocaleString('sr-RS', { minimumFractionDigits: 2 })} {o.finalPriceCurrency}
+                {(o.finalPrice / 100).toLocaleString('sr-RS', { minimumFractionDigits: 2 })}{' '}
+                {o.finalPriceCurrency}
               </span>
               <QuoteButton
                 productId={r.productId}

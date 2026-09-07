@@ -19,7 +19,11 @@ export default function AddToAiContextButton({ refLabel }: { refLabel: string })
         addRecord(refLabel);
       }}
       disabled={atCapacity}
-      title={atCapacity ? 'Najviše 8 zapisa u AI kontekstu odjednom' : `Dodaj "${refLabel}" u AI kontekst`}
+      title={
+        atCapacity
+          ? 'Najviše 8 zapisa u AI kontekstu odjednom'
+          : `Dodaj "${refLabel}" u AI kontekst`
+      }
       className="flex h-[22px] w-[22px] items-center justify-center rounded text-ink-faint opacity-0 hover:bg-panel2 hover:text-accent focus:opacity-100 group-hover:opacity-100 disabled:cursor-not-allowed disabled:opacity-30"
     >
       <Icon name="symbol-number" />

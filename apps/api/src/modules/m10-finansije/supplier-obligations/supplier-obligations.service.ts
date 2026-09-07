@@ -27,7 +27,9 @@ export class SupplierObligationsService {
     const product = await this.prisma.product.findUnique({ where: { id: item.productId } });
     if (!product?.sourceContractId) return null;
 
-    const contract = await this.prisma.contract.findUnique({ where: { id: product.sourceContractId } });
+    const contract = await this.prisma.contract.findUnique({
+      where: { id: product.sourceContractId },
+    });
     if (!contract) return null;
 
     const dueDate = addDays(new Date(), contract.paymentTermsDays ?? DEFAULT_PAYMENT_TERMS_DAYS);
@@ -95,13 +97,20 @@ export class SupplierObligationsService {
   async approve(id: string, actor: { userId: string }) {
     const obligation = await this.findOne(id);
     if (!obligation.bookingItemId) {
-      throw new BadRequestException('SupplierObligation nema popunjen bookingItemId — ne može preći u APPROVED (M10 spec §8.3).');
+      throw new BadRequestException(
+        'SupplierObligation nema popunjen bookingItemId — ne može preći u APPROVED (M10 spec §8.3).',
+      );
     }
     if (obligation.status !== 'PENDING') {
-      throw new BadRequestException(`SupplierObligation ${id} nije u statusu PENDING (status: ${obligation.status}).`);
+      throw new BadRequestException(
+        `SupplierObligation ${id} nije u statusu PENDING (status: ${obligation.status}).`,
+      );
     }
 
-    const updated = await this.prisma.supplierObligation.update({ where: { id }, data: { status: 'APPROVED' } });
+    const updated = await this.prisma.supplierObligation.update({
+      where: { id },
+      data: { status: 'APPROVED' },
+    });
     await this.auditLog.write({
       actorType: 'HUMAN',
       actorId: actor.userId,
@@ -120,7 +129,9 @@ export class SupplierObligationsService {
   async pay(id: string, dto: PaySupplierObligationDto, actor: { userId: string }) {
     const obligation = await this.findOne(id);
     if (obligation.status !== 'APPROVED') {
-      throw new BadRequestException(`SupplierObligation ${id} nije u statusu APPROVED (status: ${obligation.status}).`);
+      throw new BadRequestException(
+        `SupplierObligation ${id} nije u statusu APPROVED (status: ${obligation.status}).`,
+      );
     }
 
     const paidAt = dto.paidAt ? new Date(dto.paidAt) : new Date();
@@ -128,7 +139,10 @@ export class SupplierObligationsService {
     let exchangeRateDifference: number | null = null;
 
     if (obligation.currencyOriginal !== 'RSD') {
-      const rateAtPayment = await this.exchangeRates.findForCurrencyOnOrBefore(obligation.currencyOriginal, paidAt);
+      const rateAtPayment = await this.exchangeRates.findForCurrencyOnOrBefore(
+        obligation.currencyOriginal,
+        paidAt,
+      );
       exchangeRateSnapshotIdAtPayment = rateAtPayment.id;
 
       if (obligation.exchangeRateSnapshotIdAtInvoice) {

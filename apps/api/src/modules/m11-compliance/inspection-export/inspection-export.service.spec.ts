@@ -28,12 +28,27 @@ describe('InspectionExportService (M11 spec §3)', () => {
   it('CSV izvoz sadrži redove za rezervacije, fiskalne dokumente i CIS registracije', async () => {
     const { service, prisma } = makeService();
     prisma.booking.findMany.mockResolvedValue([
-      { bookingNumber: 'TT-1', status: 'CONFIRMED', tipNastupanja: 'ORGANIZATOR', totalPrice: 10000, currency: 'RSD', createdAt: new Date('2026-01-05') },
+      {
+        bookingNumber: 'TT-1',
+        status: 'CONFIRMED',
+        tipNastupanja: 'ORGANIZATOR',
+        totalPrice: 10000,
+        currency: 'RSD',
+        createdAt: new Date('2026-01-05'),
+      },
     ]);
     prisma.fiscalDocument.findMany.mockResolvedValue([
-      { id: 'fd-1', documentType: 'ESIR_RACUN', status: 'SUBMITTED', externalReference: 'ESIR-1', amountRsd: 10000 },
+      {
+        id: 'fd-1',
+        documentType: 'ESIR_RACUN',
+        status: 'SUBMITTED',
+        externalReference: 'ESIR-1',
+        amountRsd: 10000,
+      },
     ]);
-    prisma.travelGuaranteeRegistration.findMany.mockResolvedValue([{ bookingId: 'booking-1', status: 'REGISTERED', cisRegistrationNumber: 'CIS-1' }]);
+    prisma.travelGuaranteeRegistration.findMany.mockResolvedValue([
+      { bookingId: 'booking-1', status: 'REGISTERED', cisRegistrationNumber: 'CIS-1' },
+    ]);
 
     const result = await service.generate({ periodFrom: '2026-01-01', periodTo: '2026-01-31' });
 

@@ -27,15 +27,20 @@ export class TravelGuaranteeRegistrationsService {
   }
 
   async findOne(id: string): Promise<TravelGuaranteeRegistration> {
-    const registration = await this.prisma.travelGuaranteeRegistration.findUnique({ where: { id } });
-    if (!registration) throw new NotFoundException(`TravelGuaranteeRegistration ${id} nije pronađen.`);
+    const registration = await this.prisma.travelGuaranteeRegistration.findUnique({
+      where: { id },
+    });
+    if (!registration)
+      throw new NotFoundException(`TravelGuaranteeRegistration ${id} nije pronađen.`);
     return registration;
   }
 
   // Poziva se iz M11EventSubscribersService na M5 booking.confirmed, samo za
   // tip_nastupanja=ORGANIZATOR. Idempotentno: ako zapis za ovaj booking već postoji, vraća ga.
   async createForBooking(bookingId: string): Promise<TravelGuaranteeRegistration> {
-    const existing = await this.prisma.travelGuaranteeRegistration.findUnique({ where: { bookingId } });
+    const existing = await this.prisma.travelGuaranteeRegistration.findUnique({
+      where: { bookingId },
+    });
     if (existing) return existing;
 
     const booking = await this.prisma.booking.findUnique({ where: { id: bookingId } });
@@ -43,9 +48,16 @@ export class TravelGuaranteeRegistrationsService {
 
     const guarantee = await this.prisma.travelGuarantee.findFirst({ orderBy: { validTo: 'desc' } });
     if (!guarantee) {
-      this.logger.warn(`Booking ${bookingId} (ORGANIZATOR) potvrđen bez ijedne unete TravelGuarantee — registracija se ne može pripremiti.`);
+      this.logger.warn(
+        `Booking ${bookingId} (ORGANIZATOR) potvrđen bez ijedne unete TravelGuarantee — registracija se ne može pripremiti.`,
+      );
       return this.prisma.travelGuaranteeRegistration.create({
-        data: { bookingId, travelGuaranteeId: null, status: 'FAILED', failureReason: 'Nijedna garancija putovanja nije uneta u sistem.' },
+        data: {
+          bookingId,
+          travelGuaranteeId: null,
+          status: 'FAILED',
+          failureReason: 'Nijedna garancija putovanja nije uneta u sistem.',
+        },
       });
     }
 
@@ -53,7 +65,12 @@ export class TravelGuaranteeRegistrationsService {
       data: { bookingId, travelGuaranteeId: guarantee.id, status: 'PENDING' },
     });
 
-    return this.attemptRegister(registration, guarantee.id, guarantee.policyNumber, booking.bookingNumber);
+    return this.attemptRegister(
+      registration,
+      guarantee.id,
+      guarantee.policyNumber,
+      booking.bookingNumber,
+    );
   }
 
   private async attemptRegister(
@@ -71,7 +88,12 @@ export class TravelGuaranteeRegistrationsService {
       });
       const updated = await this.prisma.travelGuaranteeRegistration.update({
         where: { id: registration.id },
-        data: { status: 'REGISTERED', cisRegistrationNumber: result.cisRegistrationNumber, registeredAt: new Date(), failureReason: null },
+        data: {
+          status: 'REGISTERED',
+          cisRegistrationNumber: result.cisRegistrationNumber,
+          registeredAt: new Date(),
+          failureReason: null,
+        },
       });
       await this.auditLog.write({
         actorType: 'SYSTEM',
@@ -102,9 +124,12 @@ export class TravelGuaranteeRegistrationsService {
   // Poziva se iz M11EventSubscribersService na M5 booking.cancelled, samo za
   // tip_nastupanja=ORGANIZATOR sa postojećim zapisom.
   async releaseForBooking(bookingId: string): Promise<TravelGuaranteeRegistration | null> {
-    const registration = await this.prisma.travelGuaranteeRegistration.findUnique({ where: { bookingId } });
+    const registration = await this.prisma.travelGuaranteeRegistration.findUnique({
+      where: { bookingId },
+    });
     if (!registration) return null;
-    if (registration.status === 'RELEASED' || registration.status === 'RELEASE_PENDING') return registration;
+    if (registration.status === 'RELEASED' || registration.status === 'RELEASE_PENDING')
+      return registration;
 
     const pending = await this.prisma.travelGuaranteeRegistration.update({
       where: { id: registration.id },
@@ -114,7 +139,9 @@ export class TravelGuaranteeRegistrationsService {
     return this.attemptRelease(pending);
   }
 
-  private async attemptRelease(registration: TravelGuaranteeRegistration): Promise<TravelGuaranteeRegistration> {
+  private async attemptRelease(
+    registration: TravelGuaranteeRegistration,
+  ): Promise<TravelGuaranteeRegistration> {
     if (!registration.cisRegistrationNumber) {
       // Nikad nije uspešno registrovan u CIS-u (status je bio FAILED/PENDING) — nema šta da se
       // skine, storno ne treba dalju CIS akciju. Direktno RELEASED.
@@ -159,18 +186,37 @@ export class TravelGuaranteeRegistrationsService {
       // travel_guarantee_id), retry prvo pokuša da je poveže sa trenutno važećom garancijom.
       let travelGuaranteeId = registration.travelGuaranteeId;
       if (!travelGuaranteeId) {
-        const latest = await this.prisma.travelGuarantee.findFirst({ orderBy: { validTo: 'desc' } });
-        if (!latest) throw new BadRequestException('Nije moguće ponoviti registraciju — nijedna garancija putovanja još nije uneta.');
+        const latest = await this.prisma.travelGuarantee.findFirst({
+          orderBy: { validTo: 'desc' },
+        });
+        if (!latest)
+          throw new BadRequestException(
+            'Nije moguće ponoviti registraciju — nijedna garancija putovanja još nije uneta.',
+          );
         travelGuaranteeId = latest.id;
-        registration = await this.prisma.travelGuaranteeRegistration.update({ where: { id }, data: { travelGuaranteeId } });
+        registration = await this.prisma.travelGuaranteeRegistration.update({
+          where: { id },
+          data: { travelGuaranteeId },
+        });
       }
 
-      const guarantee = await this.prisma.travelGuarantee.findUnique({ where: { id: travelGuaranteeId } });
-      const booking = await this.prisma.booking.findUnique({ where: { id: registration.bookingId } });
+      const guarantee = await this.prisma.travelGuarantee.findUnique({
+        where: { id: travelGuaranteeId },
+      });
+      const booking = await this.prisma.booking.findUnique({
+        where: { id: registration.bookingId },
+      });
       if (!guarantee || !booking) {
-        throw new BadRequestException('Nije moguće ponoviti registraciju — garancija ili rezervacija ne postoji.');
+        throw new BadRequestException(
+          'Nije moguće ponoviti registraciju — garancija ili rezervacija ne postoji.',
+        );
       }
-      const result = await this.attemptRegister(registration, travelGuaranteeId, guarantee.policyNumber, booking.bookingNumber);
+      const result = await this.attemptRegister(
+        registration,
+        travelGuaranteeId,
+        guarantee.policyNumber,
+        booking.bookingNumber,
+      );
       await this.auditLog.write({
         actorType: 'HUMAN',
         actorId: actor.userId,
@@ -197,7 +243,9 @@ export class TravelGuaranteeRegistrationsService {
       return result;
     }
 
-    throw new BadRequestException(`TravelGuaranteeRegistration ${id} nije u statusu koji dozvoljava ponovni pokušaj (status: ${registration.status}).`);
+    throw new BadRequestException(
+      `TravelGuaranteeRegistration ${id} nije u statusu koji dozvoljava ponovni pokušaj (status: ${registration.status}).`,
+    );
   }
 
   // §2.3 alarm 1 — CONFIRMED rezervacija bez status=REGISTERED duže od 48h.

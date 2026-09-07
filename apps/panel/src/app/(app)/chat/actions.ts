@@ -18,7 +18,9 @@ function extractMessage(err: ApiError): string {
 // GROUP jednog ili više + naziv (servis to proverava, ova akcija samo prosleđuje formu).
 export async function createConversation(_prev: FormState, formData: FormData): Promise<FormState> {
   const type = formData.get('type') === 'GROUP' ? 'GROUP' : 'DIRECT';
-  const participantUserIds = formData.getAll('participantUserIds').filter((v) => typeof v === 'string' && v) as string[];
+  const participantUserIds = formData
+    .getAll('participantUserIds')
+    .filter((v) => typeof v === 'string' && v) as string[];
   const name = formData.get('name');
 
   let conversation: { id: string };
@@ -27,12 +29,17 @@ export async function createConversation(_prev: FormState, formData: FormData): 
       method: 'POST',
       body: {
         type,
-        name: type === 'GROUP' && typeof name === 'string' && name.trim() !== '' ? name.trim() : undefined,
+        name:
+          type === 'GROUP' && typeof name === 'string' && name.trim() !== ''
+            ? name.trim()
+            : undefined,
         participantUserIds,
       },
     });
   } catch (err) {
-    return { error: err instanceof ApiError ? extractMessage(err) : 'Kreiranje razgovora nije uspelo.' };
+    return {
+      error: err instanceof ApiError ? extractMessage(err) : 'Kreiranje razgovora nije uspelo.',
+    };
   }
   revalidatePath('/chat');
   redirect(`/chat/${conversation.id}`);
@@ -101,6 +108,9 @@ export async function draftSupplierReply(
     );
     return { ...result, error: null };
   } catch (err) {
-    return { draft: null, error: err instanceof ApiError ? extractMessage(err) : 'AI nacrt nije uspeo.' };
+    return {
+      draft: null,
+      error: err instanceof ApiError ? extractMessage(err) : 'AI nacrt nije uspeo.',
+    };
   }
 }

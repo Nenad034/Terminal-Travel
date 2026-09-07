@@ -2,7 +2,12 @@
 
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { ALL_FILTER_KEYS, MULTI_FILTER_KEYS, countActiveFilters, type FilterReader } from '@/lib/search-filters';
+import {
+  ALL_FILTER_KEYS,
+  MULTI_FILTER_KEYS,
+  countActiveFilters,
+  type FilterReader,
+} from '@/lib/search-filters';
 
 // ŽIVO STANJE FILTERA (M5 spec §3.0c.2 tačka 3, vlasnikova odluka 3.9.2026).
 //
@@ -93,12 +98,16 @@ export function SearchFiltersProvider({ children }: { children: React.ReactNode 
         return next;
       }),
     reset: () => setValues({}),
-    activeCount: countActiveFilters({ get: (k) => values[k]?.[0] ?? null, getAll: (k) => values[k] ?? [] }),
+    activeCount: countActiveFilters({
+      get: (k) => values[k]?.[0] ?? null,
+      getAll: (k) => values[k] ?? [],
+    }),
     toQueryString: () => {
       const out = new URLSearchParams();
       for (const key of ALL_FILTER_KEYS) {
         for (const value of values[key] ?? []) {
-          if (MULTI_FILTER_KEYS.includes(key as (typeof MULTI_FILTER_KEYS)[number])) out.append(key, value);
+          if (MULTI_FILTER_KEYS.includes(key as (typeof MULTI_FILTER_KEYS)[number]))
+            out.append(key, value);
           else out.set(key, value);
         }
       }
@@ -111,6 +120,7 @@ export function SearchFiltersProvider({ children }: { children: React.ReactNode 
 
 export function useSearchFilters(): SearchFiltersValue {
   const ctx = useContext(Ctx);
-  if (!ctx) throw new Error('useSearchFilters mora stajati unutar <SearchFiltersProvider> (Shell.tsx).');
+  if (!ctx)
+    throw new Error('useSearchFilters mora stajati unutar <SearchFiltersProvider> (Shell.tsx).');
   return ctx;
 }

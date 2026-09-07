@@ -51,8 +51,8 @@ export default function ActivationForm({ token }: { token: string }) {
       <div className="flex flex-col gap-3">
         <h1 className="font-mono text-lg">&gt; nalog --aktiviran</h1>
         <p className="rounded bg-ok-bg p-3 text-sm text-ok">
-          Lozinka je postavljena. Prijavite se — pri prvoj prijavi ćete podesiti dvofaktorsku zaštitu
-          (obavezna je za sve interne naloge).
+          Lozinka je postavljena. Prijavite se — pri prvoj prijavi ćete podesiti dvofaktorsku
+          zaštitu (obavezna je za sve interne naloge).
         </p>
         <button
           onClick={() => router.push('/prijava')}

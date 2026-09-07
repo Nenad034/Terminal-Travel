@@ -21,51 +21,53 @@ M12 pokriva tok: **proizvod (M2) → generisanje sadržaja → kalendar/odobrenj
 ## 2. Model podataka
 
 ### 2.1 `ContentPiece`
-| Polje | Tip | Napomena |
-| :---- | :---- | :---- |
-| id | UUID (PK) | |
-| product_id | UUID, nullable (FK → M2) | ako je sadržaj vezan za konkretan proizvod; `null` za `STATIC_PAGE` i opšte `BLOG_POST` sadržaje (poglavlje 3b) |
-| type | enum: `BLOG_POST`, `SOCIAL_POST`, `EMAIL_NEWSLETTER`, `BANNER`, `STATIC_PAGE` *(dodato avgust 2026, poglavlje 3b)* | `STATIC_PAGE` — opšte stranice sajta (npr. "O nama", "Kontakt") van kataloga proizvoda |
-| slug | string, nullable, unique kad popunjeno | **obavezno za `STATIC_PAGE`/`BLOG_POST`** (poglavlje 3b) — sopstvena URL putanja, isti princip kao `ProductTranslation.slug` (M2); nepotrebno za `SOCIAL_POST`/`EMAIL_NEWSLETTER`/`BANNER`, koji nemaju sopstvenu M8 stranicu |
-| tracking_code | string, unique | generiše se automatski pri kreiranju (kratak, npr. 8 karaktera, bez specijalnih znakova) — koristi se za atribuciju rezervacije ka sadržaju (poglavlje 3a), ne za identifikaciju same objave |
-| target_channels | niz enum: `M8_SITE`, `FACEBOOK`, `INSTAGRAM`, `EMAIL`, `MOBILE_PUSH` *(dodato pri specifikaciji M19)* | `MOBILE_PUSH` koristi već postojeći mehanizam push notifikacija iz M9 (M9 specifikacija, poglavlje 5), ne novu infrastrukturu |
-| target_tags | string[] (JSONB niz), nullable *(dodato avgust 2026, poglavlje 4)* | **samo za `EMAIL`** — filtrira primaoce po M6 `ClientAccount.tags`; prazno/`null` = svi sa `marketing_consent = true` (nepromenjeno ponašanje) |
-| contains_ai_generated_media | boolean, default `false` *(dodato avgust 2026, poglavlje 3c — YUTA preporuka)* | `true` kad `body`/`media` sadrži sintetički AI-generisan vizual (ne AI-*izvučenu* stvarnu fotografiju, poglavlje 3c); uslovljava obavezu vidljive oznake transparentnosti pri odobrenju |
-| scheduled_publish_at | timestamp, nullable | kalendar — sortiranje po ovom polju daje prikaz kalendara, bez posebnog entiteta |
-| generated_by | enum: `AI`, `HUMAN` | |
-| approved_by | UUID, nullable (FK → M1 User) | **obavezno pre `PUBLISHED`, nikad AI** |
-| published_at | timestamp, nullable | |
-| created_at / updated_at | timestamp | |
+
+| Polje                       | Tip                                                                                                                | Napomena                                                                                                                                                                                                                      |
+| :-------------------------- | :----------------------------------------------------------------------------------------------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| id                          | UUID (PK)                                                                                                          |                                                                                                                                                                                                                               |
+| product_id                  | UUID, nullable (FK → M2)                                                                                           | ako je sadržaj vezan za konkretan proizvod; `null` za `STATIC_PAGE` i opšte `BLOG_POST` sadržaje (poglavlje 3b)                                                                                                               |
+| type                        | enum: `BLOG_POST`, `SOCIAL_POST`, `EMAIL_NEWSLETTER`, `BANNER`, `STATIC_PAGE` _(dodato avgust 2026, poglavlje 3b)_ | `STATIC_PAGE` — opšte stranice sajta (npr. "O nama", "Kontakt") van kataloga proizvoda                                                                                                                                        |
+| slug                        | string, nullable, unique kad popunjeno                                                                             | **obavezno za `STATIC_PAGE`/`BLOG_POST`** (poglavlje 3b) — sopstvena URL putanja, isti princip kao `ProductTranslation.slug` (M2); nepotrebno za `SOCIAL_POST`/`EMAIL_NEWSLETTER`/`BANNER`, koji nemaju sopstvenu M8 stranicu |
+| tracking_code               | string, unique                                                                                                     | generiše se automatski pri kreiranju (kratak, npr. 8 karaktera, bez specijalnih znakova) — koristi se za atribuciju rezervacije ka sadržaju (poglavlje 3a), ne za identifikaciju same objave                                  |
+| target_channels             | niz enum: `M8_SITE`, `FACEBOOK`, `INSTAGRAM`, `EMAIL`, `MOBILE_PUSH` _(dodato pri specifikaciji M19)_              | `MOBILE_PUSH` koristi već postojeći mehanizam push notifikacija iz M9 (M9 specifikacija, poglavlje 5), ne novu infrastrukturu                                                                                                 |
+| target_tags                 | string[] (JSONB niz), nullable _(dodato avgust 2026, poglavlje 4)_                                                 | **samo za `EMAIL`** — filtrira primaoce po M6 `ClientAccount.tags`; prazno/`null` = svi sa `marketing_consent = true` (nepromenjeno ponašanje)                                                                                |
+| contains_ai_generated_media | boolean, default `false` _(dodato avgust 2026, poglavlje 3c — YUTA preporuka)_                                     | `true` kad `body`/`media` sadrži sintetički AI-generisan vizual (ne AI-_izvučenu_ stvarnu fotografiju, poglavlje 3c); uslovljava obavezu vidljive oznake transparentnosti pri odobrenju                                       |
+| scheduled_publish_at        | timestamp, nullable                                                                                                | kalendar — sortiranje po ovom polju daje prikaz kalendara, bez posebnog entiteta                                                                                                                                              |
+| generated_by                | enum: `AI`, `HUMAN`                                                                                                |                                                                                                                                                                                                                               |
+| approved_by                 | UUID, nullable (FK → M1 User)                                                                                      | **obavezno pre `PUBLISHED`, nikad AI**                                                                                                                                                                                        |
+| published_at                | timestamp, nullable                                                                                                |                                                                                                                                                                                                                               |
+| created_at / updated_at     | timestamp                                                                                                          |                                                                                                                                                                                                                               |
 
 ### 2.5 `ContentMedia` (v1.5, 23.8.2026)
 
-| Polje | Tip | Napomena |
-| :---- | :---- | :---- |
-| id | UUID (PK) | |
-| content_piece_id | UUID (FK → ContentPiece) | |
-| media_type | enum: `IMAGE`, `VIDEO` | izvedeno iz MIME tipa pri otpremanju, sačuvano eksplicitno (jednostavnije za panel prikaz) |
-| file_name | string | originalno ime koje je pošiljalac poslao |
-| mime_type | string | |
-| size_bytes | int | max 100 MB po prilogu (video/reels su veći od slika) |
-| storage_path | string | relativna putanja unutar `apps/api/uploads/marketing/<content_piece_id>/` — lokalni disk API servera, van git-a, dok se hosting provajder za produkciju ne izabere (ista vlasnikova odluka kao M19 §2.5 prilozi u chat-u) |
-| uploaded_by | UUID (FK → M1 User) | |
-| uploaded_at | timestamp | |
+| Polje            | Tip                      | Napomena                                                                                                                                                                                                                  |
+| :--------------- | :----------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| id               | UUID (PK)                |                                                                                                                                                                                                                           |
+| content_piece_id | UUID (FK → ContentPiece) |                                                                                                                                                                                                                           |
+| media_type       | enum: `IMAGE`, `VIDEO`   | izvedeno iz MIME tipa pri otpremanju, sačuvano eksplicitno (jednostavnije za panel prikaz)                                                                                                                                |
+| file_name        | string                   | originalno ime koje je pošiljalac poslao                                                                                                                                                                                  |
+| mime_type        | string                   |                                                                                                                                                                                                                           |
+| size_bytes       | int                      | max 100 MB po prilogu (video/reels su veći od slika)                                                                                                                                                                      |
+| storage_path     | string                   | relativna putanja unutar `apps/api/uploads/marketing/<content_piece_id>/` — lokalni disk API servera, van git-a, dok se hosting provajder za produkciju ne izabere (ista vlasnikova odluka kao M19 §2.5 prilozi u chat-u) |
+| uploaded_by      | UUID (FK → M1 User)      |                                                                                                                                                                                                                           |
+| uploaded_at      | timestamp                |                                                                                                                                                                                                                           |
 
 Jedan `ContentPiece` može imati više medija (galerija). Dodavanje/uklanjanje je zabranjeno čim sadržaj pređe u `APPROVED`/`PUBLISHED` — ista nepovratna granica kao izmena teksta (poglavlje 3, `update()`). Preuzimanje/prikaz isključivo preko autentifikovanog `GET /marketing/content/media/:mediaId/download` (poglavlje 7) — fajl se ne servira kao javan statički resurs; dozvola je ista kao pregled sadržaja (`M12/content/VIEW`), bez dodatne provere vlasništva (za razliku od M19 priloga, ovde nema koncepta "učesnika razgovora" — ceo interni tim koji vidi sadržaj sme da vidi i njegovu galeriju).
 
 **Razlika od `contains_ai_generated_media` (poglavlje 2.1):** to polje je OTKAD POSTOJI samo oznaka/checkbox (YUTA transparentnost) — nikad nije čuvalo stvaran fajl. `ContentMedia` je prvi stvaran mehanizam za prilaganje slike/videa, uveden ovim prolazom nakon što je vlasnik direktno pitao "kako dodajemo slike i reels?" i otkrio da odgovor dotad nije postojao.
 
 ### 2.2 `ContentTranslation`
+
 Isti obrazac kao M2 `ProductTranslation` (poglavlje 2.2 te specifikacije) — redovi po jeziku, ne fiksne kolone, isti fallback (traženi jezik → engleski → srpski), isti skup 8 jezika.
 
-| Polje | Tip | Napomena |
-| :---- | :---- | :---- |
-| id | UUID (PK) | |
-| content_piece_id | UUID (FK) | |
-| language_code | enum (isti skup kao M2) | |
-| title / body | string / text | |
-| translation_source | enum: `MANUAL`, `AI_GENERATED` | |
-| is_reviewed | boolean | |
+| Polje              | Tip                            | Napomena |
+| :----------------- | :----------------------------- | :------- |
+| id                 | UUID (PK)                      |          |
+| content_piece_id   | UUID (FK)                      |          |
+| language_code      | enum (isti skup kao M2)        |          |
+| title / body       | string / text                  |          |
+| translation_source | enum: `MANUAL`, `AI_GENERATED` |          |
+| is_reviewed        | boolean                        |          |
 
 ---
 
@@ -95,9 +97,10 @@ Ovo drži M5 potpuno neosetljivim na M12 (samo prenosi string) i poštuje M13 po
 
 **Izvor:** YUTA okružnica članicama, 10.08.2026. (dopis "ČLANICAMA YUTA, n/r direktora"), povodom početka primene (2. avgust 2026.) dela odredbi EU AI Act-a o obeležavanju AI generisanog sadržaja — puni tekst dopisa dostavio vlasnik 29.8.2026, potvrđeno da je već upisano pravilo (ispod) u skladu sa dopisom bez potrebe za izmenom. Srbija nije članica EU pa odredba nije direktno pravno obavezujuća za TT, ali YUTA preporučuje članicama transparentno označavanje jer agencija posluje na digitalnom tržištu bez državnih granica (partneri iz EU, gosti iz EU, međunarodne platforme). Ovo je preporuka koju vlasnik prihvata kao internu politiku, ne otvoreno pravno pitanje koje čeka potvrdu — zato ide direktno u ovu specifikaciju, ne u `docs/analize/26-PRAVNA-I-KNJIGOVODSTVENA-OTVORENA-PITANJA.md`.
 
-**Pravilo:** `ContentPiece` dobija novo polje `contains_ai_generated_media` (boolean, default `false`) — postavlja ga onaj ko kreira sadržaj (AI agent pri nacrtu ili čovek pri ručnom unosu) kad `body`/`media` sadrži fotografiju, ilustraciju ili video generisan veštačkom inteligencijom (npr. DALL-E/Midjourney-stil kreativni vizual za `BANNER`/`SOCIAL_POST`), **za razliku od** stvarne fotografije hotela/destinacije koja je samo AI-*izvučena* sa sajta dobavljača (M2 poglavlje 2.3a, `media.source = AI_IMPORTED`) — to nije sintetički sadržaj i ne podleže ovom pravilu.
+**Pravilo:** `ContentPiece` dobija novo polje `contains_ai_generated_media` (boolean, default `false`) — postavlja ga onaj ko kreira sadržaj (AI agent pri nacrtu ili čovek pri ručnom unosu) kad `body`/`media` sadrži fotografiju, ilustraciju ili video generisan veštačkom inteligencijom (npr. DALL-E/Midjourney-stil kreativni vizual za `BANNER`/`SOCIAL_POST`), **za razliku od** stvarne fotografije hotela/destinacije koja je samo AI-_izvučena_ sa sajta dobavljača (M2 poglavlje 2.3a, `media.source = AI_IMPORTED`) — to nije sintetički sadržaj i ne podleže ovom pravilu.
 
 Kad je `contains_ai_generated_media = true`:
+
 - Objava na `APPROVE_PUBLISH` (poglavlje 3, korak 4) zahteva da `ContentTranslation.body` sadrži vidljivu oznaku transparentnosti na jeziku objave, npr. "Fotografija je generisana uz pomoć veštačke inteligencije (AI)." — čovek koji odobrava proverava prisustvo oznake, sistem ne generiše tekst automatski (izbor formulacije ostaje uređivački, ne mehanički).
 - Sintetički AI vizuali se **ne koriste** kao zamena za stvarni prikaz smeštaja/destinacije/atrakcije u sadržaju vezanom za konkretan `product_id` (rizik dovođenja gosta u zabludu o stvarnom izgledu/kvalitetu usluge) — dozvoljeni su samo za ilustrativne/kreativne/promotivne vizuale bez `product_id` ili gde ne predstavljaju konkretnu uslugu (npr. generička destinacijska atmosfera, ne konkretna soba).
 
@@ -127,11 +130,11 @@ Kredencijali svakog kanala (Facebook/Instagram API tokeni i sl.) čuvaju se enkr
 
 ## 5. Dozvole (registruju se u M1 katalog dozvola)
 
-| Dozvola | Podrazumevana dodela po ulozi |
-| :---- | :---- |
+| Dozvola                            | Podrazumevana dodela po ulozi                                 |
+| :--------------------------------- | :------------------------------------------------------------ |
 | `M12/content/VIEW`, `CREATE_DRAFT` | Vlasnik, Direktor (i AI agent, nivo "Autonomno" — samo nacrt) |
-| `M12/content/APPROVE_PUBLISH` | Vlasnik, Direktor — **nikad AI agent** |
-| `M12/channel-config/VIEW`, `EDIT` | Vlasnik, Direktor |
+| `M12/content/APPROVE_PUBLISH`      | Vlasnik, Direktor — **nikad AI agent**                        |
+| `M12/channel-config/VIEW`, `EDIT`  | Vlasnik, Direktor                                             |
 
 Napomena: kao i kod M2/M3, među sedam osnovnih uloga ne postoji posebna "Marketing menadžer" uloga — ako se pokaže potreba, rešava se pojedinačnim izuzetkom (M1 `UserPermissionOverride`), ne čekajući novu ulogu.
 
@@ -159,17 +162,17 @@ U `13-SPECIFIKACIJA-M13-BI.md` dodaje se: `FactBooking.referral_content_id`/`ref
 
 Prefiks: `/api/v1/marketing`
 
-| Endpoint | Metod | Opis |
-| :---- | :---- | :---- |
-| `/content` | GET / POST | lista (kalendar = sortirano po `scheduled_publish_at`) / ručno kreiranje |
-| `/content/:id` | GET / PATCH | |
-| `/content/:id/approve` | POST | ljudsko odobrenje, zahteva `M12/content/APPROVE_PUBLISH` |
-| `/content/:id/translations` | GET / PUT | |
-| `/content/:id/media` | POST | `multipart/form-data`, polje `file` — slika/video (v1.5, poglavlje 2.5); zahteva `M12/content/CREATE_DRAFT`, odbija ako sadržaj nije `DRAFT`/`PENDING_APPROVAL` |
-| `/content/media/:mediaId/download` | GET | zahteva `M12/content/VIEW` |
-| `/content/media/:mediaId` | DELETE | zahteva `M12/content/CREATE_DRAFT`, ista granica statusa kao upload |
-| `/channels` | GET / POST / PATCH | konfiguracija distribucionih kanala |
-| `/public/content` | GET | **bez autentikacije** (dopuna avgust 2026) — `?type=STATIC_PAGE\|BLOG_POST&slug=...&lang=...`, vraća samo `status=PUBLISHED` sadržaj koji ima `M8_SITE` u `target_channels`; inače `404`. Namena: M8 `/stranica/:slug`, `/blog/:slug` (poglavlje 3b) |
+| Endpoint                           | Metod              | Opis                                                                                                                                                                                                                                                 |
+| :--------------------------------- | :----------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/content`                         | GET / POST         | lista (kalendar = sortirano po `scheduled_publish_at`) / ručno kreiranje                                                                                                                                                                             |
+| `/content/:id`                     | GET / PATCH        |                                                                                                                                                                                                                                                      |
+| `/content/:id/approve`             | POST               | ljudsko odobrenje, zahteva `M12/content/APPROVE_PUBLISH`                                                                                                                                                                                             |
+| `/content/:id/translations`        | GET / PUT          |                                                                                                                                                                                                                                                      |
+| `/content/:id/media`               | POST               | `multipart/form-data`, polje `file` — slika/video (v1.5, poglavlje 2.5); zahteva `M12/content/CREATE_DRAFT`, odbija ako sadržaj nije `DRAFT`/`PENDING_APPROVAL`                                                                                      |
+| `/content/media/:mediaId/download` | GET                | zahteva `M12/content/VIEW`                                                                                                                                                                                                                           |
+| `/content/media/:mediaId`          | DELETE             | zahteva `M12/content/CREATE_DRAFT`, ista granica statusa kao upload                                                                                                                                                                                  |
+| `/channels`                        | GET / POST / PATCH | konfiguracija distribucionih kanala                                                                                                                                                                                                                  |
+| `/public/content`                  | GET                | **bez autentikacije** (dopuna avgust 2026) — `?type=STATIC_PAGE\|BLOG_POST&slug=...&lang=...`, vraća samo `status=PUBLISHED` sadržaj koji ima `M8_SITE` u `target_channels`; inače `404`. Namena: M8 `/stranica/:slug`, `/blog/:slug` (poglavlje 3b) |
 
 ---
 

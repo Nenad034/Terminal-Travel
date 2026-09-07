@@ -38,19 +38,31 @@ export class EmailThreadsController {
 
   @Post(':id/messages')
   @RequirePermission('M22', 'email-thread', 'REPLY')
-  createMessage(@Param('id') id: string, @Body() dto: CreateMessageDto, @CurrentUser() user: { userId: string }) {
+  createMessage(
+    @Param('id') id: string,
+    @Body() dto: CreateMessageDto,
+    @CurrentUser() user: { userId: string },
+  ) {
     return this.threads.createMessage(id, dto, user.userId);
   }
 
   @Post(':id/messages/:messageId/send')
   @RequirePermission('M22', 'email-thread', 'REPLY')
-  sendDraft(@Param('id') id: string, @Param('messageId') messageId: string, @CurrentUser() user: { userId: string }) {
+  sendDraft(
+    @Param('id') id: string,
+    @Param('messageId') messageId: string,
+    @CurrentUser() user: { userId: string },
+  ) {
     return this.threads.sendDraft(id, messageId, user.userId);
   }
 
   @Post(':id/link-booking')
   @RequirePermission('M22', 'email-thread', 'REPLY')
-  linkBooking(@Param('id') id: string, @Body() dto: LinkBookingDto, @CurrentUser() user: { userId: string }) {
+  linkBooking(
+    @Param('id') id: string,
+    @Body() dto: LinkBookingDto,
+    @CurrentUser() user: { userId: string },
+  ) {
     return this.threads.linkBooking(id, dto, user.userId);
   }
 

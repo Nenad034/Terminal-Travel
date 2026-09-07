@@ -36,7 +36,9 @@ export class MailboxesService {
       throw new BadRequestException('SHARED sanduče ne sme imati ownerUserId.');
     }
     if (dto.isSupplierUnifiedInbox) {
-      const existing = await this.prisma.mailbox.findFirst({ where: { isSupplierUnifiedInbox: true } });
+      const existing = await this.prisma.mailbox.findFirst({
+        where: { isSupplierUnifiedInbox: true },
+      });
       if (existing) {
         throw new BadRequestException(
           `Već postoji jedinstveno sanduče za dobavljače (${existing.address}, M5 §8.8) — samo jedno sme biti obeleženo.`,
@@ -81,7 +83,10 @@ export class MailboxesService {
 
   async listAccess(mailboxId: string) {
     await this.findOne(mailboxId);
-    return this.prisma.mailboxAccess.findMany({ where: { mailboxId }, orderBy: { grantedAt: 'asc' } });
+    return this.prisma.mailboxAccess.findMany({
+      where: { mailboxId },
+      orderBy: { grantedAt: 'asc' },
+    });
   }
 
   // §2.2 — POST /mailboxes/:id/access, zahteva M22/mailbox-access/GRANT (kontroler).
@@ -91,7 +96,12 @@ export class MailboxesService {
     const access = await this.prisma.mailboxAccess.upsert({
       where: { mailboxId_userId: { mailboxId, userId: dto.userId } },
       update: { accessLevel: dto.accessLevel, grantedBy: actorUserId },
-      create: { mailboxId, userId: dto.userId, accessLevel: dto.accessLevel, grantedBy: actorUserId },
+      create: {
+        mailboxId,
+        userId: dto.userId,
+        accessLevel: dto.accessLevel,
+        grantedBy: actorUserId,
+      },
     });
 
     await this.auditLog.write({
@@ -110,7 +120,9 @@ export class MailboxesService {
 
   /** Interna pomoćna metoda — koriste je EmailThreadsService/EmailAiAssistantService za scoping. */
   async findAccess(mailboxId: string, userId: string) {
-    return this.prisma.mailboxAccess.findUnique({ where: { mailboxId_userId: { mailboxId, userId } } });
+    return this.prisma.mailboxAccess.findUnique({
+      where: { mailboxId_userId: { mailboxId, userId } },
+    });
   }
 
   /** M5 spec §8.8 — čita jedinstveno sanduče za dobavljače (najviše jedan red), koristi ga ReferenceMatcherService. */

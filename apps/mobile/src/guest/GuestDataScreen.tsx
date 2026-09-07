@@ -30,14 +30,25 @@ export function GuestDataScreen(params: Params) {
       <Text style={styles.title}>Podaci putnika</Text>
       {hasSession === false && (
         <Text style={styles.notice}>
-          Morate biti prijavljeni da biste nastavili. <Text style={styles.link} onPress={() => router.push('/prijava')}>Prijavite se</Text>
+          Morate biti prijavljeni da biste nastavili.{' '}
+          <Text style={styles.link} onPress={() => router.push('/prijava')}>
+            Prijavite se
+          </Text>
         </Text>
       )}
-      <TextInput style={styles.input} value={buyerName} onChangeText={setBuyerName} placeholder="Ime i prezime" autoFocus />
+      <TextInput
+        style={styles.input}
+        value={buyerName}
+        onChangeText={setBuyerName}
+        placeholder="Ime i prezime"
+        autoFocus
+      />
       <Pressable
         style={[styles.button, (!buyerName || !hasSession) && styles.buttonDisabled]}
         disabled={!buyerName || !hasSession}
-        onPress={() => router.push({ pathname: '/(guest)/uslovi', params: { ...params, buyerName } })}
+        onPress={() =>
+          router.push({ pathname: '/(guest)/uslovi', params: { ...params, buyerName } })
+        }
       >
         <Text style={styles.buttonText}>Nastavi</Text>
       </Pressable>

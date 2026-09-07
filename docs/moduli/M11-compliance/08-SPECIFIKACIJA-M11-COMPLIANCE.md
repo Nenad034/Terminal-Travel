@@ -20,15 +20,16 @@ M11 pokriva zakonsku obavezu **garancije putovanja (YUTA)** — zakonski uslov d
 ## 2. Garancija putovanja (YUTA)
 
 ### 2.1 `TravelGuarantee`
-| Polje | Tip | Napomena |
-| :---- | :---- | :---- |
-| id | UUID (PK) | |
-| provider | string | npr. `YUTA` ili osiguravač preko kog se garancija realizuje |
-| policy_number | string | |
-| coverage_amount | decimal / currency | |
-| valid_from / valid_to | date | godišnje obnavljanje |
-| document_url | string | skenirani sertifikat, EU cloud skladište |
-| status | enum: `ACTIVE`, `EXPIRED`, `PENDING_RENEWAL` | |
+
+| Polje                 | Tip                                          | Napomena                                                    |
+| :-------------------- | :------------------------------------------- | :---------------------------------------------------------- |
+| id                    | UUID (PK)                                    |                                                             |
+| provider              | string                                       | npr. `YUTA` ili osiguravač preko kog se garancija realizuje |
+| policy_number         | string                                       |                                                             |
+| coverage_amount       | decimal / currency                           |                                                             |
+| valid_from / valid_to | date                                         | godišnje obnavljanje                                        |
+| document_url          | string                                       | skenirani sertifikat, EU cloud skladište                    |
+| status                | enum: `ACTIVE`, `EXPIRED`, `PENDING_RENEWAL` |                                                             |
 
 **Nikad autonomno:** izmena ili obnavljanje garancije je eksplicitno na listi "Nikad autonomno" iz poglavlja 7 Master dokumenta — AI agent **nikad** sam ne menja ovaj zapis niti komunicira sa YUTA u ime agencije. Agent sme (nivo "Autonomno") samo da **prati datum isteka i šalje podsetnik** timu unapred (npr. 60/30/7 dana pre `valid_to`) — čisto informativna radnja, ne izvršenje.
 
@@ -43,6 +44,7 @@ Ukupna vrednost aktivno prodatih aranžmana gde je agencija organizator (`Bookin
 - Zbir prodatih `ORGANIZATOR` iznosa može biti u više valuta (rezervacije u EUR i RSD istovremeno) — konvertuje se u valutu garancije preko M10 `ExchangeRateSnapshot` po tekućem kursu (isti obrazac triangulacije kao M10 `FiscalDocumentsService.convertToRsd`), pre poređenja sa `coverage_amount`.
 
 **Hibridno rešenje za period bez važeće garancije (dogovoreno sa vlasnikom, avgust 2026):** u praksi obnavljanje garancije zna da administrativno kasni — trenutak kad prethodna polisa istekne (`validTo` prošao ili `status != ACTIVE`) a nova još nije uneta ne sme odmah da blokira prodaju, ali ne sme ni da ostane trajno otvorena rupa u zakonskoj usklađenosti. Rešenje: **grace period od 15 dana** od `validTo` prethodne garancije (isti rok kao SEF prihvatanje fakture u M10 §6 — dosledna konvencija "razumnog zakonskog roka" kroz sistem):
+
 - Unutar grace perioda: potvrda `ORGANIZATOR` rezervacije se **dozvoljava**, ali sistem šalje hitan alarm (`travel_guarantee_gap_urgent`) Vlasniku/Direktoru — nivo "Autonomno" (informativno, ne blokira).
 - Nakon isteka grace perioda: potvrda se **blokira** (`travel_guarantee_blocked`) dok se garancija ne obnovi — isti zakonski princip kao gore, samo odložen za razuman administrativni period.
 - Ako nijedna garancija nikad nije uneta u sistem (bootstrap slučaj, npr. odmah nakon uvođenja M11 pre prvog ručnog unosa): potvrda se dozvoljava uz hitan alarm (`travel_guarantee_missing_urgent`) — nema referentnog `validTo` od kog bi se računao grace period, pa se prodaja ne blokira dok Vlasnik/Direktor ne unese prvu garanciju.
@@ -52,20 +54,22 @@ Ukupna vrednost aktivno prodatih aranžmana gde je agencija organizator (`Bookin
 Za razliku od poglavlja 2.2 (koje prati **zbirnu** iskorišćenost garancije naspram limita), svaka pojedinačna `ORGANIZATOR` rezervacija mora biti evidentirana u CIS/YUTA registru pod sopstvenim brojem garancije, i ta evidencija mora biti **skinuta** (oslobođena) kad se rezervacija storno. Ovo su dve odvojene, po-rezervaciji obaveze prema registru, ne interno računovodstvo — otvorena rezervacija bez broja garancije, ili storno bez skinutog opterećenja, su konkretni propusti koje agencija mora da vidi i reši, ne samo interni brojevi u poglavlju 2.2.
 
 #### `TravelGuaranteeRegistration`
-| Polje | Tip | Napomena |
-| :---- | :---- | :---- |
-| id | UUID (PK) | |
-| booking_id | UUID (FK → M5 Booking) | samo za `tip_nastupanja = ORGANIZATOR` |
-| travel_guarantee_id | UUID (FK → `TravelGuarantee`, poglavlje 2.1) | koja godišnja garancija pokriva ovu rezervaciju |
-| cis_registration_number | string, nullable | broj garancije dobijen iz CIS/YUTA sistema pri registraciji — prazno dok registracija ne uspe |
-| status | enum: `PENDING`, `REGISTERED`, `RELEASE_PENDING`, `RELEASED`, `FAILED` | `RELEASE_PENDING` — rezervacija je storno, opterećenje u CIS-u još nije skinuto |
-| registered_at | timestamp, nullable | |
-| release_requested_at / released_at | timestamp, nullable | popunjava se pri, odnosno posle, stornirania |
-| failure_reason | text, nullable | |
+
+| Polje                              | Tip                                                                    | Napomena                                                                                      |
+| :--------------------------------- | :--------------------------------------------------------------------- | :-------------------------------------------------------------------------------------------- |
+| id                                 | UUID (PK)                                                              |                                                                                               |
+| booking_id                         | UUID (FK → M5 Booking)                                                 | samo za `tip_nastupanja = ORGANIZATOR`                                                        |
+| travel_guarantee_id                | UUID (FK → `TravelGuarantee`, poglavlje 2.1)                           | koja godišnja garancija pokriva ovu rezervaciju                                               |
+| cis_registration_number            | string, nullable                                                       | broj garancije dobijen iz CIS/YUTA sistema pri registraciji — prazno dok registracija ne uspe |
+| status                             | enum: `PENDING`, `REGISTERED`, `RELEASE_PENDING`, `RELEASED`, `FAILED` | `RELEASE_PENDING` — rezervacija je storno, opterećenje u CIS-u još nije skinuto               |
+| registered_at                      | timestamp, nullable                                                    |                                                                                               |
+| release_requested_at / released_at | timestamp, nullable                                                    | popunjava se pri, odnosno posle, stornirania                                                  |
+| failure_reason                     | text, nullable                                                         |                                                                                               |
 
 **Tok:** kad `Booking.status` (M5 poglavlje 4) pređe u `CONFIRMED` za `ORGANIZATOR` rezervaciju, kreira se zapis sa `status = PENDING` i sistem pokušava registraciju u CIS-u — deterministički obrazac, isti princip kao ostali automatski, ne-AI procesi u sistemu (npr. M10 automatsko kreiranje `SupplierObligation`, poglavlje 8.0 tog dokumenta) — princip #4 Master dokumenta (determinizam pre autonomije), pošto podaci već postoje i nema prostora za AI procenu. Kad `Booking.status` pređe u `CANCELLED` (M5 poglavlje 6), zapis prelazi u `RELEASE_PENDING` dok se opterećenje ne skine u CIS-u.
 
 **Alarmi (nivo "Autonomno" iz poglavlja 7 Master dokumenta — informativno, ne blokira):**
+
 - `CONFIRMED` rezervacija bez `status = REGISTERED` duže od 48h od potvrde (nema broj garancije).
 - `CANCELLED` rezervacija čiji zapis ostaje `RELEASE_PENDING` duže od 48h od otkazivanja (opterećenje nije skinuto).
 
@@ -83,13 +87,13 @@ Ne uvodi se nova baza podataka — ovo je **izveštaj/izvoz na zahtev** koji agr
 
 ## 4. Dozvole (registruju se u M1 katalog dozvola)
 
-| Dozvola | Podrazumevana dodela po ulozi |
-| :---- | :---- |
-| `M11/travel-guarantee/VIEW` | Vlasnik, Direktor |
-| `M11/travel-guarantee/EDIT` | Vlasnik, Direktor — nikad AI agent |
-| `M11/travel-guarantee-registration/VIEW` | Vlasnik, Direktor, Sales Manager, Prodajni agent (poglavlje 2.3) |
+| Dozvola                                   | Podrazumevana dodela po ulozi                                                                                                                                                      |
+| :---------------------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `M11/travel-guarantee/VIEW`               | Vlasnik, Direktor                                                                                                                                                                  |
+| `M11/travel-guarantee/EDIT`               | Vlasnik, Direktor — nikad AI agent                                                                                                                                                 |
+| `M11/travel-guarantee-registration/VIEW`  | Vlasnik, Direktor, Sales Manager, Prodajni agent (poglavlje 2.3)                                                                                                                   |
 | `M11/travel-guarantee-registration/RETRY` | Vlasnik, Direktor — mehanička dopuna (implementacija, avgust 2026): VIEW ne sme otključati mutirajuću akciju (ručno ponavljanje CIS poziva), isti krug kao `travel-guarantee/EDIT` |
-| `M11/inspection-export/CREATE` | Vlasnik, Direktor, Računovođa |
+| `M11/inspection-export/CREATE`            | Vlasnik, Direktor, Računovođa                                                                                                                                                      |
 
 ---
 
@@ -97,13 +101,13 @@ Ne uvodi se nova baza podataka — ovo je **izveštaj/izvoz na zahtev** koji agr
 
 Prefiks: `/api/v1/compliance`
 
-| Endpoint | Metod | Opis |
-| :---- | :---- | :---- |
-| `/travel-guarantee` | GET / PATCH | trenutna garancija, ručna izmena (uvek ljudska akcija) |
-| `/travel-guarantee/utilization` | GET | kumulativna prodata vrednost `ORGANIZATOR` prometa naspram `coverage_amount` — poziva ga M5 pri potvrdi rezervacije (poglavlje 2.2) i interni panel za prikaz |
-| `/travel-guarantee-registrations` | GET | lista `TravelGuaranteeRegistration` zapisa, filtrirano po statusu/rezervaciji (poglavlje 2.3) |
-| `/travel-guarantee-registrations/:id/retry` | POST | ručno ponovi registraciju ili skidanje opterećenja koje je `FAILED` |
-| `/inspection-export` | POST | generiše izvoz za zadati period |
+| Endpoint                                    | Metod       | Opis                                                                                                                                                          |
+| :------------------------------------------ | :---------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `/travel-guarantee`                         | GET / PATCH | trenutna garancija, ručna izmena (uvek ljudska akcija)                                                                                                        |
+| `/travel-guarantee/utilization`             | GET         | kumulativna prodata vrednost `ORGANIZATOR` prometa naspram `coverage_amount` — poziva ga M5 pri potvrdi rezervacije (poglavlje 2.2) i interni panel za prikaz |
+| `/travel-guarantee-registrations`           | GET         | lista `TravelGuaranteeRegistration` zapisa, filtrirano po statusu/rezervaciji (poglavlje 2.3)                                                                 |
+| `/travel-guarantee-registrations/:id/retry` | POST        | ručno ponovi registraciju ili skidanje opterećenja koje je `FAILED`                                                                                           |
+| `/inspection-export`                        | POST        | generiše izvoz za zadati period                                                                                                                               |
 
 ---
 

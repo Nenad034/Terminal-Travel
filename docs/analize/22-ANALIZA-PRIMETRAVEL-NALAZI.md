@@ -1,7 +1,7 @@
 # Analiza PrimeTravel-a — šta je korisno za Terminal
 
 **Izvor:** `D:\PrimeTravel 17.04.2026` (interno "Olympic Hub" / "PrimeClickToTravel", React 19 + TypeScript + Vite + Supabase), pregledano 31.7.2026.
-**Svrha ovog dokumenta:** PrimeTravel je stariji, mnogo dalje razvijen projekat iste namene (React/Supabase umesto NestJS/Prisma koje smo mi izabrali) sa stvarnim integracijama, radnom AI agentskom arhitekturom, i posebnim Sandbox područjem za eksperimente. Ovo je lista konkretnih ideja/obrazaca vrednih razmatranja za Terminal — **ne predlog da se menja naš stek ili arhitektura**, već lista *koncepata* koje vredi ugraditi u naše module kad dođu na red.
+**Svrha ovog dokumenta:** PrimeTravel je stariji, mnogo dalje razvijen projekat iste namene (React/Supabase umesto NestJS/Prisma koje smo mi izabrali) sa stvarnim integracijama, radnom AI agentskom arhitekturom, i posebnim Sandbox područjem za eksperimente. Ovo je lista konkretnih ideja/obrazaca vrednih razmatranja za Terminal — **ne predlog da se menja naš stek ili arhitektura**, već lista _koncepata_ koje vredi ugraditi u naše module kad dođu na red.
 
 ---
 
@@ -58,7 +58,7 @@
 ## 7. M10 (Finansije)
 
 - Potvrđeno kod njih takođe: **eFaktura/SEF integracija je "zakonska obaveza, nije početo"** — mi smo u ovoj tački ispred (imamo pun dizajn toka u M10), ali potvrđuje da je ovo realno težak, još neisprobani deo za oboje.
-- **Automatska rekonsilijacija (rezervacija → uplata → faktura)** — eksplicitno navedeno kao nedostajuće i kod njih; naš M10 `SupplierObligation` (upravo dodat) pokriva stranu ka dobavljaču, ali *ka gostu* rekonsilijacija (da li se svaka `Booking` na kraju poklapa sa stvarno primljenom uplatom i izdatom fakturom, bez ručne provere) nije eksplicitno pokrivena — vredi razmotriti kao dopunu M10 ili M13 izveštaj.
+- **Automatska rekonsilijacija (rezervacija → uplata → faktura)** — eksplicitno navedeno kao nedostajuće i kod njih; naš M10 `SupplierObligation` (upravo dodat) pokriva stranu ka dobavljaču, ali _ka gostu_ rekonsilijacija (da li se svaka `Booking` na kraju poklapa sa stvarno primljenom uplatom i izdatom fakturom, bez ručne provere) nije eksplicitno pokrivena — vredi razmotriti kao dopunu M10 ili M13 izveštaj.
 - **VccAuditDashboard** (Virtual Credit Card audit — praćenje virtuelnih kartica koje agencija koristi za plaćanje dobavljačima, čest slučaj kod avio/hotel konsolidatora) — koncept koji mi uopšte nemamo; relevantno tek kad/ako Terminal počne da koristi VCC za plaćanje dobavljača, beležim za kasnije.
 
 ---
@@ -97,6 +97,7 @@ Takođe zapaženo: `MilicaAgent` je **ReAct agent sa 5 alata** (rezervacije, pre
 ## 12. Sandbox — Voice AI (najzanimljiviji nalaz za daleku budućnost)
 
 `voice-ai-sandbox/` je ozbiljan prototip **glasovnog AI agenta na srpskom jeziku** za dvosmernu komunikaciju sa gostima (citiranje cena hotela, odgovaranje na pitanja glasom):
+
 - **Hibridni pristup provajderima**: Gemini 1.5 Flash (LLM, sa context caching za velike PDF/Excel cenovnike), Faster-Whisper lokalno (besplatna transkripcija) + Azure Speech kao cloud fallback, Azure Neural glas (standardni) + ElevenLabs (premium, prodajni glas).
 - **Silero-VAD** za prirodnu detekciju kraja rečenice (bez dugmeta "govori sad").
 - Status: "75% Sandbox Ready" — arhitektura postoji, nedostaje povezivanje sa stvarnim podacima i frontend/telefonija integracija.
@@ -110,6 +111,7 @@ Takođe zapaženo: `MilicaAgent` je **ReAct agent sa 5 alata** (rezervacije, pre
 PrimeTravel ima izuzetno razrađen sistem fajlova koji definišu **kako AI agent (Claude/drugi) treba da se ponaša dok radi na njihovom kodu**: `SOUL.md` (ličnost/vrednosti), `USER.md` (ko je vlasnik), `SHIELD.md` (bezbednosne "crvene linije" — tajne nikad u git-u, PII nikad u LLM prompt/logove, validacija unosa), `AGENTS.md` (operativni protokol — "pre-flight checklist" pre pisanja koda, dnevne beleške `memory/YYYY-MM-DD.md` + kurirani `MEMORY.md`), `HEARTBEAT.md` (proaktivno ponašanje).
 
 Ovo **nije deo Terminal arhitekture** (to je uputstvo za AI asistenta koji piše kod, ne za sam Terminal proizvod), ali je direktno relevantno za **kako mi radimo zajedno na Terminal-u** — slično CLAUDE.md konceptu. Konkretne ideje vredne razmatranja za naš radni proces:
+
 - **`SHIELD.md`-stil "crvene linije"** dokument za Terminal razvoj — kratak, uvek-u-glavi spisak (tajne nikad u git, PII nikad u LLM log, itd.) koji bi mogao biti koristan kad počnemo stvarnu implementaciju (Faza 0).
 - **Dnevne beleške + kurirana dugoročna memorija** — sličan obrazac onome što ja već radim (memory sistem), potvrđuje da je ovaj pristup vredan.
 
@@ -127,21 +129,21 @@ Ruta `reservationArchitect` (`src/router/index.tsx`) ne vodi na formu nego na `R
 
 ### 14.2 Šest paralelnih verzija iste forme
 
-| Fajl | Linija | Status u ruteru |
-|---|---|---|
-| `pages/booking/ReservationArchitect_Classic.tsx` | 3.876 | nije rutiran, ali živ (uvoze ga drugi) |
-| `pages/booking/ReservationsDashboard.tsx` | 2.655 | rutiran na DVE putanje (`reservations`, `my-reservations`) |
-| `sandbox/pages/ReservationArchitect_SB.tsx` | 443 | **živa forma** (preusmerenje sa glavne rute) |
-| `pages/booking/BookingForm.tsx` | 355 | `booking/:source/:hotelCode` |
-| `pages/booking/ReservationArchitectV5.tsx` | 347 | preusmerava na sandbox |
-| `pages/booking/ReservationArchitect.tsx` | 316 | rutiran kao "Legacy" |
+| Fajl                                             | Linija | Status u ruteru                                            |
+| ------------------------------------------------ | ------ | ---------------------------------------------------------- |
+| `pages/booking/ReservationArchitect_Classic.tsx` | 3.876  | nije rutiran, ali živ (uvoze ga drugi)                     |
+| `pages/booking/ReservationsDashboard.tsx`        | 2.655  | rutiran na DVE putanje (`reservations`, `my-reservations`) |
+| `sandbox/pages/ReservationArchitect_SB.tsx`      | 443    | **živa forma** (preusmerenje sa glavne rute)               |
+| `pages/booking/BookingForm.tsx`                  | 355    | `booking/:source/:hotelCode`                               |
+| `pages/booking/ReservationArchitectV5.tsx`       | 347    | preusmerava na sandbox                                     |
+| `pages/booking/ReservationArchitect.tsx`         | 316    | rutiran kao "Legacy"                                       |
 
 Uz njih `archive/pages/ReservationArchitectV2.css` i `V4.css`, `ReservationArchitectV5.css`, i arhivirani `PublicBookingPortal`. **Živa sandbox forma uvozi izgled iz arhive** (`import '../../archive/pages/ReservationArchitectV4.css'`) — folder koji se zove "arhiva" se zato nikad ne može obrisati.
 
 ### 14.3 Nalazi u podacima i logici (redom po ozbiljnosti)
 
-1. **Zakonska/poreska odluka se donosi u pretraživaču.** `handleConfirmAndPost` odlučuje `sendToSef` i `issueFiscalReceipt` po tome da li `dossier.customerType` počinje sa "B2B"/"B2C" — u React komponenti. Tu su i ukucani IBAN (`RS123456789012345678`), naziv firme, rezervni kurs (`p.exchangeRate || 117.2`), i `documentId = 'MOCK-DOC-123'` kao fallback **u putanji koja vodi u fiskalizaciju**. *Terminal: ovo je razlog zašto M10 mora ostati jedini nosilac fiskalne odluke, a M17 samo prikaz.*
-2. **Cela rezervacija se čuva kao jedna gruda teksta.** `saveDossierToDatabase` (`services/travel/reservationService.ts`) upisuje ceo dosije u kolonu `guests_data` jedne ravne tabele `reservations`. Posledica: baza ne ume da odgovori na "koliko izleta smo prodali u julu" ili "kojim putnicima ističe pasoš" — to za nju nije podatak nego tekst. Dodatno, kolone za listu (`destination`, `accommodation_name`, `check_in`) uzimaju **samo `tripItems[0]`** — višestavna rezervacija se u listi prikazuje kao da ima jednu uslugu. *Terminal: M5 §4.2 `BookingItem` kao pravi red u bazi je direktan odgovor na ovo — ne popuštati.*
+1. **Zakonska/poreska odluka se donosi u pretraživaču.** `handleConfirmAndPost` odlučuje `sendToSef` i `issueFiscalReceipt` po tome da li `dossier.customerType` počinje sa "B2B"/"B2C" — u React komponenti. Tu su i ukucani IBAN (`RS123456789012345678`), naziv firme, rezervni kurs (`p.exchangeRate || 117.2`), i `documentId = 'MOCK-DOC-123'` kao fallback **u putanji koja vodi u fiskalizaciju**. _Terminal: ovo je razlog zašto M10 mora ostati jedini nosilac fiskalne odluke, a M17 samo prikaz._
+2. **Cela rezervacija se čuva kao jedna gruda teksta.** `saveDossierToDatabase` (`services/travel/reservationService.ts`) upisuje ceo dosije u kolonu `guests_data` jedne ravne tabele `reservations`. Posledica: baza ne ume da odgovori na "koliko izleta smo prodali u julu" ili "kojim putnicima ističe pasoš" — to za nju nije podatak nego tekst. Dodatno, kolone za listu (`destination`, `accommodation_name`, `check_in`) uzimaju **samo `tripItems[0]`** — višestavna rezervacija se u listi prikazuje kao da ima jednu uslugu. _Terminal: M5 §4.2 `BookingItem` kao pravi red u bazi je direktan odgovor na ovo — ne popuštati._
 3. **Dva izvora istine pri čuvanju.** Snima se i u `localStorage` (`active_reservation_dossier`) i u bazu, uz komentar u kodu `// Simulating actual DB save`. Učitavanje po ID-ju prvo gleda `localStorage`. Ista rezervacija na dva računara može izgledati različito.
 4. **Uplata se prvo upiše lokalno, pa se šalje u knjigovodstvo.** Ako API padne, korisnik je već video potvrdu, a u zapisniku stoji "Uplata je sačuvana samo LOKALNO. API nije odgovorio."
 
@@ -149,20 +151,20 @@ Uz njih `archive/pages/ReservationArchitectV2.css` i `V4.css`, `ReservationArchi
 
 Koncept je bolji od onoga što Terminal danas ima: **jedna rezervacija = jedan ekran sa 12 kartica** koje pokrivaju ceo život posla. Ovo je mapa izvučena iz stvarnog rada agencije i vredi je koristiti kao **proveru kompletnosti** za M5, ne kao kod za prepisivanje.
 
-| # | Kartica u PrimeTravel-u | Stanje u Terminalu |
-|---|---|---|
-| 1 | REZIME | **postoji** — M5 §4.1, panel `rezervacije/lista/[bookingNumber]` (`BookingRecordClient.tsx`, 161 linija — znatno siromašniji prikaz) |
-| 2 | REZ. TOK (FLOW) | **postoji** — `BookingTimelineModal.tsx` + `GET .../history` |
-| 3 | USLUGE | **postoji** — M5 §4.2 `BookingItem`, `BookingItemsEditor.tsx` |
-| 4 | PUTNICI | **postoji** — M5 §4.3 `BookingItemGuest`; u panelu zasad samo prikaz, bez uređivanja |
-| 5 | FINANSIJE | **postoji, ali drugde** — M5 §5 svesno prepušta detalje M10; nije prikazano NA rezervaciji |
-| 6 | CRM / KOMUNIKACIJA | **postoji, ali drugde** — M6 `CommunicationLog`; nije prikazano NA rezervaciji |
-| 7 | DOKUMENTI | **rasuto, bez jednog mesta** — vaučer M5 §6.3, ugovor M20, faktura M10, lista za dobavljača M5 §8, PDF nacrta §3.0.8. Nema hub-a na rezervaciji, i **nema izbora jezika po dokumentu** |
-| 8 | BELEŠKE | **ne postoji** — nula pojavljivanja u M5 spec-u |
-| 9 | LEGAL / REKLAMACIJE | **ne postoji kao veza sa rezervacijom** — reklamacija postoji u M10/M14, ali nije zakačena na `Booking` |
-| 10 | PREDSTAVNICI | **ne postoji** — M9 ima vodiče na terenu, ali nigde nema "predstavnik na destinaciji je proverio ovu rezervaciju" (`rep_checked_by`/`rep_checked_at`) |
-| 11 | AUDIT | **postoji** — M1 audit log, referenciran iz M5 |
-| 12 | PODEŠAVANJA / OTKAZIVANJE | **postoji** — M5 §6.4 (provera duplikata pre otkazivanja) |
+| #   | Kartica u PrimeTravel-u   | Stanje u Terminalu                                                                                                                                                                     |
+| --- | ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | REZIME                    | **postoji** — M5 §4.1, panel `rezervacije/lista/[bookingNumber]` (`BookingRecordClient.tsx`, 161 linija — znatno siromašniji prikaz)                                                   |
+| 2   | REZ. TOK (FLOW)           | **postoji** — `BookingTimelineModal.tsx` + `GET .../history`                                                                                                                           |
+| 3   | USLUGE                    | **postoji** — M5 §4.2 `BookingItem`, `BookingItemsEditor.tsx`                                                                                                                          |
+| 4   | PUTNICI                   | **postoji** — M5 §4.3 `BookingItemGuest`; u panelu zasad samo prikaz, bez uređivanja                                                                                                   |
+| 5   | FINANSIJE                 | **postoji, ali drugde** — M5 §5 svesno prepušta detalje M10; nije prikazano NA rezervaciji                                                                                             |
+| 6   | CRM / KOMUNIKACIJA        | **postoji, ali drugde** — M6 `CommunicationLog`; nije prikazano NA rezervaciji                                                                                                         |
+| 7   | DOKUMENTI                 | **rasuto, bez jednog mesta** — vaučer M5 §6.3, ugovor M20, faktura M10, lista za dobavljača M5 §8, PDF nacrta §3.0.8. Nema hub-a na rezervaciji, i **nema izbora jezika po dokumentu** |
+| 8   | BELEŠKE                   | **ne postoji** — nula pojavljivanja u M5 spec-u                                                                                                                                        |
+| 9   | LEGAL / REKLAMACIJE       | **ne postoji kao veza sa rezervacijom** — reklamacija postoji u M10/M14, ali nije zakačena na `Booking`                                                                                |
+| 10  | PREDSTAVNICI              | **ne postoji** — M9 ima vodiče na terenu, ali nigde nema "predstavnik na destinaciji je proverio ovu rezervaciju" (`rep_checked_by`/`rep_checked_at`)                                  |
+| 11  | AUDIT                     | **postoji** — M1 audit log, referenciran iz M5                                                                                                                                         |
+| 12  | PODEŠAVANJA / OTKAZIVANJE | **postoji** — M5 §6.4 (provera duplikata pre otkazivanja)                                                                                                                              |
 
 Tri poslovna pravila iz te forme koja **nisu** u Terminalu i vredi ih razmotriti (zabeleženo u `27-BACKLOG-IDEJA-I-PREDLOZI.md`, čeka odluku vlasnika pre bilo kakve dopune spec-a):
 

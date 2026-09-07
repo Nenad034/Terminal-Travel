@@ -9,7 +9,11 @@ import { useProductPreview } from './ProductPreviewContext';
 import { useTabs } from './TabsContext';
 import { createQuoteFromSelection } from '@/app/(app)/rezervacije/pretraga/actions';
 import { findSelectionDateMismatches, type DateMismatchWarning } from '@/lib/date-mismatch';
-import { usePanelCollection, PANEL_ITEM_DRAG_MIME, type PanelCollectionItem } from './PanelCollectionContext';
+import {
+  usePanelCollection,
+  PANEL_ITEM_DRAG_MIME,
+  type PanelCollectionItem,
+} from './PanelCollectionContext';
 import ProductPreviewCard from './ProductPreviewCard';
 import ProductContactCard from './ProductContactCard';
 import ProcessMapNodeSummaryCard from './ProcessMapNodeSummaryCard';
@@ -98,9 +102,16 @@ export default function RightPanel({
   // M5 spec §3.0e.3a (dopuna 29.8.2026) — upozorenje o neusklađenim datumima PREVOZ/BORAVAK
   // stavki; `null` dok se ne detektuje, popunjeno tek pri kliku "Napravi ponudu" (ne uživo dok
   // se selekcija menja — izbegava treperenje upozorenja dok korisnik još dodaje stavke).
-  const [dateMismatchWarnings, setDateMismatchWarnings] = useState<DateMismatchWarning[] | null>(null);
-  const { itemsByModule, addItem: addCollectedItem, removeItem: removeCollectedItem, removeItems: removeCollectedItems, clearModule } =
-    usePanelCollection();
+  const [dateMismatchWarnings, setDateMismatchWarnings] = useState<DateMismatchWarning[] | null>(
+    null,
+  );
+  const {
+    itemsByModule,
+    addItem: addCollectedItem,
+    removeItem: removeCollectedItem,
+    removeItems: removeCollectedItems,
+    clearModule,
+  } = usePanelCollection();
   const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
   const [dragOver, setDragOver] = useState(false);
   // Sklapanje jednog od dva naslagana dela kad nije potreban (dopuna 25.8.2026, na zahtev
@@ -160,13 +171,21 @@ export default function RightPanel({
   const currencies = Array.from(new Set(items.map((i) => i.finalPriceCurrency)));
   const totalsByCurrency = currencies.map((c) => ({
     currency: c,
-    total: items.filter((i) => i.finalPriceCurrency === c).reduce((sum, i) => sum + i.finalPrice, 0),
+    total: items
+      .filter((i) => i.finalPriceCurrency === c)
+      .reduce((sum, i) => sum + i.finalPrice, 0),
   }));
 
   async function handleCreateQuote(acknowledgeDateMismatch = false) {
     if (!acknowledgeDateMismatch) {
       const mismatches = findSelectionDateMismatches(
-        items.map((i) => ({ key: i.key, productName: i.productName, productType: i.productType, stayFrom: i.stayFrom, stayTo: i.stayTo })),
+        items.map((i) => ({
+          key: i.key,
+          productName: i.productName,
+          productType: i.productType,
+          stayFrom: i.stayFrom,
+          stayTo: i.stayTo,
+        })),
       );
       if (mismatches.length > 0) {
         setDateMismatchWarnings(mismatches);
@@ -213,7 +232,14 @@ export default function RightPanel({
     <div
       ref={containerRef}
       className="flex h-full flex-col overflow-hidden bg-panel-2"
-      onDragOver={!isProdaja ? (e) => { e.preventDefault(); setDragOver(true); } : undefined}
+      onDragOver={
+        !isProdaja
+          ? (e) => {
+              e.preventDefault();
+              setDragOver(true);
+            }
+          : undefined
+      }
       onDragLeave={!isProdaja ? () => setDragOver(false) : undefined}
       onDrop={!isProdaja ? handleDrop : undefined}
     >
@@ -230,8 +256,8 @@ export default function RightPanel({
               : auditLogMatch
                 ? 'Detalj zapisa'
                 : collectedItems.length > 0
-                ? `Podsetnik — ${moduleLabel} (${collectedItems.length})`
-                : `Podsetnik — ${moduleLabel}`}
+                  ? `Podsetnik — ${moduleLabel} (${collectedItems.length})`
+                  : `Podsetnik — ${moduleLabel}`}
         </span>
         <div className="flex items-center gap-1">
           {/* Sklapanje gornjeg dela postoji da bi AI dobio ceo panel — kad AI nije ovde, dugme
@@ -239,7 +265,11 @@ export default function RightPanel({
           {aiDock === 'right' && (
             <button
               onClick={() => setTopCollapsed((v) => !v)}
-              title={topCollapsed ? 'Prikaži ovaj deo' : 'Sklopi ovaj deo (AI chat zauzima ostatak prostora)'}
+              title={
+                topCollapsed
+                  ? 'Prikaži ovaj deo'
+                  : 'Sklopi ovaj deo (AI chat zauzima ostatak prostora)'
+              }
               className="flex h-[29px] w-[29px] items-center justify-center rounded text-ink-faint hover:bg-panel hover:text-ink"
             >
               <Icon name={topCollapsed ? 'chevron-down' : 'chevron-up'} />
@@ -247,7 +277,11 @@ export default function RightPanel({
           )}
           <button
             onClick={onToggleDisplayMode}
-            title={displayMode === 'push' ? 'Prelazi preko sadržaja (bez sužavanja)' : 'Sužava sadržaj (bez preklapanja)'}
+            title={
+              displayMode === 'push'
+                ? 'Prelazi preko sadržaja (bez sužavanja)'
+                : 'Sužava sadržaj (bez preklapanja)'
+            }
             className="flex h-[29px] w-[29px] items-center justify-center rounded text-ink-faint hover:bg-panel hover:text-ink"
           >
             <Icon name={displayMode === 'push' ? 'layout-panel-right' : 'layers'} />
@@ -267,182 +301,214 @@ export default function RightPanel({
 
       {/* Kad je AI premešten u dno centralnog panela, gornji deo se NE sme držati sklopljenim —
           inače bi desni panel ostao prazan, bez ijednog vidljivog razloga zašto. */}
-      <div className={topCollapsed && aiDock === 'right' ? 'h-0 overflow-hidden' : 'flex min-h-0 flex-1 flex-col overflow-hidden'}>
-      {/* Prioritet unutar "prodaja" modula (Faza B, 26.8.2026): selekcija (ponuda) > brzi
+      <div
+        className={
+          topCollapsed && aiDock === 'right'
+            ? 'h-0 overflow-hidden'
+            : 'flex min-h-0 flex-1 flex-col overflow-hidden'
+        }
+      >
+        {/* Prioritet unutar "prodaja" modula (Faza B, 26.8.2026): selekcija (ponuda) > brzi
           pregled proizvoda (ProductPreviewContext istorija, klik na naziv u pretrazi) > sažetak
           reda > prazno stanje. Raniji mock (isti dan, ranije) je zamenjen stvarnim podacima —
           `ProductPreviewCard` sad sam učitava preko `/api/catalog/products/:id/preview`. */}
-      {isProdaja && items.length === 0 && previewItems.length > 0 && <ProductPreviewCard />}
+        {isProdaja && items.length === 0 && previewItems.length > 0 && <ProductPreviewCard />}
 
-      {isProdaja && items.length === 0 && previewItems.length === 0 && summary?.kind === 'booking' && (
-        // ISPRAVKA (5.9.2026, vlasnikov nalaz preko revizije koda, dok. 39 nalaz 1.1): ovo dugme
-        // je vodilo na `/rezervacije/lista/<broj>` — mock pod-rutu iz v1.42-v1.53, koja zapis
-        // trazi u hardkodovanoj listi izmisljenih primera. Lista je od v1.54 stvarna, pa je za
-        // svaku pravu rezervaciju ispisivalo "nije pronadjena (mock lista)", dok je klik na sam
-        // broj rezervacije u istoj tabeli (RealBookingsTable.tsx) vec vodio ispravno. Sad oba
-        // ulaza vode na isti pravi zapis `/rezervacije/<id>`.
-        <BookingSummary
-          summary={summary}
-          onOpenFullRecord={
-            summary.bookingId
-              ? () => openTab(`/rezervacije/${summary.bookingId}`, summary.bookingNumber)
-              : undefined
-          }
-        />
-      )}
+        {isProdaja &&
+          items.length === 0 &&
+          previewItems.length === 0 &&
+          summary?.kind === 'booking' && (
+            // ISPRAVKA (5.9.2026, vlasnikov nalaz preko revizije koda, dok. 39 nalaz 1.1): ovo dugme
+            // je vodilo na `/rezervacije/lista/<broj>` — mock pod-rutu iz v1.42-v1.53, koja zapis
+            // trazi u hardkodovanoj listi izmisljenih primera. Lista je od v1.54 stvarna, pa je za
+            // svaku pravu rezervaciju ispisivalo "nije pronadjena (mock lista)", dok je klik na sam
+            // broj rezervacije u istoj tabeli (RealBookingsTable.tsx) vec vodio ispravno. Sad oba
+            // ulaza vode na isti pravi zapis `/rezervacije/<id>`.
+            <BookingSummary
+              summary={summary}
+              onOpenFullRecord={
+                summary.bookingId
+                  ? () => openTab(`/rezervacije/${summary.bookingId}`, summary.bookingNumber)
+                  : undefined
+              }
+            />
+          )}
 
-      {isProdaja && items.length === 0 && previewItems.length === 0 && summary?.kind === 'calendar-day' && (
-        <CalendarDaySummaryCard summary={summary} />
-      )}
+        {isProdaja &&
+          items.length === 0 &&
+          previewItems.length === 0 &&
+          summary?.kind === 'calendar-day' && <CalendarDaySummaryCard summary={summary} />}
 
-      {isProdaja && items.length === 0 && previewItems.length === 0 && !summary && (
-        <div className="flex flex-1 flex-col items-center justify-center gap-2 p-4 text-center text-xs text-ink-faint">
-          <Icon name="inspect" className="text-2xl" />
-          <p>Klikni na red liste (bez otvaranja zapisa) da vidiš sažetak ovde, ili otvori pun zapis za „Povezano“ prikaz.</p>
-        </div>
-      )}
-
-      {isProdaja && items.length > 0 && (
-        <div className="flex flex-1 flex-col overflow-hidden">
-          <div className="flex-1 overflow-y-auto p-2">
-            <div className="flex flex-col gap-2">
-              {items.map((i) => (
-                <SelectionRow key={i.key} item={i} onRemove={() => removeItem(i.key)} />
-              ))}
-            </div>
+        {isProdaja && items.length === 0 && previewItems.length === 0 && !summary && (
+          <div className="flex flex-1 flex-col items-center justify-center gap-2 p-4 text-center text-xs text-ink-faint">
+            <Icon name="inspect" className="text-2xl" />
+            <p>
+              Klikni na red liste (bez otvaranja zapisa) da vidiš sažetak ovde, ili otvori pun zapis
+              za „Povezano“ prikaz.
+            </p>
           </div>
+        )}
 
-          <div className="flex-shrink-0 border-t border-border p-2">
-            {currencies.length > 1 && (
-              <p className="mb-2 rounded bg-warn-bg px-2 py-1 text-[11px] text-warn">
-                Selekcija sadrži više valuta — zbir po valuti ispod, konverzija se rešava pri fakturisanju (M10).
-              </p>
-            )}
-            <div className="mb-2 flex flex-col gap-0.5 text-xs text-ink-dim">
-              {totalsByCurrency.map((t) => (
-                <div key={t.currency} className="flex items-center justify-between">
-                  <span>Zbir ({t.currency})</span>
-                  <span className="font-mono font-semibold text-ink">
-                    {(t.total / 100).toLocaleString('sr-RS', { minimumFractionDigits: 2 })} {t.currency}
-                  </span>
-                </div>
-              ))}
-            </div>
-            {error && <p className="mb-2 text-[11px] text-danger">{error}</p>}
-            {dateMismatchWarnings && (
-              <div className="mb-2 rounded border border-warn bg-warn-bg p-2 text-[11px] text-warn">
-                <p className="mb-1 font-semibold">Datumi se ne poklapaju — termin prevoza je van perioda boravka:</p>
-                <ul className="mb-2 flex flex-col gap-0.5">
-                  {dateMismatchWarnings.map((m, idx) => (
-                    <li key={idx}>
-                      {m.productName}: {new Date(m.stayFrom).toLocaleDateString('sr-RS')} – {new Date(m.stayTo).toLocaleDateString('sr-RS')}
-                    </li>
-                  ))}
-                </ul>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => setDateMismatchWarnings(null)}
-                    className="flex-1 rounded border border-warn px-2 py-1 font-semibold text-warn hover:bg-warn/10"
-                  >
-                    nazad
-                  </button>
-                  <button
-                    onClick={() => handleCreateQuote(true)}
-                    className="flex-1 rounded bg-warn px-2 py-1 font-semibold text-white hover:opacity-90"
-                  >
-                    da, termini su namerno različiti
-                  </button>
-                </div>
+        {isProdaja && items.length > 0 && (
+          <div className="flex flex-1 flex-col overflow-hidden">
+            <div className="flex-1 overflow-y-auto p-2">
+              <div className="flex flex-col gap-2">
+                {items.map((i) => (
+                  <SelectionRow key={i.key} item={i} onRemove={() => removeItem(i.key)} />
+                ))}
               </div>
-            )}
-            <button
-              onClick={() => handleCreateQuote()}
-              disabled={pending}
-              className="w-full rounded bg-accent px-3 py-1.5 text-xs font-semibold text-accent-ink hover:bg-accent-strong disabled:opacity-50"
-            >
-              {pending ? '…' : 'Napravi ponudu'}
-            </button>
-          </div>
-        </div>
-      )}
+            </div>
 
-      {/* Kontakt + "aktivne rezervacije" link za proizvod čiji je pun opis otvoren u centralnom
+            <div className="flex-shrink-0 border-t border-border p-2">
+              {currencies.length > 1 && (
+                <p className="mb-2 rounded bg-warn-bg px-2 py-1 text-[11px] text-warn">
+                  Selekcija sadrži više valuta — zbir po valuti ispod, konverzija se rešava pri
+                  fakturisanju (M10).
+                </p>
+              )}
+              <div className="mb-2 flex flex-col gap-0.5 text-xs text-ink-dim">
+                {totalsByCurrency.map((t) => (
+                  <div key={t.currency} className="flex items-center justify-between">
+                    <span>Zbir ({t.currency})</span>
+                    <span className="font-mono font-semibold text-ink">
+                      {(t.total / 100).toLocaleString('sr-RS', { minimumFractionDigits: 2 })}{' '}
+                      {t.currency}
+                    </span>
+                  </div>
+                ))}
+              </div>
+              {error && <p className="mb-2 text-[11px] text-danger">{error}</p>}
+              {dateMismatchWarnings && (
+                <div className="mb-2 rounded border border-warn bg-warn-bg p-2 text-[11px] text-warn">
+                  <p className="mb-1 font-semibold">
+                    Datumi se ne poklapaju — termin prevoza je van perioda boravka:
+                  </p>
+                  <ul className="mb-2 flex flex-col gap-0.5">
+                    {dateMismatchWarnings.map((m, idx) => (
+                      <li key={idx}>
+                        {m.productName}: {new Date(m.stayFrom).toLocaleDateString('sr-RS')} –{' '}
+                        {new Date(m.stayTo).toLocaleDateString('sr-RS')}
+                      </li>
+                    ))}
+                  </ul>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setDateMismatchWarnings(null)}
+                      className="flex-1 rounded border border-warn px-2 py-1 font-semibold text-warn hover:bg-warn/10"
+                    >
+                      nazad
+                    </button>
+                    <button
+                      onClick={() => handleCreateQuote(true)}
+                      className="flex-1 rounded bg-warn px-2 py-1 font-semibold text-white hover:opacity-90"
+                    >
+                      da, termini su namerno različiti
+                    </button>
+                  </div>
+                </div>
+              )}
+              <button
+                onClick={() => handleCreateQuote()}
+                disabled={pending}
+                className="w-full rounded bg-accent px-3 py-1.5 text-xs font-semibold text-accent-ink hover:bg-accent-strong disabled:opacity-50"
+              >
+                {pending ? '…' : 'Napravi ponudu'}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Kontakt + "aktivne rezervacije" link za proizvod čiji je pun opis otvoren u centralnom
           panelu (`/katalog/:id/pregled`, Faza B) — PRE generičkog "podsetnik" prikaza ispod za
           isti razlog kao PRODUCT_PREGLED_RE komentar iznad (druga NAV grupa od "prodaja"). */}
-      {productPregledMatch && <ProductContactCard productId={productPregledMatch[1]} />}
+        {productPregledMatch && <ProductContactCard productId={productPregledMatch[1]} />}
 
-      {/* M18 spec §9a dopuna — klik na čvor procesne mape puni RowSummary (isti mehanizam kao
+        {/* M18 spec §9a dopuna — klik na čvor procesne mape puni RowSummary (isti mehanizam kao
           sažetak reda rezervacije), umesto direktne navigacije na pun audit log. Prioritet ISPRED
           generičkog "podsetnik" prikaza ispod, isti obrazac kao ProductContactCard iznad. */}
-      {processMapMatch && summary?.kind === 'process-map-node' && <ProcessMapNodeSummaryCard summary={summary} />}
-      {processMapMatch && !summary && (
-        <div className="flex flex-1 flex-col items-center justify-center gap-2 p-4 text-center text-xs text-ink-faint">
-          <Icon name="inspect" className="text-2xl" />
-          <p>Klikni na čvor na mapi da vidiš detalje ovde.</p>
-        </div>
-      )}
+        {processMapMatch && summary?.kind === 'process-map-node' && (
+          <ProcessMapNodeSummaryCard summary={summary} />
+        )}
+        {processMapMatch && !summary && (
+          <div className="flex flex-1 flex-col items-center justify-center gap-2 p-4 text-center text-xs text-ink-faint">
+            <Icon name="inspect" className="text-2xl" />
+            <p>Klikni na čvor na mapi da vidiš detalje ovde.</p>
+          </div>
+        )}
 
-      {/* M1 spec §7 dopuna — klik na red audit loga (AuditLogRows.tsx) puni RowSummary, isti
+        {/* M1 spec §7 dopuna — klik na red audit loga (AuditLogRows.tsx) puni RowSummary, isti
           prioritet kao gornji blokovi. */}
-      {auditLogMatch && summary?.kind === 'audit-log-entry' && <AuditLogEntrySummaryCard summary={summary} />}
-      {auditLogMatch && !summary && (
-        <div className="flex flex-1 flex-col items-center justify-center gap-2 p-4 text-center text-xs text-ink-faint">
-          <Icon name="inspect" className="text-2xl" />
-          <p>Klikni na red da vidiš detalje ovde.</p>
-        </div>
-      )}
-
-      {!isProdaja && !productPregledMatch && !processMapMatch && !auditLogMatch && collectedItems.length === 0 && (
-        <div
-          className={`flex flex-1 flex-col items-center justify-center gap-2 p-4 text-center text-xs ${
-            dragOver ? 'bg-accent-soft text-ink' : 'text-ink-faint'
-          }`}
-        >
-          <Icon name="gripper" className="text-2xl" />
-          <p>Prevuci ovde nešto iz centralnog panela da ga zadržiš kao podsetnik.</p>
-        </div>
-      )}
-
-      {!isProdaja && !productPregledMatch && !processMapMatch && !auditLogMatch && collectedItems.length > 0 && (
-        <div className={`flex flex-1 flex-col overflow-hidden ${dragOver ? 'bg-accent-soft' : ''}`}>
-          <div className="flex-1 overflow-y-auto p-2">
-            <div className="flex flex-col gap-2">
-              {collectedItems.map((item) => (
-                <CollectedItemRow
-                  key={item.key}
-                  item={item}
-                  selected={selectedKeys.has(item.key)}
-                  onToggleSelected={() => toggleSelected(item.key)}
-                  onOpen={item.href ? () => openTab(item.href!, item.label) : undefined}
-                  onRemove={() => removeCollectedItem(moduleId, item.key)}
-                />
-              ))}
-            </div>
+        {auditLogMatch && summary?.kind === 'audit-log-entry' && (
+          <AuditLogEntrySummaryCard summary={summary} />
+        )}
+        {auditLogMatch && !summary && (
+          <div className="flex flex-1 flex-col items-center justify-center gap-2 p-4 text-center text-xs text-ink-faint">
+            <Icon name="inspect" className="text-2xl" />
+            <p>Klikni na red da vidiš detalje ovde.</p>
           </div>
-          <div className="flex flex-shrink-0 items-center gap-2 border-t border-border p-2">
-            {selectedKeys.size > 0 && (
-              <button
-                onClick={() => {
-                  removeCollectedItems(moduleId, Array.from(selectedKeys));
-                  setSelectedKeys(new Set());
-                }}
-                className="flex-1 rounded bg-panel px-3 py-1.5 text-xs font-medium text-ink hover:bg-border"
-              >
-                Obriši izabrano ({selectedKeys.size})
-              </button>
-            )}
-            <button
-              onClick={() => {
-                clearModule(moduleId);
-                setSelectedKeys(new Set());
-              }}
-              className="flex-1 rounded px-3 py-1.5 text-xs font-medium text-ink-faint hover:text-danger"
+        )}
+
+        {!isProdaja &&
+          !productPregledMatch &&
+          !processMapMatch &&
+          !auditLogMatch &&
+          collectedItems.length === 0 && (
+            <div
+              className={`flex flex-1 flex-col items-center justify-center gap-2 p-4 text-center text-xs ${
+                dragOver ? 'bg-accent-soft text-ink' : 'text-ink-faint'
+              }`}
             >
-              Obriši sve
-            </button>
-          </div>
-        </div>
-      )}
+              <Icon name="gripper" className="text-2xl" />
+              <p>Prevuci ovde nešto iz centralnog panela da ga zadržiš kao podsetnik.</p>
+            </div>
+          )}
+
+        {!isProdaja &&
+          !productPregledMatch &&
+          !processMapMatch &&
+          !auditLogMatch &&
+          collectedItems.length > 0 && (
+            <div
+              className={`flex flex-1 flex-col overflow-hidden ${dragOver ? 'bg-accent-soft' : ''}`}
+            >
+              <div className="flex-1 overflow-y-auto p-2">
+                <div className="flex flex-col gap-2">
+                  {collectedItems.map((item) => (
+                    <CollectedItemRow
+                      key={item.key}
+                      item={item}
+                      selected={selectedKeys.has(item.key)}
+                      onToggleSelected={() => toggleSelected(item.key)}
+                      onOpen={item.href ? () => openTab(item.href!, item.label) : undefined}
+                      onRemove={() => removeCollectedItem(moduleId, item.key)}
+                    />
+                  ))}
+                </div>
+              </div>
+              <div className="flex flex-shrink-0 items-center gap-2 border-t border-border p-2">
+                {selectedKeys.size > 0 && (
+                  <button
+                    onClick={() => {
+                      removeCollectedItems(moduleId, Array.from(selectedKeys));
+                      setSelectedKeys(new Set());
+                    }}
+                    className="flex-1 rounded bg-panel px-3 py-1.5 text-xs font-medium text-ink hover:bg-border"
+                  >
+                    Obriši izabrano ({selectedKeys.size})
+                  </button>
+                )}
+                <button
+                  onClick={() => {
+                    clearModule(moduleId);
+                    setSelectedKeys(new Set());
+                  }}
+                  className="flex-1 rounded px-3 py-1.5 text-xs font-medium text-ink-faint hover:text-danger"
+                >
+                  Obriši sve
+                </button>
+              </div>
+            </div>
+          )}
       </div>
 
       {/* Linija koja deli AI chat od sadržaja iznad — ručno prevlačiva (dopuna 25.8.2026, na
@@ -463,49 +529,56 @@ export default function RightPanel({
           sklopljen (`topCollapsed`). `AiChatBox` je UVEK montiran (isti roditelj, samo se
           sekcija/panel kolabuje) — istorija se ne gubi. */}
       {aiDock === 'right' && (
-      <div
-        className={`flex flex-shrink-0 flex-col overflow-hidden ${topCollapsed || chatCollapsed ? 'border-t border-border' : ''} bg-panel ${
-          chatCollapsed ? 'h-9' : topCollapsed ? 'flex-1' : ''
-        }`}
-        style={!chatCollapsed && !topCollapsed ? { height: `${chatHeightPercent}%` } : undefined}
-      >
-        <div className="flex h-9 flex-shrink-0 items-center justify-between border-b border-border px-2 text-xs font-medium text-ink-faint">
-          <span className="flex items-center gap-1.5">
-            <Icon name="sparkle" className="text-accent" /> AI asistent
-          </span>
-          {/* Dugme "Fokus" (dopuna 25.8.2026, na zahtev vlasnika: "dugme za prosirivanje ai
+        <div
+          className={`flex flex-shrink-0 flex-col overflow-hidden ${topCollapsed || chatCollapsed ? 'border-t border-border' : ''} bg-panel ${
+            chatCollapsed ? 'h-9' : topCollapsed ? 'flex-1' : ''
+          }`}
+          style={!chatCollapsed && !topCollapsed ? { height: `${chatHeightPercent}%` } : undefined}
+        >
+          <div className="flex h-9 flex-shrink-0 items-center justify-between border-b border-border px-2 text-xs font-medium text-ink-faint">
+            <span className="flex items-center gap-1.5">
+              <Icon name="sparkle" className="text-accent" /> AI asistent
+            </span>
+            {/* Dugme "Fokus" (dopuna 25.8.2026, na zahtev vlasnika: "dugme za prosirivanje ai
               agenta stavite u gornji desno cosak ai modula") — premešteno ovamo iz AiChatBox.tsx
               reda za unos (gde je bilo pre ove dopune). */}
-          <div className="flex items-center gap-1">
-            {/* Strelica ka centralnom panelu (vlasnikov zahtev, 3.9.2026, „kao ovde u VS Code") —
+            <div className="flex items-center gap-1">
+              {/* Strelica ka centralnom panelu (vlasnikov zahtev, 3.9.2026, „kao ovde u VS Code") —
                 premešta ISTO polje u dno centralne kolone, ne pravi drugo. */}
-            <button
-              onClick={onMoveAiToBottom}
-              title="Premesti AI asistenta u dno centralnog panela"
-              className="flex h-[29px] w-[29px] items-center justify-center rounded text-ink-faint hover:bg-panel-2 hover:text-ink"
-            >
-              <Icon name="arrow-left" />
-            </button>
-            <button
-              onClick={() => openTab('/ai-asistent', 'AI asistent')}
-              title="Otvori u punom tabu (Fokus režim)"
-              className="flex h-[29px] w-[29px] items-center justify-center rounded text-ink-faint hover:bg-panel-2 hover:text-ink"
-            >
-              <Icon name="screen-full" />
-            </button>
-            <button
-              onClick={() => setChatCollapsed((v) => !v)}
-              title={chatCollapsed ? 'Prikaži AI chat' : 'Sklopi AI chat (ostatak zauzima ostali sadržaj)'}
-              className="flex h-[29px] w-[29px] items-center justify-center rounded text-ink-faint hover:bg-panel-2 hover:text-ink"
-            >
-              <Icon name={chatCollapsed ? 'chevron-up' : 'chevron-down'} />
-            </button>
+              <button
+                onClick={onMoveAiToBottom}
+                title="Premesti AI asistenta u dno centralnog panela"
+                className="flex h-[29px] w-[29px] items-center justify-center rounded text-ink-faint hover:bg-panel-2 hover:text-ink"
+              >
+                <Icon name="arrow-left" />
+              </button>
+              <button
+                onClick={() => openTab('/ai-asistent', 'AI asistent')}
+                title="Otvori u punom tabu (Fokus režim)"
+                className="flex h-[29px] w-[29px] items-center justify-center rounded text-ink-faint hover:bg-panel-2 hover:text-ink"
+              >
+                <Icon name="screen-full" />
+              </button>
+              <button
+                onClick={() => setChatCollapsed((v) => !v)}
+                title={
+                  chatCollapsed
+                    ? 'Prikaži AI chat'
+                    : 'Sklopi AI chat (ostatak zauzima ostali sadržaj)'
+                }
+                className="flex h-[29px] w-[29px] items-center justify-center rounded text-ink-faint hover:bg-panel-2 hover:text-ink"
+              >
+                <Icon name={chatCollapsed ? 'chevron-up' : 'chevron-down'} />
+              </button>
+            </div>
           </div>
-        </div>
-        {/* Slot, ne sam `AiChatBox` — jedini primerak drži Shell.tsx i portalom ga stavlja ovde
+          {/* Slot, ne sam `AiChatBox` — jedini primerak drži Shell.tsx i portalom ga stavlja ovde
             ILI u dno centralnog panela. Tako premeštanje ne gubi istoriju razgovora. */}
-        <div ref={aiSlotRef} className={chatCollapsed ? 'hidden' : 'min-h-0 flex-1 overflow-hidden'} />
-      </div>
+          <div
+            ref={aiSlotRef}
+            className={chatCollapsed ? 'hidden' : 'min-h-0 flex-1 overflow-hidden'}
+          />
+        </div>
       )}
     </div>
   );
@@ -526,18 +599,32 @@ function CollectedItemRow({
 }) {
   return (
     <div className="flex items-start gap-2 rounded-lg border border-border bg-panel p-2 text-xs">
-      <input type="checkbox" checked={selected} onChange={onToggleSelected} className="mt-0.5 flex-shrink-0" />
+      <input
+        type="checkbox"
+        checked={selected}
+        onChange={onToggleSelected}
+        className="mt-0.5 flex-shrink-0"
+      />
       <div className="min-w-0 flex-1">
         {onOpen ? (
-          <button onClick={onOpen} className="truncate text-left font-medium text-ink hover:text-accent">
+          <button
+            onClick={onOpen}
+            className="truncate text-left font-medium text-ink hover:text-accent"
+          >
             {item.label}
           </button>
         ) : (
           <div className="truncate font-medium text-ink">{item.label}</div>
         )}
-        {item.subtitle && <div className="truncate text-[11px] text-ink-faint">{item.subtitle}</div>}
+        {item.subtitle && (
+          <div className="truncate text-[11px] text-ink-faint">{item.subtitle}</div>
+        )}
       </div>
-      <button onClick={onRemove} title="Ukloni" className="flex-shrink-0 text-ink-faint hover:text-danger">
+      <button
+        onClick={onRemove}
+        title="Ukloni"
+        className="flex-shrink-0 text-ink-faint hover:text-danger"
+      >
         <Icon name="close" />
       </button>
     </div>
@@ -554,7 +641,9 @@ function ExpiryBadge({ quoteExpiresAt }: { quoteExpiresAt: string }) {
   const minutesLeft = Math.round((new Date(quoteExpiresAt).getTime() - Date.now()) / 60000);
   const expired = minutesLeft <= 0;
   return (
-    <span className={`rounded-full px-1.5 py-0.5 text-[11px] font-medium ${expired ? 'bg-danger-bg text-danger' : 'bg-warn-bg text-warn'}`}>
+    <span
+      className={`rounded-full px-1.5 py-0.5 text-[11px] font-medium ${expired ? 'bg-danger-bg text-danger' : 'bg-warn-bg text-warn'}`}
+    >
       {expired ? 'istekla' : `ističe za ${minutesLeft} min`}
     </span>
   );
@@ -565,7 +654,8 @@ function ExpiryBadge({ quoteExpiresAt }: { quoteExpiresAt: string }) {
 // samo ukoliko je taj podatak unet)") — CHILD/BABY UVEK nose godinu rođenja (obavezno polje u
 // mock/stvarnom modelu), ADULT je samo ako je uneta (opciono polje).
 function travelerAgeLabel(t: import('./RowSummaryContext').Traveler): string {
-  const label = t.ageCategory === 'ADULT' ? 'odrasla osoba' : t.ageCategory === 'CHILD' ? 'dete' : 'beba';
+  const label =
+    t.ageCategory === 'ADULT' ? 'odrasla osoba' : t.ageCategory === 'CHILD' ? 'dete' : 'beba';
   if (t.ageCategory === 'ADULT') return t.birthYear ? `${label}, rođ. ${t.birthYear}.` : label;
   return `${label}, rođ. ${t.birthYear}.`;
 }
@@ -575,13 +665,22 @@ function travelerAgeLabel(t: import('./RowSummaryContext').Traveler): string {
 // izvor može biti mock red (nema ih sva) ili, kasnije, stvaran API odgovor.
 // `export` postoji radi testa (nalaz 2.4b, dok. 39) — regresija nalaza 1.1 (dok. 39): dugme
 // "Otvori pun zapis" je nekad vodilo na mrtvu mock rutu.
-export function BookingSummary({ summary: s, onOpenFullRecord }: { summary: import('./RowSummaryContext').BookingRowSummary; onOpenFullRecord?: () => void }) {
-  const money = (amount: number) => `${(amount / 100).toLocaleString('sr-RS', { minimumFractionDigits: 2 })} ${s.currency}`;
+export function BookingSummary({
+  summary: s,
+  onOpenFullRecord,
+}: {
+  summary: import('./RowSummaryContext').BookingRowSummary;
+  onOpenFullRecord?: () => void;
+}) {
+  const money = (amount: number) =>
+    `${(amount / 100).toLocaleString('sr-RS', { minimumFractionDigits: 2 })} ${s.currency}`;
   return (
     <div className="flex-1 overflow-y-auto p-3 text-xs">
       <div className="mb-3 flex items-center justify-between">
         <span className="font-mono font-semibold text-ink">{s.bookingNumber}</span>
-        <span className="rounded bg-panel px-2 py-0.5 text-[11px] font-medium text-ink-dim">{s.status}</span>
+        <span className="rounded bg-panel px-2 py-0.5 text-[11px] font-medium text-ink-dim">
+          {s.status}
+        </span>
       </div>
       {/* Dugme postoji samo kad sazetak nosi interni ID (5.9.2026, dok. 39 nalaz 1.1) — bez ID-a
           nema cime da se otvori pravi zapis, a ranije ponasanje (otvori pa ispisi "nije
@@ -595,7 +694,12 @@ export function BookingSummary({ summary: s, onOpenFullRecord }: { summary: impo
         </button>
       )}
       <SummaryRow label="Nosilac rezervacije" value={s.buyerName} />
-      {(s.country || s.destinationCity) && <SummaryRow label="Destinacija" value={[s.destinationCity, s.country].filter(Boolean).join(', ')} />}
+      {(s.country || s.destinationCity) && (
+        <SummaryRow
+          label="Destinacija"
+          value={[s.destinationCity, s.country].filter(Boolean).join(', ')}
+        />
+      )}
       {s.hotelName && <SummaryRow label="Hotel/objekat" value={s.hotelName} />}
       {s.accommodationType && <SummaryRow label="Tip smeštaja" value={s.accommodationType} />}
       {/* BAG (25.8.2026, prijavio vlasnik uživo, uz snimak ekrana — red bez stavki sa
@@ -605,8 +709,12 @@ export function BookingSummary({ summary: s, onOpenFullRecord }: { summary: impo
           je UVEK "Invalid Date", ne prazan/nedostajući datum. Redovi se sad sakriju umesto da
           prikažu netačnu vrednost — isti obrazac kao ostala opciona polja iznad (hotelName,
           accommodationType...). */}
-      {s.stayFrom && <SummaryRow label="Dolazak" value={new Date(s.stayFrom).toLocaleDateString('sr-RS')} />}
-      {s.stayTo && <SummaryRow label="Odlazak" value={new Date(s.stayTo).toLocaleDateString('sr-RS')} />}
+      {s.stayFrom && (
+        <SummaryRow label="Dolazak" value={new Date(s.stayFrom).toLocaleDateString('sr-RS')} />
+      )}
+      {s.stayTo && (
+        <SummaryRow label="Odlazak" value={new Date(s.stayTo).toLocaleDateString('sr-RS')} />
+      )}
       {s.branch && <SummaryRow label="Poslovnica" value={s.branch} />}
       {s.assignedUser && <SummaryRow label="Zadužen" value={s.assignedUser} />}
       {s.travelers && s.travelers.length > 0 && (
@@ -624,8 +732,15 @@ export function BookingSummary({ summary: s, onOpenFullRecord }: { summary: impo
       )}
       <div className="mt-3 flex flex-col gap-0.5 rounded-lg border border-border bg-panel p-2">
         <SummaryRow label="Ukupno" value={money(s.totalPrice)} strong />
-        <SummaryRow label="Uplaćeno" value={s.paidAmount !== undefined ? money(s.paidAmount) : '—'} />
-        <SummaryRow label="Dug" value={s.owedAmount !== undefined ? money(s.owedAmount) : '—'} tone={s.owedAmount ? 'danger' : undefined} />
+        <SummaryRow
+          label="Uplaćeno"
+          value={s.paidAmount !== undefined ? money(s.paidAmount) : '—'}
+        />
+        <SummaryRow
+          label="Dug"
+          value={s.owedAmount !== undefined ? money(s.owedAmount) : '—'}
+          tone={s.owedAmount ? 'danger' : undefined}
+        />
         <SummaryRow label="Status uplate" value={s.paymentStatus} />
       </div>
     </div>
@@ -639,8 +754,17 @@ export function BookingSummary({ summary: s, onOpenFullRecord }: { summary: impo
 // (Dan prikaz, `RegisterDaySummary.tsx`) — ovaj komponent samo prikazuje već gotov objekat.
 // Dve autorske dopune ("možete i vi dodati nešto"): vrednost po valuti, raščlanjenje po tipu
 // proizvoda.
-function CalendarDaySummaryCard({ summary: s }: { summary: import('./RowSummaryContext').CalendarDaySummary }) {
-  const dateLabel = new Date(`${s.date}T00:00:00`).toLocaleDateString('sr-RS', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+function CalendarDaySummaryCard({
+  summary: s,
+}: {
+  summary: import('./RowSummaryContext').CalendarDaySummary;
+}) {
+  const dateLabel = new Date(`${s.date}T00:00:00`).toLocaleDateString('sr-RS', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  });
   const hasAlerts = s.supplierPendingCount > 0 || s.unpaidCount > 0;
   return (
     <div className="flex-1 overflow-y-auto p-3 text-xs">
@@ -661,8 +785,16 @@ function CalendarDaySummaryCard({ summary: s }: { summary: import('./RowSummaryC
           <div className="flex items-center gap-1.5 font-medium text-danger">
             <Icon name="warning" /> Upozorenja
           </div>
-          {s.supplierPendingCount > 0 && <SummaryRow label="Čeka potvrdu dobavljača" value={String(s.supplierPendingCount)} tone="danger" />}
-          {s.unpaidCount > 0 && <SummaryRow label="Nije naplaćeno" value={String(s.unpaidCount)} tone="danger" />}
+          {s.supplierPendingCount > 0 && (
+            <SummaryRow
+              label="Čeka potvrdu dobavljača"
+              value={String(s.supplierPendingCount)}
+              tone="danger"
+            />
+          )}
+          {s.unpaidCount > 0 && (
+            <SummaryRow label="Nije naplaćeno" value={String(s.unpaidCount)} tone="danger" />
+          )}
         </div>
       )}
 
@@ -682,13 +814,17 @@ function CalendarDaySummaryCard({ summary: s }: { summary: import('./RowSummaryC
             {Object.entries(s.valueByCurrency).map(([currency, amount]) => (
               <li key={currency} className="flex items-center justify-between gap-2 text-ink-dim">
                 <span>{currency}</span>
-                <span className="font-mono font-medium text-ink">{(amount / 100).toLocaleString('sr-RS', { minimumFractionDigits: 2 })}</span>
+                <span className="font-mono font-medium text-ink">
+                  {(amount / 100).toLocaleString('sr-RS', { minimumFractionDigits: 2 })}
+                </span>
               </li>
             ))}
           </ul>
         </div>
       )}
-      {s.bookingCount === 0 && <p className="text-ink-faint">Nema rezervacija za ovaj dan (uz trenutne filtere).</p>}
+      {s.bookingCount === 0 && (
+        <p className="text-ink-faint">Nema rezervacija za ovaj dan (uz trenutne filtere).</p>
+      )}
     </div>
   );
 }
@@ -719,17 +855,38 @@ function BreakdownSection({ title, counts }: { title: string; counts: Record<str
   );
 }
 
-function SummaryRow({ label, value, strong, tone }: { label: string; value: string; strong?: boolean; tone?: 'danger' }) {
+function SummaryRow({
+  label,
+  value,
+  strong,
+  tone,
+}: {
+  label: string;
+  value: string;
+  strong?: boolean;
+  tone?: 'danger';
+}) {
   return (
     <div className="flex items-center justify-between gap-2 py-0.5">
       <span className="text-ink-faint">{label}</span>
-      <span className={`text-right ${strong ? 'font-semibold text-ink' : tone === 'danger' ? 'font-medium text-danger' : 'text-ink-dim'}`}>{value}</span>
+      <span
+        className={`text-right ${strong ? 'font-semibold text-ink' : tone === 'danger' ? 'font-medium text-danger' : 'text-ink-dim'}`}
+      >
+        {value}
+      </span>
     </div>
   );
 }
 
-function SelectionRow({ item, onRemove }: { item: import('./SelectionContext').SelectionItem; onRemove: () => void }) {
-  const money = (amount: number) => `${(amount / 100).toLocaleString('sr-RS', { minimumFractionDigits: 2 })} ${item.finalPriceCurrency}`;
+function SelectionRow({
+  item,
+  onRemove,
+}: {
+  item: import('./SelectionContext').SelectionItem;
+  onRemove: () => void;
+}) {
+  const money = (amount: number) =>
+    `${(amount / 100).toLocaleString('sr-RS', { minimumFractionDigits: 2 })} ${item.finalPriceCurrency}`;
   return (
     <div
       className={`rounded-lg border bg-panel p-2 text-xs ${item.priceChange ? 'border-warn ring-1 ring-warn' : 'border-border'}`}
@@ -745,8 +902,11 @@ function SelectionRow({ item, onRemove }: { item: import('./SelectionContext').S
       {item.priceChange && item.priceChange !== 'GONE' && (
         <div className="mb-1 rounded bg-warn-bg px-1.5 py-1 text-[11px] text-ink">
           <span className="font-semibold">Cena je promenjena:</span>{' '}
-          <span className="text-ink-faint line-through">{money(item.priceChange.previous)}</span>{' → '}
-          <span className={`font-mono font-semibold ${item.priceChange.current > item.priceChange.previous ? 'text-danger' : 'text-ok'}`}>
+          <span className="text-ink-faint line-through">{money(item.priceChange.previous)}</span>
+          {' → '}
+          <span
+            className={`font-mono font-semibold ${item.priceChange.current > item.priceChange.previous ? 'text-danger' : 'text-ok'}`}
+          >
             {money(item.priceChange.current)}
           </span>
         </div>
@@ -756,7 +916,9 @@ function SelectionRow({ item, onRemove }: { item: import('./SelectionContext').S
           <div className="flex items-center gap-1.5">
             <span className="truncate font-medium text-ink">{item.productName}</span>
             {item.stars !== undefined && (
-              <span className="flex-shrink-0 rounded bg-panel2 px-1 py-0.5 text-[11px] font-semibold text-warn">{item.stars}*</span>
+              <span className="flex-shrink-0 rounded bg-panel2 px-1 py-0.5 text-[11px] font-semibold text-warn">
+                {item.stars}*
+              </span>
             )}
           </div>
           {/* Detaljne informacije kao u centralnom panelu (dopuna 26.8.2026, na zahtev vlasnika:
@@ -765,18 +927,27 @@ function SelectionRow({ item, onRemove }: { item: import('./SelectionContext').S
               dopuna, `SelectionContext.tsx`); pravi `QuoteButton.tsx` rezultati i dalje prikazuju
               samo `productType` ispod, isto kao ranije. */}
           {item.destinationCity || item.destinationCountry ? (
-            <div className="text-[11px] text-ink-faint">{[item.destinationCountry, item.destinationCity].filter(Boolean).join(', ')}</div>
+            <div className="text-[11px] text-ink-faint">
+              {[item.destinationCountry, item.destinationCity].filter(Boolean).join(', ')}
+            </div>
           ) : (
             <div className="text-[11px] text-ink-faint">{item.productType}</div>
           )}
           {(item.stayFrom || item.stayTo) && (
             <div className="text-[11px] text-ink-faint">
-              {item.stayFrom ? new Date(item.stayFrom).toLocaleDateString('sr-RS') : '—'} – {item.stayTo ? new Date(item.stayTo).toLocaleDateString('sr-RS') : '—'}
+              {item.stayFrom ? new Date(item.stayFrom).toLocaleDateString('sr-RS') : '—'} –{' '}
+              {item.stayTo ? new Date(item.stayTo).toLocaleDateString('sr-RS') : '—'}
             </div>
           )}
-          {item.boardTypeLabel && <div className="text-[11px] text-ink-faint">{item.boardTypeLabel}</div>}
+          {item.boardTypeLabel && (
+            <div className="text-[11px] text-ink-faint">{item.boardTypeLabel}</div>
+          )}
         </div>
-        <button onClick={onRemove} title="Ukloni iz selekcije" className="flex-shrink-0 text-ink-faint hover:text-danger">
+        <button
+          onClick={onRemove}
+          title="Ukloni iz selekcije"
+          className="flex-shrink-0 text-ink-faint hover:text-danger"
+        >
           <Icon name="close" />
         </button>
       </div>
@@ -787,7 +958,9 @@ function SelectionRow({ item, onRemove }: { item: import('./SelectionContext').S
             <div key={i} className="flex items-center justify-between gap-2 text-ink-dim">
               <span>
                 Soba {i + 1}: {r.adults} odrasl{r.adults === 1 ? 'a' : 'e'}
-                {r.children > 0 ? ` + ${r.children} det${r.children === 1 ? 'e' : 'ece'}${r.childrenAges?.length ? ` (${r.childrenAges.join(', ')}g)` : ''}` : ''}
+                {r.children > 0
+                  ? ` + ${r.children} det${r.children === 1 ? 'e' : 'ece'}${r.childrenAges?.length ? ` (${r.childrenAges.join(', ')}g)` : ''}`
+                  : ''}
               </span>
               <span className="font-mono">{money(r.price)}</span>
             </div>
@@ -800,7 +973,9 @@ function SelectionRow({ item, onRemove }: { item: import('./SelectionContext').S
       ) : (
         <div className="flex items-center justify-between gap-2">
           <span className="font-mono font-semibold text-ink">{money(item.finalPrice)}</span>
-          {item.sourceType === 'API' && item.quoteExpiresAt && <ExpiryBadge quoteExpiresAt={item.quoteExpiresAt} />}
+          {item.sourceType === 'API' && item.quoteExpiresAt && (
+            <ExpiryBadge quoteExpiresAt={item.quoteExpiresAt} />
+          )}
         </div>
       )}
     </div>

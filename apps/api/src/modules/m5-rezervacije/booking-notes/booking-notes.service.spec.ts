@@ -5,7 +5,12 @@ import { BookingNotesService } from './booking-notes.service';
 describe('BookingNotesService (M5 spec §4.6)', () => {
   function makeService() {
     const prisma: any = {
-      bookingNote: { findMany: jest.fn(), create: jest.fn(), findUnique: jest.fn(), delete: jest.fn() },
+      bookingNote: {
+        findMany: jest.fn(),
+        create: jest.fn(),
+        findUnique: jest.fn(),
+        delete: jest.fn(),
+      },
       userRole: { findFirst: jest.fn().mockResolvedValue(null) },
     };
     const auditLog = { write: jest.fn() };
@@ -35,7 +40,12 @@ describe('BookingNotesService (M5 spec §4.6)', () => {
     await service.create('b1', 'gost traži sobu na višem spratu', { userId: 'u1' });
 
     expect(prisma.bookingNote.create).toHaveBeenCalledWith({
-      data: { bookingId: 'b1', body: 'gost traži sobu na višem spratu', createdBy: 'u1', origin: 'OFFICE' },
+      data: {
+        bookingId: 'b1',
+        body: 'gost traži sobu na višem spratu',
+        createdBy: 'u1',
+        origin: 'OFFICE',
+      },
     });
   });
 
@@ -47,7 +57,9 @@ describe('BookingNotesService (M5 spec §4.6)', () => {
 
     await service.create('b1', 'tekst', { userId: 'u1' });
 
-    expect(prisma.bookingNote.create).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ origin: 'OFFICE' }) }));
+    expect(prisma.bookingNote.create).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ origin: 'OFFICE' }) }),
+    );
   });
 
   it('beleška predstavnika na destinaciji (VODIC) dobija origin FIELD_REP', async () => {
@@ -57,7 +69,9 @@ describe('BookingNotesService (M5 spec §4.6)', () => {
 
     await service.create('b1', 'gosti preuzeti na aerodromu', { userId: 'vodic-1' });
 
-    expect(prisma.bookingNote.create).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ origin: 'FIELD_REP' }) }));
+    expect(prisma.bookingNote.create).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ origin: 'FIELD_REP' }) }),
+    );
   });
 
   it('kreiranje beleške upisuje audit zapis', async () => {
@@ -66,7 +80,13 @@ describe('BookingNotesService (M5 spec §4.6)', () => {
 
     await service.create('b1', 'tekst', { userId: 'u1' });
 
-    expect(auditLog.write).toHaveBeenCalledWith(expect.objectContaining({ action: 'booking_note.created', resourceType: 'BookingNote', resourceId: 'n1' }));
+    expect(auditLog.write).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'booking_note.created',
+        resourceType: 'BookingNote',
+        resourceId: 'n1',
+      }),
+    );
   });
 
   it('autor sme da obriše sopstvenu belešku', async () => {
@@ -80,7 +100,11 @@ describe('BookingNotesService (M5 spec §4.6)', () => {
 
   it('tuđu belešku ne sme da obriše onaj ko nije Vlasnik/Direktor', async () => {
     const { service, prisma } = makeService();
-    prisma.bookingNote.findUnique.mockResolvedValue({ id: 'n1', bookingId: 'b1', createdBy: 'drugi' });
+    prisma.bookingNote.findUnique.mockResolvedValue({
+      id: 'n1',
+      bookingId: 'b1',
+      createdBy: 'drugi',
+    });
 
     await expect(service.remove('b1', 'n1', { userId: 'u1' })).rejects.toThrow(ForbiddenException);
     expect(prisma.bookingNote.delete).not.toHaveBeenCalled();
@@ -88,7 +112,11 @@ describe('BookingNotesService (M5 spec §4.6)', () => {
 
   it('Vlasnik/Direktor sme da obriše tuđu belešku', async () => {
     const { service, prisma } = makeService();
-    prisma.bookingNote.findUnique.mockResolvedValue({ id: 'n1', bookingId: 'b1', createdBy: 'drugi' });
+    prisma.bookingNote.findUnique.mockResolvedValue({
+      id: 'n1',
+      bookingId: 'b1',
+      createdBy: 'drugi',
+    });
     prisma.userRole.findFirst.mockResolvedValue({ id: 'ur1' });
 
     await service.remove('b1', 'n1', { userId: 'u1' });
@@ -98,7 +126,11 @@ describe('BookingNotesService (M5 spec §4.6)', () => {
 
   it('beleška sa druge rezervacije se ne može obrisati preko tuđeg bookingId-ja', async () => {
     const { service, prisma } = makeService();
-    prisma.bookingNote.findUnique.mockResolvedValue({ id: 'n1', bookingId: 'DRUGA', createdBy: 'u1' });
+    prisma.bookingNote.findUnique.mockResolvedValue({
+      id: 'n1',
+      bookingId: 'DRUGA',
+      createdBy: 'u1',
+    });
 
     await expect(service.remove('b1', 'n1', { userId: 'u1' })).rejects.toThrow(NotFoundException);
     expect(prisma.bookingNote.delete).not.toHaveBeenCalled();
@@ -106,7 +138,12 @@ describe('BookingNotesService (M5 spec §4.6)', () => {
 
   it('brisanje ne upisuje telo beleške u audit log (sadržaj se stvarno uklanja)', async () => {
     const { service, prisma, auditLog } = makeService();
-    prisma.bookingNote.findUnique.mockResolvedValue({ id: 'n1', bookingId: 'b1', createdBy: 'u1', body: 'poverljiv tekst' });
+    prisma.bookingNote.findUnique.mockResolvedValue({
+      id: 'n1',
+      bookingId: 'b1',
+      createdBy: 'u1',
+      body: 'poverljiv tekst',
+    });
 
     await service.remove('b1', 'n1', { userId: 'u1' });
 

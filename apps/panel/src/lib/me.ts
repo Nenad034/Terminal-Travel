@@ -34,7 +34,14 @@ export const getMe = cache(async (): Promise<Me | null> => {
   }
 });
 
-export function hasPermission(me: Me | null, module: string, resource: string, action: string): boolean {
+export function hasPermission(
+  me: Me | null,
+  module: string,
+  resource: string,
+  action: string,
+): boolean {
   if (!me) return false;
-  return me.permissions.some((p) => p.module === module && p.resource === resource && p.action === action);
+  return me.permissions.some(
+    (p) => p.module === module && p.resource === resource && p.action === action,
+  );
 }

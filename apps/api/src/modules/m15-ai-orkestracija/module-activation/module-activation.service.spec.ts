@@ -19,7 +19,9 @@ describe('ModuleActivationService (M15 spec §3, §5)', () => {
     const { service, prisma } = makeService();
     prisma.user.findUniqueOrThrow.mockResolvedValue({ id: 'agent-1', accountType: 'AI_AGENT' });
 
-    await expect(service.update('M15_OMNISEARCH', 'ACTIVATED', 'agent-1')).rejects.toThrow(ForbiddenException);
+    await expect(service.update('M15_OMNISEARCH', 'ACTIVATED', 'agent-1')).rejects.toThrow(
+      ForbiddenException,
+    );
     expect(prisma.moduleAgentActivation.update).not.toHaveBeenCalled();
   });
 
@@ -41,6 +43,8 @@ describe('ModuleActivationService (M15 spec §3, §5)', () => {
 
     const result = await service.update('M15_OMNISEARCH', 'ACTIVATED', 'owner-1');
     expect(result.status).toBe('ACTIVATED');
-    expect(auditLog.write).toHaveBeenCalledWith(expect.objectContaining({ actorType: 'HUMAN', actorId: 'owner-1' }));
+    expect(auditLog.write).toHaveBeenCalledWith(
+      expect.objectContaining({ actorType: 'HUMAN', actorId: 'owner-1' }),
+    );
   });
 });

@@ -17,7 +17,11 @@ export default function StatusForm({ id, status }: { id: string; status: string 
 
   return (
     <form action={formAction} className="flex items-center gap-2">
-      <select name="status" defaultValue={STATUSES.includes(status) ? status : 'DRAFT'} className="input">
+      <select
+        name="status"
+        defaultValue={STATUSES.includes(status) ? status : 'DRAFT'}
+        className="input"
+      >
         {STATUSES.map((s) => (
           <option key={s} value={s}>
             {s}

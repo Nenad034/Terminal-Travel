@@ -28,7 +28,10 @@ export class DestinationProfilesController {
   // sopstvenom UUID-u u putanji, jer je pozivalac (M5 pretraga) po prirodi zna destinaciju.
   @Get('by-destination')
   @RequirePermission('M2', 'destination-profile', 'VIEW')
-  findOne(@Query('destinationCountry') destinationCountry: string, @Query('destinationCity') destinationCity: string) {
+  findOne(
+    @Query('destinationCountry') destinationCountry: string,
+    @Query('destinationCity') destinationCity: string,
+  ) {
     return this.destinationProfiles.findOne(destinationCountry, destinationCity);
   }
 
@@ -40,7 +43,11 @@ export class DestinationProfilesController {
 
   @Patch(':id')
   @RequirePermission('M2', 'destination-profile', 'EDIT')
-  update(@Param('id') id: string, @Body() dto: UpdateDestinationProfileDto, @CurrentUser() actor: { userId: string }) {
+  update(
+    @Param('id') id: string,
+    @Body() dto: UpdateDestinationProfileDto,
+    @CurrentUser() actor: { userId: string },
+  ) {
     return this.destinationProfiles.update(id, dto, actor.userId);
   }
 }

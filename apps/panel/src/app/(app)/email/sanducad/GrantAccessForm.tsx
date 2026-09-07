@@ -15,7 +15,9 @@ export default function GrantAccessForm({ mailboxId }: { mailboxId: string }) {
 
   return (
     <form action={formAction} className="flex flex-wrap items-end gap-2">
-      {state.error && <p className="w-full rounded bg-danger-bg p-2 text-[11px] text-danger">{state.error}</p>}
+      {state.error && (
+        <p className="w-full rounded bg-danger-bg p-2 text-[11px] text-danger">{state.error}</p>
+      )}
       <label className="text-[11px] text-ink-faint">
         korisnik (M1 User UUID)
         <input name="userId" required className="input mt-1" placeholder="UUID" />

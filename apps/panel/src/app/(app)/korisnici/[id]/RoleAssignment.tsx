@@ -28,7 +28,9 @@ export default function RoleAssignment({
   return (
     <div className="flex flex-col gap-3">
       <div className="flex flex-wrap gap-1.5">
-        {assignedRoles.length === 0 && <span className="text-xs text-ink-faint">Nema dodeljenih uloga.</span>}
+        {assignedRoles.length === 0 && (
+          <span className="text-xs text-ink-faint">Nema dodeljenih uloga.</span>
+        )}
         {assignedRoles.map((r) => (
           <div key={r.id} className="flex items-center gap-1">
             <Badge variant="secondary" className="text-ink-dim">
@@ -38,7 +40,9 @@ export default function RoleAssignment({
           </div>
         ))}
       </div>
-      {canEdit && availableRoles.length > 0 && <AssignRoleForm userId={userId} roles={availableRoles} />}
+      {canEdit && availableRoles.length > 0 && (
+        <AssignRoleForm userId={userId} roles={availableRoles} />
+      )}
     </div>
   );
 }
@@ -48,7 +52,13 @@ function RemoveRoleButton({ userId, roleId }: { userId: string; roleId: string }
   const [, formAction] = useActionState(boundAction, initialState);
   return (
     <form action={formAction}>
-      <Button type="submit" variant="ghost" size="sm" className="h-auto p-0.5 text-danger hover:text-danger" title="Ukloni ulogu">
+      <Button
+        type="submit"
+        variant="ghost"
+        size="sm"
+        className="h-auto p-0.5 text-danger hover:text-danger"
+        title="Ukloni ulogu"
+      >
         <span className="text-[11px]">×</span>
       </Button>
     </form>

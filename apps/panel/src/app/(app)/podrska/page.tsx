@@ -7,7 +7,6 @@ import TabLink from '@/components/TabLink';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 
-
 interface Ticket {
   id: string;
   ticketNumber: string;
@@ -27,7 +26,9 @@ const CATEGORIES = ['REZERVACIJA', 'PLACANJE', 'TEHNICKI_PROBLEM', 'REKLAMACIJA'
 // M17 spec §4/§7 (Faza 5) — "Podrška", M14 §6 GET /tickets ("lista, prava po ulozi" — interni
 // tim vidi sve tikete kojima ima pristup, servis sam sužava obim za Prodajni agent po M14 spec
 // §5 ownership pravilu, ova stranica ne dupliramo tu logiku).
-export default async function PodrskaPage(props: { searchParams: Promise<{ status?: string; category?: string }> }) {
+export default async function PodrskaPage(props: {
+  searchParams: Promise<{ status?: string; category?: string }>;
+}) {
   const searchParams = await props.searchParams;
   const me = await getMe();
   const canCreate = hasPermission(me, 'M14', 'ticket', 'CREATE');
@@ -41,7 +42,9 @@ export default async function PodrskaPage(props: { searchParams: Promise<{ statu
   }
 
   const filtered = tickets.filter(
-    (t) => (!searchParams?.status || t.status === searchParams.status) && (!searchParams?.category || t.category === searchParams.category),
+    (t) =>
+      (!searchParams?.status || t.status === searchParams.status) &&
+      (!searchParams?.category || t.category === searchParams.category),
   );
 
   return (
@@ -99,9 +102,16 @@ export default async function PodrskaPage(props: { searchParams: Promise<{ statu
 
       {!error && (
         <div className="overflow-hidden rounded-lg border border-border">
-          {filtered.length === 0 && <p className="p-4 text-center text-xs text-ink-faint">Nema tiketa.</p>}
+          {filtered.length === 0 && (
+            <p className="p-4 text-center text-xs text-ink-faint">Nema tiketa.</p>
+          )}
           {filtered.map((t) => {
-            const zzpOverdue = t.category === 'REKLAMACIJA' && t.zzpResponseDeadline && new Date(t.zzpResponseDeadline) < new Date() && t.status !== 'RESOLVED' && t.status !== 'CLOSED';
+            const zzpOverdue =
+              t.category === 'REKLAMACIJA' &&
+              t.zzpResponseDeadline &&
+              new Date(t.zzpResponseDeadline) < new Date() &&
+              t.status !== 'RESOLVED' &&
+              t.status !== 'CLOSED';
             return (
               <TabLink
                 key={t.id}
@@ -147,16 +157,18 @@ export default async function PodrskaPage(props: { searchParams: Promise<{ statu
 
 function StatusBadge({ status }: { status: string }) {
   if (status === 'RESOLVED' || status === 'CLOSED') return <Badge variant="ok">{status}</Badge>;
-  if (status === 'IN_PROGRESS') return (
-    <Badge variant="secondary" className="bg-accent-soft text-accent-strong">
-      {status}
-    </Badge>
-  );
+  if (status === 'IN_PROGRESS')
+    return (
+      <Badge variant="secondary" className="bg-accent-soft text-accent-strong">
+        {status}
+      </Badge>
+    );
   return <Badge variant="warn">{status}</Badge>;
 }
 
 function PriorityBadge({ priority }: { priority: string }) {
-  if (priority === 'URGENT' || priority === 'HIGH') return <Badge variant="danger">{priority}</Badge>;
+  if (priority === 'URGENT' || priority === 'HIGH')
+    return <Badge variant="danger">{priority}</Badge>;
   return (
     <Badge variant="secondary" className="text-ink-faint">
       {priority}

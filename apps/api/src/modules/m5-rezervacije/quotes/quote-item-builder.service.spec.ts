@@ -11,7 +11,11 @@ describe('QuoteItemBuilderService (M5 spec §3.0b.3/§3.2)', () => {
     };
     const markupRules = { resolveForContracted: jest.fn(), resolveForApi: jest.fn() };
     const integrations = { checkAvailabilityAndPrice: jest.fn() };
-    const service = new QuoteItemBuilderService(prisma as any, markupRules as any, integrations as any);
+    const service = new QuoteItemBuilderService(
+      prisma as any,
+      markupRules as any,
+      integrations as any,
+    );
     return { service, prisma, markupRules, integrations };
   }
 
@@ -95,7 +99,11 @@ describe('QuoteItemBuilderService (M5 spec §3.0b.3/§3.2)', () => {
       agePricing: [],
       contractPeriod: { id: 'period1', roomType: 'STD' },
     });
-    markupRules.resolveForContracted.mockResolvedValue({ id: 'mr1', percentage: 0, fixedAmount: 500 });
+    markupRules.resolveForContracted.mockResolvedValue({
+      id: 'mr1',
+      percentage: 0,
+      fixedAmount: 500,
+    });
 
     const result = await service.build({
       productId: 'p1',
@@ -114,7 +122,11 @@ describe('QuoteItemBuilderService (M5 spec §3.0b.3/§3.2)', () => {
   describe('PACKAGE (grupni paket, §3.0d.6/§3.0d.6a, v1.94 — termin mora postojati kao ACTIVE PackageDeparture)', () => {
     function mockDeparture(prisma: any, departureIso: string, returnIso: string) {
       prisma.packageDeparture.findFirst = jest.fn().mockResolvedValueOnce({
-        id: 'd1', productId: 'pkg1', departureDate: new Date(departureIso), returnDate: new Date(returnIso), status: 'ACTIVE',
+        id: 'd1',
+        productId: 'pkg1',
+        departureDate: new Date(departureIso),
+        returnDate: new Date(returnIso),
+        status: 'ACTIVE',
       });
     }
 
@@ -128,15 +140,61 @@ describe('QuoteItemBuilderService (M5 spec §3.0b.3/§3.2)', () => {
       });
       mockDeparture(prisma, '2027-09-03', '2027-09-10');
       prisma.product.findMany = jest.fn().mockResolvedValue([
-        { id: 'flight1', type: 'FLIGHT', sourceType: 'CONTRACTED', sourceContractId: 'fc1', sourceContract: { id: 'fc1', supplierId: 's1', currency: 'EUR' }, attributes: {} },
-        { id: 'hotel1', type: 'ACCOMMODATION', sourceType: 'CONTRACTED', sourceContractId: 'hc1', sourceContract: { id: 'hc1', supplierId: 's2', currency: 'EUR' }, attributes: { roomTypes: [{ code: 'STD', capacityAdults: 4, capacityChildren: 2 }] } },
+        {
+          id: 'flight1',
+          type: 'FLIGHT',
+          sourceType: 'CONTRACTED',
+          sourceContractId: 'fc1',
+          sourceContract: { id: 'fc1', supplierId: 's1', currency: 'EUR' },
+          attributes: {},
+        },
+        {
+          id: 'hotel1',
+          type: 'ACCOMMODATION',
+          sourceType: 'CONTRACTED',
+          sourceContractId: 'hc1',
+          sourceContract: { id: 'hc1', supplierId: 's2', currency: 'EUR' },
+          attributes: { roomTypes: [{ code: 'STD', capacityAdults: 4, capacityChildren: 2 }] },
+        },
       ]);
-      prisma.contractPeriod.findFirst = jest.fn()
-        .mockResolvedValueOnce({ id: 'fperiod1', roomType: null, stayFrom: terminDate, stayTo: terminDate, rateLines: [{ id: 'frl1' }] })
-        .mockResolvedValueOnce({ id: 'hperiod1', roomType: 'STD', stayFrom: terminDate, stayTo: new Date('2027-09-10'), rateLines: [{ id: 'hrl1' }] });
-      prisma.rateLine.findUnique = jest.fn()
-        .mockResolvedValueOnce({ id: 'frl1', price: 20000, priceBasis: 'PER_PERSON_PER_NIGHT', occupancy: null, cribFeePerNight: null, contractPeriodId: 'fperiod1', agePricing: [], contractPeriod: { id: 'fperiod1', roomType: null } })
-        .mockResolvedValueOnce({ id: 'hrl1', price: 5000, priceBasis: 'PER_ROOM_PER_NIGHT', occupancy: 'dvokrevetna', cribFeePerNight: null, contractPeriodId: 'hperiod1', agePricing: [], contractPeriod: { id: 'hperiod1', roomType: 'STD' } });
+      prisma.contractPeriod.findFirst = jest
+        .fn()
+        .mockResolvedValueOnce({
+          id: 'fperiod1',
+          roomType: null,
+          stayFrom: terminDate,
+          stayTo: terminDate,
+          rateLines: [{ id: 'frl1' }],
+        })
+        .mockResolvedValueOnce({
+          id: 'hperiod1',
+          roomType: 'STD',
+          stayFrom: terminDate,
+          stayTo: new Date('2027-09-10'),
+          rateLines: [{ id: 'hrl1' }],
+        });
+      prisma.rateLine.findUnique = jest
+        .fn()
+        .mockResolvedValueOnce({
+          id: 'frl1',
+          price: 20000,
+          priceBasis: 'PER_PERSON_PER_NIGHT',
+          occupancy: null,
+          cribFeePerNight: null,
+          contractPeriodId: 'fperiod1',
+          agePricing: [],
+          contractPeriod: { id: 'fperiod1', roomType: null },
+        })
+        .mockResolvedValueOnce({
+          id: 'hrl1',
+          price: 5000,
+          priceBasis: 'PER_ROOM_PER_NIGHT',
+          occupancy: 'dvokrevetna',
+          cribFeePerNight: null,
+          contractPeriodId: 'hperiod1',
+          agePricing: [],
+          contractPeriod: { id: 'hperiod1', roomType: 'STD' },
+        });
       markupRules.resolveForContracted.mockResolvedValue({ percentage: 0, fixedAmount: 0 });
 
       const result = await service.build({
@@ -169,15 +227,61 @@ describe('QuoteItemBuilderService (M5 spec §3.0b.3/§3.2)', () => {
       });
       mockDeparture(prisma, '2027-09-03', '2027-09-10');
       prisma.product.findMany = jest.fn().mockResolvedValue([
-        { id: 'flight1', type: 'FLIGHT', sourceType: 'CONTRACTED', sourceContractId: 'fc1', sourceContract: { id: 'fc1', supplierId: 's1', currency: 'EUR' }, attributes: {} },
-        { id: 'hotel1', type: 'ACCOMMODATION', sourceType: 'CONTRACTED', sourceContractId: 'hc1', sourceContract: { id: 'hc1', supplierId: 's2', currency: 'EUR' }, attributes: { roomTypes: [{ code: 'STD', capacityAdults: 4, capacityChildren: 2 }] } },
+        {
+          id: 'flight1',
+          type: 'FLIGHT',
+          sourceType: 'CONTRACTED',
+          sourceContractId: 'fc1',
+          sourceContract: { id: 'fc1', supplierId: 's1', currency: 'EUR' },
+          attributes: {},
+        },
+        {
+          id: 'hotel1',
+          type: 'ACCOMMODATION',
+          sourceType: 'CONTRACTED',
+          sourceContractId: 'hc1',
+          sourceContract: { id: 'hc1', supplierId: 's2', currency: 'EUR' },
+          attributes: { roomTypes: [{ code: 'STD', capacityAdults: 4, capacityChildren: 2 }] },
+        },
       ]);
-      prisma.contractPeriod.findFirst = jest.fn()
-        .mockResolvedValueOnce({ id: 'fperiod1', roomType: null, stayFrom: terminDate, stayTo: terminDate, rateLines: [{ id: 'frl1' }] })
-        .mockResolvedValueOnce({ id: 'hperiod1', roomType: 'STD', stayFrom: terminDate, stayTo: new Date('2027-09-10'), rateLines: [{ id: 'hrl1' }] });
-      prisma.rateLine.findUnique = jest.fn()
-        .mockResolvedValueOnce({ id: 'frl1', price: 20000, priceBasis: 'PER_PERSON_PER_NIGHT', occupancy: null, cribFeePerNight: null, contractPeriodId: 'fperiod1', agePricing: [], contractPeriod: { id: 'fperiod1', roomType: null } })
-        .mockResolvedValueOnce({ id: 'hrl1', price: 5000, priceBasis: 'PER_ROOM_PER_NIGHT', occupancy: 'dvokrevetna', cribFeePerNight: null, contractPeriodId: 'hperiod1', agePricing: [], contractPeriod: { id: 'hperiod1', roomType: 'STD' } });
+      prisma.contractPeriod.findFirst = jest
+        .fn()
+        .mockResolvedValueOnce({
+          id: 'fperiod1',
+          roomType: null,
+          stayFrom: terminDate,
+          stayTo: terminDate,
+          rateLines: [{ id: 'frl1' }],
+        })
+        .mockResolvedValueOnce({
+          id: 'hperiod1',
+          roomType: 'STD',
+          stayFrom: terminDate,
+          stayTo: new Date('2027-09-10'),
+          rateLines: [{ id: 'hrl1' }],
+        });
+      prisma.rateLine.findUnique = jest
+        .fn()
+        .mockResolvedValueOnce({
+          id: 'frl1',
+          price: 20000,
+          priceBasis: 'PER_PERSON_PER_NIGHT',
+          occupancy: null,
+          cribFeePerNight: null,
+          contractPeriodId: 'fperiod1',
+          agePricing: [],
+          contractPeriod: { id: 'fperiod1', roomType: null },
+        })
+        .mockResolvedValueOnce({
+          id: 'hrl1',
+          price: 5000,
+          priceBasis: 'PER_ROOM_PER_NIGHT',
+          occupancy: 'dvokrevetna',
+          cribFeePerNight: null,
+          contractPeriodId: 'hperiod1',
+          agePricing: [],
+          contractPeriod: { id: 'hperiod1', roomType: 'STD' },
+        });
       markupRules.resolveForContracted.mockResolvedValue({ percentage: 0, fixedAmount: 0 });
 
       const result = await service.build({
@@ -190,7 +294,9 @@ describe('QuoteItemBuilderService (M5 spec §3.0b.3/§3.2)', () => {
       // Samo included_products[] ulazi automatski — excursion1 (optional_products[]) se ne pojavljuje
       // kao QuoteItem osim ako gost/agent doda njegov productId kao SVOJU stavku u POST /quotes.items[].
       expect(result.map((r) => r.productId).sort()).toEqual(['flight1', 'hotel1']);
-      expect(prisma.product.findMany).not.toHaveBeenCalledWith(expect.objectContaining({ where: { id: { in: expect.arrayContaining(['excursion1']) } } }));
+      expect(prisma.product.findMany).not.toHaveBeenCalledWith(
+        expect.objectContaining({ where: { id: { in: expect.arrayContaining(['excursion1']) } } }),
+      );
     });
 
     it('baca grešku ako termin ne postoji kao ACTIVE PackageDeparture na paketu (ne izvodi ga iz sastojaka)', async () => {
@@ -223,9 +329,18 @@ describe('QuoteItemBuilderService (M5 spec §3.0b.3/§3.2)', () => {
         attributes: { included_products: ['flight1'], duration_days: 7 },
       });
       mockDeparture(prisma, '2027-09-03', '2027-09-10');
-      prisma.product.findMany = jest.fn().mockResolvedValue([
-        { id: 'flight1', type: 'FLIGHT', sourceType: 'CONTRACTED', sourceContractId: 'fc1', sourceContract: { id: 'fc1', supplierId: 's1', currency: 'EUR' }, attributes: {} },
-      ]);
+      prisma.product.findMany = jest
+        .fn()
+        .mockResolvedValue([
+          {
+            id: 'flight1',
+            type: 'FLIGHT',
+            sourceType: 'CONTRACTED',
+            sourceContractId: 'fc1',
+            sourceContract: { id: 'fc1', supplierId: 's1', currency: 'EUR' },
+            attributes: {},
+          },
+        ]);
       prisma.contractPeriod.findFirst = jest.fn().mockResolvedValue(null); // nijedan period ne pokriva
 
       await expect(
@@ -247,12 +362,28 @@ describe('QuoteItemBuilderService (M5 spec §3.0b.3/§3.2)', () => {
         attributes: { included_products: ['transfer1'], duration_days: 7 },
       });
       mockDeparture(prisma, '2027-09-03', '2027-09-10');
-      prisma.product.findMany = jest.fn().mockResolvedValue([
-        { id: 'transfer1', type: 'TRANSFER', sourceType: 'API', sourceContractId: null, sourceContract: null, sourceProvider: 'p1', sourceExternalId: 'ext1', attributes: {} },
-      ]);
+      prisma.product.findMany = jest
+        .fn()
+        .mockResolvedValue([
+          {
+            id: 'transfer1',
+            type: 'TRANSFER',
+            sourceType: 'API',
+            sourceContractId: null,
+            sourceContract: null,
+            sourceProvider: 'p1',
+            sourceExternalId: 'ext1',
+            attributes: {},
+          },
+        ]);
       markupRules.resolveForApi.mockResolvedValue({ percentage: 0, fixedAmount: 0 });
       integrations.checkAvailabilityAndPrice.mockResolvedValue({
-        externalId: 'ext1', priceAmount: 3000, currency: 'EUR', availableUnits: 1, cancellationPolicy: [], quoteExpiresAt: null,
+        externalId: 'ext1',
+        priceAmount: 3000,
+        currency: 'EUR',
+        availableUnits: 1,
+        cancellationPolicy: [],
+        quoteExpiresAt: null,
       });
 
       const result = await service.build({
@@ -277,19 +408,53 @@ describe('QuoteItemBuilderService (M5 spec §3.0b.3/§3.2)', () => {
       });
       mockDeparture(prisma, '2027-09-03', '2027-09-10');
       prisma.product.findMany = jest.fn().mockResolvedValue([
-        { id: 'hotel1', type: 'ACCOMMODATION', sourceType: 'CONTRACTED', sourceContractId: 'hc1', sourceContract: { id: 'hc1', supplierId: 's2', currency: 'EUR' }, attributes: { roomTypes: [{ code: 'STD', capacityAdults: 4, capacityChildren: 2 }] } },
-        { id: 'transfer1', type: 'TRANSFER', sourceType: 'API', sourceContractId: null, sourceContract: null, sourceProvider: 'p1', sourceExternalId: 'ext1', attributes: {} },
+        {
+          id: 'hotel1',
+          type: 'ACCOMMODATION',
+          sourceType: 'CONTRACTED',
+          sourceContractId: 'hc1',
+          sourceContract: { id: 'hc1', supplierId: 's2', currency: 'EUR' },
+          attributes: { roomTypes: [{ code: 'STD', capacityAdults: 4, capacityChildren: 2 }] },
+        },
+        {
+          id: 'transfer1',
+          type: 'TRANSFER',
+          sourceType: 'API',
+          sourceContractId: null,
+          sourceContract: null,
+          sourceProvider: 'p1',
+          sourceExternalId: 'ext1',
+          attributes: {},
+        },
       ]);
-      prisma.contractPeriod.findFirst = jest.fn().mockResolvedValue(
-        { id: 'hperiod1', roomType: 'STD', stayFrom: terminDate, stayTo: new Date('2027-09-10'), rateLines: [{ id: 'hrl1' }] },
-      );
+      prisma.contractPeriod.findFirst = jest
+        .fn()
+        .mockResolvedValue({
+          id: 'hperiod1',
+          roomType: 'STD',
+          stayFrom: terminDate,
+          stayTo: new Date('2027-09-10'),
+          rateLines: [{ id: 'hrl1' }],
+        });
       prisma.rateLine.findUnique = jest.fn().mockResolvedValue({
-        id: 'hrl1', price: 5000, priceBasis: 'PER_ROOM_PER_NIGHT', occupancy: 'dvokrevetna', cribFeePerNight: null, contractPeriodId: 'hperiod1', agePricing: [], contractPeriod: { id: 'hperiod1', roomType: 'STD' },
+        id: 'hrl1',
+        price: 5000,
+        priceBasis: 'PER_ROOM_PER_NIGHT',
+        occupancy: 'dvokrevetna',
+        cribFeePerNight: null,
+        contractPeriodId: 'hperiod1',
+        agePricing: [],
+        contractPeriod: { id: 'hperiod1', roomType: 'STD' },
       });
       markupRules.resolveForContracted.mockResolvedValue({ percentage: 0, fixedAmount: 0 });
       markupRules.resolveForApi.mockResolvedValue({ percentage: 0, fixedAmount: 0 });
       integrations.checkAvailabilityAndPrice.mockResolvedValue({
-        externalId: 'ext1', priceAmount: 3000, currency: 'EUR', availableUnits: 1, cancellationPolicy: [], quoteExpiresAt: null,
+        externalId: 'ext1',
+        priceAmount: 3000,
+        currency: 'EUR',
+        availableUnits: 1,
+        cancellationPolicy: [],
+        quoteExpiresAt: null,
       });
 
       const result = await service.build({
@@ -321,16 +486,38 @@ describe('QuoteItemBuilderService (M5 spec §3.0b.3/§3.2)', () => {
         attributes: { included_products: ['hotel1'], duration_days: 7 },
       });
       mockDeparture(prisma, '2027-09-03', '2027-09-10');
-      prisma.product.findMany = jest.fn().mockResolvedValue([
-        { id: 'hotel1', type: 'ACCOMMODATION', sourceType: 'CONTRACTED', sourceContractId: 'hc1', sourceContract: { id: 'hc1', supplierId: 's2', currency: 'EUR' }, attributes: { roomTypes: [{ code: 'STD', capacityAdults: 4, capacityChildren: 2 }] } },
-      ]);
+      prisma.product.findMany = jest
+        .fn()
+        .mockResolvedValue([
+          {
+            id: 'hotel1',
+            type: 'ACCOMMODATION',
+            sourceType: 'CONTRACTED',
+            sourceContractId: 'hc1',
+            sourceContract: { id: 'hc1', supplierId: 's2', currency: 'EUR' },
+            attributes: { roomTypes: [{ code: 'STD', capacityAdults: 4, capacityChildren: 2 }] },
+          },
+        ]);
       // Hotelski period počinje 4.9. (dan POSLE termina) jer se stiže posle ponoći — unutar ±1
       // dana tolerancije na granici pokrivanja.
-      prisma.contractPeriod.findFirst = jest.fn().mockResolvedValue(
-        { id: 'hperiod1', roomType: 'STD', stayFrom: new Date('2027-09-04'), stayTo: new Date('2027-09-11'), rateLines: [{ id: 'hrl1' }] },
-      );
+      prisma.contractPeriod.findFirst = jest
+        .fn()
+        .mockResolvedValue({
+          id: 'hperiod1',
+          roomType: 'STD',
+          stayFrom: new Date('2027-09-04'),
+          stayTo: new Date('2027-09-11'),
+          rateLines: [{ id: 'hrl1' }],
+        });
       prisma.rateLine.findUnique = jest.fn().mockResolvedValue({
-        id: 'hrl1', price: 5000, priceBasis: 'PER_ROOM_PER_NIGHT', occupancy: 'dvokrevetna', cribFeePerNight: null, contractPeriodId: 'hperiod1', agePricing: [], contractPeriod: { id: 'hperiod1', roomType: 'STD' },
+        id: 'hrl1',
+        price: 5000,
+        priceBasis: 'PER_ROOM_PER_NIGHT',
+        occupancy: 'dvokrevetna',
+        cribFeePerNight: null,
+        contractPeriodId: 'hperiod1',
+        agePricing: [],
+        contractPeriod: { id: 'hperiod1', roomType: 'STD' },
       });
       markupRules.resolveForContracted.mockResolvedValue({ percentage: 0, fixedAmount: 0 });
 

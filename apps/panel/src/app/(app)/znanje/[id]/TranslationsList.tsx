@@ -19,7 +19,11 @@ export default function TranslationsList({ translations }: { translations: Trans
         <Icon name="globe" className="text-accent" /> Prevodi
       </div>
 
-      {translations.length === 0 && <p className="text-xs text-ink-faint">Nema unetih prevoda — članak se ne može objaviti bez bar jednog (§2.1).</p>}
+      {translations.length === 0 && (
+        <p className="text-xs text-ink-faint">
+          Nema unetih prevoda — članak se ne može objaviti bez bar jednog (§2.1).
+        </p>
+      )}
 
       <div className="flex flex-col gap-2">
         {translations.map((t) => (
@@ -27,7 +31,9 @@ export default function TranslationsList({ translations }: { translations: Trans
             <div className="flex items-center justify-between">
               <span className="font-semibold text-ink">{t.languageCode}</span>
               {t.translationSource && (
-                <span className={`rounded px-1.5 py-0.5 text-[11px] ${t.translationSource === 'AI_GENERATED' ? 'bg-warn-bg text-warn' : 'bg-panel text-ink-faint'}`}>
+                <span
+                  className={`rounded px-1.5 py-0.5 text-[11px] ${t.translationSource === 'AI_GENERATED' ? 'bg-warn-bg text-warn' : 'bg-panel text-ink-faint'}`}
+                >
                   {t.translationSource}
                 </span>
               )}
@@ -39,7 +45,8 @@ export default function TranslationsList({ translations }: { translations: Trans
       </div>
 
       <p className="mt-3 text-[11px] text-ink-faint">
-        Sadržaj se menja isključivo kroz odobrenu reviziju (kartica &quot;revizije&quot;) — nema direktnog uređivanja prevoda ovde (API nema takav endpoint u v1).
+        Sadržaj se menja isključivo kroz odobrenu reviziju (kartica &quot;revizije&quot;) — nema
+        direktnog uređivanja prevoda ovde (API nema takav endpoint u v1).
       </p>
     </div>
   );

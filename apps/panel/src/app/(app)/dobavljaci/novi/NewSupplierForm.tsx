@@ -13,7 +13,10 @@ export default function NewSupplierForm() {
   const [state, formAction] = useActionState(createSupplier, initialState);
 
   return (
-    <form action={formAction} className="flex flex-col gap-3 rounded-lg border border-border bg-panel p-5">
+    <form
+      action={formAction}
+      className="flex flex-col gap-3 rounded-lg border border-border bg-panel p-5"
+    >
       {state.error && <p className="rounded bg-danger-bg p-3 text-sm text-danger">{state.error}</p>}
 
       <Field label="naziv">

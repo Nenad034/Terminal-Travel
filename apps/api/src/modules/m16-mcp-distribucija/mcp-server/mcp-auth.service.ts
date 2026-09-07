@@ -27,7 +27,11 @@ export class McpAuthService {
     if (!registration || registration.status !== 'ACTIVE') return null;
     return {
       registration,
-      authInfo: { token: bearerToken, clientId: registration.id, scopes: [registration.accessLevel] },
+      authInfo: {
+        token: bearerToken,
+        clientId: registration.id,
+        scopes: [registration.accessLevel],
+      },
     };
   }
 }

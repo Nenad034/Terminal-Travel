@@ -47,19 +47,41 @@ export default function HomeSidebarPanel({ items }: { items: NavItem[] }) {
   // piše Agent Inbox") — ranije je red pisao samo "N stavki čeka odobrenje", bez imena izvora.
   const rows: { icon: string; label: string; href: string; tone: 'warn' | 'danger' | 'ink' }[] = [];
   if (summary?.securityAlertsCount) {
-    rows.push({ icon: 'shield', label: `${summary.securityAlertsCount} bezbednosnih upozorenja`, href: '/audit-log', tone: 'danger' });
+    rows.push({
+      icon: 'shield',
+      label: `${summary.securityAlertsCount} bezbednosnih upozorenja`,
+      href: '/audit-log',
+      tone: 'danger',
+    });
   }
   if (summary?.expiringReleasesCount) {
-    rows.push({ icon: 'file-text', label: `${summary.expiringReleasesCount} rokova povrata alotmana`, href: '/dobavljaci', tone: 'warn' });
+    rows.push({
+      icon: 'file-text',
+      label: `${summary.expiringReleasesCount} rokova povrata alotmana`,
+      href: '/dobavljaci',
+      tone: 'warn',
+    });
   }
   if (summary?.agentInboxTotal) {
-    rows.push({ icon: 'inbox', label: `Agent Inbox: ${summary.agentInboxTotal} na čekanju`, href: '/', tone: 'warn' });
+    rows.push({
+      icon: 'inbox',
+      label: `Agent Inbox: ${summary.agentInboxTotal} na čekanju`,
+      href: '/',
+      tone: 'warn',
+    });
   }
   if (summary?.guaranteeStatus) {
-    rows.push({ icon: 'law', label: `Garancija putovanja: ${summary.guaranteeStatus}`, href: '/compliance', tone: 'ink' });
+    rows.push({
+      icon: 'law',
+      label: `Garancija putovanja: ${summary.guaranteeStatus}`,
+      href: '/compliance',
+      tone: 'ink',
+    });
   }
 
-  const quickLinks = QUICK_LINK_IDS.map((id) => items.find((i) => i.id === id)).filter((i): i is NavItem => Boolean(i));
+  const quickLinks = QUICK_LINK_IDS.map((id) => items.find((i) => i.id === id)).filter(
+    (i): i is NavItem => Boolean(i),
+  );
 
   return (
     <div className="mx-2 mt-1 flex flex-col gap-4">
@@ -103,10 +125,25 @@ const TONE_CHIP: Record<'warn' | 'danger' | 'ink', string> = {
 // (ikonica u obojenoj značci + tekst pored, uokviren pravougaonik), ista `rounded-lg border
 // border-border bg-panel p-2` osnova koja se već koristi za kartice drugde u panelu (npr.
 // `RightPanel.tsx` `SelectionRow`/`CollectedItemRow`) — dosledan vizuelni jezik, ne nov obrazac.
-function SummaryCard({ icon, label, href, tone }: { icon: string; label: string; href: string; tone: 'warn' | 'danger' | 'ink' }) {
+function SummaryCard({
+  icon,
+  label,
+  href,
+  tone,
+}: {
+  icon: string;
+  label: string;
+  href: string;
+  tone: 'warn' | 'danger' | 'ink';
+}) {
   return (
-    <Link href={href} className="flex items-center gap-2 rounded-lg border border-border bg-panel p-2 hover:border-accent">
-      <span className={`flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md ${TONE_CHIP[tone]}`}>
+    <Link
+      href={href}
+      className="flex items-center gap-2 rounded-lg border border-border bg-panel p-2 hover:border-accent"
+    >
+      <span
+        className={`flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md ${TONE_CHIP[tone]}`}
+      >
         <Icon name={icon} />
       </span>
       <span className="truncate text-xs font-medium text-ink">{label}</span>
@@ -116,7 +153,10 @@ function SummaryCard({ icon, label, href, tone }: { icon: string; label: string;
 
 function QuickLinkCard({ icon, label, href }: { icon: string; label: string; href: string }) {
   return (
-    <Link href={href} className="flex items-center gap-2 rounded-lg border border-border bg-panel p-2 hover:border-accent">
+    <Link
+      href={href}
+      className="flex items-center gap-2 rounded-lg border border-border bg-panel p-2 hover:border-accent"
+    >
       <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md bg-panel2 text-ink-dim">
         <Icon name={icon} />
       </span>

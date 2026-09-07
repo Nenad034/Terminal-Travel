@@ -2,7 +2,12 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createTransport, Transporter } from 'nodemailer';
 import { Mailbox } from '@prisma/client';
-import { EmailProviderAdapter, OutboundEmail, RawEmail, SendResult } from './email-provider-adapter.interface';
+import {
+  EmailProviderAdapter,
+  OutboundEmail,
+  RawEmail,
+  SendResult,
+} from './email-provider-adapter.interface';
 
 /**
  * M22 spec §10 (dopuna 5.9.2026) — prva implementacija `EmailProviderAdapter` koja STVARNO šalje.
@@ -63,7 +68,9 @@ export class SmtpEmailProviderAdapter implements EmailProviderAdapter {
         inReplyTo: message.inReplyToProviderMessageId ?? undefined,
         references: message.inReplyToProviderMessageId ?? undefined,
       });
-      this.logger.log(`[SMTP] Poslato sa ${mailbox.address} ka ${message.toAddresses.join(', ')} — "${message.subject}" (${info.messageId})`);
+      this.logger.log(
+        `[SMTP] Poslato sa ${mailbox.address} ka ${message.toAddresses.join(', ')} — "${message.subject}" (${info.messageId})`,
+      );
       return { providerMessageId: info.messageId ?? null, delivered: true };
     } catch (err) {
       // Nikad ne baca ka pozivaocu (isti graceful princip kao MailerService): priprema
@@ -85,7 +92,8 @@ export class SmtpEmailProviderAdapter implements EmailProviderAdapter {
     // Isto obrazloženje kao u MailerService: `SMTP_SECURE` je izričit jer se ne izvodi pouzdano
     // iz porta (465 je TLS od prvog bajta, 587/1025 idu na STARTTLS), a lokalni mailpit nema
     // ni TLS ni nalog — zato su `auth` i `secure` uslovni.
-    const secure = (this.config.get<string>('SMTP_SECURE') ?? '').toLowerCase() === 'true' || port === 465;
+    const secure =
+      (this.config.get<string>('SMTP_SECURE') ?? '').toLowerCase() === 'true' || port === 465;
 
     this.transporter = createTransport({
       host: this.config.get<string>('SMTP_HOST'),

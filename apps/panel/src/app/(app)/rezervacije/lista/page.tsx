@@ -20,7 +20,6 @@ async function safeList<T>(path: string): Promise<T[]> {
   }
 }
 
-
 // M5 spec v1.54 (24.8.2026, na zahtev vlasnika: "krenite" posle potvrđenog v1 skupa filtera) —
 // STVARNA lista, prelazi sa MOCK-a (v1.42-v1.53). `GET /sales/bookings` sad prima pun v1 skup
 // pravih filtera (vidi tabelu u spec-u); server komponenta samo prosleđuje `searchParams` kao
@@ -54,7 +53,13 @@ export default async function BookingListPage(props: { searchParams: Promise<Boo
       }
     }
     const qs = params.toString() ? `?${params.toString()}` : '';
-    const result = await apiFetch<{ data: RealBooking[]; total: number; page: number; pageCount: number; limit: number }>(`/sales/bookings${qs}`);
+    const result = await apiFetch<{
+      data: RealBooking[];
+      total: number;
+      page: number;
+      pageCount: number;
+      limit: number;
+    }>(`/sales/bookings${qs}`);
     bookings = result.data;
     total = result.total;
     page = result.page;
@@ -92,7 +97,14 @@ export default async function BookingListPage(props: { searchParams: Promise<Boo
           <>
             <BookingsListClient
               bookings={bookings}
-              filterBar={<RealFilterBar filters={searchParams ?? {}} branches={branches} employees={employees} suppliers={suppliers} />}
+              filterBar={
+                <RealFilterBar
+                  filters={searchParams ?? {}}
+                  branches={branches}
+                  employees={employees}
+                  suppliers={suppliers}
+                />
+              }
             />
             {/* Straničenje (5.9.2026, dok. 39 nalaz 2.2) — traka uvek kaže i UKUPAN broj, ne samo
                 koja je strana: nemogućnost da se sazna koliko rezervacija zapravo ima bila je

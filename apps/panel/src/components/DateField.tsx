@@ -17,7 +17,20 @@ import Icon from './Icon';
 // SearchCriteriaPopup.tsx) — ISO "yyyy-mm-dd" ostaje spoljni ugovor u oba slučaja, ništa dole
 // niz tok (server actions, filter parsiranje) se ne menja.
 
-export const MONTH_NAMES = ['januar', 'februar', 'mart', 'april', 'maj', 'jun', 'jul', 'avgust', 'septembar', 'oktobar', 'novembar', 'decembar'];
+export const MONTH_NAMES = [
+  'januar',
+  'februar',
+  'mart',
+  'april',
+  'maj',
+  'jun',
+  'jul',
+  'avgust',
+  'septembar',
+  'oktobar',
+  'novembar',
+  'decembar',
+];
 export const WEEKDAY_LETTERS = ['P', 'U', 'S', 'Č', 'P', 'S', 'N']; // ponedeljak prvi, sr-RS konvencija
 
 // Izvezeno (5.9.2026) — `DateRangeField.tsx` (dva meseca, unos "od + broj noći") ponovo
@@ -107,7 +120,9 @@ export default function DateField({
     // (isti razlog zbog kog je goli `<input className="input">` ranije radio ispravno — imao je
     // `width: 100%` DIREKTNO na flex item-u, ne na unuci).
     <div ref={containerRef} className="relative w-full">
-      <div className={`flex items-center ${className ?? 'input'} ${isInvalid ? 'border-danger' : ''}`}>
+      <div
+        className={`flex items-center ${className ?? 'input'} ${isInvalid ? 'border-danger' : ''}`}
+      >
         <input
           type="text"
           inputMode="numeric"
@@ -115,7 +130,9 @@ export default function DateField({
           placeholder={placeholder}
           onChange={(e) => commit(onlyDigits(e.target.value))}
           required={required}
-          title={isInvalid ? 'Datum ne postoji (npr. 31. februar) — proverite dan/mesec' : undefined}
+          title={
+            isInvalid ? 'Datum ne postoji (npr. 31. februar) — proverite dan/mesec' : undefined
+          }
           className="w-full min-w-0 bg-transparent outline-none"
         />
         <button
@@ -233,7 +250,11 @@ function CalendarPopover({ iso, onSelect }: { iso: string; onSelect: (iso: strin
         })}
       </div>
       <div className="mt-2 flex justify-center border-t border-border pt-2">
-        <button type="button" onClick={() => onSelect(todayIso)} className="text-[11px] font-medium text-accent hover:underline">
+        <button
+          type="button"
+          onClick={() => onSelect(todayIso)}
+          className="text-[11px] font-medium text-accent hover:underline"
+        >
           Danas — {MONTH_NAMES[today.getMonth()]} {today.getDate()}.
         </button>
       </div>

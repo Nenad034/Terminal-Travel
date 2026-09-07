@@ -47,8 +47,15 @@ export class PaymentsService {
     return new Set(blocked.map((d) => d.bookingId!));
   }
 
-  private isEditable(payment: { method: string; bookingId: string | null }, blockedBookingIds: Set<string>): boolean {
-    return payment.method !== 'CARD' && Boolean(payment.bookingId) && !blockedBookingIds.has(payment.bookingId!);
+  private isEditable(
+    payment: { method: string; bookingId: string | null },
+    blockedBookingIds: Set<string>,
+  ): boolean {
+    return (
+      payment.method !== 'CARD' &&
+      Boolean(payment.bookingId) &&
+      !blockedBookingIds.has(payment.bookingId!)
+    );
   }
 
   // Dopuna (2.9.2026, na zahtev vlasnika — "omogućiti pregled i štampanje specifikacije
@@ -57,7 +64,11 @@ export class PaymentsService {
   async findOne(id: string) {
     const payment = await this.prisma.payment.findUnique({
       where: { id },
-      include: { bank: true, checkDetails: { include: { bank: true } }, booking: { select: { bookingNumber: true, buyerName: true } } },
+      include: {
+        bank: true,
+        checkDetails: { include: { bank: true } },
+        booking: { select: { bookingNumber: true, buyerName: true } },
+      },
     });
     if (!payment) throw new NotFoundException(`Uplata ${id} nije pronađena.`);
     const blockedBookingIds = await this.blockedBookingIds([payment.bookingId]);
@@ -132,12 +143,18 @@ export class PaymentsService {
   // svaku rezervaciju). Nikad ne dira `CARD` (automatski webhook tok, poglavlje 7.2) — samo pet
   // ručnih metoda ima šta ljudski unos da ispravi.
   async updateManualPayment(id: string, dto: UpdatePaymentDto, actor: { userId: string }) {
-    const before = await this.prisma.payment.findUnique({ where: { id }, include: { checkDetails: true } });
+    const before = await this.prisma.payment.findUnique({
+      where: { id },
+      include: { checkDetails: true },
+    });
     if (!before) throw new NotFoundException(`Uplata ${id} nije pronađena.`);
     if (before.method === 'CARD') {
-      throw new BadRequestException('Kartično plaćanje naplaćeno preko online provajdera (automatski, webhook) se ne može ručno menjati.');
+      throw new BadRequestException(
+        'Kartično plaćanje naplaćeno preko online provajdera (automatski, webhook) se ne može ručno menjati.',
+      );
     }
-    if (!before.bookingId) throw new BadRequestException('Uplata nije povezana ni sa jednom rezervacijom.');
+    if (!before.bookingId)
+      throw new BadRequestException('Uplata nije povezana ni sa jednom rezervacijom.');
 
     const blockingDocument = await this.prisma.fiscalDocument.findFirst({
       where: { bookingId: before.bookingId, status: { in: ['SUBMITTED', 'ISSUED'] } },
@@ -206,7 +223,10 @@ export class PaymentsService {
 
   // §7.2 korak 1 — pokreće hosted checkout za dati quote_id.
   async initiateCardPayment(quoteId: string, idempotencyKey: string) {
-    const quote = await this.prisma.quote.findUnique({ where: { id: quoteId }, include: { items: true } });
+    const quote = await this.prisma.quote.findUnique({
+      where: { id: quoteId },
+      include: { items: true },
+    });
     if (!quote) throw new NotFoundException(`Quote ${quoteId} nije pronađena.`);
 
     const amount = quote.items.reduce((sum, item) => sum + item.finalPrice, 0);
@@ -255,13 +275,18 @@ export class PaymentsService {
   // neuspeh sad i signalizira pozivaocu.
   async handleCardWebhook(gatewayTransactionId: string, confirmDto: ConfirmQuoteDto) {
     const payment = await this.prisma.payment.findFirst({ where: { gatewayTransactionId } });
-    if (!payment) throw new NotFoundException(`Payment za gatewayTransactionId ${gatewayTransactionId} nije pronađen.`);
+    if (!payment)
+      throw new NotFoundException(
+        `Payment za gatewayTransactionId ${gatewayTransactionId} nije pronađen.`,
+      );
     if (payment.status !== 'PENDING') return payment; // idempotentno — webhook se može ponoviti
 
     const status = await this.gateway.getPaymentStatus(gatewayTransactionId);
     if (status.status !== 'SUCCESS') {
       await this.prisma.payment.update({ where: { id: payment.id }, data: { status: 'FAILED' } });
-      throw new BadRequestException('Kartično plaćanje nije uspelo kod provajdera — rezervacija nije napravljena, iznos nije naplaćen.');
+      throw new BadRequestException(
+        'Kartično plaćanje nije uspelo kod provajdera — rezervacija nije napravljena, iznos nije naplaćen.',
+      );
     }
 
     const received = await this.prisma.payment.update({
@@ -272,8 +297,15 @@ export class PaymentsService {
     try {
       // confirmQuote vraća M5 serializeBooking() rezultat (booking-visibility.ts) čiji tip
       // gubi index signature kroz spread — id svakako postoji na INTERNAL_PANEL kontekstu.
-      const booking = (await this.bookings.confirmQuote(payment.quoteId!, confirmDto, SYSTEM_ACTOR)) as unknown as { id: string };
-      const updated = await this.prisma.payment.update({ where: { id: received.id }, data: { bookingId: booking.id } });
+      const booking = (await this.bookings.confirmQuote(
+        payment.quoteId!,
+        confirmDto,
+        SYSTEM_ACTOR,
+      )) as unknown as { id: string };
+      const updated = await this.prisma.payment.update({
+        where: { id: received.id },
+        data: { bookingId: booking.id },
+      });
       // Kartica pokriva pun iznos rezervacije (isti items → isti total_price) — ovaj poziv
       // postavlja Booking.payment_status = PAID, što je i M5 okidač za vaučer (§5.2).
       await this.onBookingPaymentReceived(booking.id, SYSTEM_ACTOR);
@@ -294,12 +326,19 @@ export class PaymentsService {
     const booking = await this.prisma.booking.findUnique({ where: { id: bookingId } });
     if (!booking) return;
 
-    const sum = await this.prisma.payment.aggregate({ where: { bookingId, status: 'RECEIVED' }, _sum: { amount: true } });
+    const sum = await this.prisma.payment.aggregate({
+      where: { bookingId, status: 'RECEIVED' },
+      _sum: { amount: true },
+    });
     const received = sum._sum.amount ?? 0;
 
     if (received >= booking.totalPrice && booking.paymentStatus !== 'PAID') {
       await this.bookings.updatePaymentStatus(bookingId, 'PAID', actor);
-    } else if (received > 0 && received < booking.totalPrice && booking.paymentStatus === 'UNPAID') {
+    } else if (
+      received > 0 &&
+      received < booking.totalPrice &&
+      booking.paymentStatus === 'UNPAID'
+    ) {
       await this.bookings.updatePaymentStatus(bookingId, 'PARTIALLY_PAID', actor);
     }
 

@@ -5,7 +5,9 @@ import { GuestCheckoutController } from './guest-checkout.controller';
 // pokretanja pravog ThrottlerGuard/storage-a) — vidi izveštaj sesije.
 describe('GuestCheckoutController', () => {
   it('delegira na GuestCheckoutService.checkout', async () => {
-    const guestCheckout: any = { checkout: jest.fn().mockResolvedValue({ accessToken: 'a', refreshToken: 'b' }) };
+    const guestCheckout: any = {
+      checkout: jest.fn().mockResolvedValue({ accessToken: 'a', refreshToken: 'b' }),
+    };
     const controller = new GuestCheckoutController(guestCheckout);
     const dto = { fullName: 'Ana Anić', email: 'ana@example.com' };
 

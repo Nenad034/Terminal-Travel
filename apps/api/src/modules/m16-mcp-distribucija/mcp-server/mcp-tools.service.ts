@@ -41,7 +41,9 @@ export class McpToolsService {
       stayFrom: params.stayFrom,
       stayTo: params.stayTo,
       occupancy:
-        params.adults !== undefined ? { adults: params.adults, children: params.children ?? 0 } : undefined,
+        params.adults !== undefined
+          ? { adults: params.adults, children: params.children ?? 0 }
+          : undefined,
       channel: 'B2C_SITE',
       lang: params.lang,
     });
@@ -50,7 +52,9 @@ export class McpToolsService {
   // channel/clientAccountId se namerno NE primaju od MCP klijenta — QuotesService.create
   // sam prisiljava clientAccountId na pozivaočev ClientAccount za AI_AGENT (quotes.service.ts).
   async createQuote(actorUserId: string, dto: Omit<CreateQuoteDto, 'channel' | 'clientAccountId'>) {
-    return this.quotes.create({ ...dto, channel: 'MCP_AGENT' } as CreateQuoteDto, { userId: actorUserId });
+    return this.quotes.create({ ...dto, channel: 'MCP_AGENT' } as CreateQuoteDto, {
+      userId: actorUserId,
+    });
   }
 
   // M16 spec §4 — nepotpuni podaci gosta (buyerName/buyerType) se odbijaju na nivou

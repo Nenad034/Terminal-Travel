@@ -90,7 +90,9 @@ export async function replaceItineraryCache(items: ItineraryItem[]): Promise<voi
 
 export async function getCachedItinerary(): Promise<ItineraryItem[]> {
   const db = await getDb();
-  const rows = await db.getAllAsync<{ data: string }>('SELECT data FROM itinerary_cache ORDER BY booking_item_id');
+  const rows = await db.getAllAsync<{ data: string }>(
+    'SELECT data FROM itinerary_cache ORDER BY booking_item_id',
+  );
   return rows.map((r) => JSON.parse(r.data) as ItineraryItem);
 }
 
@@ -118,17 +120,27 @@ export async function enqueueIncidentNote(entry: QueuedIncidentNote): Promise<vo
 
 export async function getQueuedCheckIns(): Promise<QueuedCheckIn[]> {
   const db = await getDb();
-  const rows = await db.getAllAsync<{ id: string; booking_item_guest_id: string; checked_in_at: string }>(
-    'SELECT * FROM check_in_queue',
-  );
-  return rows.map((r) => ({ id: r.id, bookingItemGuestId: r.booking_item_guest_id, checkedInAt: r.checked_in_at }));
+  const rows = await db.getAllAsync<{
+    id: string;
+    booking_item_guest_id: string;
+    checked_in_at: string;
+  }>('SELECT * FROM check_in_queue');
+  return rows.map((r) => ({
+    id: r.id,
+    bookingItemGuestId: r.booking_item_guest_id,
+    checkedInAt: r.checked_in_at,
+  }));
 }
 
 export async function getQueuedIncidentNotes(): Promise<QueuedIncidentNote[]> {
   const db = await getDb();
-  const rows = await db.getAllAsync<{ id: string; booking_id: string; note: string; severity: string; created_at: string }>(
-    'SELECT * FROM incident_note_queue',
-  );
+  const rows = await db.getAllAsync<{
+    id: string;
+    booking_id: string;
+    note: string;
+    severity: string;
+    created_at: string;
+  }>('SELECT * FROM incident_note_queue');
   return rows.map((r) => ({
     id: r.id,
     bookingId: r.booking_id,

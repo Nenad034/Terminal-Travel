@@ -27,11 +27,18 @@ interface FlatRow {
   path: string;
 }
 
-function flatten(nodes: DynamicNode[], depth: number, parentPath: string, collapsed: Set<string>, out: FlatRow[]) {
+function flatten(
+  nodes: DynamicNode[],
+  depth: number,
+  parentPath: string,
+  collapsed: Set<string>,
+  out: FlatRow[],
+) {
   for (const n of nodes) {
     const path = parentPath ? `${parentPath}›${n.key}` : n.key;
     out.push({ node: n, depth, path });
-    if (n.children.length > 0 && !collapsed.has(path)) flatten(n.children, depth + 1, path, collapsed, out);
+    if (n.children.length > 0 && !collapsed.has(path))
+      flatten(n.children, depth + 1, path, collapsed, out);
   }
 }
 

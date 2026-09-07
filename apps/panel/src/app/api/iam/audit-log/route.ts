@@ -12,7 +12,9 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(result);
   } catch (err) {
     if (err instanceof ApiError) {
-      return NextResponse.json(err.body ?? { message: 'Audit log nije dostupan' }, { status: err.status });
+      return NextResponse.json(err.body ?? { message: 'Audit log nije dostupan' }, {
+        status: err.status,
+      });
     }
     throw err;
   }

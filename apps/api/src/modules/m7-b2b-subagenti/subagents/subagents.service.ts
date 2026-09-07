@@ -1,4 +1,9 @@
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { Subagent } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { AuditLogService } from '../../m1-core-identitet/audit-log/audit-log.service';
@@ -76,13 +81,21 @@ export class SubagentsService {
   // POST /subagents — registracija Tier 1 kandidata (parent_subagent_id = null), status
   // PENDING_APPROVAL (§9). Zahteva M7/subagent/CREATE (Vlasnik/Direktor) na nivou kontrolera.
   async create(dto: CreateSubagentDto, actor: { userId: string }): Promise<Subagent> {
-    const existing = await this.prisma.subagent.findUnique({ where: { clientAccountId: dto.clientAccountId } });
-    if (existing) throw new BadRequestException(`ClientAccount ${dto.clientAccountId} već ima Subagent zapis.`);
+    const existing = await this.prisma.subagent.findUnique({
+      where: { clientAccountId: dto.clientAccountId },
+    });
+    if (existing)
+      throw new BadRequestException(`ClientAccount ${dto.clientAccountId} već ima Subagent zapis.`);
 
-    const account = await this.prisma.clientAccount.findUnique({ where: { id: dto.clientAccountId } });
-    if (!account) throw new BadRequestException(`ClientAccount ${dto.clientAccountId} nije pronađen.`);
+    const account = await this.prisma.clientAccount.findUnique({
+      where: { id: dto.clientAccountId },
+    });
+    if (!account)
+      throw new BadRequestException(`ClientAccount ${dto.clientAccountId} nije pronađen.`);
     if (account.accountType !== 'LEGAL_ENTITY') {
-      throw new BadRequestException('Subagent mora biti ClientAccount sa account_type = LEGAL_ENTITY (M7 spec §2.1).');
+      throw new BadRequestException(
+        'Subagent mora biti ClientAccount sa account_type = LEGAL_ENTITY (M7 spec §2.1).',
+      );
     }
 
     const subagent = await this.prisma.subagent.create({
@@ -108,10 +121,16 @@ export class SubagentsService {
 
   // POST /subagents/:id/children — sub-subagent, dostupno agenciji ili roditeljskom
   // SUBAGENT_ADMIN-u (§11). Ograda §3 se primenjuje SAMO ako je commissionPercentage prosleđen.
-  async createChild(parentId: string, dto: CreateSubagentDto, actor: { userId: string }): Promise<Subagent> {
+  async createChild(
+    parentId: string,
+    dto: CreateSubagentDto,
+    actor: { userId: string },
+  ): Promise<Subagent> {
     const ctx = await this.resolveCallerContext(actor.userId);
     if (!ctx.isStaff && ctx.ownSubagentId !== parentId) {
-      throw new ForbiddenException('Samo agencija ili roditeljski subagent može kreirati sub-subagenta (M7 spec §3/§6).');
+      throw new ForbiddenException(
+        'Samo agencija ili roditeljski subagent može kreirati sub-subagenta (M7 spec §3/§6).',
+      );
     }
     const parent = await this.findOneOrThrow(parentId);
 
@@ -119,12 +138,20 @@ export class SubagentsService {
       await this.assertCommissionWithinParentCeiling(parent, dto.commissionPercentage);
     }
 
-    const existing = await this.prisma.subagent.findUnique({ where: { clientAccountId: dto.clientAccountId } });
-    if (existing) throw new BadRequestException(`ClientAccount ${dto.clientAccountId} već ima Subagent zapis.`);
-    const account = await this.prisma.clientAccount.findUnique({ where: { id: dto.clientAccountId } });
-    if (!account) throw new BadRequestException(`ClientAccount ${dto.clientAccountId} nije pronađen.`);
+    const existing = await this.prisma.subagent.findUnique({
+      where: { clientAccountId: dto.clientAccountId },
+    });
+    if (existing)
+      throw new BadRequestException(`ClientAccount ${dto.clientAccountId} već ima Subagent zapis.`);
+    const account = await this.prisma.clientAccount.findUnique({
+      where: { id: dto.clientAccountId },
+    });
+    if (!account)
+      throw new BadRequestException(`ClientAccount ${dto.clientAccountId} nije pronađen.`);
     if (account.accountType !== 'LEGAL_ENTITY') {
-      throw new BadRequestException('Subagent mora biti ClientAccount sa account_type = LEGAL_ENTITY (M7 spec §2.1).');
+      throw new BadRequestException(
+        'Subagent mora biti ClientAccount sa account_type = LEGAL_ENTITY (M7 spec §2.1).',
+      );
     }
 
     const child = await this.prisma.subagent.create({
@@ -155,10 +182,15 @@ export class SubagentsService {
   async children(parentId: string, actor: { userId: string }): Promise<Subagent[]> {
     const ctx = await this.resolveCallerContext(actor.userId);
     if (!ctx.isStaff && ctx.ownSubagentId !== parentId) {
-      throw new ForbiddenException('Samo agencija ili roditeljski subagent može videti sopstvenu mrežu (M7 spec §6).');
+      throw new ForbiddenException(
+        'Samo agencija ili roditeljski subagent može videti sopstvenu mrežu (M7 spec §6).',
+      );
     }
     await this.findOneOrThrow(parentId);
-    return this.prisma.subagent.findMany({ where: { parentSubagentId: parentId }, orderBy: { createdAt: 'desc' } });
+    return this.prisma.subagent.findMany({
+      where: { parentSubagentId: parentId },
+      orderBy: { createdAt: 'desc' },
+    });
   }
 
   // PATCH /subagents/:id/children/:childId/commission — §3: isključivo roditeljski subagent
@@ -174,11 +206,15 @@ export class SubagentsService {
   ): Promise<Subagent> {
     const ctx = await this.resolveCallerContext(actor.userId);
     if (!ctx.isStaff && ctx.ownSubagentId !== parentId) {
-      throw new ForbiddenException('Samo agencija ili roditeljski subagent može menjati proviziju sub-subagenta (M7 spec §3).');
+      throw new ForbiddenException(
+        'Samo agencija ili roditeljski subagent može menjati proviziju sub-subagenta (M7 spec §3).',
+      );
     }
     const child = await this.findOneOrThrow(childId);
     if (child.parentSubagentId !== parentId) {
-      throw new BadRequestException(`Subagent ${childId} nije direktno dete subagenta ${parentId}.`);
+      throw new BadRequestException(
+        `Subagent ${childId} nije direktno dete subagenta ${parentId}.`,
+      );
     }
     if (dto.commissionPercentage > effectiveParentCommission) {
       throw new BadRequestException(
@@ -187,7 +223,10 @@ export class SubagentsService {
     }
 
     const before = child;
-    const updated = await this.prisma.subagent.update({ where: { id: childId }, data: { commissionPercentage: dto.commissionPercentage } });
+    const updated = await this.prisma.subagent.update({
+      where: { id: childId },
+      data: { commissionPercentage: dto.commissionPercentage },
+    });
 
     await this.auditLog.write({
       actorType: 'HUMAN',
@@ -203,8 +242,14 @@ export class SubagentsService {
     return updated;
   }
 
-  private async assertCommissionWithinParentCeiling(parent: Subagent, childCommission: number): Promise<void> {
-    if (parent.commissionPercentage == null || childCommission > Number(parent.commissionPercentage)) {
+  private async assertCommissionWithinParentCeiling(
+    parent: Subagent,
+    childCommission: number,
+  ): Promise<void> {
+    if (
+      parent.commissionPercentage == null ||
+      childCommission > Number(parent.commissionPercentage)
+    ) {
       throw new BadRequestException(
         `Provizija deteta (${childCommission}%) ne sme preći proviziju roditelja (M7 spec §3).`,
       );
@@ -218,12 +263,16 @@ export class SubagentsService {
   async approve(id: string, dto: ApproveSubagentDto, actor: { userId: string }): Promise<Subagent> {
     const subagent = await this.findOneOrThrow(id);
     if (subagent.status !== 'PENDING_APPROVAL') {
-      throw new BadRequestException(`Subagent ${id} nije u statusu PENDING_APPROVAL (status: ${subagent.status}).`);
+      throw new BadRequestException(
+        `Subagent ${id} nije u statusu PENDING_APPROVAL (status: ${subagent.status}).`,
+      );
     }
 
     const isTier1 = subagent.parentSubagentId === null;
     if (isTier1 && dto.commissionPercentage == null && subagent.commissionPercentage == null) {
-      throw new BadRequestException('Tier 1 subagent zahteva commissionPercentage pri odobravanju (M7 spec §3/§9).');
+      throw new BadRequestException(
+        'Tier 1 subagent zahteva commissionPercentage pri odobravanju (M7 spec §3/§9).',
+      );
     }
 
     const updated = await this.prisma.subagent.update({
@@ -232,7 +281,9 @@ export class SubagentsService {
         status: 'ACTIVE',
         creditLimit: dto.creditLimit,
         creditLimitCurrency: dto.creditLimitCurrency,
-        commissionPercentage: isTier1 ? (dto.commissionPercentage ?? subagent.commissionPercentage) : subagent.commissionPercentage,
+        commissionPercentage: isTier1
+          ? (dto.commissionPercentage ?? subagent.commissionPercentage)
+          : subagent.commissionPercentage,
         // M7 spec §2.0.7 (31.8.2026) — franšizna privilegija se bira isključivo ovde, pri
         // odobravanju; podrazumevano ostaje STANDARD ako se ne prosledi.
         privilegeLevel: dto.privilegeLevel ?? subagent.privilegeLevel,
@@ -304,7 +355,10 @@ export class SubagentsService {
     const totalOwed = bookings.reduce((sum, b) => sum + b.totalPrice, 0);
     const bookingIds = bookings.map((b) => b.id);
     const paymentsAgg = bookingIds.length
-      ? await this.prisma.payment.aggregate({ where: { bookingId: { in: bookingIds }, status: 'RECEIVED' }, _sum: { amount: true } })
+      ? await this.prisma.payment.aggregate({
+          where: { bookingId: { in: bookingIds }, status: 'RECEIVED' },
+          _sum: { amount: true },
+        })
       : { _sum: { amount: 0 } };
     const received = paymentsAgg._sum.amount ?? 0;
 

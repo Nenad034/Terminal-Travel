@@ -39,7 +39,9 @@ describe('M12 — izlazni kriterijum (e2e)', () => {
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
     app = moduleRef.createNestApplication();
     app.setGlobalPrefix('api/v1');
-    app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }));
+    app.useGlobalPipes(
+      new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }),
+    );
     app.useGlobalFilters(new PrismaExceptionFilter());
     await app.init();
     prisma = app.get(PrismaService);
@@ -50,26 +52,37 @@ describe('M12 — izlazni kriterijum (e2e)', () => {
 
   afterAll(async () => {
     await wait(300);
-    if (createdChannelConfigIds.length) await prisma.channelConfig.deleteMany({ where: { id: { in: createdChannelConfigIds } } });
+    if (createdChannelConfigIds.length)
+      await prisma.channelConfig.deleteMany({ where: { id: { in: createdChannelConfigIds } } });
     if (createdBookingIds.length) {
       await prisma.postTripSurvey.deleteMany({ where: { bookingId: { in: createdBookingIds } } });
       await prisma.factBooking.deleteMany({ where: { bookingId: { in: createdBookingIds } } });
-      await prisma.bookingItemGuest.deleteMany({ where: { bookingItem: { bookingId: { in: createdBookingIds } } } });
+      await prisma.bookingItemGuest.deleteMany({
+        where: { bookingItem: { bookingId: { in: createdBookingIds } } },
+      });
       await prisma.bookingItem.deleteMany({ where: { bookingId: { in: createdBookingIds } } });
       await prisma.booking.deleteMany({ where: { id: { in: createdBookingIds } } });
     }
     if (createdContentIds.length) {
-      await prisma.contentTranslation.deleteMany({ where: { contentPieceId: { in: createdContentIds } } });
+      await prisma.contentTranslation.deleteMany({
+        where: { contentPieceId: { in: createdContentIds } },
+      });
       await prisma.contentPiece.deleteMany({ where: { id: { in: createdContentIds } } });
     }
     if (createdProductIds.length) {
-      await prisma.productTranslation.deleteMany({ where: { productId: { in: createdProductIds } } });
+      await prisma.productTranslation.deleteMany({
+        where: { productId: { in: createdProductIds } },
+      });
       await prisma.product.deleteMany({ where: { id: { in: createdProductIds } } });
     }
-    if (createdContractIds.length) await prisma.contract.deleteMany({ where: { id: { in: createdContractIds } } });
-    if (createdSupplierIds.length) await prisma.supplier.deleteMany({ where: { id: { in: createdSupplierIds } } });
-    if (createdMarkupRuleIds.length) await prisma.markupRule.deleteMany({ where: { id: { in: createdMarkupRuleIds } } });
-    if (createdClientAccountIds.length) await prisma.clientAccount.deleteMany({ where: { id: { in: createdClientAccountIds } } });
+    if (createdContractIds.length)
+      await prisma.contract.deleteMany({ where: { id: { in: createdContractIds } } });
+    if (createdSupplierIds.length)
+      await prisma.supplier.deleteMany({ where: { id: { in: createdSupplierIds } } });
+    if (createdMarkupRuleIds.length)
+      await prisma.markupRule.deleteMany({ where: { id: { in: createdMarkupRuleIds } } });
+    if (createdClientAccountIds.length)
+      await prisma.clientAccount.deleteMany({ where: { id: { in: createdClientAccountIds } } });
     if (createdUserIds.length) {
       await prisma.userRole.deleteMany({ where: { userId: { in: createdUserIds } } });
       await prisma.user.deleteMany({ where: { id: { in: createdUserIds } } });
@@ -88,7 +101,9 @@ describe('M12 — izlazni kriterijum (e2e)', () => {
     });
     createdUserIds.push(user.id);
     const role = await prisma.role.findUniqueOrThrow({ where: { name: roleName } });
-    await prisma.userRole.create({ data: { userId: user.id, roleId: role.id, assignedBy: user.id } });
+    await prisma.userRole.create({
+      data: { userId: user.id, roleId: role.id, assignedBy: user.id },
+    });
     const accessToken = jwt.sign({ sub: user.id, sessionId: 'e2e-test-session' });
     return { user, accessToken };
   }
@@ -109,12 +124,22 @@ describe('M12 — izlazni kriterijum (e2e)', () => {
     await request(app.getHttpServer())
       .put(`/api/v1/catalog/products/${productId}/translations`)
       .set(authed(accessToken))
-      .send({ languageCode: 'sr', name: `Hotel Kopaonik ${testRunId}`, description: 'Opis hotela na Kopaoniku.', slug: `hotel-kopaonik-${testRunId}-${Math.random().toString(36).slice(2)}` })
+      .send({
+        languageCode: 'sr',
+        name: `Hotel Kopaonik ${testRunId}`,
+        description: 'Opis hotela na Kopaoniku.',
+        slug: `hotel-kopaonik-${testRunId}-${Math.random().toString(36).slice(2)}`,
+      })
       .expect(200);
     await request(app.getHttpServer())
       .put(`/api/v1/catalog/products/${productId}/translations`)
       .set(authed(accessToken))
-      .send({ languageCode: 'en', name: `Kopaonik Hotel ${testRunId}`, description: 'Kopaonik hotel description.', slug: `kopaonik-hotel-${testRunId}-${Math.random().toString(36).slice(2)}` })
+      .send({
+        languageCode: 'en',
+        name: `Kopaonik Hotel ${testRunId}`,
+        description: 'Kopaonik hotel description.',
+        slug: `kopaonik-hotel-${testRunId}-${Math.random().toString(36).slice(2)}`,
+      })
       .expect(200);
 
     const publishRes = await request(app.getHttpServer())
@@ -136,7 +161,12 @@ describe('M12 — izlazni kriterijum (e2e)', () => {
     return created.body;
   }
 
-  async function addTranslation(accessToken: string, contentId: string, body: string, languageCode = 'sr') {
+  async function addTranslation(
+    accessToken: string,
+    contentId: string,
+    body: string,
+    languageCode = 'sr',
+  ) {
     return request(app.getHttpServer())
       .put(`/api/v1/marketing/content/${contentId}/translations`)
       .set(authed(accessToken))
@@ -151,7 +181,10 @@ describe('M12 — izlazni kriterijum (e2e)', () => {
 
       await wait(700); // async LISTEN/NOTIFY, isti obrazac kao M7/M10/M13/M14 e2e
 
-      const draft = await prisma.contentPiece.findFirst({ where: { productId }, include: { translations: true } });
+      const draft = await prisma.contentPiece.findFirst({
+        where: { productId },
+        include: { translations: true },
+      });
       expect(draft).not.toBeNull();
       createdContentIds.push(draft!.id);
       expect(draft!.status).toBe('PENDING_APPROVAL');
@@ -197,13 +230,31 @@ describe('M12 — izlazni kriterijum (e2e)', () => {
       const { accessToken } = await createInternalUser(SYSTEM_ROLES.VLASNIK);
 
       const consentedTagged = await prisma.clientAccount.create({
-        data: { accountType: 'INDIVIDUAL', fullName: 'M12 Saglasnost+Tag', email: `consent-tag-${testRunId}@tt-test.rs`, marketingConsent: true, tags: ['vip'] },
+        data: {
+          accountType: 'INDIVIDUAL',
+          fullName: 'M12 Saglasnost+Tag',
+          email: `consent-tag-${testRunId}@tt-test.rs`,
+          marketingConsent: true,
+          tags: ['vip'],
+        },
       });
       const consentedNoTag = await prisma.clientAccount.create({
-        data: { accountType: 'INDIVIDUAL', fullName: 'M12 Saglasnost bez taga', email: `consent-notag-${testRunId}@tt-test.rs`, marketingConsent: true, tags: ['drugo'] },
+        data: {
+          accountType: 'INDIVIDUAL',
+          fullName: 'M12 Saglasnost bez taga',
+          email: `consent-notag-${testRunId}@tt-test.rs`,
+          marketingConsent: true,
+          tags: ['drugo'],
+        },
       });
       const noConsentTagged = await prisma.clientAccount.create({
-        data: { accountType: 'INDIVIDUAL', fullName: 'M12 Bez saglasnosti', email: `noconsent-${testRunId}@tt-test.rs`, marketingConsent: false, tags: ['vip'] },
+        data: {
+          accountType: 'INDIVIDUAL',
+          fullName: 'M12 Bez saglasnosti',
+          email: `noconsent-${testRunId}@tt-test.rs`,
+          marketingConsent: false,
+          tags: ['vip'],
+        },
       });
       createdClientAccountIds.push(consentedTagged.id, consentedNoTag.id, noConsentTagged.id);
 
@@ -211,7 +262,11 @@ describe('M12 — izlazni kriterijum (e2e)', () => {
       // izvrši bez greške preko EMAIL kanala — sama poslovna provera (marketing_consent +
       // target_tags presek) se testira nezavisno i preciznije direktno preko
       // ClientAccountsService.findMarketingRecipients u testu ispod.
-      const draft = await createManualDraft(accessToken, { type: 'EMAIL_NEWSLETTER', targetChannels: ['EMAIL'], targetTags: ['vip'] });
+      const draft = await createManualDraft(accessToken, {
+        type: 'EMAIL_NEWSLETTER',
+        targetChannels: ['EMAIL'],
+        targetTags: ['vip'],
+      });
       await addTranslation(accessToken, draft.id, 'Redovan email newsletter tekst.');
 
       const approveRes = await request(app.getHttpServer())
@@ -223,17 +278,36 @@ describe('M12 — izlazni kriterijum (e2e)', () => {
 
     it('ClientAccountsService.findMarketingRecipients nikad ne vraća marketing_consent=false, i target_tags samo sužava skup', async () => {
       const consentedTagged = await prisma.clientAccount.create({
-        data: { accountType: 'INDIVIDUAL', fullName: 'M12 Unit Saglasnost+Tag', email: `unit-consent-tag-${testRunId}@tt-test.rs`, marketingConsent: true, tags: ['vip'] },
+        data: {
+          accountType: 'INDIVIDUAL',
+          fullName: 'M12 Unit Saglasnost+Tag',
+          email: `unit-consent-tag-${testRunId}@tt-test.rs`,
+          marketingConsent: true,
+          tags: ['vip'],
+        },
       });
       const consentedNoTag = await prisma.clientAccount.create({
-        data: { accountType: 'INDIVIDUAL', fullName: 'M12 Unit Saglasnost bez taga', email: `unit-consent-notag-${testRunId}@tt-test.rs`, marketingConsent: true, tags: ['drugo'] },
+        data: {
+          accountType: 'INDIVIDUAL',
+          fullName: 'M12 Unit Saglasnost bez taga',
+          email: `unit-consent-notag-${testRunId}@tt-test.rs`,
+          marketingConsent: true,
+          tags: ['drugo'],
+        },
       });
       const noConsentTagged = await prisma.clientAccount.create({
-        data: { accountType: 'INDIVIDUAL', fullName: 'M12 Unit Bez saglasnosti', email: `unit-noconsent-${testRunId}@tt-test.rs`, marketingConsent: false, tags: ['vip'] },
+        data: {
+          accountType: 'INDIVIDUAL',
+          fullName: 'M12 Unit Bez saglasnosti',
+          email: `unit-noconsent-${testRunId}@tt-test.rs`,
+          marketingConsent: false,
+          tags: ['vip'],
+        },
       });
       createdClientAccountIds.push(consentedTagged.id, consentedNoTag.id, noConsentTagged.id);
 
-      const { ClientAccountsService } = await import('../src/modules/m6-crm/client-accounts/client-accounts.service');
+      const { ClientAccountsService } =
+        await import('../src/modules/m6-crm/client-accounts/client-accounts.service');
       const service = app.get(ClientAccountsService);
 
       const allConsented = await service.findMarketingRecipients(null);
@@ -260,7 +334,10 @@ describe('M12 — izlazni kriterijum (e2e)', () => {
       // Odobrenje SA prošlim scheduled_publish_at takođe odmah objavljuje (§3 korak 5 — prošao
       // termin se izvršava odmah); zato ručno vraćamo status na APPROVED bez publishedAt da
       // testiramo baš cron putanju nezavisno (ContentPublishSchedulerService.runScheduledPublish).
-      await prisma.contentPiece.update({ where: { id: draft.id }, data: { status: 'APPROVED', approvedBy: user.id, publishedAt: null } });
+      await prisma.contentPiece.update({
+        where: { id: draft.id },
+        data: { status: 'APPROVED', approvedBy: user.id, publishedAt: null },
+      });
 
       await publishScheduler.runScheduledPublish();
 
@@ -274,7 +351,10 @@ describe('M12 — izlazni kriterijum (e2e)', () => {
       const future = new Date(Date.now() + 60 * 60 * 1000).toISOString();
       const draft = await createManualDraft(accessToken, { scheduledPublishAt: future });
       await addTranslation(accessToken, draft.id, 'Tekst buduće objave.');
-      await prisma.contentPiece.update({ where: { id: draft.id }, data: { status: 'APPROVED', approvedBy: user.id, publishedAt: null } });
+      await prisma.contentPiece.update({
+        where: { id: draft.id },
+        data: { status: 'APPROVED', approvedBy: user.id, publishedAt: null },
+      });
 
       await publishScheduler.runScheduledPublish();
 
@@ -317,7 +397,11 @@ describe('M12 — izlazni kriterijum (e2e)', () => {
     it('objavljen STATIC_PAGE se čita bez Authorization header-a', async () => {
       const { accessToken } = await createInternalUser(SYSTEM_ROLES.VLASNIK);
       const slug = `o-nama-public-${testRunId}`;
-      const draft = await createManualDraft(accessToken, { type: 'STATIC_PAGE', slug, targetChannels: ['M8_SITE'] });
+      const draft = await createManualDraft(accessToken, {
+        type: 'STATIC_PAGE',
+        slug,
+        targetChannels: ['M8_SITE'],
+      });
       await addTranslation(accessToken, draft.id, 'Tekst o agenciji Terminal Travel.');
       const approveRes = await request(app.getHttpServer())
         .post(`/api/v1/marketing/content/${draft.id}/approve`)
@@ -335,7 +419,11 @@ describe('M12 — izlazni kriterijum (e2e)', () => {
     it('DRAFT/PENDING_APPROVAL sadržaj vraća 404 na javnoj ruti', async () => {
       const { accessToken } = await createInternalUser(SYSTEM_ROLES.VLASNIK);
       const slug = `nacrt-${testRunId}`;
-      await createManualDraft(accessToken, { type: 'BLOG_POST', slug, targetChannels: ['M8_SITE'] });
+      await createManualDraft(accessToken, {
+        type: 'BLOG_POST',
+        slug,
+        targetChannels: ['M8_SITE'],
+      });
 
       const res = await request(app.getHttpServer()).get(
         `/api/v1/marketing/public/content?type=BLOG_POST&slug=${slug}&lang=sr`,
@@ -348,7 +436,11 @@ describe('M12 — izlazni kriterijum (e2e)', () => {
       const slug = `interno-${testRunId}`;
       // STATIC_PAGE zahteva slug (assertSlugRule), ali M8_SITE namerno izostavljen —
       // provera da se target_channels poštuje čak i za tipove koji inače imaju M8 rutu.
-      const draft = await createManualDraft(accessToken, { type: 'STATIC_PAGE', slug, targetChannels: ['FACEBOOK'] });
+      const draft = await createManualDraft(accessToken, {
+        type: 'STATIC_PAGE',
+        slug,
+        targetChannels: ['FACEBOOK'],
+      });
       await addTranslation(accessToken, draft.id, 'Sadržaj koji nije za sajt.');
       await request(app.getHttpServer())
         .post(`/api/v1/marketing/content/${draft.id}/approve`)
@@ -363,7 +455,11 @@ describe('M12 — izlazni kriterijum (e2e)', () => {
     it('pogrešan type za postojeći slug vraća 404', async () => {
       const { accessToken } = await createInternalUser(SYSTEM_ROLES.VLASNIK);
       const slug = `blog-clanak-${testRunId}`;
-      const draft = await createManualDraft(accessToken, { type: 'BLOG_POST', slug, targetChannels: ['M8_SITE'] });
+      const draft = await createManualDraft(accessToken, {
+        type: 'BLOG_POST',
+        slug,
+        targetChannels: ['M8_SITE'],
+      });
       await addTranslation(accessToken, draft.id, 'Blog tekst.');
       await request(app.getHttpServer())
         .post(`/api/v1/marketing/content/${draft.id}/approve`)
@@ -392,11 +488,18 @@ describe('M12 — izlazni kriterijum (e2e)', () => {
       const { accessToken } = await createInternalUser(SYSTEM_ROLES.VLASNIK);
       const draft = await createManualDraft(accessToken);
       await addTranslation(accessToken, draft.id, 'Sadržaj za atribuciju.');
-      await request(app.getHttpServer()).post(`/api/v1/marketing/content/${draft.id}/approve`).set(authed(accessToken)).expect(201);
+      await request(app.getHttpServer())
+        .post(`/api/v1/marketing/content/${draft.id}/approve`)
+        .set(authed(accessToken))
+        .expect(201);
       const content = await prisma.contentPiece.findUniqueOrThrow({ where: { id: draft.id } });
 
       const clientAccount = await prisma.clientAccount.create({
-        data: { accountType: 'INDIVIDUAL', fullName: 'M12 Atribucija Gost', email: `attrib-${testRunId}@tt-test.rs` },
+        data: {
+          accountType: 'INDIVIDUAL',
+          fullName: 'M12 Atribucija Gost',
+          email: `attrib-${testRunId}@tt-test.rs`,
+        },
       });
       createdClientAccountIds.push(clientAccount.id);
 
@@ -439,7 +542,9 @@ describe('M12 — izlazni kriterijum (e2e)', () => {
         },
       });
       createdProductIds.push(product.id);
-      const markupRule = await prisma.markupRule.create({ data: { scopeType: 'M2_PRODUCT', scopeId: product.id, percentage: 15 } });
+      const markupRule = await prisma.markupRule.create({
+        data: { scopeType: 'M2_PRODUCT', scopeId: product.id, percentage: 15 },
+      });
       createdMarkupRuleIds.push(markupRule.id);
 
       const matchingBooking = await prisma.booking.create({
@@ -477,7 +582,9 @@ describe('M12 — izlazni kriterijum (e2e)', () => {
         },
       });
       await factSync.syncBookingItem(matchingItem.id);
-      const matchedFact = await prisma.factBooking.findUniqueOrThrow({ where: { bookingItemId: matchingItem.id } });
+      const matchedFact = await prisma.factBooking.findUniqueOrThrow({
+        where: { bookingItemId: matchingItem.id },
+      });
       expect(matchedFact.referralContentId).toBe(content.id);
       expect(matchedFact.referralContentName).toBeTruthy();
 
@@ -516,7 +623,9 @@ describe('M12 — izlazni kriterijum (e2e)', () => {
         },
       });
       await factSync.syncBookingItem(nonMatchingItem.id);
-      const nonMatchedFact = await prisma.factBooking.findUniqueOrThrow({ where: { bookingItemId: nonMatchingItem.id } });
+      const nonMatchedFact = await prisma.factBooking.findUniqueOrThrow({
+        where: { bookingItemId: nonMatchingItem.id },
+      });
       expect(nonMatchedFact.referralContentId).toBeNull(); // nepostojeći kod — nikad izmišljena atribucija
     });
   });
@@ -525,14 +634,22 @@ describe('M12 — izlazni kriterijum (e2e)', () => {
     it('odobrenje se odbija bez markera u telu prevoda, prolazi kad marker postoji', async () => {
       const { accessToken } = await createInternalUser(SYSTEM_ROLES.VLASNIK);
       const draft = await createManualDraft(accessToken, { containsAiGeneratedMedia: true });
-      await addTranslation(accessToken, draft.id, 'Tekst objave bez ikakve naznake o poreklu vizuala.');
+      await addTranslation(
+        accessToken,
+        draft.id,
+        'Tekst objave bez ikakve naznake o poreklu vizuala.',
+      );
 
       const blocked = await request(app.getHttpServer())
         .post(`/api/v1/marketing/content/${draft.id}/approve`)
         .set(authed(accessToken));
       expect(blocked.status).toBe(400);
 
-      await addTranslation(accessToken, draft.id, 'Fotografija je generisana uz pomoć veštačke inteligencije (AI).');
+      await addTranslation(
+        accessToken,
+        draft.id,
+        'Fotografija je generisana uz pomoć veštačke inteligencije (AI).',
+      );
 
       const allowed = await request(app.getHttpServer())
         .post(`/api/v1/marketing/content/${draft.id}/approve`)
@@ -550,7 +667,11 @@ describe('M12 — izlazni kriterijum (e2e)', () => {
         containsAiGeneratedMedia: true,
         targetChannels: ['M8_SITE'],
       });
-      await addTranslation(accessToken, draft.id, 'Fotografija je generisana uz pomoć veštačke inteligencije (AI).');
+      await addTranslation(
+        accessToken,
+        draft.id,
+        'Fotografija je generisana uz pomoć veštačke inteligencije (AI).',
+      );
 
       const res = await request(app.getHttpServer())
         .post(`/api/v1/marketing/content/${draft.id}/approve`)
@@ -576,12 +697,18 @@ describe('M12 — izlazni kriterijum (e2e)', () => {
       const created = await request(app.getHttpServer())
         .post('/api/v1/marketing/channels')
         .set(authed(accessToken))
-        .send({ channelCode: 'FACEBOOK', displayName: `FB Test ${testRunId}`, authConfig: { pageId: '123', accessToken: 'tajna-vrednost' } });
+        .send({
+          channelCode: 'FACEBOOK',
+          displayName: `FB Test ${testRunId}`,
+          authConfig: { pageId: '123', accessToken: 'tajna-vrednost' },
+        });
       expect(created.status).toBe(201);
       createdChannelConfigIds.push(created.body.id);
       expect(created.body).not.toHaveProperty('authConfigEncrypted');
 
-      const list = await request(app.getHttpServer()).get('/api/v1/marketing/channels').set(authed(accessToken));
+      const list = await request(app.getHttpServer())
+        .get('/api/v1/marketing/channels')
+        .set(authed(accessToken));
       expect(list.status).toBe(200);
       expect(list.body.every((c: any) => !('authConfigEncrypted' in c))).toBe(true);
     });

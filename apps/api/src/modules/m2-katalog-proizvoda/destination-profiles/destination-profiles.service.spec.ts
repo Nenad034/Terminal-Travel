@@ -21,11 +21,21 @@ describe('DestinationProfilesService (M2 spec §2.1c)', () => {
     it('kreira profil i upisuje audit log kad par (country, city) još ne postoji', async () => {
       const { service, prisma, auditLog } = makeService();
       prisma.destinationProfile.findUnique.mockResolvedValue(null);
-      const created = { id: 'dp1', destinationCountry: 'Austrija', destinationCity: 'Bad Klajnkirhajm', destinationType: 'MOUNTAIN', activities: [] };
+      const created = {
+        id: 'dp1',
+        destinationCountry: 'Austrija',
+        destinationCity: 'Bad Klajnkirhajm',
+        destinationType: 'MOUNTAIN',
+        activities: [],
+      };
       prisma.destinationProfile.create.mockResolvedValue(created);
 
       const result = await service.create(
-        { destinationCountry: 'Austrija', destinationCity: 'Bad Klajnkirhajm', destinationType: 'MOUNTAIN' as any },
+        {
+          destinationCountry: 'Austrija',
+          destinationCity: 'Bad Klajnkirhajm',
+          destinationType: 'MOUNTAIN' as any,
+        },
         'actor-1',
       );
 
@@ -40,7 +50,9 @@ describe('DestinationProfilesService (M2 spec §2.1c)', () => {
           }),
         }),
       );
-      expect(auditLog.write).toHaveBeenCalledWith(expect.objectContaining({ action: 'destination_profile.created', module: 'M2' }));
+      expect(auditLog.write).toHaveBeenCalledWith(
+        expect.objectContaining({ action: 'destination_profile.created', module: 'M2' }),
+      );
       expect(result).toBe(created);
     });
 
@@ -49,7 +61,14 @@ describe('DestinationProfilesService (M2 spec §2.1c)', () => {
       prisma.destinationProfile.findUnique.mockResolvedValue({ id: 'dp1' });
 
       await expect(
-        service.create({ destinationCountry: 'Austrija', destinationCity: 'Bad Klajnkirhajm', destinationType: 'MOUNTAIN' as any }, 'actor-1'),
+        service.create(
+          {
+            destinationCountry: 'Austrija',
+            destinationCity: 'Bad Klajnkirhajm',
+            destinationType: 'MOUNTAIN' as any,
+          },
+          'actor-1',
+        ),
       ).rejects.toBeInstanceOf(ConflictException);
       expect(prisma.destinationProfile.create).not.toHaveBeenCalled();
     });
@@ -59,7 +78,14 @@ describe('DestinationProfilesService (M2 spec §2.1c)', () => {
       prisma.destinationProfile.findUnique.mockResolvedValue(null);
       prisma.destinationProfile.create.mockResolvedValue({ id: 'dp1' });
 
-      await service.create({ destinationCountry: 'Srbija', destinationCity: 'Zlatibor', destinationType: 'MOUNTAIN' as any }, 'actor-1');
+      await service.create(
+        {
+          destinationCountry: 'Srbija',
+          destinationCity: 'Zlatibor',
+          destinationType: 'MOUNTAIN' as any,
+        },
+        'actor-1',
+      );
 
       expect(prisma.destinationProfile.create.mock.calls[0][0].data.activities).toEqual([]);
     });
@@ -73,14 +99,22 @@ describe('DestinationProfilesService (M2 spec §2.1c)', () => {
       prisma.destinationProfile.findUniqueOrThrow.mockResolvedValue(before);
       prisma.destinationProfile.update.mockResolvedValue(after);
 
-      const result = await service.update('dp1', { activities: ['CYCLING', 'HIKING'] as any }, 'actor-1');
+      const result = await service.update(
+        'dp1',
+        { activities: ['CYCLING', 'HIKING'] as any },
+        'actor-1',
+      );
 
       expect(prisma.destinationProfile.update).toHaveBeenCalledWith({
         where: { id: 'dp1' },
         data: { destinationType: undefined, activities: ['CYCLING', 'HIKING'] },
       });
       expect(auditLog.write).toHaveBeenCalledWith(
-        expect.objectContaining({ action: 'destination_profile.updated', beforeState: before, afterState: after }),
+        expect.objectContaining({
+          action: 'destination_profile.updated',
+          beforeState: before,
+          afterState: after,
+        }),
       );
       expect(result).toBe(after);
     });

@@ -1,11 +1,22 @@
-import { BadRequestException, ConflictException, ForbiddenException, Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  ForbiddenException,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as argon2 from 'argon2';
 import { authenticator } from 'otplib';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { AuditLogService } from '../audit-log/audit-log.service';
 import { EventBusService } from '../../../common/events/event-bus.service';
-import { decryptSecret, encryptSecret, generateRawToken, hashToken } from '../../../common/crypto/secret-box';
+import {
+  decryptSecret,
+  encryptSecret,
+  generateRawToken,
+  hashToken,
+} from '../../../common/crypto/secret-box';
 import { ROLES_REQUIRING_MANDATORY_MFA, SYSTEM_ROLES } from '../roles/system-roles.constants';
 import { RegisterDto } from './dto/register.dto';
 import { MailerService } from '../../../common/mail/mailer.service';
@@ -89,7 +100,10 @@ export class AuthService {
   }
 
   private async userRequiresMfa(userId: string): Promise<boolean> {
-    const roles = await this.prisma.userRole.findMany({ where: { userId }, include: { role: true } });
+    const roles = await this.prisma.userRole.findMany({
+      where: { userId },
+      include: { role: true },
+    });
     return roles.some((ur) => ROLES_REQUIRING_MANDATORY_MFA.includes(ur.role.name));
   }
 
@@ -102,7 +116,9 @@ export class AuthService {
     }
 
     if (!user.passwordHash) {
-      throw new ForbiddenException('Nalog čeka aktivaciju — postavite lozinku preko linka poslatog na email');
+      throw new ForbiddenException(
+        'Nalog čeka aktivaciju — postavite lozinku preko linka poslatog na email',
+      );
     }
     const passwordOk = await argon2.verify(user.passwordHash, password);
     if (!passwordOk) {
@@ -115,7 +131,10 @@ export class AuthService {
     }
 
     // Uspešna lozinka — resetuj brojač neuspešnih pokušaja.
-    await this.prisma.user.update({ where: { id: user.id }, data: { failedLoginAttempts: 0, lockedUntil: null } });
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: { failedLoginAttempts: 0, lockedUntil: null },
+    });
 
     const requiresMfa = await this.userRequiresMfa(user.id);
     if (requiresMfa && !user.mfaEnabled) {
@@ -124,12 +143,18 @@ export class AuthService {
       // pa se novozaposleni NIKAD nije mogao prijaviti — jedini enroll endpoint tražio je
       // access token koji se izdaje tek posle prijave (zatvoren krug, blokada i na
       // produkciji). Sada se izdaje uzak token koji otvara isključivo mfa/setup/* endpointe.
-      const setupToken = this.jwt.sign({ sub: user.id, type: 'mfa_setup_pending' }, { expiresIn: MFA_SETUP_TOKEN_TTL });
+      const setupToken = this.jwt.sign(
+        { sub: user.id, type: 'mfa_setup_pending' },
+        { expiresIn: MFA_SETUP_TOKEN_TTL },
+      );
       return { requiresMfaSetup: true, setupToken };
     }
 
     if (user.mfaEnabled) {
-      const mfaToken = this.jwt.sign({ sub: user.id, type: 'mfa_pending' }, { expiresIn: MFA_PENDING_TOKEN_TTL });
+      const mfaToken = this.jwt.sign(
+        { sub: user.id, type: 'mfa_pending' },
+        { expiresIn: MFA_PENDING_TOKEN_TTL },
+      );
       return { requiresMfa: true, mfaToken };
     }
 
@@ -161,7 +186,10 @@ export class AuthService {
     }
 
     // Uspešna MFA — resetuj brojač (isti obrazac kao uspešna lozinka u login()).
-    await this.prisma.user.update({ where: { id: user.id }, data: { failedLoginAttempts: 0, lockedUntil: null } });
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: { failedLoginAttempts: 0, lockedUntil: null },
+    });
 
     return this.issueTokens(user.id, ip, userAgent);
   }
@@ -169,7 +197,12 @@ export class AuthService {
   // M1 spec §5 — zajednička putanja za pogrešnu lozinku i pogrešan MFA kod: isti brojač
   // (`failed_login_attempts`), isto zaključavanje posle `FAILED_ATTEMPTS_BEFORE_LOCK`, isti
   // audit trag — namerno bez posebnog brojača/roka po koraku prijave.
-  private async recordFailedAttempt(userId: string, currentAttempts: number, ip: string | null, failedAction: string) {
+  private async recordFailedAttempt(
+    userId: string,
+    currentAttempts: number,
+    ip: string | null,
+    failedAction: string,
+  ) {
     const attempts = currentAttempts + 1;
     const shouldLock = attempts >= FAILED_ATTEMPTS_BEFORE_LOCK;
     await this.prisma.user.update({
@@ -230,7 +263,10 @@ export class AuthService {
       throw new UnauthorizedException('Nevažeći ili istekao refresh token');
     }
 
-    await this.prisma.refreshToken.update({ where: { id: stored.id }, data: { revokedAt: new Date() } });
+    await this.prisma.refreshToken.update({
+      where: { id: stored.id },
+      data: { revokedAt: new Date() },
+    });
     return this.issueTokens(stored.userId, ip, userAgent);
   }
 
@@ -246,7 +282,10 @@ export class AuthService {
         data: { revokedAt: new Date() },
       });
     } else {
-      await this.prisma.refreshToken.update({ where: { id: stored.id }, data: { revokedAt: new Date() } });
+      await this.prisma.refreshToken.update({
+        where: { id: stored.id },
+        data: { revokedAt: new Date() },
+      });
     }
   }
 
@@ -277,7 +316,8 @@ export class AuthService {
   }
 
   async resetPassword(rawToken: string, newPassword: string) {
-    if (newPassword.length < 12) throw new BadRequestException('Lozinka mora imati bar 12 karaktera');
+    if (newPassword.length < 12)
+      throw new BadRequestException('Lozinka mora imati bar 12 karaktera');
 
     const tokenHash = hashToken(rawToken);
     const stored = await this.prisma.passwordResetToken.findFirst({ where: { tokenHash } });
@@ -288,7 +328,10 @@ export class AuthService {
     const passwordHash = await argon2.hash(newPassword, { type: argon2.argon2id });
     await this.prisma.$transaction([
       this.prisma.user.update({ where: { id: stored.userId }, data: { passwordHash } }),
-      this.prisma.passwordResetToken.update({ where: { id: stored.id }, data: { usedAt: new Date() } }),
+      this.prisma.passwordResetToken.update({
+        where: { id: stored.id },
+        data: { usedAt: new Date() },
+      }),
       // Reset lozinke opoziva sve postojeće sesije — bezbednosna higijena.
       this.prisma.refreshToken.updateMany({
         where: { userId: stored.userId, revokedAt: null },
@@ -328,7 +371,8 @@ export class AuthService {
   }
 
   async activateAccount(rawToken: string, newPassword: string) {
-    if (newPassword.length < 12) throw new BadRequestException('Lozinka mora imati bar 12 karaktera');
+    if (newPassword.length < 12)
+      throw new BadRequestException('Lozinka mora imati bar 12 karaktera');
 
     const tokenHash = hashToken(rawToken);
     const stored = await this.prisma.passwordResetToken.findFirst({ where: { tokenHash } });
@@ -338,8 +382,14 @@ export class AuthService {
 
     const passwordHash = await argon2.hash(newPassword, { type: argon2.argon2id });
     await this.prisma.$transaction([
-      this.prisma.user.update({ where: { id: stored.userId }, data: { passwordHash, status: 'ACTIVE' } }),
-      this.prisma.passwordResetToken.update({ where: { id: stored.id }, data: { usedAt: new Date() } }),
+      this.prisma.user.update({
+        where: { id: stored.userId },
+        data: { passwordHash, status: 'ACTIVE' },
+      }),
+      this.prisma.passwordResetToken.update({
+        where: { id: stored.id },
+        data: { usedAt: new Date() },
+      }),
     ]);
 
     await this.auditLog.write({
@@ -384,10 +434,14 @@ export class AuthService {
     try {
       payload = this.jwt.verify(setupToken);
     } catch {
-      throw new UnauthorizedException('Nevažeći ili istekao token za podešavanje 2FA — prijavite se ponovo.');
+      throw new UnauthorizedException(
+        'Nevažeći ili istekao token za podešavanje 2FA — prijavite se ponovo.',
+      );
     }
     if (payload.type !== 'mfa_setup_pending') {
-      throw new UnauthorizedException('Nevažeći ili istekao token za podešavanje 2FA — prijavite se ponovo.');
+      throw new UnauthorizedException(
+        'Nevažeći ili istekao token za podešavanje 2FA — prijavite se ponovo.',
+      );
     }
     return payload.sub;
   }
@@ -406,7 +460,9 @@ export class AuthService {
     // međuvremenu završeno na drugom uređaju), ovaj put ne sme ponovo da generiše tajnu —
     // time bi se postojeći autentifikator tiho poništio.
     if (user.mfaEnabled) {
-      throw new ForbiddenException('Dvofaktorska autentikacija je već podešena za ovaj nalog — prijavite se normalno.');
+      throw new ForbiddenException(
+        'Dvofaktorska autentikacija je već podešena za ovaj nalog — prijavite se normalno.',
+      );
     }
     return user;
   }
@@ -416,10 +472,17 @@ export class AuthService {
     return this.enrollMfa(user.id);
   }
 
-  async confirmMfaSetup(setupToken: string, code: string, ip: string | null, userAgent: string | null) {
+  async confirmMfaSetup(
+    setupToken: string,
+    code: string,
+    ip: string | null,
+    userAgent: string | null,
+  ) {
     const user = await this.loadUserForMfaSetup(setupToken);
     if (!user.mfaSecretEncrypted) {
-      throw new BadRequestException('Podešavanje 2FA nije započeto — pozovite /auth/mfa/setup/start.');
+      throw new BadRequestException(
+        'Podešavanje 2FA nije započeto — pozovite /auth/mfa/setup/start.',
+      );
     }
 
     const secret = decryptSecret(user.mfaSecretEncrypted);

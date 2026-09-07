@@ -1,5 +1,6 @@
 import eslint from '@eslint/js';
 import tseslint from 'typescript-eslint';
+import prettierConfig from 'eslint-config-prettier';
 
 // Nalaz 3.2 (dok. 39) — apps/api (65.000 linija) nije imao ESLint uopšte; panel i sajt su
 // ga već imali. Isto podešavanje kao apps/panel/eslint.config.mjs — flat config, pravilo
@@ -27,4 +28,7 @@ export default tseslint.config(
       ],
     },
   },
+  // Mora biti poslednji — gasi stilistička ESLint pravila koja bi se sudarala sa Prettierom
+  // (koji sad formatira ceo repo, dok. 39, poglavlje Prettier).
+  prettierConfig,
 );

@@ -25,7 +25,9 @@ export default function EditUserForm({
 
   return (
     <form action={formAction} className="flex flex-col gap-2">
-      {state.error && <p className="rounded bg-danger-bg p-2 text-[11px] text-danger">{state.error}</p>}
+      {state.error && (
+        <p className="rounded bg-danger-bg p-2 text-[11px] text-danger">{state.error}</p>
+      )}
       <label className="text-xs text-ink-faint">
         ime i prezime
         <input name="fullName" defaultValue={fullName} required className="input mt-1" />

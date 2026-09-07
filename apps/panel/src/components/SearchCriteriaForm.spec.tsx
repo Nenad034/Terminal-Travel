@@ -1,6 +1,9 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import SearchCriteriaForm, { valuesFromSearchParams, type SearchCriteriaValues } from './SearchCriteriaForm';
+import SearchCriteriaForm, {
+  valuesFromSearchParams,
+  type SearchCriteriaValues,
+} from './SearchCriteriaForm';
 
 // Nalaz 2.4b (dok. 39) — pretraga je jedan od putanja koje se ne smeju pokvariti: dugme
 // "pretraži" mora ostati onemogućeno dok država nije uneta (M5 spec §3.0c.2, jedino obavezno
@@ -23,13 +26,25 @@ describe('SearchCriteriaForm', () => {
   beforeEach(() => push.mockClear());
 
   it('dugme "pretraži" je onemogućeno dok država odredišta nije uneta', () => {
-    render(<SearchCriteriaForm label="Smeštaj" types={['ACCOMMODATION']} initialValues={emptyValues()} />);
+    render(
+      <SearchCriteriaForm
+        label="Smeštaj"
+        types={['ACCOMMODATION']}
+        initialValues={emptyValues()}
+      />,
+    );
 
     expect(screen.getByRole('button', { name: /pretraži/i })).toBeDisabled();
   });
 
   it('unosom države se dugme omogućava i slanje vodi na /rezervacije/pretraga sa tipom i državom', async () => {
-    render(<SearchCriteriaForm label="Smeštaj" types={['ACCOMMODATION']} initialValues={emptyValues()} />);
+    render(
+      <SearchCriteriaForm
+        label="Smeštaj"
+        types={['ACCOMMODATION']}
+        initialValues={emptyValues()}
+      />,
+    );
 
     await userEvent.type(screen.getByPlaceholderText('Grčka'), 'Grčka');
     const button = screen.getByRole('button', { name: /pretraži/i });
@@ -46,7 +61,13 @@ describe('SearchCriteriaForm', () => {
   });
 
   it('poruka o obaveznoj državi se ne prikazuje dok korisnik ništa nije dirao', () => {
-    render(<SearchCriteriaForm label="Smeštaj" types={['ACCOMMODATION']} initialValues={emptyValues()} />);
+    render(
+      <SearchCriteriaForm
+        label="Smeštaj"
+        types={['ACCOMMODATION']}
+        initialValues={emptyValues()}
+      />,
+    );
 
     expect(screen.queryByText(/unesite bar državu odredišta/i)).not.toBeInTheDocument();
   });

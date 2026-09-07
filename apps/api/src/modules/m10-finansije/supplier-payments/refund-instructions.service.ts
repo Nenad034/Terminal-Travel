@@ -13,7 +13,10 @@ export class RefundInstructionsService {
   ) {}
 
   async findAll(filters: { paymentId?: string }) {
-    return this.prisma.refundInstruction.findMany({ where: { paymentId: filters.paymentId }, orderBy: { createdAt: 'desc' } });
+    return this.prisma.refundInstruction.findMany({
+      where: { paymentId: filters.paymentId },
+      orderBy: { createdAt: 'desc' },
+    });
   }
 
   async create(dto: CreateRefundInstructionDto, actor: { userId: string }) {
@@ -21,7 +24,13 @@ export class RefundInstructionsService {
     if (!payment) throw new NotFoundException(`Payment ${dto.paymentId} nije pronađen.`);
 
     const instruction = await this.prisma.refundInstruction.create({
-      data: { paymentId: dto.paymentId, amount: dto.amount, currency: dto.currency, method: dto.method, status: 'PENDING' },
+      data: {
+        paymentId: dto.paymentId,
+        amount: dto.amount,
+        currency: dto.currency,
+        method: dto.method,
+        status: 'PENDING',
+      },
     });
 
     await this.auditLog.write({
@@ -39,7 +48,9 @@ export class RefundInstructionsService {
   async approve(id: string, actor: { userId: string }) {
     const instruction = await this.findOne(id);
     if (instruction.status !== 'PENDING') {
-      throw new BadRequestException(`RefundInstruction ${id} nije u statusu PENDING (status: ${instruction.status}).`);
+      throw new BadRequestException(
+        `RefundInstruction ${id} nije u statusu PENDING (status: ${instruction.status}).`,
+      );
     }
     const updated = await this.prisma.refundInstruction.update({
       where: { id },
@@ -62,7 +73,9 @@ export class RefundInstructionsService {
   async execute(id: string, actor: { userId: string }) {
     const instruction = await this.findOne(id);
     if (instruction.status !== 'APPROVED') {
-      throw new BadRequestException(`RefundInstruction ${id} nije u statusu APPROVED (status: ${instruction.status}).`);
+      throw new BadRequestException(
+        `RefundInstruction ${id} nije u statusu APPROVED (status: ${instruction.status}).`,
+      );
     }
     const updated = await this.prisma.refundInstruction.update({
       where: { id },

@@ -42,13 +42,16 @@ export function parsePagination(page?: string, limit?: string): PaginationQueryD
   const out: PaginationQueryDto = {};
   if (page !== undefined && page !== '') {
     const n = Number(page);
-    if (!Number.isInteger(n) || n < 1) throw new BadRequestException('`page` mora biti ceo broj veći od 0.');
+    if (!Number.isInteger(n) || n < 1)
+      throw new BadRequestException('`page` mora biti ceo broj veći od 0.');
     out.page = n;
   }
   if (limit !== undefined && limit !== '') {
     const n = Number(limit);
-    if (!Number.isInteger(n) || n < 1) throw new BadRequestException('`limit` mora biti ceo broj veći od 0.');
-    if (n > MAX_PAGE_SIZE) throw new BadRequestException(`\`limit\` ne sme biti veći od ${MAX_PAGE_SIZE}.`);
+    if (!Number.isInteger(n) || n < 1)
+      throw new BadRequestException('`limit` mora biti ceo broj veći od 0.');
+    if (n > MAX_PAGE_SIZE)
+      throw new BadRequestException(`\`limit\` ne sme biti veći od ${MAX_PAGE_SIZE}.`);
     out.limit = n;
   }
   return out;
@@ -65,7 +68,12 @@ export interface Paginated<T> {
 }
 
 /** Prevodi `page`/`limit` u Prisma `skip`/`take`. Jedno mesto, da se ne računa u svakom servisu. */
-export function paginationArgs(query?: PaginationQueryDto): { skip: number; take: number; page: number; limit: number } {
+export function paginationArgs(query?: PaginationQueryDto): {
+  skip: number;
+  take: number;
+  page: number;
+  limit: number;
+} {
   const page = Math.max(1, Math.trunc(query?.page ?? 1));
   const limit = Math.min(MAX_PAGE_SIZE, Math.max(1, Math.trunc(query?.limit ?? DEFAULT_PAGE_SIZE)));
   return { skip: (page - 1) * limit, take: limit, page, limit };

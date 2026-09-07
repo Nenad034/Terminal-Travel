@@ -1,6 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
-import { ReportsService, DYNAMIC_DIMENSIONS, type DynamicDimension } from '../../m13-bi/reports/reports.service';
+import {
+  ReportsService,
+  DYNAMIC_DIMENSIONS,
+  type DynamicDimension,
+} from '../../m13-bi/reports/reports.service';
 import { SupplierObligationsService } from '../../m10-finansije/supplier-obligations/supplier-obligations.service';
 import { SearchService } from '../../m5-rezervacije/search/search.service';
 import { ExchangeRatesService } from '../../m10-finansije/exchange-rates/exchange-rates.service';
@@ -10,7 +14,14 @@ import { ExchangeRatesService } from '../../m10-finansije/exchange-rates/exchang
 // dozvoljene `groupBy`/`filters` ključeve iz ovog fajla — svaki pogled je unapred pregledan kod koji
 // poziva POSTOJEĆE servise (isti "defense in depth" princip kao §6.9.1, samo širi domet od fiksne
 // liste alata §6.9.3). Dodavanje novog pogleda je izmena ovog fajla + dokumenta, nikad odluka agenta.
-export const VIEW_NAMES = ['bookings', 'employee_sales', 'subagent_performance', 'supplier_obligations', 'catalog_offers', 'exchange_rates'] as const;
+export const VIEW_NAMES = [
+  'bookings',
+  'employee_sales',
+  'subagent_performance',
+  'supplier_obligations',
+  'catalog_offers',
+  'exchange_rates',
+] as const;
 export type ViewName = (typeof VIEW_NAMES)[number];
 
 export interface QueryViewArgs {
@@ -46,7 +57,9 @@ export class ReportViewsService {
       case 'exchange_rates':
         return this.exchangeRatesView(args);
       default:
-        return { error: `Nepoznat pogled: "${view}". Dozvoljeni pogledi: ${VIEW_NAMES.join(', ')}.` };
+        return {
+          error: `Nepoznat pogled: "${view}". Dozvoljeni pogledi: ${VIEW_NAMES.join(', ')}.`,
+        };
     }
   }
 
@@ -65,7 +78,10 @@ export class ReportViewsService {
         if (args.dateFrom) where.bookingDate.gte = new Date(args.dateFrom);
         if (args.dateTo) where.bookingDate.lte = new Date(args.dateTo);
       }
-      const rows = await this.prisma.factBooking.findMany({ where, select: { status: true, finalPrice: true } });
+      const rows = await this.prisma.factBooking.findMany({
+        where,
+        select: { status: true, finalPrice: true },
+      });
       const byStatus = new Map<string, { bookingCount: number; totalValue: number }>();
       for (const r of rows) {
         const acc = byStatus.get(r.status) ?? { bookingCount: 0, totalValue: 0 };
@@ -77,9 +93,13 @@ export class ReportViewsService {
     }
     if (args.groupBy) {
       if (!DYNAMIC_DIMENSIONS.includes(args.groupBy as DynamicDimension)) {
-        return { error: `Nepoznata dimenzija za grupisanje: "${args.groupBy}". Dozvoljene: status, ${DYNAMIC_DIMENSIONS.join(', ')}.` };
+        return {
+          error: `Nepoznata dimenzija za grupisanje: "${args.groupBy}". Dozvoljene: status, ${DYNAMIC_DIMENSIONS.join(', ')}.`,
+        };
       }
-      return this.reports.dynamic({ from: args.dateFrom, to: args.dateTo }, [args.groupBy as DynamicDimension]);
+      return this.reports.dynamic({ from: args.dateFrom, to: args.dateTo }, [
+        args.groupBy as DynamicDimension,
+      ]);
     }
     return this.reports.sales({
       from: args.dateFrom,
@@ -117,7 +137,10 @@ export class ReportViewsService {
     }
     if (byUser.size === 0) return [];
 
-    const users = await this.prisma.user.findMany({ where: { id: { in: [...byUser.keys()] } }, select: { id: true, fullName: true } });
+    const users = await this.prisma.user.findMany({
+      where: { id: { in: [...byUser.keys()] } },
+      select: { id: true, fullName: true },
+    });
     const nameById = new Map(users.map((u) => [u.id, u.fullName]));
     return [...byUser.entries()]
       .map(([userId, acc]) => ({ employee: nameById.get(userId) ?? userId, ...acc }))
@@ -143,8 +166,10 @@ export class ReportViewsService {
   // ograničeno na 10 rezultata (isti "ne zatrpavaj odgovor" princip kao subagentBookings ≤10).
   private async catalogOffersView(args: QueryViewArgs) {
     const filters = args.filters ?? {};
-    const destinationCity = typeof filters.destinationCity === 'string' ? filters.destinationCity : undefined;
-    const destinationCountry = typeof filters.destinationCountry === 'string' ? filters.destinationCountry : undefined;
+    const destinationCity =
+      typeof filters.destinationCity === 'string' ? filters.destinationCity : undefined;
+    const destinationCountry =
+      typeof filters.destinationCountry === 'string' ? filters.destinationCountry : undefined;
     const adults = typeof filters.adults === 'number' ? filters.adults : 2;
     const children = typeof filters.children === 'number' ? filters.children : 0;
 

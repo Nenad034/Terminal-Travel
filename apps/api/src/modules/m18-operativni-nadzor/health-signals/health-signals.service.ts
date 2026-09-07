@@ -1,5 +1,10 @@
 import { Injectable } from '@nestjs/common';
-import { HealthSignalSecurityCategory, HealthSignalSeverity, HealthSignalType, Prisma } from '@prisma/client';
+import {
+  HealthSignalSecurityCategory,
+  HealthSignalSeverity,
+  HealthSignalType,
+  Prisma,
+} from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { NotificationDispatchService } from '../notification-channels/notification-dispatch.service';
 import { EventBusService } from '../../../common/events/event-bus.service';
@@ -55,7 +60,11 @@ export class HealthSignalsService {
     return signal;
   }
 
-  async findAll(filter: { module?: string; type?: HealthSignalType; severity?: HealthSignalSeverity }) {
+  async findAll(filter: {
+    module?: string;
+    type?: HealthSignalType;
+    severity?: HealthSignalSeverity;
+  }) {
     return this.prisma.healthSignal.findMany({
       where: { sourceModule: filter.module, signalType: filter.type, severity: filter.severity },
       orderBy: { detectedAt: 'desc' },
@@ -63,6 +72,9 @@ export class HealthSignalsService {
   }
 
   async findSince(from: Date) {
-    return this.prisma.healthSignal.findMany({ where: { detectedAt: { gte: from } }, orderBy: { detectedAt: 'asc' } });
+    return this.prisma.healthSignal.findMany({
+      where: { detectedAt: { gte: from } },
+      orderBy: { detectedAt: 'asc' },
+    });
   }
 }

@@ -2,7 +2,12 @@
 
 import { useFormStatus } from 'react-dom';
 import { useActionState } from 'react';
-import { activateMcpClient, approveReadWriteMcpClient, suspendMcpClient, FormState } from './actions';
+import {
+  activateMcpClient,
+  approveReadWriteMcpClient,
+  suspendMcpClient,
+  FormState,
+} from './actions';
 import { Button } from '@/components/ui/button';
 
 const initialState: FormState = { error: null };
@@ -45,7 +50,15 @@ export function SuspendButton({ id, canManage }: { id: string; canManage: boolea
   );
 }
 
-function Btn({ label, pendingLabel, danger }: { label: string; pendingLabel: string; danger?: boolean }) {
+function Btn({
+  label,
+  pendingLabel,
+  danger,
+}: {
+  label: string;
+  pendingLabel: string;
+  danger?: boolean;
+}) {
   const { pending } = useFormStatus();
   return (
     <Button

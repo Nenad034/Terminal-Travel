@@ -3,7 +3,10 @@ import { M20EventSubscribersService } from './m20-event-subscribers.service';
 describe('M20EventSubscribersService (M20 spec §3.1/§3.4)', () => {
   function makeService() {
     const eventListener = { on: jest.fn() };
-    const clientContracts = { generateForBooking: jest.fn(), voidAndRegenerateForModification: jest.fn() };
+    const clientContracts = {
+      generateForBooking: jest.fn(),
+      voidAndRegenerateForModification: jest.fn(),
+    };
     const service = new M20EventSubscribersService(eventListener as any, clientContracts as any);
     return { service, eventListener, clientContracts };
   }
@@ -13,7 +16,11 @@ describe('M20EventSubscribersService (M20 spec §3.1/§3.4)', () => {
     service.onModuleInit();
     expect(eventListener.on).toHaveBeenCalledWith('M5', 'booking.confirmed', expect.any(Function));
     expect(eventListener.on).toHaveBeenCalledWith('M5', 'booking.modified', expect.any(Function));
-    expect(eventListener.on).not.toHaveBeenCalledWith('M5', 'booking.cancelled', expect.any(Function));
+    expect(eventListener.on).not.toHaveBeenCalledWith(
+      'M5',
+      'booking.cancelled',
+      expect.any(Function),
+    );
   });
 
   it('booking.confirmed poziva generateForBooking', async () => {

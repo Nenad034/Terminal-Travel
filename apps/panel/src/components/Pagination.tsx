@@ -40,7 +40,10 @@ export default function Pagination({
     const qs = new URLSearchParams();
     for (const [key, value] of Object.entries(searchParams ?? {})) {
       if (key === paramName) continue;
-      if (Array.isArray(value)) for (const v of value) { if (v) qs.append(key, v); }
+      if (Array.isArray(value))
+        for (const v of value) {
+          if (v) qs.append(key, v);
+        }
       else if (value) qs.set(key, value);
     }
     if (target > 1) qs.set(paramName, String(target));
@@ -58,7 +61,17 @@ export default function Pagination({
   return (
     <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs text-ink-faint">
       <span>
-        {total === 0 ? `nema ${itemLabel}` : <>prikazano <span className="font-mono text-ink-dim">{from}–{to}</span> od <span className="font-mono text-ink-dim">{total}</span> {itemLabel}</>}
+        {total === 0 ? (
+          `nema ${itemLabel}`
+        ) : (
+          <>
+            prikazano{' '}
+            <span className="font-mono text-ink-dim">
+              {from}–{to}
+            </span>{' '}
+            od <span className="font-mono text-ink-dim">{total}</span> {itemLabel}
+          </>
+        )}
       </span>
 
       {pageCount > 1 && (
@@ -67,7 +80,8 @@ export default function Pagination({
             <Icon name="chevron-left" />
           </PageLink>
           <span className="px-1.5">
-            strana <span className="font-mono text-ink-dim">{page}</span> od <span className="font-mono text-ink-dim">{pageCount}</span>
+            strana <span className="font-mono text-ink-dim">{page}</span> od{' '}
+            <span className="font-mono text-ink-dim">{pageCount}</span>
           </span>
           <PageLink href={hrefFor(page + 1)} disabled={page >= pageCount} title="sledeća strana">
             <Icon name="chevron-right" />
@@ -78,16 +92,34 @@ export default function Pagination({
   );
 }
 
-function PageLink({ href, disabled, title, children }: { href: string; disabled: boolean; title: string; children: React.ReactNode }) {
+function PageLink({
+  href,
+  disabled,
+  title,
+  children,
+}: {
+  href: string;
+  disabled: boolean;
+  title: string;
+  children: React.ReactNode;
+}) {
   if (disabled) {
     return (
-      <span aria-disabled title={title} className="flex h-6 w-6 items-center justify-center rounded text-ink-faint opacity-30">
+      <span
+        aria-disabled
+        title={title}
+        className="flex h-6 w-6 items-center justify-center rounded text-ink-faint opacity-30"
+      >
         {children}
       </span>
     );
   }
   return (
-    <Link href={href} title={title} className="flex h-6 w-6 items-center justify-center rounded text-ink-dim hover:bg-panel hover:text-ink">
+    <Link
+      href={href}
+      title={title}
+      className="flex h-6 w-6 items-center justify-center rounded text-ink-dim hover:bg-panel hover:text-ink"
+    >
       {children}
     </Link>
   );

@@ -3,7 +3,6 @@ import RegisterTab from '@/components/RegisterTab';
 import Icon from '@/components/Icon';
 import { Badge } from '@/components/ui/badge';
 
-
 interface ProductMedia {
   url: string;
   category: string;
@@ -51,7 +50,9 @@ export default async function ProductGalleryPage(props: { params: Promise<{ id: 
       <div className="mb-4 flex items-center gap-2">
         <h1 className="text-lg font-semibold text-ink">{name}</h1>
         {attrs.stars !== undefined && (
-          <span className="rounded bg-panel2 px-1.5 py-0.5 text-[11px] font-semibold text-warn">{attrs.stars}*</span>
+          <span className="rounded bg-panel2 px-1.5 py-0.5 text-[11px] font-semibold text-warn">
+            {attrs.stars}*
+          </span>
         )}
       </div>
 
@@ -60,8 +61,14 @@ export default async function ProductGalleryPage(props: { params: Promise<{ id: 
           {media.map((m) => (
             <div key={m.url} className="overflow-hidden rounded-lg border border-border">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={m.url} alt={m.caption ?? name} className="aspect-[3/2] w-full object-cover" />
-              {m.caption && <div className="bg-panel px-2 py-1 text-xs text-ink-faint">{m.caption}</div>}
+              <img
+                src={m.url}
+                alt={m.caption ?? name}
+                className="aspect-[3/2] w-full object-cover"
+              />
+              {m.caption && (
+                <div className="bg-panel px-2 py-1 text-xs text-ink-faint">{m.caption}</div>
+              )}
             </div>
           ))}
         </div>
@@ -73,7 +80,9 @@ export default async function ProductGalleryPage(props: { params: Promise<{ id: 
       )}
 
       {product.translation?.description && (
-        <p className="mb-6 max-w-3xl whitespace-pre-line text-sm leading-relaxed text-ink-dim">{product.translation.description}</p>
+        <p className="mb-6 max-w-3xl whitespace-pre-line text-sm leading-relaxed text-ink-dim">
+          {product.translation.description}
+        </p>
       )}
 
       {attrs.amenities && attrs.amenities.length > 0 && (
@@ -94,10 +103,14 @@ export default async function ProductGalleryPage(props: { params: Promise<{ id: 
           <div className="mb-2 text-xs font-medium text-ink-faint">Tipovi soba</div>
           <div className="flex flex-col gap-1.5">
             {attrs.room_types.map((rt) => (
-              <div key={rt.code} className="flex items-center justify-between rounded-lg border border-border bg-panel px-3 py-2 text-xs">
+              <div
+                key={rt.code}
+                className="flex items-center justify-between rounded-lg border border-border bg-panel px-3 py-2 text-xs"
+              >
                 <span className="text-ink">{rt.name}</span>
                 <span className="text-ink-faint">
-                  {rt.capacity_adults ?? '?'} odraslih{rt.capacity_children ? ` + ${rt.capacity_children} dece` : ''}
+                  {rt.capacity_adults ?? '?'} odraslih
+                  {rt.capacity_children ? ` + ${rt.capacity_children} dece` : ''}
                 </span>
               </div>
             ))}

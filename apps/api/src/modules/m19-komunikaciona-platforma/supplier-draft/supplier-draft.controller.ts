@@ -16,7 +16,11 @@ export class SupplierDraftController {
   constructor(private readonly supplierDraft: SupplierDraftService) {}
 
   @Post(':id/draft-reply')
-  draftReply(@Param('id') id: string, @Body() dto: DraftReplyDto, @CurrentUser() user: { userId: string }) {
+  draftReply(
+    @Param('id') id: string,
+    @Body() dto: DraftReplyDto,
+    @CurrentUser() user: { userId: string },
+  ) {
     return this.supplierDraft.draftReply(id, dto, user.userId);
   }
 }

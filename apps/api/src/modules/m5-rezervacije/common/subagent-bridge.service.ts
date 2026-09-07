@@ -26,7 +26,9 @@ export class SubagentBridgeService {
   // M7 spec §5 — vraća effective_commission_percentage AKO postoji Subagent zapis za taj
   // client_account_id, inače null (M5 tada pada na M6 loyalty-status, §5 — "ne po
   // account_type, po POSTOJANJU Subagent zapisa").
-  async getEffectiveCommissionPercentageForClientAccount(clientAccountId: string): Promise<number | null> {
+  async getEffectiveCommissionPercentageForClientAccount(
+    clientAccountId: string,
+  ): Promise<number | null> {
     const subagent = await this.subagents.findByClientAccountId(clientAccountId);
     if (!subagent) return null;
     return this.volumeStatus.getEffectiveCommissionPercentage(subagent.id);
@@ -38,7 +40,10 @@ export class SubagentBridgeService {
     clientAccountId: string;
     additionalAmount: number;
     currency: string;
-  }): Promise<{ isSubagent: false; allowed: true } | { isSubagent: true; allowed: boolean; withinCreditLimit: boolean }> {
+  }): Promise<
+    | { isSubagent: false; allowed: true }
+    | { isSubagent: true; allowed: boolean; withinCreditLimit: boolean }
+  > {
     const subagent = await this.subagents.findByClientAccountId(params.clientAccountId);
     if (!subagent) return { isSubagent: false, allowed: true };
 

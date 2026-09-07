@@ -51,7 +51,13 @@ import { ExchangeRatesModule } from '../m10-finansije/exchange-rates/exchange-ra
     SearchModule,
     ExchangeRatesModule,
   ],
-  controllers: [ModuleActivationController, OmnisearchController, ActionTypesController, AgentInboxController, BiTerminalController],
+  controllers: [
+    ModuleActivationController,
+    OmnisearchController,
+    ActionTypesController,
+    AgentInboxController,
+    BiTerminalController,
+  ],
   providers: [
     ModuleActivationService,
     OmnisearchService,

@@ -16,6 +16,7 @@
 Lista. Interni tim vidi sve; Gost/`SUBAGENT_ADMIN` vide isključivo sopstvene (filtrirano po pozivaocu, nema query parametara za obilazak ove provere).
 
 **Odgovor `200`:**
+
 ```json
 [
   {
@@ -44,6 +45,7 @@ Lista. Interni tim vidi sve; Gost/`SUBAGENT_ADMIN` vide isključivo sopstvene (f
 ### POST /helpdesk/tickets
 
 **Zahtev (Gost/subagent — `requesterClientAccountId` iz tela se ignoriše, uvek se prepisuje na sopstveni nalog):**
+
 ```json
 {
   "requesterType": "GUEST",
@@ -55,6 +57,7 @@ Lista. Interni tim vidi sve; Gost/`SUBAGENT_ADMIN` vide isključivo sopstvene (f
 ```
 
 **Zahtev (interni tim, u ime gosta koji je zvao telefonom):**
+
 ```json
 {
   "requesterClientAccountId": "ca-1",
@@ -87,6 +90,7 @@ Detalji + `relatedBooking` (kontekst uživo iz M5, bez dupliranja u samom `Ticke
 Isključivo interni tim (`M14/ticket/RESPOND` — Gost/subagent nemaju ovu dozvolu). Sva polja opciona.
 
 **Zahtev — rešavanje reklamacije uz odluku o povraćaju (§3.2, zatvara otvoreno pitanje iz §8):**
+
 ```json
 { "status": "RESOLVED", "refundDecision": true }
 ```
@@ -107,8 +111,26 @@ Interni tim vidi sve poruke, uključujući `isInternalNote: true`. Gost/`SUBAGEN
 
 ```json
 [
-  { "id": "msg-1", "ticketId": "tk-1", "senderType": "REQUESTER", "senderId": "ca-1", "body": "Kada stiže vaučer?", "isInternalNote": false, "sentBy": null, "createdAt": "..." },
-  { "id": "msg-2", "ticketId": "tk-1", "senderType": "STAFF", "senderId": "u-7", "body": "Vaučer stiže danas do 18h.", "isInternalNote": false, "sentBy": "u-7", "createdAt": "..." }
+  {
+    "id": "msg-1",
+    "ticketId": "tk-1",
+    "senderType": "REQUESTER",
+    "senderId": "ca-1",
+    "body": "Kada stiže vaučer?",
+    "isInternalNote": false,
+    "sentBy": null,
+    "createdAt": "..."
+  },
+  {
+    "id": "msg-2",
+    "ticketId": "tk-1",
+    "senderType": "STAFF",
+    "senderId": "u-7",
+    "body": "Vaučer stiže danas do 18h.",
+    "isInternalNote": false,
+    "sentBy": "u-7",
+    "createdAt": "..."
+  }
 ]
 ```
 
@@ -117,14 +139,17 @@ Interni tim vidi sve poruke, uključujući `isInternalNote: true`. Gost/`SUBAGEN
 Dozvola: `M14/ticket/CREATE` (pokriva i Gost/`SUBAGENT_ADMIN` sopstveni odgovor). Gost/subagent smeju isključivo `senderType: "REQUESTER"`, bez `isInternalNote: true` — pokušaj `STAFF`/`AI_DRAFT`/interne beleške vraća `403`.
 
 **Zahtev — STAFF poruka (smatra se odmah poslatom, `sentBy` = pozivalac):**
+
 ```json
 { "senderType": "STAFF", "body": "Primili smo vaš zahtev, rešavamo." }
 ```
 
 **Zahtev — AI nacrt (§4 — `sentBy` NIKAD popunjeno pri kreiranju, bez obzira šta je prosleđeno):**
+
 ```json
 { "senderType": "AI_DRAFT", "body": "Nacrt: povraćaj od 100 EUR biće izvršen u roku od 14 dana." }
 ```
+
 **Odgovor `201`:** `{ "id": "msg-3", "...": "...", "sentBy": null }`.
 
 ### POST /helpdesk/tickets/:id/messages/:messageId/send
@@ -138,6 +163,7 @@ Jedini put kroz koji `AI_DRAFT` poruka dobija `sentBy` — isključivo ljudski n
 ## Automatska eskalacija reklamacija (§3.1, bez API poziva)
 
 Svaki dan (`M14AlarmsService`, `@Cron`) sistem proverava sve `REKLAMACIJA` tikete u statusu `OPEN`/`IN_PROGRESS` bez `zzp_escalated_at`. Ako 5 dana od `created_at` prođe bez ijedne `TicketMessage` sa `sender_type = STAFF` i popunjenim `sent_by`, sistem:
+
 1. Popunjava `zzp_escalated_at`.
 2. Emituje `M14 ticket_zzp_escalated` preko Event Bus-a (informativna eskalacija ka Vlasniku/Direktoru — nivo "Autonomno", M18 još ne postoji kao poseban modul koji ovo prikazuje/šalje email, isti obrazac kao M10 `payment_deadline_missed`).
 

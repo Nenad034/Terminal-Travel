@@ -1,5 +1,16 @@
 import { Transform } from 'class-transformer';
-import { IsArray, IsBoolean, IsDateString, IsEnum, IsIn, IsInt, IsOptional, IsString, Matches, Min } from 'class-validator';
+import {
+  IsArray,
+  IsBoolean,
+  IsDateString,
+  IsEnum,
+  IsIn,
+  IsInt,
+  IsOptional,
+  IsString,
+  Matches,
+  Min,
+} from 'class-validator';
 import { LanguageCode, ProductType, VisibleChannel } from '@prisma/client';
 
 // M5 spec §11 — `channel` filtrira po `Product.visible_channels` (samo B2C_SITE/B2B_PORTAL/
@@ -92,7 +103,9 @@ export class SearchQueryDto {
    */
   @IsOptional()
   @IsString()
-  @Matches(/^-?\d+(\.\d+)?(,-?\d+(\.\d+)?){3}$/, { message: 'bbox mora biti `minLon,minLat,maxLon,maxLat`' })
+  @Matches(/^-?\d+(\.\d+)?(,-?\d+(\.\d+)?){3}$/, {
+    message: 'bbox mora biti `minLon,minLat,maxLon,maxLat`',
+  })
   bbox?: string;
 
   // M2 spec §2.3f / M5 spec §3.0d.6b (dopuna 5.9.2026) — samo PACKAGE. Poklapa

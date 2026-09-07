@@ -36,7 +36,11 @@ export class SupplierChangeNoticesController {
 
   @Post(':id/send')
   @RequirePermission('M5', 'supplier-change-notice', 'SEND')
-  send(@Param('id') id: string, @Body() dto: SendChangeNoticeDto, @CurrentUser() actor: { userId: string }) {
+  send(
+    @Param('id') id: string,
+    @Body() dto: SendChangeNoticeDto,
+    @CurrentUser() actor: { userId: string },
+  ) {
     return this.notices.send(id, dto.supplierEmail, actor.userId);
   }
 

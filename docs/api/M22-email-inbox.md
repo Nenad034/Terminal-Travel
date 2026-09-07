@@ -16,10 +16,27 @@
 Lista svih sandučadi (ne filtrirano po pristupu — ovo je administrativni pregled, uža dozvola `M22/mailbox/VIEW`).
 
 **Odgovor `200`:**
+
 ```json
 [
-  { "id": "mb-1", "address": "rezervacije@terminal-travel.rs", "displayName": "Rezervacije", "mailboxType": "SHARED", "ownerUserId": null, "isSupplierUnifiedInbox": false, "status": "ACTIVE" },
-  { "id": "mb-2", "address": "dobavljaci@terminal-travel.rs", "displayName": "Dobavljači (jedinstveno)", "mailboxType": "SHARED", "ownerUserId": null, "isSupplierUnifiedInbox": true, "status": "ACTIVE" }
+  {
+    "id": "mb-1",
+    "address": "rezervacije@terminal-travel.rs",
+    "displayName": "Rezervacije",
+    "mailboxType": "SHARED",
+    "ownerUserId": null,
+    "isSupplierUnifiedInbox": false,
+    "status": "ACTIVE"
+  },
+  {
+    "id": "mb-2",
+    "address": "dobavljaci@terminal-travel.rs",
+    "displayName": "Dobavljači (jedinstveno)",
+    "mailboxType": "SHARED",
+    "ownerUserId": null,
+    "isSupplierUnifiedInbox": true,
+    "status": "ACTIVE"
+  }
 ]
 ```
 
@@ -28,13 +45,26 @@ Lista svih sandučadi (ne filtrirano po pristupu — ovo je administrativni preg
 Kreira sanduče. Zahteva `M22/mailbox/CREATE`. Za `mailboxType: "PERSONAL"` je `ownerUserId` obavezan i vlasnik automatski dobija `MailboxAccess(accessLevel=REPLY)` — nema potrebe da se ručno dodeli sam sebi. Najviše jedno sanduče sme imati `isSupplierUnifiedInbox: true` (M5 spec §8.8).
 
 **Zahtev (deljeno):**
+
 ```json
-{ "address": "rezervacije@terminal-travel.rs", "displayName": "Rezervacije", "mailboxType": "SHARED", "providerConnectionRef": "mock" }
+{
+  "address": "rezervacije@terminal-travel.rs",
+  "displayName": "Rezervacije",
+  "mailboxType": "SHARED",
+  "providerConnectionRef": "mock"
+}
 ```
 
 **Zahtev (lično):**
+
 ```json
-{ "address": "ana.jovanovic@terminal-travel.rs", "displayName": "Ana Jovanović", "mailboxType": "PERSONAL", "ownerUserId": "u-ana-1", "providerConnectionRef": "mock" }
+{
+  "address": "ana.jovanovic@terminal-travel.rs",
+  "displayName": "Ana Jovanović",
+  "mailboxType": "PERSONAL",
+  "ownerUserId": "u-ana-1",
+  "providerConnectionRef": "mock"
+}
 ```
 
 **Odgovor `201`:** isti oblik kao red u listi iznad.
@@ -44,8 +74,18 @@ Kreira sanduče. Zahteva `M22/mailbox/CREATE`. Za `mailboxType: "PERSONAL"` je `
 Lista dodela pristupa za sanduče. Zahteva `M22/mailbox-access/GRANT`.
 
 **Odgovor `200`:**
+
 ```json
-[ { "id": "acc-1", "mailboxId": "mb-1", "userId": "u-marko-1", "accessLevel": "REPLY", "grantedBy": "u-vlasnik-1", "grantedAt": "2026-08-15T09:00:00.000Z" } ]
+[
+  {
+    "id": "acc-1",
+    "mailboxId": "mb-1",
+    "userId": "u-marko-1",
+    "accessLevel": "REPLY",
+    "grantedBy": "u-vlasnik-1",
+    "grantedAt": "2026-08-15T09:00:00.000Z"
+  }
+]
 ```
 
 ### POST /email/mailboxes/:id/access
@@ -53,6 +93,7 @@ Lista dodela pristupa za sanduče. Zahteva `M22/mailbox-access/GRANT`.
 Dodeljuje ili menja nivo pristupa (`VIEW`/`REPLY`) za konkretnog korisnika na konkretnom sandučetu. Zahteva `M22/mailbox-access/GRANT` (Vlasnik/Direktor).
 
 **Zahtev:**
+
 ```json
 { "userId": "u-marko-1", "accessLevel": "REPLY" }
 ```
@@ -72,6 +113,7 @@ Lista niti, ograničena isključivo na sandučad za koja pozivalac ima bilo koji
 Odgovor uključuje `mailbox: { address, displayName }` (dodato M17 Faza 7/16.8.2026) — čisto proširenje payload-a već autorizovanog upita, bez potrebe za širom `M22/mailbox/VIEW` dozvolom: pozivalac već ima `MailboxAccess` na svako sanduče koje vidi u ovoj listi.
 
 **Odgovor `200`:**
+
 ```json
 [
   {
@@ -92,6 +134,7 @@ Odgovor uključuje `mailbox: { address, displayName }` (dodato M17 Faza 7/16.8.2
 Detalj niti sa svim porukama, hronološki. Zahteva `M22/email-thread/VIEW` + `MailboxAccess` (bilo koji nivo) na sanduče niti. Odgovor uključuje isto `mailbox: { address, displayName }` polje.
 
 **Odgovor `200`:**
+
 ```json
 {
   "id": "t-1",
@@ -129,18 +172,28 @@ Detalj niti sa svim porukama, hronološki. Zahteva `M22/email-thread/VIEW` + `Ma
 Kreira STAFF poruku (ljudski, autentikovan poziv) — nikad AI_DRAFT. Zahteva `M22/email-thread/REPLY` + `MailboxAccess(REPLY)`. Sa `send: true`, poruka se odmah šalje (`sentBy` popunjeno, provajder adapter pozvan); bez toga ostaje nacrt.
 
 **Zahtev (nacrt):**
+
 ```json
 { "body": "Poštovani, termin u avgustu je slobodan." }
 ```
 
 **Zahtev (odmah pošalji):**
+
 ```json
 { "body": "Poštovani, termin u avgustu je slobodan.", "send": true }
 ```
 
 **Odgovor `201`:**
+
 ```json
-{ "id": "m-3", "threadId": "t-1", "direction": "OUTBOUND", "senderType": "STAFF", "body": "Poštovani, termin u avgustu je slobodan.", "sentBy": "u-marko-1" }
+{
+  "id": "m-3",
+  "threadId": "t-1",
+  "direction": "OUTBOUND",
+  "senderType": "STAFF",
+  "body": "Poštovani, termin u avgustu je slobodan.",
+  "sentBy": "u-marko-1"
+}
 ```
 
 ### POST /email/threads/:id/messages/:messageId/send
@@ -150,6 +203,7 @@ Kreira STAFF poruku (ljudski, autentikovan poziv) — nikad AI_DRAFT. Zahteva `M
 **Zahtev:** prazno telo `{}`.
 
 **Odgovor `201`:**
+
 ```json
 { "id": "m-2", "sentBy": "u-marko-1", "providerMessageId": "mock-3f2a..." }
 ```
@@ -159,6 +213,7 @@ Kreira STAFF poruku (ljudski, autentikovan poziv) — nikad AI_DRAFT. Zahteva `M
 Vezuje nit za M5 rezervaciju (`EmailThread.relatedBookingId`). Zahteva `REPLY`.
 
 **Zahtev:**
+
 ```json
 { "bookingId": "b-1" }
 ```
@@ -168,6 +223,7 @@ Vezuje nit za M5 rezervaciju (`EmailThread.relatedBookingId`). Zahteva `REPLY`.
 Vezuje nit za M5 `SupplierManifest` ili `SupplierChangeNotice` — ISKLJUČIVO upisuje weak-ref polje na niti, nikad ne dotiče M5 status potvrde dobavljača (ta odluka ostaje isključivo `M5/supplier-confirmation/CONFIRM`, ljudski klik u M5). Zahteva `REPLY`.
 
 **Zahtev:**
+
 ```json
 { "announcementType": "SUPPLIER_MANIFEST", "announcementId": "sm-1" }
 ```
@@ -179,10 +235,16 @@ Konvertuje nit u M14 tiket (`channel: "EMAIL"`, `sourceEmailThreadId` popunjeno,
 **Zahtev:** prazno telo `{}`.
 
 **Odgovor `201`:**
+
 ```json
 {
   "thread": { "id": "t-1", "convertedToTicketId": "tk-1" },
-  "ticket": { "id": "tk-1", "ticketNumber": "HD-2026-000042", "channel": "EMAIL", "sourceEmailThreadId": "t-1" }
+  "ticket": {
+    "id": "tk-1",
+    "ticketNumber": "HD-2026-000042",
+    "channel": "EMAIL",
+    "sourceEmailThreadId": "t-1"
+  }
 }
 ```
 

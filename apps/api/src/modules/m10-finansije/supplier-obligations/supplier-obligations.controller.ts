@@ -18,7 +18,10 @@ export class SupplierObligationsController {
 
   @Get()
   @RequirePermission('M10', 'supplier-obligation', 'VIEW')
-  findAll(@Query('supplierId') supplierId: string | undefined, @Query('status') status: string | undefined) {
+  findAll(
+    @Query('supplierId') supplierId: string | undefined,
+    @Query('status') status: string | undefined,
+  ) {
     return this.supplierObligations.findAll({ supplierId, status });
   }
 
@@ -36,7 +39,11 @@ export class SupplierObligationsController {
 
   @Post(':id/pay')
   @RequirePermission('M10', 'supplier-obligation', 'APPROVE')
-  pay(@Param('id') id: string, @Body() dto: PaySupplierObligationDto, @CurrentUser() actor: { userId: string }) {
+  pay(
+    @Param('id') id: string,
+    @Body() dto: PaySupplierObligationDto,
+    @CurrentUser() actor: { userId: string },
+  ) {
     return this.supplierObligations.pay(id, dto, actor);
   }
 }

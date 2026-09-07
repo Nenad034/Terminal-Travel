@@ -19,7 +19,10 @@ export class SupplierInvoiceImportsService {
   }
 
   async findOne(id: string) {
-    const record = await this.prisma.supplierInvoiceImport.findUnique({ where: { id }, include: { rows: true } });
+    const record = await this.prisma.supplierInvoiceImport.findUnique({
+      where: { id },
+      include: { rows: true },
+    });
     if (!record) throw new NotFoundException(`SupplierInvoiceImport ${id} nije pronađen.`);
     return record;
   }
@@ -30,7 +33,13 @@ export class SupplierInvoiceImportsService {
   // predlaže mapiranje preko findBestSupplierObligationMatch (matching.ts, §8.6.3), već testirano.
   async create(dto: CreateSupplierInvoiceImportDto, actor: { userId: string }) {
     const record = await this.prisma.supplierInvoiceImport.create({
-      data: { supplierId: dto.supplierId, sourceFileUrl: dto.sourceFileUrl, sourceFormat: dto.sourceFormat, status: 'PROCESSING', createdBy: actor.userId },
+      data: {
+        supplierId: dto.supplierId,
+        sourceFileUrl: dto.sourceFileUrl,
+        sourceFormat: dto.sourceFormat,
+        status: 'PROCESSING',
+        createdBy: actor.userId,
+      },
     });
     await this.auditLog.write({
       actorType: 'HUMAN',
@@ -46,7 +55,12 @@ export class SupplierInvoiceImportsService {
 
   // §8.6.4 — upis potvrđenog reda u SupplierObligation.invoice_reference, uz eventualnu korekciju
   // iznosa i ponovni izračun kursa na dan prijema fakture; nivo "Predloži pa čovek odobri".
-  async confirmRow(importId: string, rowId: string, dto: ConfirmSupplierInvoiceRowDto, actor: { userId: string }) {
+  async confirmRow(
+    importId: string,
+    rowId: string,
+    dto: ConfirmSupplierInvoiceRowDto,
+    actor: { userId: string },
+  ) {
     const row = await this.prisma.supplierInvoiceImportRow.findUnique({ where: { id: rowId } });
     if (!row || row.supplierInvoiceImportId !== importId) {
       throw new NotFoundException(`Red ${rowId} ne pripada uvozu ${importId}.`);
@@ -54,17 +68,28 @@ export class SupplierInvoiceImportsService {
 
     const targetObligationId = dto.matchedSupplierObligationId ?? row.matchedSupplierObligationId;
     if (!targetObligationId) {
-      throw new BadRequestException('Red nema matched_supplier_obligation_id — potreban je predlog ili ručno zadat cilj (M10 spec §8.6.3/§8.6.4).');
+      throw new BadRequestException(
+        'Red nema matched_supplier_obligation_id — potreban je predlog ili ručno zadat cilj (M10 spec §8.6.3/§8.6.4).',
+      );
     }
 
-    const obligation = await this.prisma.supplierObligation.findUnique({ where: { id: targetObligationId } });
-    if (!obligation) throw new NotFoundException(`SupplierObligation ${targetObligationId} nije pronađena.`);
+    const obligation = await this.prisma.supplierObligation.findUnique({
+      where: { id: targetObligationId },
+    });
+    if (!obligation)
+      throw new NotFoundException(`SupplierObligation ${targetObligationId} nije pronađena.`);
 
     const finalAmount = dto.correctedAmount ?? row.extractedAmount;
-    const rateAtInvoice = obligation.currencyOriginal !== 'RSD'
-      ? await this.exchangeRates.findForCurrencyOnOrBefore(obligation.currencyOriginal, new Date())
-      : null;
-    const amountRsdAtInvoice = rateAtInvoice ? Math.round(finalAmount * Number(rateAtInvoice.nbsMiddleRate)) : finalAmount;
+    const rateAtInvoice =
+      obligation.currencyOriginal !== 'RSD'
+        ? await this.exchangeRates.findForCurrencyOnOrBefore(
+            obligation.currencyOriginal,
+            new Date(),
+          )
+        : null;
+    const amountRsdAtInvoice = rateAtInvoice
+      ? Math.round(finalAmount * Number(rateAtInvoice.nbsMiddleRate))
+      : finalAmount;
 
     const updatedObligation = await this.prisma.supplierObligation.update({
       where: { id: targetObligationId },
@@ -76,7 +101,9 @@ export class SupplierInvoiceImportsService {
       },
     });
 
-    const isManual = dto.matchedSupplierObligationId != null && dto.matchedSupplierObligationId !== row.matchedSupplierObligationId;
+    const isManual =
+      dto.matchedSupplierObligationId != null &&
+      dto.matchedSupplierObligationId !== row.matchedSupplierObligationId;
     const updatedRow = await this.prisma.supplierInvoiceImportRow.update({
       where: { id: rowId },
       data: {
@@ -126,7 +153,10 @@ export class SupplierInvoiceImportsService {
       where: { supplierInvoiceImportId: importId, reviewStatus: 'PENDING' },
     });
     if (pending === 0) {
-      await this.prisma.supplierInvoiceImport.update({ where: { id: importId }, data: { status: 'COMPLETED' } });
+      await this.prisma.supplierInvoiceImport.update({
+        where: { id: importId },
+        data: { status: 'COMPLETED' },
+      });
     }
   }
 }

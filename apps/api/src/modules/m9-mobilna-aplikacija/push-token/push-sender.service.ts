@@ -26,7 +26,11 @@ export class PushSenderService implements OnModuleInit {
     // na istoj turi, ako je relevantno timski" — "relevantno" = drugi vodič dodeljen na
     // istu rezervaciju preko BookingItem.assigned_guide_id).
     this.eventListener.on('M9', 'field_incident.urgent', async (payload) => {
-      await this.onFieldIncidentUrgent(payload.bookingId as string, payload.guideId as string, payload.note as string);
+      await this.onFieldIncidentUrgent(
+        payload.bookingId as string,
+        payload.guideId as string,
+        payload.note as string,
+      );
     });
 
     // M19 spec §3 — "mobilni klijent dodatno šalje push notifikaciju kroz mehanizam koji M9 već
@@ -45,29 +49,47 @@ export class PushSenderService implements OnModuleInit {
     const booking = await this.prisma.booking.findUnique({ where: { id: bookingId } });
     if (!booking) return;
 
-    const user = await this.prisma.user.findFirst({ where: { linkedProfileId: booking.clientAccountId, pushToken: { not: null } } });
+    const user = await this.prisma.user.findFirst({
+      where: { linkedProfileId: booking.clientAccountId, pushToken: { not: null } },
+    });
     if (!user?.pushToken) return;
 
-    await this.send(user.pushToken, 'Rezervacija potvrđena', `Vaša rezervacija ${bookingNumber} je potvrđena.`);
+    await this.send(
+      user.pushToken,
+      'Rezervacija potvrđena',
+      `Vaša rezervacija ${bookingNumber} je potvrđena.`,
+    );
   }
 
-  private async onFieldIncidentUrgent(bookingId: string, reportingGuideId: string, note: string): Promise<void> {
+  private async onFieldIncidentUrgent(
+    bookingId: string,
+    reportingGuideId: string,
+    note: string,
+  ): Promise<void> {
     const otherItems = await this.prisma.bookingItem.findMany({
       where: { bookingId, assignedGuideId: { not: null } },
       select: { assignedGuideId: true },
       distinct: ['assignedGuideId'],
     });
-    const colleagueIds = [...new Set(otherItems.map((i) => i.assignedGuideId!).filter((id) => id !== reportingGuideId))];
+    const colleagueIds = [
+      ...new Set(otherItems.map((i) => i.assignedGuideId!).filter((id) => id !== reportingGuideId)),
+    ];
     if (!colleagueIds.length) return;
 
-    const colleagues = await this.prisma.user.findMany({ where: { id: { in: colleagueIds }, pushToken: { not: null } } });
+    const colleagues = await this.prisma.user.findMany({
+      where: { id: { in: colleagueIds }, pushToken: { not: null } },
+    });
     for (const colleague of colleagues) {
       if (!colleague.pushToken) continue;
       await this.send(colleague.pushToken, 'Hitna beleška na vašoj turi', note);
     }
   }
 
-  private async onChatMessageRecipientOffline(recipientUserId: string, senderName: string, bodyPreview: string): Promise<void> {
+  private async onChatMessageRecipientOffline(
+    recipientUserId: string,
+    senderName: string,
+    bodyPreview: string,
+  ): Promise<void> {
     const user = await this.prisma.user.findUnique({ where: { id: recipientUserId } });
     if (!user?.pushToken) return;
     await this.send(user.pushToken, senderName, bodyPreview);

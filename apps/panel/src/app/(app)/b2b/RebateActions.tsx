@@ -12,7 +12,13 @@ const initialState: FormState = { error: null };
 // registar (seed.ts) klasifikuje commission_rebate.apply kao PROPOSE_THEN_APPROVE — ova dugmad
 // su namerno sopstvena forma, ne deo nijedne druge radnje/toka (isti princip kao M10
 // "Potvrdi i pošalji fakturu").
-export default function RebateActions({ subagentId, rebateId }: { subagentId: string; rebateId: string }) {
+export default function RebateActions({
+  subagentId,
+  rebateId,
+}: {
+  subagentId: string;
+  rebateId: string;
+}) {
   const [showReject, setShowReject] = useState(false);
   const boundApprove = approveRebate.bind(null, subagentId, rebateId);
   const boundReject = rejectRebate.bind(null, subagentId, rebateId);

@@ -18,7 +18,10 @@ export class GuestProfilesController {
 
   @Get()
   @RequirePermission('M6', 'guest-profile', 'VIEW')
-  findMany(@Query('linkedClientAccountId') linkedClientAccountId: string | undefined, @CurrentUser() actor: { userId: string }) {
+  findMany(
+    @Query('linkedClientAccountId') linkedClientAccountId: string | undefined,
+    @CurrentUser() actor: { userId: string },
+  ) {
     return this.guestProfiles.findMany({ linkedClientAccountId }, actor.userId);
   }
 
@@ -42,7 +45,11 @@ export class GuestProfilesController {
 
   @Patch(':id')
   @RequirePermission('M6', 'guest-profile', 'EDIT')
-  update(@Param('id') id: string, @Body() dto: UpdateGuestProfileDto, @CurrentUser() actor: { userId: string }) {
+  update(
+    @Param('id') id: string,
+    @Body() dto: UpdateGuestProfileDto,
+    @CurrentUser() actor: { userId: string },
+  ) {
     return this.guestProfiles.update(id, dto, actor.userId);
   }
 }

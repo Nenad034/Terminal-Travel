@@ -20,14 +20,21 @@ export class PostTripSurveysService {
   async findMany(filter: { bookingId?: string; status?: string }, actorUserId?: string) {
     let scopedToOwnBooking = false;
     if (actorUserId) {
-      const hasViewAll = await this.permissions.hasPermission(actorUserId, 'M6', 'post-trip-survey', 'VIEW_ALL');
+      const hasViewAll = await this.permissions.hasPermission(
+        actorUserId,
+        'M6',
+        'post-trip-survey',
+        'VIEW_ALL',
+      );
       scopedToOwnBooking = !hasViewAll;
     }
     return this.prisma.postTripSurvey.findMany({
       where: {
         bookingId: filter.bookingId,
         status: filter.status as any,
-        booking: scopedToOwnBooking ? { OR: [{ ownerId: actorUserId }, { assignedToId: actorUserId }] } : undefined,
+        booking: scopedToOwnBooking
+          ? { OR: [{ ownerId: actorUserId }, { assignedToId: actorUserId }] }
+          : undefined,
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -102,7 +109,9 @@ export class PostTripSurveysService {
     for (const survey of due) {
       // clientAccountId je slaba referenca (bez DB FK, vidi napomenu u schema.prisma) — čita se
       // uživo, izostanak ClientAccount zapisa tretira se kao "nema saglasnosti".
-      const account = await this.prisma.clientAccount.findUnique({ where: { id: survey.clientAccountId } });
+      const account = await this.prisma.clientAccount.findUnique({
+        where: { id: survey.clientAccountId },
+      });
       if (account?.marketingConsent) {
         await this.prisma.postTripSurvey.update({
           where: { id: survey.id },

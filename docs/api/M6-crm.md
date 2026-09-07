@@ -14,6 +14,7 @@
 Lista, filtrirano po `email`/`taxId`.
 
 **Odgovor `200`:**
+
 ```json
 [
   {
@@ -27,6 +28,7 @@ Lista, filtrirano po `email`/`taxId`.
   }
 ]
 ```
+
 Dozvola: `M6/client-account/VIEW`.
 
 ### GET /crm/client-accounts/:id/travel-history
@@ -34,18 +36,34 @@ Dozvola: `M6/client-account/VIEW`.
 Spaja M5 `Booking`/`BookingItem` uživo (§5) — bez sopstvene kopije u M6.
 
 **Odgovor `200`:**
+
 ```json
 [
-  { "id": "booking-9", "bookingNumber": "TT-2027-0009", "status": "COMPLETED", "totalPrice": 100000, "currency": "EUR", "items": [ { "id": "item-1", "product": { "id": "prod-1" } } ] }
+  {
+    "id": "booking-9",
+    "bookingNumber": "TT-2027-0009",
+    "status": "COMPLETED",
+    "totalPrice": 100000,
+    "currency": "EUR",
+    "items": [{ "id": "item-1", "product": { "id": "prod-1" } }]
+  }
 ]
 ```
 
 ### POST /crm/client-accounts
 
 **Zahtev:**
+
 ```json
-{ "accountType": "INDIVIDUAL", "fullName": "Petar Petrović", "email": "petar@example.com", "marketingConsent": true, "tags": ["VIP"] }
+{
+  "accountType": "INDIVIDUAL",
+  "fullName": "Petar Petrović",
+  "email": "petar@example.com",
+  "marketingConsent": true,
+  "tags": ["VIP"]
+}
 ```
+
 **Odgovor `201`:** isti oblik kao GET stavka. Dozvola: `M6/client-account/CREATE`.
 
 ### PATCH /crm/client-accounts/:id
@@ -61,6 +79,7 @@ Sva polja opciona. Dozvola: `M6/client-account/EDIT`.
 Isti obrazac kao nalogodavci. Dozvola: `M6/guest-profile/VIEW`/`CREATE`/`EDIT`.
 
 **Zahtev POST:**
+
 ```json
 {
   "fullName": "Ana Anić",
@@ -83,11 +102,21 @@ Spaja preko `BookingItemGuest.guest_profile_id` (§5).
 ### GET /crm/loyalty-tiers / POST /crm/loyalty-tiers / PATCH /crm/loyalty-tiers/:id
 
 **Odgovor GET `200`:**
+
 ```json
 [
-  { "id": "tier-gold", "name": "Zlatni", "rank": 3, "qualificationMetric": "TOTAL_SPEND_RSD", "qualificationPeriod": "ROLLING_12_MONTHS", "threshold": "200000", "discountPercentage": "10" }
+  {
+    "id": "tier-gold",
+    "name": "Zlatni",
+    "rank": 3,
+    "qualificationMetric": "TOTAL_SPEND_RSD",
+    "qualificationPeriod": "ROLLING_12_MONTHS",
+    "threshold": "200000",
+    "discountPercentage": "10"
+  }
 ]
 ```
+
 Dozvola: `VIEW` svima iz §7; `POST`/`PATCH` samo Vlasnik/Direktor (`M6/loyalty-tier/EDIT`).
 
 ### GET /crm/loyalty-status/:clientAccountId
@@ -95,6 +124,7 @@ Dozvola: `VIEW` svima iz §7; `POST`/`PATCH` samo Vlasnik/Direktor (`M6/loyalty-
 Trenutni nivo i popust — ovo poziva M5 pri kreiranju Ponude (§3.3).
 
 **Odgovor `200`:**
+
 ```json
 {
   "clientAccountId": "ca-1",
@@ -109,9 +139,11 @@ Trenutni nivo i popust — ovo poziva M5 pri kreiranju Ponude (§3.3).
 ### POST /crm/loyalty-status/:clientAccountId/override
 
 **Zahtev:**
+
 ```json
 { "tierId": "tier-platinum", "reason": "VIP gost, dogovor sa vlasnikom" }
 ```
+
 **Odgovor `201`:** `ClientLoyaltyStatus` sa popunjenim `manualOverrideTierId`/`manualOverrideReason`/`manualOverrideBy`. Dozvola: `M6/loyalty-status/OVERRIDE` (Vlasnik, Direktor).
 
 ---
@@ -125,13 +157,30 @@ Filtrirano po `clientAccountId`/`guestProfileId`.
 ### POST /crm/communication-log
 
 **Zahtev (ljudski unos, npr. sažetak telefonskog poziva):**
+
 ```json
-{ "clientAccountId": "ca-1", "channel": "PHONE", "direction": "OUTBOUND", "summary": "Gost pitao za termin poletanja.", "draftedByAi": false, "sentBy": "user-3" }
+{
+  "clientAccountId": "ca-1",
+  "channel": "PHONE",
+  "direction": "OUTBOUND",
+  "summary": "Gost pitao za termin poletanja.",
+  "draftedByAi": false,
+  "sentBy": "user-3"
+}
 ```
+
 **Zahtev (AI nacrt — `sentBy` se ignoriše, uvek ostaje `null` pri kreiranju):**
+
 ```json
-{ "clientAccountId": "ca-1", "channel": "EMAIL", "direction": "OUTBOUND", "summary": "Cena aranžmana je 500 EUR — nacrt za pregled.", "draftedByAi": true }
+{
+  "clientAccountId": "ca-1",
+  "channel": "EMAIL",
+  "direction": "OUTBOUND",
+  "summary": "Cena aranžmana je 500 EUR — nacrt za pregled.",
+  "draftedByAi": true
+}
 ```
+
 **Odgovor `201`:** `{ "id": "log-1", ..., "sentBy": null }`
 
 ### POST /crm/communication-log/:id/mark-sent
@@ -148,29 +197,46 @@ Jedini put kroz koji AI nacrt dobija `sent_by` (§4.1) — isključivo ljudski n
 
 Interni uvid, filtrirano po `bookingId`/`status`. Dozvola: `M6/post-trip-survey/VIEW`.
 
-### GET /crm/post-trip-surveys/:token *(javno, bez autentikacije)*
+### GET /crm/post-trip-surveys/:token _(javno, bez autentikacije)_
 
 **Odgovor `200`:**
+
 ```json
-{ "id": "survey-1", "bookingId": "booking-9", "status": "SENT", "accessToken": "…", "scheduledSendAt": "2027-06-19T10:00:00.000Z" }
+{
+  "id": "survey-1",
+  "bookingId": "booking-9",
+  "status": "SENT",
+  "accessToken": "…",
+  "scheduledSendAt": "2027-06-19T10:00:00.000Z"
+}
 ```
 
-### POST /crm/post-trip-surveys/:token/submit *(javno)*
+### POST /crm/post-trip-surveys/:token/submit _(javno)_
 
 **Zahtev:**
+
 ```json
 { "overallRating": 5, "responses": { "comment": "Odlično iskustvo!" } }
 ```
+
 **Odgovor `201`:**
+
 ```json
-{ "id": "survey-1", "status": "COMPLETED", "overallRating": 5, "wantsGoogleReview": true, "completedAt": "2027-06-19T11:00:00.000Z" }
+{
+  "id": "survey-1",
+  "status": "COMPLETED",
+  "overallRating": 5,
+  "wantsGoogleReview": true,
+  "completedAt": "2027-06-19T11:00:00.000Z"
+}
 ```
 
-### POST /crm/post-trip-surveys/:token/google-review-click *(javno)*
+### POST /crm/post-trip-surveys/:token/google-review-click _(javno)_
 
 Beleži `google_review_clicked_at` pre redirekta na Google link.
 
 **Odgovor `201`:**
+
 ```json
 { "googleReviewUrl": "https://g.page/r/terminal-travel/review" }
 ```

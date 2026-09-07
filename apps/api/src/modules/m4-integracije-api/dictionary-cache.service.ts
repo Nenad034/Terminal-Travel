@@ -32,8 +32,16 @@ export class DictionaryCacheService {
     return entry.value as T;
   }
 
-  set(providerCode: string, dictionaryName: string, value: unknown, ttlMs: number = DEFAULT_TTL_MS): void {
-    this.store.set(this.key(providerCode, dictionaryName), { value, expiresAt: Date.now() + ttlMs });
+  set(
+    providerCode: string,
+    dictionaryName: string,
+    value: unknown,
+    ttlMs: number = DEFAULT_TTL_MS,
+  ): void {
+    this.store.set(this.key(providerCode, dictionaryName), {
+      value,
+      expiresAt: Date.now() + ttlMs,
+    });
   }
 
   /** Vraća keširanu vrednost ako postoji, inače poziva `fetcher` i keš je popunjava. */

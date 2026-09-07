@@ -13,10 +13,14 @@ import FieldInline from './FieldInline';
 // filter" (`izvestaji/page.tsx` ostaje server komponenta). Država i destinacija dele stanje u
 // OVOM komponenti (ne dva odvojena fajla) jer `GET /sales/search/destinations` zahteva `country`
 // — bez toga predlog destinacija nema odakle da krene.
-const inputClassName = 'w-full min-w-0 bg-transparent text-xs text-ink outline-none placeholder:text-ink-faint';
+const inputClassName =
+  'w-full min-w-0 bg-transparent text-xs text-ink outline-none placeholder:text-ink-faint';
 
 async function suggestCountries(q: string): Promise<Suggestion[]> {
-  const res = await fetch(`/api/search-suggest?kind=countries${q ? `&q=${encodeURIComponent(q)}` : ''}`, { cache: 'no-store' });
+  const res = await fetch(
+    `/api/search-suggest?kind=countries${q ? `&q=${encodeURIComponent(q)}` : ''}`,
+    { cache: 'no-store' },
+  );
   if (!res.ok) return [];
   const rows = (await res.json()) as { country: string; count: number }[];
   return rows.map((r) => ({ value: r.country, label: r.country, hint: `${r.count}` }));
@@ -32,7 +36,13 @@ async function suggestDestinations(country: string, q: string): Promise<Suggesti
   return rows.map((r) => ({ value: r.city, label: r.city, hint: r.country }));
 }
 
-export default function FilterLocationFields({ initialCountry, initialCity }: { initialCountry: string; initialCity: string }) {
+export default function FilterLocationFields({
+  initialCountry,
+  initialCity,
+}: {
+  initialCountry: string;
+  initialCity: string;
+}) {
   const [country, setCountry] = useState(initialCountry);
   const [city, setCity] = useState(initialCity);
 

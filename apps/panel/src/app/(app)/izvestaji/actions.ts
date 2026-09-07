@@ -20,7 +20,9 @@ export async function runReconciliation(_prev: FormState, _formData: FormData): 
   try {
     await apiFetch('/bi/reconciliation/run', { method: 'POST' });
   } catch (err) {
-    return { error: err instanceof ApiError ? extractMessage(err) : 'Rekonsilijacija nije uspela.' };
+    return {
+      error: err instanceof ApiError ? extractMessage(err) : 'Rekonsilijacija nije uspela.',
+    };
   }
   revalidatePath('/izvestaji');
   return { error: null };

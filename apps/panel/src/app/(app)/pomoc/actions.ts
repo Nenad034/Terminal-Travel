@@ -34,7 +34,9 @@ export async function createArticle(_prev: FormState, formData: FormData): Promi
       },
     });
   } catch (err) {
-    return { error: err instanceof ApiError ? extractMessage(err) : 'Kreiranje članka nije uspelo.' };
+    return {
+      error: err instanceof ApiError ? extractMessage(err) : 'Kreiranje članka nije uspelo.',
+    };
   }
   revalidatePath('/pomoc');
   redirect(`/pomoc/${article.id}`);
@@ -42,7 +44,11 @@ export async function createArticle(_prev: FormState, formData: FormData): Promi
 
 // M21 spec §6 — PATCH /help/articles/:id, prelazak statusa BEZ objave (DRAFT/PENDING_APPROVAL/
 // ARCHIVED — objava ide isključivo kroz publishArticle ispod, poseban PUBLISH gate).
-export async function updateArticleStatus(id: string, _prev: FormState, formData: FormData): Promise<FormState> {
+export async function updateArticleStatus(
+  id: string,
+  _prev: FormState,
+  formData: FormData,
+): Promise<FormState> {
   try {
     await apiFetch(`/help/articles/${id}`, {
       method: 'PATCH',
@@ -59,7 +65,11 @@ export async function updateArticleStatus(id: string, _prev: FormState, formData
 // M21 spec §2.1/§6 — PATCH /help/articles/:id sa status=PUBLISHED. Zahteva PUBLISH dozvolu
 // (Direktor/Vlasnik, §3/§8) i backend automatski popunjava approved_by — nikad se ne šalje
 // kroz telo, nikad AI. Nepovratna granica, sopstveno dugme (isti princip kao M12 approveContent).
-export async function publishArticle(id: string, _prev: FormState, _formData: FormData): Promise<FormState> {
+export async function publishArticle(
+  id: string,
+  _prev: FormState,
+  _formData: FormData,
+): Promise<FormState> {
   try {
     await apiFetch(`/help/articles/${id}`, { method: 'PATCH', body: { status: 'PUBLISHED' } });
   } catch (err) {
@@ -71,7 +81,11 @@ export async function publishArticle(id: string, _prev: FormState, _formData: Fo
 }
 
 // M21 spec §2.2/§6 — PUT /help/articles/:id/translations, isti obrazac kao M2/M12 prevodi.
-export async function upsertArticleTranslation(id: string, _prev: FormState, formData: FormData): Promise<FormState> {
+export async function upsertArticleTranslation(
+  id: string,
+  _prev: FormState,
+  formData: FormData,
+): Promise<FormState> {
   try {
     await apiFetch(`/help/articles/${id}/translations`, {
       method: 'PUT',
@@ -82,7 +96,9 @@ export async function upsertArticleTranslation(id: string, _prev: FormState, for
       },
     });
   } catch (err) {
-    return { error: err instanceof ApiError ? extractMessage(err) : 'Čuvanje prevoda nije uspelo.' };
+    return {
+      error: err instanceof ApiError ? extractMessage(err) : 'Čuvanje prevoda nije uspelo.',
+    };
   }
   revalidatePath(`/pomoc/${id}`);
   return { error: null };
@@ -90,12 +106,19 @@ export async function upsertArticleTranslation(id: string, _prev: FormState, for
 
 // M21 spec §5.4/§6 — PATCH /help/suggestions/:id. APPROVE kreira HelpArticle(PENDING_APPROVAL)
 // koji i dalje čeka sopstveni korak objavljivanja (publishArticle iznad) — dva odvojena koraka.
-export async function reviewSuggestion(id: string, decision: 'APPROVE' | 'REJECT', _prev: FormState, _formData: FormData): Promise<FormState> {
+export async function reviewSuggestion(
+  id: string,
+  decision: 'APPROVE' | 'REJECT',
+  _prev: FormState,
+  _formData: FormData,
+): Promise<FormState> {
   let result: { createdArticle: { id: string } | null };
   try {
     result = await apiFetch(`/help/suggestions/${id}`, { method: 'PATCH', body: { decision } });
   } catch (err) {
-    return { error: err instanceof ApiError ? extractMessage(err) : 'Obrada predloga nije uspela.' };
+    return {
+      error: err instanceof ApiError ? extractMessage(err) : 'Obrada predloga nije uspela.',
+    };
   }
   revalidatePath('/pomoc/predlozi');
   if (result.createdArticle) {

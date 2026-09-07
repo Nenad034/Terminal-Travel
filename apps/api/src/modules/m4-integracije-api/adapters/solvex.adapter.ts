@@ -11,7 +11,14 @@ import {
   StayParams,
 } from '../provider-adapter.interface';
 import { DictionaryCacheService } from '../dictionary-cache.service';
-import { buildSoapEnvelope, extractDiffgramRows, extractStarRating, firstDefined, parseSoapResponse, soapActionHeader } from './solvex.soap';
+import {
+  buildSoapEnvelope,
+  extractDiffgramRows,
+  extractStarRating,
+  firstDefined,
+  parseSoapResponse,
+  soapActionHeader,
+} from './solvex.soap';
 
 /**
  * M4 spec §5a — Solvex (Master-Interlook), jedino mesto u sistemu koje govori SOAP.
@@ -42,13 +49,19 @@ export class SolvexAdapter implements ProviderAdapter {
     try {
       res = await this.fetchFn(this.endpoint, {
         method: 'POST',
-        headers: { 'Content-Type': 'text/xml; charset=utf-8', SOAPAction: soapActionHeader(method) },
+        headers: {
+          'Content-Type': 'text/xml; charset=utf-8',
+          SOAPAction: soapActionHeader(method),
+        },
         body: xml,
         signal: controller.signal,
       });
     } catch (err) {
       if ((err as Error).name === 'AbortError') {
-        throw new ProviderError('TIMEOUT', `Solvex poziv ${method} nije odgovorio u ${this.timeoutMs}ms`);
+        throw new ProviderError(
+          'TIMEOUT',
+          `Solvex poziv ${method} nije odgovorio u ${this.timeoutMs}ms`,
+        );
       }
       throw new ProviderError('PROVIDER_UNAVAILABLE', (err as Error).message);
     } finally {
@@ -68,15 +81,25 @@ export class SolvexAdapter implements ProviderAdapter {
 
   /** M4 spec §5a, korak 1 — Connect(login, password) → GUID. */
   private async connect(): Promise<string> {
-    const result = await this.rawSoapCall('Connect', { login: this.login, password: this.password });
+    const result = await this.rawSoapCall('Connect', {
+      login: this.login,
+      password: this.password,
+    });
     if (typeof result !== 'string' || /invalid/i.test(result)) {
-      throw new ProviderError('AUTH_FAILED', typeof result === 'string' ? result : 'Solvex Connect nije vratio GUID');
+      throw new ProviderError(
+        'AUTH_FAILED',
+        typeof result === 'string' ? result : 'Solvex Connect nije vratio GUID',
+      );
     }
     return result;
   }
 
   /** Poziva metodu sa važećim GUID-om; na "invalid"-stil odgovor jednom reaktivno osvežava token i ponavlja (§2.2). */
-  private async authedCall(method: string, params: Record<string, unknown>, allowRetry = true): Promise<unknown> {
+  private async authedCall(
+    method: string,
+    params: Record<string, unknown>,
+    allowRetry = true,
+  ): Promise<unknown> {
     if (!this.token) this.token = await this.connect();
 
     const result = await this.rawSoapCall(method, { GUID: this.token, ...params });
@@ -102,7 +125,9 @@ export class SolvexAdapter implements ProviderAdapter {
     if (params.destinationCity) {
       const cities = await this.getCities();
       const match = cities.find(
-        (c) => String(firstDefined(c, 'Name') ?? '').toLowerCase() === params.destinationCity!.toLowerCase(),
+        (c) =>
+          String(firstDefined(c, 'Name') ?? '').toLowerCase() ===
+          params.destinationCity!.toLowerCase(),
       );
       if (match) cityKeys = [Number(firstDefined(match, 'ID', 'Id'))];
     }
@@ -136,7 +161,8 @@ export class SolvexAdapter implements ProviderAdapter {
         currency: String(firstDefined(row, 'Currency') ?? 'EUR'),
         thumbnailUrl: null,
         starRating: extractStarRating(name),
-        quotaStatus: quotaTypeRaw === 2 ? 'STOP_SALES' : quotaTypeRaw === 0 ? 'ON_REQUEST' : 'AVAILABLE',
+        quotaStatus:
+          quotaTypeRaw === 2 ? 'STOP_SALES' : quotaTypeRaw === 0 ? 'ON_REQUEST' : 'AVAILABLE',
       };
     });
   }
@@ -155,11 +181,18 @@ export class SolvexAdapter implements ProviderAdapter {
       destinationCountry: String(firstDefined(hotel, 'CountryName') ?? ''),
       destinationCity: String(firstDefined(hotel, 'CityName') ?? ''),
       media: [],
-      attributes: { stars: extractStarRating(name) ?? extractStarRating(String(firstDefined(hotel, 'Description') ?? '')) },
+      attributes: {
+        stars:
+          extractStarRating(name) ??
+          extractStarRating(String(firstDefined(hotel, 'Description') ?? '')),
+      },
     };
   }
 
-  async checkAvailabilityAndPrice(externalId: string, stay: StayParams): Promise<AvailabilityQuote> {
+  async checkAvailabilityAndPrice(
+    externalId: string,
+    stay: StayParams,
+  ): Promise<AvailabilityQuote> {
     const request = {
       PageSize: 1,
       RowIndexFrom: 0,
@@ -202,9 +235,18 @@ export class SolvexAdapter implements ProviderAdapter {
       const isPercent = Boolean(firstDefined(r, 'IsPercent'));
       const penaltyValue = Number(firstDefined(r, 'PenaltyValue') ?? 0);
       const dateFrom = String(firstDefined(r, 'DateFrom') ?? '');
-      const daysBeforeStay = dateFrom ? Math.max(0, Math.floor((Date.parse(dateFrom) - Date.now()) / 86_400_000)) : 0;
-      const penaltyPercent = isPercent ? penaltyValue : priceAmount > 0 ? Math.round((penaltyValue * 100 * 100) / priceAmount) / 100 : 0;
-      return { days_before_stay: daysBeforeStay, refund_percentage: Math.max(0, Math.min(100, 100 - penaltyPercent)) };
+      const daysBeforeStay = dateFrom
+        ? Math.max(0, Math.floor((Date.parse(dateFrom) - Date.now()) / 86_400_000))
+        : 0;
+      const penaltyPercent = isPercent
+        ? penaltyValue
+        : priceAmount > 0
+          ? Math.round((penaltyValue * 100 * 100) / priceAmount) / 100
+          : 0;
+      return {
+        days_before_stay: daysBeforeStay,
+        refund_percentage: Math.max(0, Math.min(100, 100 - penaltyPercent)),
+      };
     });
   }
 

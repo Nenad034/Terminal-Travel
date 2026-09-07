@@ -8,7 +8,7 @@
 
 ## 1. GetYourGuide (GYG) — konkurentski pravac, informativno
 
-GYG-ov Spring 2026 release cilja **poverenje i konverziju**, ne AI iskustvo na licu mesta: AI-sažeci recenzija, personalizovana pretraga za putnike, i na operatorskoj strani inbox sa AI-predloženim odgovorima i dashboard-ima. Teza izvora: putnici koriste AI da *planiraju*, ne da *rezervišu* aktivnosti — GYG cilja baš tu rupu.
+GYG-ov Spring 2026 release cilja **poverenje i konverziju**, ne AI iskustvo na licu mesta: AI-sažeci recenzija, personalizovana pretraga za putnike, i na operatorskoj strani inbox sa AI-predloženim odgovorima i dashboard-ima. Teza izvora: putnici koriste AI da _planiraju_, ne da _rezervišu_ aktivnosti — GYG cilja baš tu rupu.
 
 Tehnički slojevi: Connectivity API (dostupnost/rezervacije) i Partner API (OpenAPI spec na GitHub-u). Produkcijski pristup zahteva registraciju i **trofaznu sertifikaciju** — realno nedelje pregovora, ne razmena ključeva. Isti obrazac gejta kao Travelfusion/Duffel (M4 backlog) — nema implementacione napomene dok ne postoji potvrđen ugovor/pristup.
 
@@ -20,16 +20,17 @@ Viator ima **hostovan MCP server** (`https://exp-app-mcp.prod.ep.viator.com/mcp`
 
 Alati uključuju: pretragu/poređenje ("uporedi Rim Koloseum skip-the-line iskustva" je demonstrirani primer iz izvora), obogaćene detalje proizvoda (opis, isticanja, slike, cena, trajanje, click-out URL), i MCP App resurs koji prikazuje ponude u interaktivnom UI unutar konverzacije.
 
-**Bitno ograničenje:** MCP sloj je danas *discovery/inspiracija*, ne pun transakcioni pristup — stvarna rezervacija (cene, dostupnost u realnom vremenu, booking) i dalje ide kroz klasičan Partner/Supplier API preko partner portala, ne kroz MCP. Konzistentno sa ranije pomenutom statistikom (17% završava rezervaciju kroz AI, 69% samo istražuje — izvor iz ranijeg istraživanja, nije ovde ponovo proveren).
+**Bitno ograničenje:** MCP sloj je danas _discovery/inspiracija_, ne pun transakcioni pristup — stvarna rezervacija (cene, dostupnost u realnom vremenu, booking) i dalje ide kroz klasičan Partner/Supplier API preko partner portala, ne kroz MCP. Konzistentno sa ranije pomenutom statistikom (17% završava rezervaciju kroz AI, 69% samo istražuje — izvor iz ranijeg istraživanja, nije ovde ponovo proveren).
 
 **Relevantno za TT — dva odvojena pravca, ne mešati:**
 
 a) **Kao dokaz koncepta za M16** (već izgrađen MCP sloj, poglavlje... vidi `tt-m16-mcp-distribucija`) — Viator potvrđuje da veliki OTA igrači idu istim arhitektonskim pravcem (MCP kao spoljni distribucioni kanal). Ne zahteva akciju, samo potvrđuje da je pravac razuman.
 
 b) **Kao mogući dopunski M4 izvor** (ne zamena za sopstveni inventar) — kad gost traži nešto što TT nema u sopstvenom katalogu (M2/M3 direktni ugovori), agent bi mogao da pretraži Viator/GYG i predloži opciju treće strane, sa jasnom oznakom da nije sopstveni proizvod. Ovo je **suštinski nova kategorija ponude** (treća strana, bez sopstvene marže/ugovora, samo posredovanje/afilijacija) — ne uklapa se direktno u postojeći `ProviderAdapter` M4 obrazac (koji pretpostavlja da TT prodaje inventar kao svoj, poglavlje 2 M4 spec). Zahteva:
-   - Odluku da li TT uopšte želi da prodaje/preporučuje tuđi inventar sa click-out (pravno/poslovno pitanje — provizija? odgovornost? YUTA garancija putovanja se odnosi na ono što TT organizuje, ne na click-out kod treće strane — M11 razgraničenje).
-   - Ako da, nov tip u M2 katalogu ili potpuno odvojen prikaz van `Product` modela (jasno obeležen kao "spoljna ponuda", ne sopstveni proizvod).
-   - MCP klijentska strana (TT kao MCP *klijent* ka Viatoru) je nov obrazac — do sada je M16 specificiran kao TT MCP *server* (izlaže se ka spolja), ne kao potrošač tuđeg MCP servera. Ovo zahteva `tt-architecture-core` proveru pre bilo kakve dalje razrade.
+
+- Odluku da li TT uopšte želi da prodaje/preporučuje tuđi inventar sa click-out (pravno/poslovno pitanje — provizija? odgovornost? YUTA garancija putovanja se odnosi na ono što TT organizuje, ne na click-out kod treće strane — M11 razgraničenje).
+- Ako da, nov tip u M2 katalogu ili potpuno odvojen prikaz van `Product` modela (jasno obeležen kao "spoljna ponuda", ne sopstveni proizvod).
+- MCP klijentska strana (TT kao MCP _klijent_ ka Viatoru) je nov obrazac — do sada je M16 specificiran kao TT MCP _server_ (izlaže se ka spolja), ne kao potrošač tuđeg MCP servera. Ovo zahteva `tt-architecture-core` proveru pre bilo kakve dalje razrade.
 
 **Nije prošlo kroz `tt-architecture-core` proveru niti dobilo obim od vlasnika.**
 
@@ -42,6 +43,7 @@ Vlasnik želi da TT gostu sastavlja individualna putovanja iz četiri komponente
 - **Pravna posledica** — kad TT sastavi let+hotel+transfer+izlet kao jednu prodajnu celinu, to vrlo verovatno postaje "paket aranžman" po zakonu → YUTA garancija putovanja (M11) prati isto pravilo kao svaki drugi `PACKAGE` proizvod (M2), bez obzira što komponenta izleta dolazi od spoljnog izvora (Viator). Mehanizam za ovo već postoji u arhitekturi (M2 `PACKAGE`, M11) — treba samo potvrditi da spoljna komponenta ne menja obavezu, ne graditi novi mehanizam.
 
 **Vlasnikova odluka (25.8.2026), oba pitanja postavljena direktno:**
+
 1. **Obim prvog koraka:** Vlasnik bira da **sačeka kompletnu viziju** — ne pokreće se Viator integracija izolovano dok se ne reše i avio/GDS i transfer adapter, da bi se cela "let+hotel+transfer+izlet" funkcija radila odjednom, ne parče po parče. **Praktična posledica:** ova stavka je sada eksplicitno blokirana na dve postojeće otvorene M4 stavke — avio/GDS adapter (izbor standarda, verovatno NDC, vidi M4 backlog Atlas/Travelfusion beleške) i transfer adapter (još nema ni predloga provajdera). Ne raditi Viator deo pre nego što ta dva budu bar specovana.
 2. **Partnerski pristup:** Vlasnik želi **prvo spec na papiru**, ne pokretanje partnerske registracije sa Viator-om. Znači: sledeći korak (kad avio/transfer budu spremni) je dopuna M4 specifikacije (isti obrazac kao MARS/Travelfusion predlozi — predlog → potvrda vlasnika → upis u dokument), NE kontakt sa Viator-om.
 
@@ -62,7 +64,7 @@ Vlasnikova ideja (itinerer → poslat na telefon → GPS/lokacijski trigerovan a
 - **Gde ovo živi u modularnoj mapi** — nije M9 (mobilna aplikacija) u strogom smislu jer M9 već pokriva "aplikacija za goste", ali audio-guide je specifičnija funkcija nad postojećim `Itinerary` (M5) — verovatno dopuna M9 spec-a (nov ekran/mod unutar postojeće aplikacije za goste), ne nov modul. Zahteva `tt-architecture-core` proveru pre nego što se bilo šta upiše u M9 spec.
 - **Da li se sadržaj (audio naracija) generiše AI-jem po itinereru (TTS + generisan tekst) ili je kurirano/ljudski pisano po destinaciji** — prvo zahteva TTS izbor (već otvoreno u M15 poglavlje 6.6 kao delimično rešeno pitanje) i vezuje se na M23 (Znanje) kao izvor sadržaja o destinaciji/atrakciji; drugo je operativni trošak (ko piše/snima) van AI opsega.
 - **GPS/beacon/NFC infrastruktura** — TT ne kontroliše fizičku infrastrukturu lokacija (npr. Koloseum); potrebno je istražiti da li ciljane destinacije/atrakcije već imaju takvu infrastrukturu pre nego što se obećava pouzdano lokacijsko trigerovanje. Fallback ("tapni na mapi") je realniji prvi korak.
-- **Odnos prema M23 (Znanje)** — sadržaj o destinaciji/atrakciji koji bi audio-guide koristio već je predviđen da živi u M23 (baza znanja); audio-guide bi bio nov *kanal potrošnje* tog sadržaja (audio umesto teksta), ne nov izvor sadržaja.
+- **Odnos prema M23 (Znanje)** — sadržaj o destinaciji/atrakciji koji bi audio-guide koristio već je predviđen da živi u M23 (baza znanja); audio-guide bi bio nov _kanal potrošnje_ tog sadržaja (audio umesto teksta), ne nov izvor sadržaja.
 - **Trošak generisanja/serviranja audija** ulazi u M18 budžet kao akcija sa sopstvenim tierom (isto pravilo kao svaka druga AI akcija).
 
 **Nije prošlo kroz `tt-architecture-core` proveru niti dobilo obim od vlasnika — čista beleška da se ideja ne izgubi, po istom obrascu kao ostale stavke u `27-BACKLOG-IDEJA-I-PREDLOZI.md`.**

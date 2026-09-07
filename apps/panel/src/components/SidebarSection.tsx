@@ -43,7 +43,10 @@ export default function SidebarSection({
           </span>
         )}
         <span className="flex-1 truncate text-xs font-medium text-ink">{title}</span>
-        <Icon name={open ? 'chevron-down' : 'chevron-right'} className="flex-shrink-0 text-ink-faint" />
+        <Icon
+          name={open ? 'chevron-down' : 'chevron-right'}
+          className="flex-shrink-0 text-ink-faint"
+        />
       </button>
       {open && <div className={`mt-1.5 ${contentClassName}`}>{children}</div>}
     </div>

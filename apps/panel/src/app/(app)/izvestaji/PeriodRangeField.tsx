@@ -16,7 +16,13 @@ import FieldInline from './FieldInline';
 // forma i dalje ponese pri "primeni filter". Sopstveni `FieldInline` (ne spolja iz `page.tsx`) —
 // isti princip kao `FilterLocationFields.tsx`, providno dugme bez sopstvene ivice/pozadine
 // (`className` override ispod) da se uklopi u zajednički okvir.
-export default function PeriodRangeField({ initialFrom, initialTo }: { initialFrom: string; initialTo: string }) {
+export default function PeriodRangeField({
+  initialFrom,
+  initialTo,
+}: {
+  initialFrom: string;
+  initialTo: string;
+}) {
   const [from, setFrom] = useState(initialFrom);
   const [to, setTo] = useState(initialTo);
 

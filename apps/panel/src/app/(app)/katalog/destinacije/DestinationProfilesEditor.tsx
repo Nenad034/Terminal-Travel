@@ -17,7 +17,15 @@ import { Button } from '@/components/ui/button';
 // checkbox lista (dizajn dok. §6f — mali, poznat skup opcija).
 export type DestinationType = 'COASTAL' | 'MOUNTAIN' | 'URBAN' | 'SPA' | 'LAKE' | 'RURAL';
 export type ActivityTag =
-  | 'CYCLING' | 'HIKING' | 'HUNTING' | 'FISHING' | 'DIVING' | 'SKIING' | 'RAFTING' | 'WILDLIFE_WATCHING' | 'WINE_TASTING';
+  | 'CYCLING'
+  | 'HIKING'
+  | 'HUNTING'
+  | 'FISHING'
+  | 'DIVING'
+  | 'SKIING'
+  | 'RAFTING'
+  | 'WILDLIFE_WATCHING'
+  | 'WINE_TASTING';
 
 export interface DestinationProfile {
   id: string;
@@ -56,7 +64,12 @@ interface Draft {
 }
 
 function emptyDraft(): Draft {
-  return { destinationCountry: '', destinationCity: '', destinationType: 'COASTAL', activities: [] };
+  return {
+    destinationCountry: '',
+    destinationCity: '',
+    destinationType: 'COASTAL',
+    activities: [],
+  };
 }
 
 export default function DestinationProfilesEditor({ initial }: { initial: DestinationProfile[] }) {
@@ -73,7 +86,12 @@ export default function DestinationProfilesEditor({ initial }: { initial: Destin
   }
 
   function openEdit(p: DestinationProfile) {
-    setDraft({ destinationCountry: p.destinationCountry, destinationCity: p.destinationCity, destinationType: p.destinationType, activities: [...p.activities] });
+    setDraft({
+      destinationCountry: p.destinationCountry,
+      destinationCity: p.destinationCity,
+      destinationType: p.destinationType,
+      activities: [...p.activities],
+    });
     setEditingId(p.id);
     setError(null);
   }
@@ -86,7 +104,12 @@ export default function DestinationProfilesEditor({ initial }: { initial: Destin
 
   function toggleActivity(tag: ActivityTag) {
     if (!draft) return;
-    setDraft({ ...draft, activities: draft.activities.includes(tag) ? draft.activities.filter((a) => a !== tag) : [...draft.activities, tag] });
+    setDraft({
+      ...draft,
+      activities: draft.activities.includes(tag)
+        ? draft.activities.filter((a) => a !== tag)
+        : [...draft.activities, tag],
+    });
   }
 
   async function save() {
@@ -109,9 +132,18 @@ export default function DestinationProfilesEditor({ initial }: { initial: Destin
           setError(res.error ?? 'Kreiranje nije uspelo.');
           return;
         }
-        setProfiles((prev) => [...prev, res.profile!].sort((a, b) => a.destinationCountry.localeCompare(b.destinationCountry) || a.destinationCity.localeCompare(b.destinationCity)));
+        setProfiles((prev) =>
+          [...prev, res.profile!].sort(
+            (a, b) =>
+              a.destinationCountry.localeCompare(b.destinationCountry) ||
+              a.destinationCity.localeCompare(b.destinationCity),
+          ),
+        );
       } else {
-        const res = await updateDestinationProfile(editingId, { destinationType: draft.destinationType, activities: draft.activities });
+        const res = await updateDestinationProfile(editingId, {
+          destinationType: draft.destinationType,
+          activities: draft.activities,
+        });
         if (res.error || !res.profile) {
           setError(res.error ?? 'Izmena nije uspela.');
           return;
@@ -133,25 +165,40 @@ export default function DestinationProfilesEditor({ initial }: { initial: Destin
         </Button>
       </div>
       <p className="mb-3 text-xs text-ink-faint">
-        Tip destinacije i podržane aktivnosti se tagiraju JEDNOM po mestu (M2 spec §2.1c), ne po pojedinačnom proizvodu — koristi ih M5
-        pretraga za kontekstualne filtere i pretragu po aktivnosti.
+        Tip destinacije i podržane aktivnosti se tagiraju JEDNOM po mestu (M2 spec §2.1c), ne po
+        pojedinačnom proizvodu — koristi ih M5 pretraga za kontekstualne filtere i pretragu po
+        aktivnosti.
       </p>
 
-      {profiles.length === 0 && <p className="text-xs text-ink-faint">Nijedna destinacija još nema profil.</p>}
+      {profiles.length === 0 && (
+        <p className="text-xs text-ink-faint">Nijedna destinacija još nema profil.</p>
+      )}
 
       <div className="flex flex-col gap-1.5">
         {profiles.map((p) => (
-          <div key={p.id} className="flex items-center justify-between rounded-lg border border-border bg-panel2 px-3 py-2 text-xs">
+          <div
+            key={p.id}
+            className="flex items-center justify-between rounded-lg border border-border bg-panel2 px-3 py-2 text-xs"
+          >
             <div>
               <span className="font-medium text-ink">
                 {p.destinationCity}, {p.destinationCountry}
               </span>
-              <span className="ml-2 rounded-full border border-border px-1.5 py-0.5 text-[10px] text-ink-dim">{DESTINATION_TYPE_LABELS[p.destinationType]}</span>
+              <span className="ml-2 rounded-full border border-border px-1.5 py-0.5 text-[10px] text-ink-dim">
+                {DESTINATION_TYPE_LABELS[p.destinationType]}
+              </span>
               {p.activities.length > 0 && (
-                <div className="mt-0.5 text-ink-faint">{p.activities.map((a) => ACTIVITY_LABELS[a]).join(', ')}</div>
+                <div className="mt-0.5 text-ink-faint">
+                  {p.activities.map((a) => ACTIVITY_LABELS[a]).join(', ')}
+                </div>
               )}
             </div>
-            <Button onClick={() => openEdit(p)} variant="ghost" size="sm" className="h-auto px-2 py-1 text-ink-faint hover:text-ink">
+            <Button
+              onClick={() => openEdit(p)}
+              variant="ghost"
+              size="sm"
+              className="h-auto px-2 py-1 text-ink-faint hover:text-ink"
+            >
               izmeni
             </Button>
           </div>
@@ -159,30 +206,53 @@ export default function DestinationProfilesEditor({ initial }: { initial: Destin
       </div>
 
       {draft && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={closeModal}>
-          <div className="w-full max-w-lg rounded-lg border border-border bg-panel p-5" onClick={(e) => e.stopPropagation()}>
-            <h3 className="mb-3 text-sm font-semibold text-ink">{editingId === null ? 'Nova destinacija' : 'Izmena profila destinacije'}</h3>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          onClick={closeModal}
+        >
+          <div
+            className="w-full max-w-lg rounded-lg border border-border bg-panel p-5"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="mb-3 text-sm font-semibold text-ink">
+              {editingId === null ? 'Nova destinacija' : 'Izmena profila destinacije'}
+            </h3>
             {error && <p className="mb-3 rounded bg-danger-bg p-2 text-xs text-danger">{error}</p>}
 
             <div className="mb-4 grid grid-cols-2 gap-3">
               <Field label="Država">
                 {editingId === null ? (
-                  <input className="input text-xs" value={draft.destinationCountry} onChange={(e) => setDraft({ ...draft, destinationCountry: e.target.value })} placeholder="Grčka" />
+                  <input
+                    className="input text-xs"
+                    value={draft.destinationCountry}
+                    onChange={(e) => setDraft({ ...draft, destinationCountry: e.target.value })}
+                    placeholder="Grčka"
+                  />
                 ) : (
-                  <span className="input flex items-center text-xs text-ink-faint">{draft.destinationCountry}</span>
+                  <span className="input flex items-center text-xs text-ink-faint">
+                    {draft.destinationCountry}
+                  </span>
                 )}
               </Field>
               <Field label="Mesto">
                 {editingId === null ? (
-                  <input className="input text-xs" value={draft.destinationCity} onChange={(e) => setDraft({ ...draft, destinationCity: e.target.value })} placeholder="Nikiti" />
+                  <input
+                    className="input text-xs"
+                    value={draft.destinationCity}
+                    onChange={(e) => setDraft({ ...draft, destinationCity: e.target.value })}
+                    placeholder="Nikiti"
+                  />
                 ) : (
-                  <span className="input flex items-center text-xs text-ink-faint">{draft.destinationCity}</span>
+                  <span className="input flex items-center text-xs text-ink-faint">
+                    {draft.destinationCity}
+                  </span>
                 )}
               </Field>
             </div>
             {editingId !== null && (
               <p className="mb-3 text-[11px] text-ink-faint">
-                Država/mesto se ne mogu menjati posle kreiranja (M2 spec §2.1c) — izmena para bi značila drugu destinaciju, ne izmenu ove.
+                Država/mesto se ne mogu menjati posle kreiranja (M2 spec §2.1c) — izmena para bi
+                značila drugu destinaciju, ne izmenu ove.
               </p>
             )}
 
@@ -191,15 +261,25 @@ export default function DestinationProfilesEditor({ initial }: { initial: Destin
               <ButtonGroup<DestinationType>
                 value={draft.destinationType}
                 onChange={(v) => setDraft({ ...draft, destinationType: v })}
-                options={(Object.keys(DESTINATION_TYPE_LABELS) as DestinationType[]).map((v) => ({ value: v, label: DESTINATION_TYPE_LABELS[v] }))}
+                options={(Object.keys(DESTINATION_TYPE_LABELS) as DestinationType[]).map((v) => ({
+                  value: v,
+                  label: DESTINATION_TYPE_LABELS[v],
+                }))}
               />
             </div>
 
             <div className="mb-4">
-              <span className="mb-1 block text-[11px] text-ink-faint">Aktivnosti koje destinacija podržava (opciono)</span>
+              <span className="mb-1 block text-[11px] text-ink-faint">
+                Aktivnosti koje destinacija podržava (opciono)
+              </span>
               <div className="flex flex-wrap gap-1">
                 {(Object.keys(ACTIVITY_LABELS) as ActivityTag[]).map((tag) => (
-                  <ToggleButton key={tag} active={draft.activities.includes(tag)} onToggle={() => toggleActivity(tag)} label={ACTIVITY_LABELS[tag]} />
+                  <ToggleButton
+                    key={tag}
+                    active={draft.activities.includes(tag)}
+                    onToggle={() => toggleActivity(tag)}
+                    label={ACTIVITY_LABELS[tag]}
+                  />
                 ))}
               </div>
             </div>

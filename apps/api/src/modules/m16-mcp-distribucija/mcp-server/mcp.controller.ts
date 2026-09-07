@@ -39,7 +39,10 @@ export class McpController {
       res
         .status(401)
         .set('WWW-Authenticate', 'Bearer')
-        .json({ jsonrpc: '2.0', error: { code: -32001, message: 'Nedostaje Bearer token (M16 spec §3.1).' } });
+        .json({
+          jsonrpc: '2.0',
+          error: { code: -32001, message: 'Nedostaje Bearer token (M16 spec §3.1).' },
+        });
       return;
     }
 
@@ -48,14 +51,22 @@ export class McpController {
       res
         .status(401)
         .set('WWW-Authenticate', 'Bearer')
-        .json({ jsonrpc: '2.0', error: { code: -32001, message: 'Nevažeći ili neaktivan MCP kredencijal.' } });
+        .json({
+          jsonrpc: '2.0',
+          error: { code: -32001, message: 'Nevažeći ili neaktivan MCP kredencijal.' },
+        });
       return;
     }
 
-    if (!this.rateLimiter.tryConsume(result.registration.id, result.registration.rateLimitPerMinute)) {
+    if (
+      !this.rateLimiter.tryConsume(result.registration.id, result.registration.rateLimitPerMinute)
+    ) {
       res
         .status(429)
-        .json({ jsonrpc: '2.0', error: { code: -32000, message: 'Prekoračen rate_limit_per_minute (M16 spec §6).' } });
+        .json({
+          jsonrpc: '2.0',
+          error: { code: -32000, message: 'Prekoračen rate_limit_per_minute (M16 spec §6).' },
+        });
       return;
     }
 

@@ -25,10 +25,17 @@ describe('UsersService', () => {
       },
     };
     const auditLog = { write: jest.fn() };
-    const auth = { createInviteToken: jest.fn().mockResolvedValue('raw-invite-token'), inviteTokenTtlHours: 48 };
+    const auth = {
+      createInviteToken: jest.fn().mockResolvedValue('raw-invite-token'),
+      inviteTokenTtlHours: 48,
+    };
     // Slanje pozivnice ne sme da utiče na poslovnu logiku ovog servisa (M1 spec §5) — mok
     // vraća `delivered: false`, tj. najgori slučaj, da testovi prolaze i kad pošta zakaže.
-    const mailer = { send: jest.fn().mockResolvedValue({ delivered: false }), panelBaseUrl: () => 'http://localhost:3100', isConfigured: () => false };
+    const mailer = {
+      send: jest.fn().mockResolvedValue({ delivered: false }),
+      panelBaseUrl: () => 'http://localhost:3100',
+      isConfigured: () => false,
+    };
     const service = new UsersService(prisma as any, auditLog as any, auth as any, mailer as any);
     return { service, prisma, auditLog, auth, mailer };
   }
@@ -38,7 +45,11 @@ describe('UsersService', () => {
       const { service, prisma } = makeService();
 
       await expect(
-        service.createPermissionOverride('user-1', { permissionId: 'p1', effect: 'ALLOW', reason: 'test' } as any, 'user-1'),
+        service.createPermissionOverride(
+          'user-1',
+          { permissionId: 'p1', effect: 'ALLOW', reason: 'test' } as any,
+          'user-1',
+        ),
       ).rejects.toThrow(BadRequestException);
 
       expect(prisma.userPermissionOverride.create).not.toHaveBeenCalled();
@@ -46,7 +57,13 @@ describe('UsersService', () => {
 
     it('kreira override za drugog korisnika i upisuje audit log sa razlogom', async () => {
       const { service, prisma, auditLog } = makeService();
-      const created = { id: 'ov-1', userId: 'user-2', permissionId: 'p1', effect: 'ALLOW', reason: 'privremen pristup' };
+      const created = {
+        id: 'ov-1',
+        userId: 'user-2',
+        permissionId: 'p1',
+        effect: 'ALLOW',
+        reason: 'privremen pristup',
+      };
       prisma.userPermissionOverride.create.mockResolvedValue(created);
 
       const result = await service.createPermissionOverride(
@@ -67,7 +84,11 @@ describe('UsersService', () => {
         }),
       );
       expect(auditLog.write).toHaveBeenCalledWith(
-        expect.objectContaining({ module: 'M1', action: 'permission_override.grant', resourceId: 'ov-1' }),
+        expect.objectContaining({
+          module: 'M1',
+          action: 'permission_override.grant',
+          resourceId: 'ov-1',
+        }),
       );
       expect(result).toBe(created);
     });
@@ -85,7 +106,12 @@ describe('UsersService', () => {
 
       await service.createPermissionOverride(
         'user-3',
-        { permissionId: 'p1', effect: 'ALLOW', reason: 'test', expiresAt: '2027-01-01T00:00:00.000Z' } as any,
+        {
+          permissionId: 'p1',
+          effect: 'ALLOW',
+          reason: 'test',
+          expiresAt: '2027-01-01T00:00:00.000Z',
+        } as any,
         'actor-1',
       );
       expect(prisma.userPermissionOverride.create.mock.calls[1][0].data.expiresAt).toEqual(
@@ -116,7 +142,10 @@ describe('UsersService', () => {
 
       const result = await service.suspend('user-5', 'actor-1');
 
-      expect(prisma.user.update).toHaveBeenCalledWith({ where: { id: 'user-5' }, data: { status: 'SUSPENDED' } });
+      expect(prisma.user.update).toHaveBeenCalledWith({
+        where: { id: 'user-5' },
+        data: { status: 'SUSPENDED' },
+      });
       expect(prisma.refreshToken.updateMany).toHaveBeenCalledWith({
         where: { userId: 'user-5', revokedAt: null },
         data: { revokedAt: expect.any(Date) },
@@ -143,7 +172,9 @@ describe('UsersService', () => {
         update: {},
         create: { userId: 'user-6', roleId: 'role-1', assignedBy: 'actor-1' },
       });
-      expect(auditLog.write).toHaveBeenCalledWith(expect.objectContaining({ action: 'user.role_assigned' }));
+      expect(auditLog.write).toHaveBeenCalledWith(
+        expect.objectContaining({ action: 'user.role_assigned' }),
+      );
     });
 
     it('removeRole briše dodelu i upisuje audit log', async () => {
@@ -154,7 +185,9 @@ describe('UsersService', () => {
       expect(prisma.userRole.delete).toHaveBeenCalledWith({
         where: { userId_roleId: { userId: 'user-6', roleId: 'role-1' } },
       });
-      expect(auditLog.write).toHaveBeenCalledWith(expect.objectContaining({ action: 'user.role_removed' }));
+      expect(auditLog.write).toHaveBeenCalledWith(
+        expect.objectContaining({ action: 'user.role_removed' }),
+      );
     });
   });
 
@@ -179,37 +212,67 @@ describe('UsersService', () => {
         }),
       );
       expect(auth.createInviteToken).toHaveBeenCalledWith('user-7');
-      expect(auditLog.write).toHaveBeenCalledWith(expect.objectContaining({ action: 'user.invited' }));
+      expect(auditLog.write).toHaveBeenCalledWith(
+        expect.objectContaining({ action: 'user.invited' }),
+      );
       // `emailDelivered` (dopuna 4.9.2026) kaže panelu da li je pozivnica stvarno otišla —
       // ovde je `false` jer mok pošte simulira nepodešen SMTP; ekran tada prikazuje link za
       // ručno prosleđivanje. Sam poziv mora biti napravljen bez obzira na ishod.
-      expect(result).toEqual({ user: created, inviteToken: 'raw-invite-token', emailDelivered: false });
+      expect(result).toEqual({
+        user: created,
+        inviteToken: 'raw-invite-token',
+        emailDelivered: false,
+      });
       expect(mailer.send).toHaveBeenCalledWith(
-        expect.objectContaining({ to: 'novi@tt.rs', text: expect.stringContaining('raw-invite-token') }),
+        expect.objectContaining({
+          to: 'novi@tt.rs',
+          text: expect.stringContaining('raw-invite-token'),
+        }),
       );
     });
 
     it('franšizni nalog (linkedProfileId postavljen) sme da pozove naloge SAMO sopstvene franšize (M1 §5, M7 §2.0.7)', async () => {
       const { service, prisma } = makeService();
-      prisma.user.findUnique.mockResolvedValue({ id: 'franchise-direktor-1', linkedProfileId: 'subagent-fr-1' });
+      prisma.user.findUnique.mockResolvedValue({
+        id: 'franchise-direktor-1',
+        linkedProfileId: 'subagent-fr-1',
+      });
       prisma.user.create.mockResolvedValue({ id: 'user-8' });
 
       await service.invite(
-        { email: 'novi@fransiza.rs', fullName: 'Novi', roleIds: [], linkedProfileId: 'subagent-fr-1' } as any,
+        {
+          email: 'novi@fransiza.rs',
+          fullName: 'Novi',
+          roleIds: [],
+          linkedProfileId: 'subagent-fr-1',
+        } as any,
         'franchise-direktor-1',
       );
 
       expect(prisma.user.create).toHaveBeenCalledWith(
-        expect.objectContaining({ data: expect.objectContaining({ linkedProfileId: 'subagent-fr-1' }) }),
+        expect.objectContaining({
+          data: expect.objectContaining({ linkedProfileId: 'subagent-fr-1' }),
+        }),
       );
     });
 
     it('franšizni nalog NE sme da pozove nalog van sopstvene franšize (tuđa franšiza ili matična agencija)', async () => {
       const { service, prisma } = makeService();
-      prisma.user.findUnique.mockResolvedValue({ id: 'franchise-direktor-1', linkedProfileId: 'subagent-fr-1' });
+      prisma.user.findUnique.mockResolvedValue({
+        id: 'franchise-direktor-1',
+        linkedProfileId: 'subagent-fr-1',
+      });
 
       await expect(
-        service.invite({ email: 'x@y.rs', fullName: 'X', roleIds: [], linkedProfileId: 'subagent-fr-DRUGA' } as any, 'franchise-direktor-1'),
+        service.invite(
+          {
+            email: 'x@y.rs',
+            fullName: 'X',
+            roleIds: [],
+            linkedProfileId: 'subagent-fr-DRUGA',
+          } as any,
+          'franchise-direktor-1',
+        ),
       ).rejects.toThrow(ForbiddenException);
       expect(prisma.user.create).not.toHaveBeenCalled();
     });
@@ -220,12 +283,19 @@ describe('UsersService', () => {
       prisma.user.create.mockResolvedValue({ id: 'user-9' });
 
       await service.invite(
-        { email: 'x@y.rs', fullName: 'X', roleIds: [], linkedProfileId: 'bilo-koja-fransiza' } as any,
+        {
+          email: 'x@y.rs',
+          fullName: 'X',
+          roleIds: [],
+          linkedProfileId: 'bilo-koja-fransiza',
+        } as any,
         'hq-direktor-1',
       );
 
       expect(prisma.user.create).toHaveBeenCalledWith(
-        expect.objectContaining({ data: expect.objectContaining({ linkedProfileId: 'bilo-koja-fransiza' }) }),
+        expect.objectContaining({
+          data: expect.objectContaining({ linkedProfileId: 'bilo-koja-fransiza' }),
+        }),
       );
     });
   });
@@ -239,7 +309,10 @@ describe('UsersService', () => {
       const result = await service.directory('staff-1');
 
       expect(prisma.user.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({ where: { accountType: 'STAFF', status: 'ACTIVE' }, select: { id: true, fullName: true } }),
+        expect.objectContaining({
+          where: { accountType: 'STAFF', status: 'ACTIVE' },
+          select: { id: true, fullName: true },
+        }),
       );
       expect(result).toEqual([{ id: 'u1', fullName: 'Ana' }]);
     });
@@ -257,17 +330,25 @@ describe('UsersService', () => {
     it('sa `role` filterom (npr. VODIC) vraća i phone/email — dopuna 2.9.2026, kartica Predstavnici', async () => {
       const { service, prisma } = makeService();
       prisma.user.findUnique.mockResolvedValue({ id: 'staff-1', accountType: 'STAFF' });
-      prisma.user.findMany.mockResolvedValue([{ id: 'u1', fullName: 'Ana', phone: '+381601234567', email: 'ana@tt.rs' }]);
+      prisma.user.findMany.mockResolvedValue([
+        { id: 'u1', fullName: 'Ana', phone: '+381601234567', email: 'ana@tt.rs' },
+      ]);
 
       const result = await service.directory('staff-1', 'VODIC');
 
       expect(prisma.user.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: { accountType: 'STAFF', status: 'ACTIVE', roles: { some: { role: { name: 'VODIC' } } } },
+          where: {
+            accountType: 'STAFF',
+            status: 'ACTIVE',
+            roles: { some: { role: { name: 'VODIC' } } },
+          },
           select: { id: true, fullName: true, phone: true, email: true },
         }),
       );
-      expect(result).toEqual([{ id: 'u1', fullName: 'Ana', phone: '+381601234567', email: 'ana@tt.rs' }]);
+      expect(result).toEqual([
+        { id: 'u1', fullName: 'Ana', phone: '+381601234567', email: 'ana@tt.rs' },
+      ]);
     });
   });
 });

@@ -7,7 +7,6 @@ import TabLink from '@/components/TabLink';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 
-
 interface ArticleRow {
   id: string;
   subjectType: 'PRODUCT' | 'DESTINATION' | 'COUNTRY';
@@ -29,9 +28,9 @@ const STATUSES = ['DRAFT', 'PENDING_APPROVAL', 'PUBLISHED', 'ARCHIVED'];
 // API ne izlaže subjectType/status kao query filtere (§8 tabela — samo `lang`) — filtriranje ide
 // preko celog skupa na ovoj strani, isti obrazac kao M13 klijentsko sortiranje kad backend nema
 // poseban filter endpoint.
-export default async function ZnanjePage(
-  props: { searchParams: Promise<{ subjectType?: string; status?: string }> }
-) {
+export default async function ZnanjePage(props: {
+  searchParams: Promise<{ subjectType?: string; status?: string }>;
+}) {
   const searchParams = await props.searchParams;
   const me = await getMe();
   const canCreate = hasPermission(me, 'M23', 'article', 'EDIT');
@@ -68,7 +67,11 @@ export default async function ZnanjePage(
 
       {!error && (
         <form className="mb-3 flex flex-wrap items-center gap-2 text-xs" action="/znanje">
-          <select name="subjectType" defaultValue={searchParams?.subjectType ?? ''} className="input">
+          <select
+            name="subjectType"
+            defaultValue={searchParams?.subjectType ?? ''}
+            className="input"
+          >
             <option value="">svi predmeti</option>
             {SUBJECT_TYPES.map((s) => (
               <option key={s} value={s}>
@@ -105,7 +108,11 @@ export default async function ZnanjePage(
 
       {!error && (
         <div className="overflow-hidden rounded-lg border border-border">
-          {filtered.length === 0 && <p className="p-4 text-center text-xs text-ink-faint">Nema članaka za izabrani filter.</p>}
+          {filtered.length === 0 && (
+            <p className="p-4 text-center text-xs text-ink-faint">
+              Nema članaka za izabrani filter.
+            </p>
+          )}
           {filtered.map((a) => (
             <TabLink
               key={a.id}
@@ -124,7 +131,9 @@ export default async function ZnanjePage(
                 </div>
                 <div className="text-xs text-ink-faint">
                   {a.subjectType}
-                  {a.destinationCountry ? ` · ${a.destinationCountry}${a.destinationCity ? `, ${a.destinationCity}` : ''}` : ''}
+                  {a.destinationCountry
+                    ? ` · ${a.destinationCountry}${a.destinationCity ? `, ${a.destinationCity}` : ''}`
+                    : ''}
                   {a.productId ? ` · proizvod ${a.productId.slice(0, 8)}` : ''}
                   {a.translation?.languageCode ? ` · ${a.translation.languageCode}` : ''}
                 </div>
@@ -143,11 +152,12 @@ export default async function ZnanjePage(
 
 function StatusBadge({ status }: { status: string }) {
   if (status === 'PUBLISHED') return <Badge variant="ok">{status}</Badge>;
-  if (status === 'ARCHIVED') return (
-    <Badge variant="secondary" className="text-ink-faint">
-      {status}
-    </Badge>
-  );
+  if (status === 'ARCHIVED')
+    return (
+      <Badge variant="secondary" className="text-ink-faint">
+        {status}
+      </Badge>
+    );
   return <Badge variant="warn">{status}</Badge>;
 }
 

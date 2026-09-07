@@ -44,7 +44,9 @@ export class GeminiEmbeddingService {
       config: { outputDimensionality: GeminiEmbeddingService.DIMENSIONS },
     });
     if (!response.embeddings || response.embeddings.length !== texts.length) {
-      throw new Error(`Gemini embed poziv vratio neočekivan broj vektora (${response.embeddings?.length ?? 0} za ${texts.length} teksta).`);
+      throw new Error(
+        `Gemini embed poziv vratio neočekivan broj vektora (${response.embeddings?.length ?? 0} za ${texts.length} teksta).`,
+      );
     }
     return response.embeddings.map((e) => {
       if (!e.values) throw new Error('Gemini embed poziv vratio prazan vektor.');

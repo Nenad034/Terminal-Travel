@@ -18,7 +18,11 @@ export class ClientAccountsController {
 
   @Get()
   @RequirePermission('M6', 'client-account', 'VIEW')
-  findMany(@Query('email') email: string | undefined, @Query('taxId') taxId: string | undefined, @CurrentUser() actor: { userId: string }) {
+  findMany(
+    @Query('email') email: string | undefined,
+    @Query('taxId') taxId: string | undefined,
+    @CurrentUser() actor: { userId: string },
+  ) {
     return this.clientAccounts.findMany({ email, taxId }, actor.userId);
   }
 
@@ -42,7 +46,11 @@ export class ClientAccountsController {
 
   @Patch(':id')
   @RequirePermission('M6', 'client-account', 'EDIT')
-  update(@Param('id') id: string, @Body() dto: UpdateClientAccountDto, @CurrentUser() actor: { userId: string }) {
+  update(
+    @Param('id') id: string,
+    @Body() dto: UpdateClientAccountDto,
+    @CurrentUser() actor: { userId: string },
+  ) {
     return this.clientAccounts.update(id, dto, actor.userId);
   }
 }

@@ -20,7 +20,10 @@ export default function ExchangeRateForm() {
   const [state, formAction] = useActionState(createExchangeRate, initialState);
 
   return (
-    <form action={formAction} className="flex flex-wrap items-end gap-3 rounded-lg border border-border bg-panel p-4">
+    <form
+      action={formAction}
+      className="flex flex-wrap items-end gap-3 rounded-lg border border-border bg-panel p-4"
+    >
       <label className="flex flex-col gap-1">
         <span className="text-[11px] uppercase tracking-wide text-ink-faint">valuta</span>
         <select name="currency" defaultValue="EUR" className="input h-9 w-28">

@@ -21,7 +21,10 @@ export class TicketsController {
 
   @Get()
   @RequirePermission('M14', 'ticket', 'VIEW')
-  findMany(@CurrentUser() actor: { userId: string }, @Query('relatedBookingId') relatedBookingId?: string) {
+  findMany(
+    @CurrentUser() actor: { userId: string },
+    @Query('relatedBookingId') relatedBookingId?: string,
+  ) {
     return this.tickets.findMany(actor.userId, { relatedBookingId });
   }
 
@@ -40,7 +43,11 @@ export class TicketsController {
   // §6 — izmena statusa/prioriteta/dodele je uvek interna radnja (RESPOND), nikad Gost/subagent.
   @Patch(':id')
   @RequirePermission('M14', 'ticket', 'RESPOND')
-  update(@Param('id') id: string, @Body() dto: UpdateTicketDto, @CurrentUser() actor: { userId: string }) {
+  update(
+    @Param('id') id: string,
+    @Body() dto: UpdateTicketDto,
+    @CurrentUser() actor: { userId: string },
+  ) {
     return this.tickets.update(id, dto, actor.userId);
   }
 
@@ -54,14 +61,22 @@ export class TicketsController {
   // STAFF/AI_DRAFT/internu belešku je u servisu (ownership provera), ne u samoj dozvoli.
   @Post(':id/messages')
   @RequirePermission('M14', 'ticket', 'CREATE')
-  createMessage(@Param('id') id: string, @Body() dto: CreateTicketMessageDto, @CurrentUser() actor: { userId: string }) {
+  createMessage(
+    @Param('id') id: string,
+    @Body() dto: CreateTicketMessageDto,
+    @CurrentUser() actor: { userId: string },
+  ) {
     return this.tickets.createMessage(id, dto, actor.userId);
   }
 
   @Post(':id/messages/:messageId/send')
   @RequirePermission('M14', 'ticket', 'RESPOND')
   @AgentAction('M14', 'ticket_response.send_with_price_or_obligation')
-  sendMessage(@Param('id') id: string, @Param('messageId') messageId: string, @CurrentUser() actor: { userId: string }) {
+  sendMessage(
+    @Param('id') id: string,
+    @Param('messageId') messageId: string,
+    @CurrentUser() actor: { userId: string },
+  ) {
     return this.tickets.sendMessage(id, messageId, actor);
   }
 }

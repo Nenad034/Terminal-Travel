@@ -38,7 +38,9 @@ describe('M9 — izlazni kriterijum (e2e, deo za vodiče)', () => {
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
     app = moduleRef.createNestApplication();
     app.setGlobalPrefix('api/v1');
-    app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }));
+    app.useGlobalPipes(
+      new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }),
+    );
     app.useGlobalFilters(new PrismaExceptionFilter());
     await app.init();
     prisma = app.get(PrismaService);
@@ -46,19 +48,31 @@ describe('M9 — izlazni kriterijum (e2e, deo za vodiče)', () => {
   });
 
   afterAll(async () => {
-    if (createdFieldCheckInIds.length) await prisma.fieldCheckIn.deleteMany({ where: { id: { in: createdFieldCheckInIds } } });
-    if (createdFieldIncidentNoteIds.length) await prisma.fieldIncidentNote.deleteMany({ where: { id: { in: createdFieldIncidentNoteIds } } });
+    if (createdFieldCheckInIds.length)
+      await prisma.fieldCheckIn.deleteMany({ where: { id: { in: createdFieldCheckInIds } } });
+    if (createdFieldIncidentNoteIds.length)
+      await prisma.fieldIncidentNote.deleteMany({
+        where: { id: { in: createdFieldIncidentNoteIds } },
+      });
     if (createdBookingIds.length) {
-      await prisma.bookingItemGuest.deleteMany({ where: { bookingItem: { bookingId: { in: createdBookingIds } } } });
+      await prisma.bookingItemGuest.deleteMany({
+        where: { bookingItem: { bookingId: { in: createdBookingIds } } },
+      });
       await prisma.bookingItem.deleteMany({ where: { bookingId: { in: createdBookingIds } } });
       await prisma.booking.deleteMany({ where: { id: { in: createdBookingIds } } });
     }
-    if (createdGuestProfileIds.length) await prisma.guestProfile.deleteMany({ where: { id: { in: createdGuestProfileIds } } });
-    if (createdClientAccountIds.length) await prisma.clientAccount.deleteMany({ where: { id: { in: createdClientAccountIds } } });
-    if (createdProductIds.length) await prisma.product.deleteMany({ where: { id: { in: createdProductIds } } });
-    if (createdContractIds.length) await prisma.contract.deleteMany({ where: { id: { in: createdContractIds } } });
-    if (createdSupplierIds.length) await prisma.supplier.deleteMany({ where: { id: { in: createdSupplierIds } } });
-    if (createdMarkupRuleIds.length) await prisma.markupRule.deleteMany({ where: { id: { in: createdMarkupRuleIds } } });
+    if (createdGuestProfileIds.length)
+      await prisma.guestProfile.deleteMany({ where: { id: { in: createdGuestProfileIds } } });
+    if (createdClientAccountIds.length)
+      await prisma.clientAccount.deleteMany({ where: { id: { in: createdClientAccountIds } } });
+    if (createdProductIds.length)
+      await prisma.product.deleteMany({ where: { id: { in: createdProductIds } } });
+    if (createdContractIds.length)
+      await prisma.contract.deleteMany({ where: { id: { in: createdContractIds } } });
+    if (createdSupplierIds.length)
+      await prisma.supplier.deleteMany({ where: { id: { in: createdSupplierIds } } });
+    if (createdMarkupRuleIds.length)
+      await prisma.markupRule.deleteMany({ where: { id: { in: createdMarkupRuleIds } } });
     if (createdUserIds.length) {
       await prisma.userRole.deleteMany({ where: { userId: { in: createdUserIds } } });
       await prisma.user.deleteMany({ where: { id: { in: createdUserIds } } });
@@ -77,7 +91,9 @@ describe('M9 — izlazni kriterijum (e2e, deo za vodiče)', () => {
     });
     createdUserIds.push(user.id);
     const role = await prisma.role.findUniqueOrThrow({ where: { name: SYSTEM_ROLES.VODIC } });
-    await prisma.userRole.create({ data: { userId: user.id, roleId: role.id, assignedBy: user.id } });
+    await prisma.userRole.create({
+      data: { userId: user.id, roleId: role.id, assignedBy: user.id },
+    });
     const accessToken = jwt.sign({ sub: user.id, sessionId: 'e2e-test-session' });
     return { user, accessToken };
   }
@@ -142,7 +158,9 @@ describe('M9 — izlazni kriterijum (e2e, deo za vodiče)', () => {
     });
     createdProductIds.push(product.id);
 
-    const markupRule = await prisma.markupRule.create({ data: { scopeType: 'M3_SUPPLIER', scopeId: supplier.id, percentage: 20 } });
+    const markupRule = await prisma.markupRule.create({
+      data: { scopeType: 'M3_SUPPLIER', scopeId: supplier.id, percentage: 20 },
+    });
     createdMarkupRuleIds.push(markupRule.id);
 
     return { product, markupRule };
@@ -199,7 +217,15 @@ describe('M9 — izlazni kriterijum (e2e, deo za vodiče)', () => {
               finalPriceCurrency: 'EUR',
               itemStatus: 'CONFIRMED',
               assignedGuideId: guideUserId,
-              guests: { create: [{ guestFirstName: 'Marko', guestLastName: 'Marković', guestProfileId: guestProfile.id }] },
+              guests: {
+                create: [
+                  {
+                    guestFirstName: 'Marko',
+                    guestLastName: 'Marković',
+                    guestProfileId: guestProfile.id,
+                  },
+                ],
+              },
             },
           ],
         },
@@ -215,7 +241,11 @@ describe('M9 — izlazni kriterijum (e2e, deo za vodiče)', () => {
       const { accessToken, user } = await createGuideUser();
       const from = new Date('2027-06-01');
       const to = new Date('2027-06-30');
-      const { booking, bookingItem } = await createAssignedItinerary(user.id, new Date('2027-06-10'), new Date('2027-06-15'));
+      const { booking, bookingItem } = await createAssignedItinerary(
+        user.id,
+        new Date('2027-06-10'),
+        new Date('2027-06-15'),
+      );
 
       const res = await request(app.getHttpServer())
         .get('/api/v1/mobile/staff/my-itinerary')
@@ -247,8 +277,16 @@ describe('M9 — izlazni kriterijum (e2e, deo za vodiče)', () => {
       const from = new Date('2027-07-01');
       const to = new Date('2027-07-31');
 
-      const { bookingItem: itemA } = await createAssignedItinerary(guideA.id, new Date('2027-07-05'), new Date('2027-07-08'));
-      const { bookingItem: itemB } = await createAssignedItinerary(guideB.id, new Date('2027-07-10'), new Date('2027-07-12'));
+      const { bookingItem: itemA } = await createAssignedItinerary(
+        guideA.id,
+        new Date('2027-07-05'),
+        new Date('2027-07-08'),
+      );
+      const { bookingItem: itemB } = await createAssignedItinerary(
+        guideB.id,
+        new Date('2027-07-10'),
+        new Date('2027-07-12'),
+      );
 
       const resA = await request(app.getHttpServer())
         .get('/api/v1/mobile/staff/my-itinerary')
@@ -286,7 +324,11 @@ describe('M9 — izlazni kriterijum (e2e, deo za vodiče)', () => {
   describe('§8 stavka 2 — offline sinhronizacija bez duplikata', () => {
     it('POST /mobile/staff/sync — FieldCheckIn se upiše; ponovljen isti idempotency ključ ne pravi duplikat', async () => {
       const { accessToken, user } = await createGuideUser();
-      const { bookingItem } = await createAssignedItinerary(user.id, new Date('2027-08-01'), new Date('2027-08-05'));
+      const { bookingItem } = await createAssignedItinerary(
+        user.id,
+        new Date('2027-08-01'),
+        new Date('2027-08-05'),
+      );
       const checkInId = randomUUID();
       createdFieldCheckInIds.push(checkInId);
       const checkedInAt = new Date('2027-08-01T10:00:00.000Z').toISOString();
@@ -294,7 +336,9 @@ describe('M9 — izlazni kriterijum (e2e, deo za vodiče)', () => {
       const first = await request(app.getHttpServer())
         .post('/api/v1/mobile/staff/sync')
         .set(authed(accessToken))
-        .send({ checkIns: [{ id: checkInId, bookingItemGuestId: bookingItem.guests[0].id, checkedInAt }] });
+        .send({
+          checkIns: [{ id: checkInId, bookingItemGuestId: bookingItem.guests[0].id, checkedInAt }],
+        });
       expect(first.status).toBe(201);
       expect(first.body.checkIns).toHaveLength(1);
       expect(first.body.checkIns[0].id).toBe(checkInId);
@@ -307,7 +351,9 @@ describe('M9 — izlazni kriterijum (e2e, deo za vodiče)', () => {
       const second = await request(app.getHttpServer())
         .post('/api/v1/mobile/staff/sync')
         .set(authed(accessToken))
-        .send({ checkIns: [{ id: checkInId, bookingItemGuestId: bookingItem.guests[0].id, checkedInAt }] });
+        .send({
+          checkIns: [{ id: checkInId, bookingItemGuestId: bookingItem.guests[0].id, checkedInAt }],
+        });
       expect(second.status).toBe(201);
 
       const countAfterSecond = await prisma.fieldCheckIn.count({ where: { id: checkInId } });
@@ -319,16 +365,30 @@ describe('M9 — izlazni kriterijum (e2e, deo za vodiče)', () => {
 
     it('M1 audit log dobija zapis za svaku sinhronizovanu promenu (§3.2)', async () => {
       const { accessToken, user } = await createGuideUser();
-      const { bookingItem } = await createAssignedItinerary(user.id, new Date('2027-08-10'), new Date('2027-08-12'));
+      const { bookingItem } = await createAssignedItinerary(
+        user.id,
+        new Date('2027-08-10'),
+        new Date('2027-08-12'),
+      );
       const checkInId = randomUUID();
       createdFieldCheckInIds.push(checkInId);
 
       await request(app.getHttpServer())
         .post('/api/v1/mobile/staff/sync')
         .set(authed(accessToken))
-        .send({ checkIns: [{ id: checkInId, bookingItemGuestId: bookingItem.guests[0].id, checkedInAt: new Date().toISOString() }] });
+        .send({
+          checkIns: [
+            {
+              id: checkInId,
+              bookingItemGuestId: bookingItem.guests[0].id,
+              checkedInAt: new Date().toISOString(),
+            },
+          ],
+        });
 
-      const auditEntries = await prisma.auditLogEntry.findMany({ where: { module: 'M9', resourceType: 'FieldCheckIn', resourceId: checkInId } });
+      const auditEntries = await prisma.auditLogEntry.findMany({
+        where: { module: 'M9', resourceType: 'FieldCheckIn', resourceId: checkInId },
+      });
       expect(auditEntries.length).toBeGreaterThanOrEqual(1);
       expect(auditEntries[0].actorId).toBe(user.id);
     });
@@ -337,7 +397,11 @@ describe('M9 — izlazni kriterijum (e2e, deo za vodiče)', () => {
   describe('§8 stavka 3 — URGENT beleška odmah generiše vidljivo upozorenje timu po sinhronizaciji', () => {
     it('POST /mobile/staff/sync sa severity=URGENT upisuje FieldIncidentNote i piše audit log field_incident.urgent_alert', async () => {
       const { accessToken, user } = await createGuideUser();
-      const { booking } = await createAssignedItinerary(user.id, new Date('2027-09-01'), new Date('2027-09-05'));
+      const { booking } = await createAssignedItinerary(
+        user.id,
+        new Date('2027-09-01'),
+        new Date('2027-09-05'),
+      );
       const noteId = randomUUID();
       createdFieldIncidentNoteIds.push(noteId);
 
@@ -346,7 +410,13 @@ describe('M9 — izlazni kriterijum (e2e, deo za vodiče)', () => {
         .set(authed(accessToken))
         .send({
           incidentNotes: [
-            { id: noteId, bookingId: booking.id, note: 'Autobus u kvaru, kasnimo 2h', severity: 'URGENT', createdAt: new Date().toISOString() },
+            {
+              id: noteId,
+              bookingId: booking.id,
+              note: 'Autobus u kvaru, kasnimo 2h',
+              severity: 'URGENT',
+              createdAt: new Date().toISOString(),
+            },
           ],
         });
       expect(res.status).toBe(201);
@@ -365,7 +435,13 @@ describe('M9 — izlazni kriterijum (e2e, deo za vodiče)', () => {
         .set(authed(accessToken))
         .send({
           incidentNotes: [
-            { id: noteId, bookingId: booking.id, note: 'Autobus u kvaru, kasnimo 2h', severity: 'URGENT', createdAt: new Date().toISOString() },
+            {
+              id: noteId,
+              bookingId: booking.id,
+              note: 'Autobus u kvaru, kasnimo 2h',
+              severity: 'URGENT',
+              createdAt: new Date().toISOString(),
+            },
           ],
         });
       const alertEntriesAfterResync = await prisma.auditLogEntry.findMany({
@@ -380,16 +456,32 @@ describe('M9 — izlazni kriterijum (e2e, deo za vodiče)', () => {
 
     it('INFO beleška se sinhronizuje bez urgent_alert audit zapisa', async () => {
       const { accessToken, user } = await createGuideUser();
-      const { booking } = await createAssignedItinerary(user.id, new Date('2027-09-10'), new Date('2027-09-12'));
+      const { booking } = await createAssignedItinerary(
+        user.id,
+        new Date('2027-09-10'),
+        new Date('2027-09-12'),
+      );
       const noteId = randomUUID();
       createdFieldIncidentNoteIds.push(noteId);
 
       await request(app.getHttpServer())
         .post('/api/v1/mobile/staff/sync')
         .set(authed(accessToken))
-        .send({ incidentNotes: [{ id: noteId, bookingId: booking.id, note: 'Sve u redu', severity: 'INFO', createdAt: new Date().toISOString() }] });
+        .send({
+          incidentNotes: [
+            {
+              id: noteId,
+              bookingId: booking.id,
+              note: 'Sve u redu',
+              severity: 'INFO',
+              createdAt: new Date().toISOString(),
+            },
+          ],
+        });
 
-      const alertEntries = await prisma.auditLogEntry.findMany({ where: { module: 'M9', action: 'field_incident.urgent_alert', resourceId: noteId } });
+      const alertEntries = await prisma.auditLogEntry.findMany({
+        where: { module: 'M9', action: 'field_incident.urgent_alert', resourceId: noteId },
+      });
       expect(alertEntries).toHaveLength(0);
     });
   });

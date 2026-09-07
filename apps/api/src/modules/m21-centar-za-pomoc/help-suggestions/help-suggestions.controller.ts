@@ -26,7 +26,11 @@ export class HelpSuggestionsController {
   @Patch(':id')
   @RequirePermission('M21', 'suggestion', 'APPROVE')
   @AgentAction('M21', 'help_article_suggestion.approve')
-  review(@Param('id') id: string, @Body() dto: ReviewSuggestionDto, @CurrentUser() actor: { userId: string }) {
+  review(
+    @Param('id') id: string,
+    @Body() dto: ReviewSuggestionDto,
+    @CurrentUser() actor: { userId: string },
+  ) {
     return this.suggestions.review(id, dto.decision, actor.userId);
   }
 }

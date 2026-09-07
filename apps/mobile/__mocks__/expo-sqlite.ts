@@ -29,19 +29,33 @@ class FakeDatabase {
     }
     if (sql.startsWith('INSERT INTO itinerary_cache')) {
       const [bookingItemId, data, cachedAt] = params;
-      this.tables.itinerary_cache.push({ booking_item_id: bookingItemId, data, cached_at: cachedAt });
+      this.tables.itinerary_cache.push({
+        booking_item_id: bookingItemId,
+        data,
+        cached_at: cachedAt,
+      });
       return;
     }
     if (sql.startsWith('INSERT OR REPLACE INTO check_in_queue')) {
       const [id, bookingItemGuestId, checkedInAt] = params;
       this.tables.check_in_queue = this.tables.check_in_queue.filter((r) => r.id !== id);
-      this.tables.check_in_queue.push({ id, booking_item_guest_id: bookingItemGuestId, checked_in_at: checkedInAt });
+      this.tables.check_in_queue.push({
+        id,
+        booking_item_guest_id: bookingItemGuestId,
+        checked_in_at: checkedInAt,
+      });
       return;
     }
     if (sql.startsWith('INSERT OR REPLACE INTO incident_note_queue')) {
       const [id, bookingId, note, severity, createdAt] = params;
       this.tables.incident_note_queue = this.tables.incident_note_queue.filter((r) => r.id !== id);
-      this.tables.incident_note_queue.push({ id, booking_id: bookingId, note, severity, created_at: createdAt });
+      this.tables.incident_note_queue.push({
+        id,
+        booking_id: bookingId,
+        note,
+        severity,
+        created_at: createdAt,
+      });
       return;
     }
   }

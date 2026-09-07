@@ -37,17 +37,28 @@ async function main() {
   let obrisanoProizvoda = 0;
 
   if (supplierIds.length) {
-    const contracts = await prisma.contract.findMany({ where: { supplierId: { in: supplierIds } }, select: { id: true } });
+    const contracts = await prisma.contract.findMany({
+      where: { supplierId: { in: supplierIds } },
+      select: { id: true },
+    });
     const cids = contracts.map((c) => c.id);
-    const periods = await prisma.contractPeriod.findMany({ where: { contractId: { in: cids } }, select: { id: true } });
+    const periods = await prisma.contractPeriod.findMany({
+      where: { contractId: { in: cids } },
+      select: { id: true },
+    });
     const pids = periods.map((p) => p.id);
 
-    const mockProducts = await prisma.product.findMany({ where: { sourceContractId: { in: cids } }, select: { id: true } });
+    const mockProducts = await prisma.product.findMany({
+      where: { sourceContractId: { in: cids } },
+      select: { id: true },
+    });
     await obrisiProizvode(mockProducts.map((p) => p.id));
     obrisanoProizvoda += mockProducts.length;
 
     if (pids.length) {
-      await prisma.rateLineAgePricing.deleteMany({ where: { rateLine: { contractPeriodId: { in: pids } } } }).catch(() => undefined);
+      await prisma.rateLineAgePricing
+        .deleteMany({ where: { rateLine: { contractPeriodId: { in: pids } } } })
+        .catch(() => undefined);
       await prisma.rateLine.deleteMany({ where: { contractPeriodId: { in: pids } } });
       await prisma.cancellationRule.deleteMany({ where: { contractPeriodId: { in: pids } } });
       await prisma.contractPeriod.deleteMany({ where: { id: { in: pids } } });
@@ -55,7 +66,9 @@ async function main() {
     await prisma.contract.deleteMany({ where: { id: { in: cids } } });
     await prisma.markupRule.deleteMany({ where: { scopeId: { in: supplierIds } } });
     await prisma.supplier.deleteMany({ where: { id: { in: supplierIds } } });
-    console.log(`  ${supplierIds.length} dobavljača, ${cids.length} ugovora, ${pids.length} perioda`);
+    console.log(
+      `  ${supplierIds.length} dobavljača, ${cids.length} ugovora, ${pids.length} perioda`,
+    );
   }
 
   // Sigurnosna mreža po slug-u — proizvod ostaje prepoznatljiv i ako mu je ugovor već obrisan.

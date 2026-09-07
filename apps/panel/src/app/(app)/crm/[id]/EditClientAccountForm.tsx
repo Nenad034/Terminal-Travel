@@ -62,7 +62,11 @@ export default function EditClientAccountForm({ account }: { account: Account })
         <input name="country" defaultValue={account.country ?? ''} className="input" />
       </Field>
       <Field label="jezik komunikacije">
-        <select name="preferredLanguage" defaultValue={account.preferredLanguage ?? 'sr'} className="input">
+        <select
+          name="preferredLanguage"
+          defaultValue={account.preferredLanguage ?? 'sr'}
+          className="input"
+        >
           {LANGUAGES.map((l) => (
             <option key={l} value={l}>
               {l}
@@ -75,7 +79,12 @@ export default function EditClientAccountForm({ account }: { account: Account })
       </Field>
 
       <label className="flex items-center gap-2 text-xs text-ink-dim">
-        <input type="checkbox" name="marketingConsent" defaultChecked={account.marketingConsent} className="h-3.5 w-3.5" />
+        <input
+          type="checkbox"
+          name="marketingConsent"
+          defaultChecked={account.marketingConsent}
+          className="h-3.5 w-3.5"
+        />
         saglasnost za marketinšku komunikaciju
       </label>
 

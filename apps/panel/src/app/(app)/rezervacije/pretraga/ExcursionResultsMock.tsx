@@ -150,7 +150,8 @@ export default function ExcursionResultsMock({
   return (
     <div>
       <div className="mb-3 rounded-lg border border-warn bg-warn-bg px-3 py-2 text-xs text-warn">
-        MOCK — hardkodovani izleti/događaji/ulaznice, čeka potvrdu izgleda pre prave žice na `GET /search`.
+        MOCK — hardkodovani izleti/događaji/ulaznice, čeka potvrdu izgleda pre prave žice na `GET
+        /search`.
       </div>
 
       {excursions.length === 0 ? (

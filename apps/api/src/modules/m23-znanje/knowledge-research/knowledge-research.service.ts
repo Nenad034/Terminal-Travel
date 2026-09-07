@@ -1,5 +1,10 @@
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { ArticleRevision, ArticleRevisionTrigger, ArticleSourceType, ImportFieldType } from '@prisma/client';
+import {
+  ArticleRevision,
+  ArticleRevisionTrigger,
+  ArticleSourceType,
+  ImportFieldType,
+} from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { AuditLogService } from '../../m1-core-identitet/audit-log/audit-log.service';
 import { AnthropicClientService } from '../../m15-ai-orkestracija/anthropic/anthropic-client.service';
@@ -62,12 +67,18 @@ export class KnowledgeResearchService {
     // već odlučene (APPROVED/REJECTED) revizije.
     let existingRevision: ArticleRevision | null = null;
     if (params.revisionId) {
-      existingRevision = await this.prisma.articleRevision.findUnique({ where: { id: params.revisionId } });
+      existingRevision = await this.prisma.articleRevision.findUnique({
+        where: { id: params.revisionId },
+      });
       if (!existingRevision || existingRevision.articleId !== article.id) {
-        throw new NotFoundException(`ArticleRevision ${params.revisionId} nije pronađena za članak ${article.id}.`);
+        throw new NotFoundException(
+          `ArticleRevision ${params.revisionId} nije pronađena za članak ${article.id}.`,
+        );
       }
       if (existingRevision.status !== 'PENDING_REVIEW') {
-        throw new BadRequestException(`Revizija je već ${existingRevision.status} — ne može se ponovo popuniti (M23 spec §4c).`);
+        throw new BadRequestException(
+          `Revizija je već ${existingRevision.status} — ne može se ponovo popuniti (M23 spec §4c).`,
+        );
       }
     }
 
@@ -83,7 +94,12 @@ export class KnowledgeResearchService {
     const structured = await this.structureText(params.rawText);
 
     const proposedTranslations = [
-      { languageCode: 'en', title: structured.title, body: structured.body, translationSource: 'AI_GENERATED' },
+      {
+        languageCode: 'en',
+        title: structured.title,
+        body: structured.body,
+        translationSource: 'AI_GENERATED',
+      },
     ];
 
     // Status ostaje PENDING_REVIEW u oba slučaja — popunjavanje placeholder revizije nikad ne
@@ -142,20 +158,42 @@ export class KnowledgeResearchService {
 
   private async structureText(
     rawText: string,
-  ): Promise<{ title: string; body: string; usedAnthropic: boolean; inputTokens: number; outputTokens: number; latencyMs: number }> {
+  ): Promise<{
+    title: string;
+    body: string;
+    usedAnthropic: boolean;
+    inputTokens: number;
+    outputTokens: number;
+    latencyMs: number;
+  }> {
     if (this.anthropic.isConfigured()) {
       try {
         return await this.structureWithAnthropic(rawText);
       } catch (err) {
-        this.logger.warn(`Anthropic poziv nije uspeo, koristim heuristiku: ${(err as Error).message}`);
+        this.logger.warn(
+          `Anthropic poziv nije uspeo, koristim heuristiku: ${(err as Error).message}`,
+        );
       }
     }
-    return { ...heuristicStructure(rawText), usedAnthropic: false, inputTokens: 0, outputTokens: 0, latencyMs: 0 };
+    return {
+      ...heuristicStructure(rawText),
+      usedAnthropic: false,
+      inputTokens: 0,
+      outputTokens: 0,
+      latencyMs: 0,
+    };
   }
 
   private async structureWithAnthropic(
     rawText: string,
-  ): Promise<{ title: string; body: string; usedAnthropic: boolean; inputTokens: number; outputTokens: number; latencyMs: number }> {
+  ): Promise<{
+    title: string;
+    body: string;
+    usedAnthropic: boolean;
+    inputTokens: number;
+    outputTokens: number;
+    latencyMs: number;
+  }> {
     const client = this.anthropic.getClient();
     const systemPrompt =
       'Ti si KnowledgeAgent za bazu znanja agencije Terminal Travel. Dobijaš sirov tekst koji je zaposleni kopirao ' +
@@ -172,12 +210,19 @@ export class KnowledgeResearchService {
       messages: [{ role: 'user', content: rawText }],
     });
     const latencyMs = Date.now() - startedAt;
-    const textBlock = response.content.find((b: any) => b.type === 'text') as { text: string } | undefined;
+    const textBlock = response.content.find((b: any) => b.type === 'text') as
+      { text: string } | undefined;
     const rawResponse = textBlock?.text?.trim() ?? '';
 
     if (!rawResponse || rawResponse.includes(NO_STRUCTURE_MARKER)) {
       const fallback = heuristicStructure(rawText);
-      return { ...fallback, usedAnthropic: true, inputTokens: response.usage.input_tokens, outputTokens: response.usage.output_tokens, latencyMs };
+      return {
+        ...fallback,
+        usedAnthropic: true,
+        inputTokens: response.usage.input_tokens,
+        outputTokens: response.usage.output_tokens,
+        latencyMs,
+      };
     }
 
     const titleMatch = rawResponse.match(/NASLOV:\s*(.+)/);
@@ -199,14 +244,31 @@ export class KnowledgeResearchService {
   // izlazni kriterijum §9 ("subject_type=PRODUCT sa poklapajućim poljima ispravno kreira
   // ProductContentImport"), dorađuje se ROOM_TYPE/PHOTO/LOCATION/SERVICE ekstrakcija kad AI
   // provajder bude dostupan za bogatiju strukturiranu ekstrakciju.
-  private async bridgeToProductCatalog(productId: string, rawText: string, revisionId: string, actorId: string) {
+  private async bridgeToProductCatalog(
+    productId: string,
+    rawText: string,
+    revisionId: string,
+    actorId: string,
+  ) {
     const structured = heuristicStructure(rawText);
-    const fields: { fieldType: ImportFieldType; extractedValue: Record<string, unknown>; sourceArticleRevisionId: string }[] = [
-      { fieldType: 'DESCRIPTION', extractedValue: { value: structured.body }, sourceArticleRevisionId: revisionId },
+    const fields: {
+      fieldType: ImportFieldType;
+      extractedValue: Record<string, unknown>;
+      sourceArticleRevisionId: string;
+    }[] = [
+      {
+        fieldType: 'DESCRIPTION',
+        extractedValue: { value: structured.body },
+        sourceArticleRevisionId: revisionId,
+      },
     ];
     for (const { keyword, label } of AMENITY_KEYWORDS) {
       if (keyword.test(rawText)) {
-        fields.push({ fieldType: 'AMENITY', extractedValue: { value: label }, sourceArticleRevisionId: revisionId });
+        fields.push({
+          fieldType: 'AMENITY',
+          extractedValue: { value: label },
+          sourceArticleRevisionId: revisionId,
+        });
       }
     }
 

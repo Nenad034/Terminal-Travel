@@ -7,7 +7,11 @@ describe('assertNoContractPeriodOverlap (M3 spec §2.3b)', () => {
   }
 
   it('baca BadRequestException kad postoji period koji se datumski preseca (isti contract+room_type)', async () => {
-    const prisma = makePrisma({ id: 'p1', stayFrom: new Date('2027-07-01'), stayTo: new Date('2027-08-01') });
+    const prisma = makePrisma({
+      id: 'p1',
+      stayFrom: new Date('2027-07-01'),
+      stayTo: new Date('2027-08-01'),
+    });
 
     await expect(
       assertNoContractPeriodOverlap(
@@ -23,7 +27,13 @@ describe('assertNoContractPeriodOverlap (M3 spec §2.3b)', () => {
   it('ne baca grešku kad nema preklapanja', async () => {
     const prisma = makePrisma(null);
     await expect(
-      assertNoContractPeriodOverlap(prisma as any, 'contract-1', 'DELUXE', new Date('2027-07-01'), new Date('2027-07-10')),
+      assertNoContractPeriodOverlap(
+        prisma as any,
+        'contract-1',
+        'DELUXE',
+        new Date('2027-07-01'),
+        new Date('2027-07-10'),
+      ),
     ).resolves.toBeUndefined();
   });
 

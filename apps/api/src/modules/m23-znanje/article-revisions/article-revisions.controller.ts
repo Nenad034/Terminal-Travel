@@ -22,13 +22,21 @@ export class ArticleRevisionsController {
 
   @Post(':revisionId/approve')
   @RequirePermission('M23', 'article-revision', 'APPROVE')
-  approve(@Param('articleId') articleId: string, @Param('revisionId') revisionId: string, @CurrentUser() actor: { userId: string }) {
+  approve(
+    @Param('articleId') articleId: string,
+    @Param('revisionId') revisionId: string,
+    @CurrentUser() actor: { userId: string },
+  ) {
     return this.revisions.approve(articleId, revisionId, actor.userId);
   }
 
   @Post(':revisionId/reject')
   @RequirePermission('M23', 'article-revision', 'APPROVE')
-  reject(@Param('articleId') articleId: string, @Param('revisionId') revisionId: string, @CurrentUser() actor: { userId: string }) {
+  reject(
+    @Param('articleId') articleId: string,
+    @Param('revisionId') revisionId: string,
+    @CurrentUser() actor: { userId: string },
+  ) {
     return this.revisions.reject(articleId, revisionId, actor.userId);
   }
 }

@@ -19,18 +19,32 @@ export default function NewMailboxForm() {
 
   if (!open) {
     return (
-      <Button type="button" onClick={() => setOpen(true)} size="sm" className="flex items-center gap-1.5">
+      <Button
+        type="button"
+        onClick={() => setOpen(true)}
+        size="sm"
+        className="flex items-center gap-1.5"
+      >
         <Icon name="add" /> novo sanduče
       </Button>
     );
   }
 
   return (
-    <form action={formAction} className="flex flex-col gap-3 rounded-lg border border-border bg-panel p-4">
+    <form
+      action={formAction}
+      className="flex flex-col gap-3 rounded-lg border border-border bg-panel p-4"
+    >
       {state.error && <p className="rounded bg-danger-bg p-2 text-xs text-danger">{state.error}</p>}
       <label className="text-xs text-ink-faint">
         mejl adresa
-        <input name="address" type="email" required className="input mt-1" placeholder="rezervacije@terminal-travel.rs" />
+        <input
+          name="address"
+          type="email"
+          required
+          className="input mt-1"
+          placeholder="rezervacije@terminal-travel.rs"
+        />
       </label>
       <label className="text-xs text-ink-faint">
         naziv
@@ -38,7 +52,12 @@ export default function NewMailboxForm() {
       </label>
       <label className="text-xs text-ink-faint">
         tip
-        <select name="mailboxType" className="input mt-1" value={mailboxType} onChange={(e) => setMailboxType(e.target.value as 'SHARED' | 'PERSONAL')}>
+        <select
+          name="mailboxType"
+          className="input mt-1"
+          value={mailboxType}
+          onChange={(e) => setMailboxType(e.target.value as 'SHARED' | 'PERSONAL')}
+        >
           <option value="SHARED">SHARED (deljeno)</option>
           <option value="PERSONAL">PERSONAL (lično)</option>
         </select>

@@ -18,7 +18,9 @@ export class TelegramClientService {
   async send(chatId: string, text: string): Promise<void> {
     const token = this.config.get<string>('TELEGRAM_BOT_TOKEN');
     if (!token) {
-      this.logger.warn('TELEGRAM_BOT_TOKEN nije podešen — Telegram obaveštenje nije poslato (samo logovano).');
+      this.logger.warn(
+        'TELEGRAM_BOT_TOKEN nije podešen — Telegram obaveštenje nije poslato (samo logovano).',
+      );
       return;
     }
     try {

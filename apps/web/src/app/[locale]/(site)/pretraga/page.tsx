@@ -4,7 +4,6 @@ import { apiFetch } from '@/lib/api-client';
 import type { SearchResultProduct } from '@/lib/types';
 import { typeToSlug } from '@/lib/categories';
 
-
 // M8 spec poglavlje 3, korak 1 — anonimna pretraga, poziva M5 GET /search (javno od
 // avgust 2026 dopune — vidi M5 spec §11 changelog v1.22).
 export default async function SearchPage({
@@ -34,22 +33,33 @@ export default async function SearchPage({
       ...(sp.stayFrom ? { stayFrom: sp.stayFrom } : {}),
       ...(sp.stayTo ? { stayTo: sp.stayTo } : {}),
     });
-    results = await apiFetch<SearchResultProduct[]>(`/sales/search?${query.toString()}`, { auth: false }).catch(
-      () => [],
-    );
+    results = await apiFetch<SearchResultProduct[]>(`/sales/search?${query.toString()}`, {
+      auth: false,
+    }).catch(() => []);
   }
 
   return (
     <div>
       <h1 className="mb-6 text-2xl font-semibold text-ink">{t('title')}</h1>
 
-      <form method="get" className="mb-8 grid grid-cols-1 gap-4 rounded-lg border border-border bg-panel p-4 sm:grid-cols-5">
+      <form
+        method="get"
+        className="mb-8 grid grid-cols-1 gap-4 rounded-lg border border-border bg-panel p-4 sm:grid-cols-5"
+      >
         <Field label={t('destination')} name="destination" defaultValue={sp.destination} />
         <Field label={t('stayFrom')} name="stayFrom" type="date" defaultValue={sp.stayFrom} />
         <Field label={t('stayTo')} name="stayTo" type="date" defaultValue={sp.stayTo} />
         <Field label={t('adults')} name="adults" type="number" defaultValue={sp.adults ?? '2'} />
-        <Field label={t('children')} name="children" type="number" defaultValue={sp.children ?? '0'} />
-        <button type="submit" className="col-span-full rounded-md bg-accent px-4 py-2 font-medium text-accent-ink hover:bg-accent-strong sm:col-span-1">
+        <Field
+          label={t('children')}
+          name="children"
+          type="number"
+          defaultValue={sp.children ?? '0'}
+        />
+        <button
+          type="submit"
+          className="col-span-full rounded-md bg-accent px-4 py-2 font-medium text-accent-ink hover:bg-accent-strong sm:col-span-1"
+        >
           {t('submit')}
         </button>
       </form>

@@ -3,8 +3,18 @@ import { SuppliersService } from './suppliers.service';
 describe('SuppliersService', () => {
   function makeService() {
     const prisma = {
-      supplier: { findMany: jest.fn(), findUniqueOrThrow: jest.fn(), create: jest.fn(), update: jest.fn() },
-      supplierContact: { findMany: jest.fn(), findUniqueOrThrow: jest.fn(), create: jest.fn(), update: jest.fn() },
+      supplier: {
+        findMany: jest.fn(),
+        findUniqueOrThrow: jest.fn(),
+        create: jest.fn(),
+        update: jest.fn(),
+      },
+      supplierContact: {
+        findMany: jest.fn(),
+        findUniqueOrThrow: jest.fn(),
+        create: jest.fn(),
+        update: jest.fn(),
+      },
     };
     const auditLog = { write: jest.fn() };
     const service = new SuppliersService(prisma as any, auditLog as any);
@@ -32,9 +42,13 @@ describe('SuppliersService', () => {
       );
 
       expect(prisma.supplier.create).toHaveBeenCalledWith(
-        expect.objectContaining({ data: expect.objectContaining({ status: 'ACTIVE', name: 'Hotel Test' }) }),
+        expect.objectContaining({
+          data: expect.objectContaining({ status: 'ACTIVE', name: 'Hotel Test' }),
+        }),
       );
-      expect(auditLog.write).toHaveBeenCalledWith(expect.objectContaining({ action: 'supplier.created', module: 'M3' }));
+      expect(auditLog.write).toHaveBeenCalledWith(
+        expect.objectContaining({ action: 'supplier.created', module: 'M3' }),
+      );
       expect(result).toBe(created);
     });
   });
@@ -44,12 +58,18 @@ describe('SuppliersService', () => {
       const { service, prisma, auditLog } = makeService();
       prisma.supplierContact.create.mockResolvedValue({ id: 'c1' });
 
-      await service.createContact('s1', { fullName: 'Ana', email: 'ana@hotel.rs', phone: '060' }, 'actor-1');
+      await service.createContact(
+        's1',
+        { fullName: 'Ana', email: 'ana@hotel.rs', phone: '060' },
+        'actor-1',
+      );
 
       const call = prisma.supplierContact.create.mock.calls[0][0];
       expect(call.data.status).toBe('ACTIVE');
       expect(call.data.linkedUserId).toBeUndefined();
-      expect(auditLog.write).toHaveBeenCalledWith(expect.objectContaining({ action: 'supplier_contact.created' }));
+      expect(auditLog.write).toHaveBeenCalledWith(
+        expect.objectContaining({ action: 'supplier_contact.created' }),
+      );
     });
   });
 
@@ -64,7 +84,11 @@ describe('SuppliersService', () => {
       const result = await service.updateContact('c1', { status: 'INACTIVE' as any }, 'actor-1');
 
       expect(auditLog.write).toHaveBeenCalledWith(
-        expect.objectContaining({ action: 'supplier_contact.updated', beforeState: before, afterState: after }),
+        expect.objectContaining({
+          action: 'supplier_contact.updated',
+          beforeState: before,
+          afterState: after,
+        }),
       );
       expect(result).toBe(after);
     });

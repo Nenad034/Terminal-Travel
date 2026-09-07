@@ -30,6 +30,7 @@ Vlasnik je eksplicitno rekao (13.8.2026): "hajde da ne radimo sada na ovome zapi
 ## 1. Cilj modula
 
 Trenutno svaki agent (offers, finance, B2B, content) koji treba da "pita" bazu podataka prirodnim jezikom mora ili:
+
 - da ima hardkodovane SQL upite (nefleksibilno, teško za održavanje), ili
 - da LLM sam generiše SQL direktno nad šemom (rizično — nagađanje JOIN-ova, halucinacije, curenje podataka van dozvoljenog opsega).
 
@@ -41,7 +42,7 @@ Trenutno svaki agent (offers, finance, B2B, content) koji treba da "pita" bazu p
 
 ## 2. Zašto je ovo kritično za TTA (ne samo "nice to have")
 
-- **Data sovereignty pravilo** (već definisano u arhitekturi): klijentski lični podaci i interne cene NE SMEJU ići na eksterne modele. Semantički sloj je mesto gde se ovo pravilo *tehnički sprovodi*, ne samo dogovara — permisije žive u sloju, ne u promptu.
+- **Data sovereignty pravilo** (već definisano u arhitekturi): klijentski lični podaci i interne cene NE SMEJU ići na eksterne modele. Semantički sloj je mesto gde se ovo pravilo _tehnički sprovodi_, ne samo dogovara — permisije žive u sloju, ne u promptu.
 - **Row/column-level security** po ulozi (komercijala vidi svoje ponude, finansije vide sve, sub-agent vidi samo svoj B2B promet) postaje deo definicije metrike, a ne ad-hoc WHERE klauzule koje neko može zaboraviti.
 - Jedan izvor istine za interne dashboard-e I za AI agente — margina se računa isto svuda.
 
@@ -49,13 +50,13 @@ Trenutno svaki agent (offers, finance, B2B, content) koji treba da "pita" bazu p
 
 ## 3. Predloženi stack
 
-| Komponenta | Izbor | Razlog |
-|---|---|---|
-| Semantic layer engine | **Cube.dev** (self-hosted, open-source) | Docker-friendly, uklapa se u postojeći hybrid stack (RTX 4090 / vLLM / Tailscale), ima native REST + SQL API, YAML modeli |
-| Baza | PostgreSQL (postojeća) | Bez migracije |
-| LLM routing | LiteLLM (postojeći) | NL→query ostaje pod istim hard rule-om (lokalni model za osetljive upite) |
-| Auth/permisije | Cube.dev Security Context + postojeći JWT sloj | Row/column-level po `role` i `sub_agent_id` |
-| Vector kontekst (opciono, faza 2) | pgvector | Za semantic search nad definicijama metrika kad katalog preraste ~50 metrika |
+| Komponenta                        | Izbor                                          | Razlog                                                                                                                    |
+| --------------------------------- | ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| Semantic layer engine             | **Cube.dev** (self-hosted, open-source)        | Docker-friendly, uklapa se u postojeći hybrid stack (RTX 4090 / vLLM / Tailscale), ima native REST + SQL API, YAML modeli |
+| Baza                              | PostgreSQL (postojeća)                         | Bez migracije                                                                                                             |
+| LLM routing                       | LiteLLM (postojeći)                            | NL→query ostaje pod istim hard rule-om (lokalni model za osetljive upite)                                                 |
+| Auth/permisije                    | Cube.dev Security Context + postojeći JWT sloj | Row/column-level po `role` i `sub_agent_id`                                                                               |
+| Vector kontekst (opciono, faza 2) | pgvector                                       | Za semantic search nad definicijama metrika kad katalog preraste ~50 metrika                                              |
 
 **Alternativa razmotrena i odbačena:** dbt Semantic Layer — zahteva dbt Cloud za puni API pristup ili kompleksniji self-hosted setup (MetricFlow + custom server); Cube.dev ima jednostavniji self-hosted put do produkcije.
 
@@ -103,14 +104,14 @@ cubes:
     sql_table: bookings
     joins:
       - name: sub_agenti
-        sql: "{CUBE}.sub_agent_id = {sub_agenti}.id"
+        sql: '{CUBE}.sub_agent_id = {sub_agenti}.id'
         relationship: many_to_one
 
     measures:
       - name: marza_ukupno
         sql: prodajna_cena - nabavna_cena
         type: sum
-        description: "Ukupna marža u periodu"
+        description: 'Ukupna marža u periodu'
 
       - name: broj_rezervacija
         type: count
@@ -122,7 +123,7 @@ cubes:
       - name: sub_agent_id
         sql: sub_agent_id
         type: string
-        shown: false  # koristi se za permisije, ne prikazuje se direktno
+        shown: false # koristi se za permisije, ne prikazuje se direktno
 
     # Row-level security
     security_context: |
@@ -137,19 +138,20 @@ Svaki novi modul (finance, B2B, content) dobija svoj `.yml` fajl. Promene idu kr
 
 ## 6. Integracija sa postojećim agentima
 
-| Agent | Upotreba semantičkog sloja |
-|---|---|
-| **Offers/komercijala** | "Koja je prosečna marža na letovanjima u Grčkoj za avgust?" → poziva `rezervacije.marza_ukupno` filtrirano po destinaciji/mesecu |
-| **Finance/reconciliation** | Upiti za usklađivanje banaka, provizije — koristi iste `measures` koje koristi i finance dashboard |
-| **B2B sub-agent mreža** | Sub-agent pita "koliki mi je promet ovog meseca" — `security_context` automatski ograničava na njegov `sub_agent_id`, bez posebne logike u agentu |
-| **Content/marketing** | Read-only pristup agregiranim, anonimizovanim metrikama (bez PII) |
-| **Legal compliance** | Nema pristup — ovaj modul nije relevantan za pravni agent |
+| Agent                      | Upotreba semantičkog sloja                                                                                                                        |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Offers/komercijala**     | "Koja je prosečna marža na letovanjima u Grčkoj za avgust?" → poziva `rezervacije.marza_ukupno` filtrirano po destinaciji/mesecu                  |
+| **Finance/reconciliation** | Upiti za usklađivanje banaka, provizije — koristi iste `measures` koje koristi i finance dashboard                                                |
+| **B2B sub-agent mreža**    | Sub-agent pita "koliki mi je promet ovog meseca" — `security_context` automatski ograničava na njegov `sub_agent_id`, bez posebne logike u agentu |
+| **Content/marketing**      | Read-only pristup agregiranim, anonimizovanim metrikama (bez PII)                                                                                 |
+| **Legal compliance**       | Nema pristup — ovaj modul nije relevantan za pravni agent                                                                                         |
 
 ---
 
 ## 7. API kontrat (za AI agenta koji implementira)
 
 ### Endpoint 1: Lista dostupnih metrika (za dati role)
+
 ```
 GET /api/semantic/meta
 Header: Authorization: Bearer <jwt>
@@ -157,6 +159,7 @@ Header: Authorization: Bearer <jwt>
 ```
 
 ### Endpoint 2: Izvršenje upita
+
 ```
 POST /api/semantic/query
 Body: {
@@ -168,6 +171,7 @@ Body: {
 ```
 
 ### Endpoint 3: NL prevodilac (agent-facing)
+
 ```
 POST /api/semantic/nl-query
 Body: { "pitanje": "Koja mi je marža za jul?", "role": "sub_agent", "sub_agent_id": "SA-042" }
@@ -189,12 +193,12 @@ Body: { "pitanje": "Koja mi je marža za jul?", "role": "sub_agent", "sub_agent_
 
 ## 9. Predlog sprint plana
 
-| Sprint | Obim |
-|---|---|
-| 1 | Cube.dev setup (Docker), povezivanje na PostgreSQL, prvi model (`rezervacije`) sa 3-4 osnovne metrike |
-| 2 | Row-level security po `role`/`sub_agent_id`, testiranje sa B2B agentom |
-| 3 | NL→query prevodilac kroz LiteLLM, integracija sa offers/finance agentima |
-| 4 | Proširenje kataloga (marketing, content metrike), audit log, dashboard nad istim slojem |
+| Sprint | Obim                                                                                                  |
+| ------ | ----------------------------------------------------------------------------------------------------- |
+| 1      | Cube.dev setup (Docker), povezivanje na PostgreSQL, prvi model (`rezervacije`) sa 3-4 osnovne metrike |
+| 2      | Row-level security po `role`/`sub_agent_id`, testiranje sa B2B agentom                                |
+| 3      | NL→query prevodilac kroz LiteLLM, integracija sa offers/finance agentima                              |
+| 4      | Proširenje kataloga (marketing, content metrike), audit log, dashboard nad istim slojem               |
 
 ---
 
@@ -206,4 +210,4 @@ Body: { "pitanje": "Koja mi je marža za jul?", "role": "sub_agent", "sub_agent_
 
 ---
 
-*Ovaj dokument je ulazna tačka za AI coding agenta. Agent treba da pročita M-24 spec i postojeću PostgreSQL šemu pre generisanja `.yml` modela, i da poštuje hard rule o lokalnom modelu za osetljive podatke definisan u glavnoj arhitekturi platforme.*
+_Ovaj dokument je ulazna tačka za AI coding agenta. Agent treba da pročita M-24 spec i postojeću PostgreSQL šemu pre generisanja `.yml` modela, i da poštuje hard rule o lokalnom modelu za osetljive podatke definisan u glavnoj arhitekturi platforme._

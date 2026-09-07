@@ -36,10 +36,14 @@ export default function PackageDeparturesEditor({
     setError(null);
     try {
       const created = await addPackageDeparture(productId, newDate);
-      setDepartures([...departures, created].sort((a, b) => (a.departureDate < b.departureDate ? -1 : 1)));
+      setDepartures(
+        [...departures, created].sort((a, b) => (a.departureDate < b.departureDate ? -1 : 1)),
+      );
       setNewDate('');
     } catch {
-      setError('Dodavanje termina nije uspelo. Proverite da li je trajanje paketa (broj dana) sačuvano.');
+      setError(
+        'Dodavanje termina nije uspelo. Proverite da li je trajanje paketa (broj dana) sačuvano.',
+      );
     } finally {
       setSaving(false);
     }
@@ -62,29 +66,43 @@ export default function PackageDeparturesEditor({
     <div className="mt-4 rounded-lg border border-border bg-panel p-5">
       <h2 className="mb-3 text-sm font-semibold text-ink">Termini polaska</h2>
       <p className="mb-3 text-xs text-ink-faint">
-        Paket mora imati bar jedan datum polaska da bi ga gost/agent mogao pronaći i rezervisati — datum povratka se
-        računa automatski (polazak + trajanje paketa).
+        Paket mora imati bar jedan datum polaska da bi ga gost/agent mogao pronaći i rezervisati —
+        datum povratka se računa automatski (polazak + trajanje paketa).
       </p>
       {error && <p className="mb-3 rounded bg-danger-bg p-2 text-xs text-danger">{error}</p>}
       {!hasDurationDays && (
         <p className="mb-3 rounded bg-danger-bg p-2 text-xs text-danger">
-          Prvo unesite i sačuvajte trajanje paketa (broj dana) iznad — bez njega se ne može izračunati datum povratka.
+          Prvo unesite i sačuvajte trajanje paketa (broj dana) iznad — bez njega se ne može
+          izračunati datum povratka.
         </p>
       )}
 
       <div className="mb-4 flex flex-col gap-1.5">
-        {departures.length === 0 && <p className="text-xs text-ink-faint">Još nema definisanih termina.</p>}
+        {departures.length === 0 && (
+          <p className="text-xs text-ink-faint">Još nema definisanih termina.</p>
+        )}
         {departures.map((d) => (
-          <div key={d.id} className="flex items-center justify-between rounded border border-border bg-bg px-3 py-1.5">
+          <div
+            key={d.id}
+            className="flex items-center justify-between rounded border border-border bg-bg px-3 py-1.5"
+          >
             <div className="text-xs text-ink">
               {d.departureDate.slice(0, 10)} → {d.returnDate.slice(0, 10)}
             </div>
             <div className="flex items-center gap-2">
-              <Badge variant={d.status === 'ACTIVE' ? 'ok' : 'secondary'} className={d.status === 'ACTIVE' ? '' : 'text-ink-faint'}>
+              <Badge
+                variant={d.status === 'ACTIVE' ? 'ok' : 'secondary'}
+                className={d.status === 'ACTIVE' ? '' : 'text-ink-faint'}
+              >
                 {d.status === 'ACTIVE' ? 'aktivan' : 'otkazan'}
               </Badge>
               {d.status === 'ACTIVE' && (
-                <button type="button" onClick={() => cancelDeparture(d.id)} disabled={saving} className="text-[11px] text-danger hover:underline">
+                <button
+                  type="button"
+                  onClick={() => cancelDeparture(d.id)}
+                  disabled={saving}
+                  className="text-[11px] text-danger hover:underline"
+                >
                   otkaži
                 </button>
               )}
@@ -96,7 +114,12 @@ export default function PackageDeparturesEditor({
       <div className="flex items-end gap-2">
         <label className="flex flex-col gap-0.5">
           <span className="text-[11px] text-ink-faint">Novi datum polaska</span>
-          <input className="input text-xs" type="date" value={newDate} onChange={(e) => setNewDate(e.target.value)} />
+          <input
+            className="input text-xs"
+            type="date"
+            value={newDate}
+            onChange={(e) => setNewDate(e.target.value)}
+          />
         </label>
         <Button onClick={addDeparture} disabled={saving || !newDate || !hasDurationDays} size="sm">
           {saving ? 'Dodavanje…' : 'Dodaj termin'}

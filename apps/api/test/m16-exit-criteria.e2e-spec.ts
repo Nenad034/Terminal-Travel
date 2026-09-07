@@ -36,7 +36,9 @@ describe('M16 — izlazni kriterijum (e2e)', () => {
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
     app = moduleRef.createNestApplication();
     app.setGlobalPrefix('api/v1');
-    app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }));
+    app.useGlobalPipes(
+      new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }),
+    );
     app.useGlobalFilters(new PrismaExceptionFilter());
     await app.init();
     prisma = app.get(PrismaService);
@@ -46,24 +48,36 @@ describe('M16 — izlazni kriterijum (e2e)', () => {
   afterAll(async () => {
     if (createdBookingIds.length) {
       await prisma.clientContract.deleteMany({ where: { bookingId: { in: createdBookingIds } } });
-      await prisma.travelGuaranteeRegistration.deleteMany({ where: { bookingId: { in: createdBookingIds } } });
+      await prisma.travelGuaranteeRegistration.deleteMany({
+        where: { bookingId: { in: createdBookingIds } },
+      });
       await prisma.postTripSurvey.deleteMany({ where: { bookingId: { in: createdBookingIds } } });
       await prisma.bookingItem.deleteMany({ where: { bookingId: { in: createdBookingIds } } });
       await prisma.booking.deleteMany({ where: { id: { in: createdBookingIds } } });
     }
-    await prisma.quote.deleteMany({ where: { clientAccountId: { in: createdMcpClientAccountIds } } });
+    await prisma.quote.deleteMany({
+      where: { clientAccountId: { in: createdMcpClientAccountIds } },
+    });
     if (createdRegistrationIds.length) {
-      await prisma.mCPClientRegistration.deleteMany({ where: { id: { in: createdRegistrationIds } } });
+      await prisma.mCPClientRegistration.deleteMany({
+        where: { id: { in: createdRegistrationIds } },
+      });
     }
     if (createdProductIds.length) {
-      await prisma.productTranslation.deleteMany({ where: { productId: { in: createdProductIds } } });
+      await prisma.productTranslation.deleteMany({
+        where: { productId: { in: createdProductIds } },
+      });
       await prisma.product.deleteMany({ where: { id: { in: createdProductIds } } });
     }
-    if (createdContractIds.length) await prisma.contract.deleteMany({ where: { id: { in: createdContractIds } } });
-    if (createdSupplierIds.length) await prisma.supplier.deleteMany({ where: { id: { in: createdSupplierIds } } });
-    if (createdMarkupRuleIds.length) await prisma.markupRule.deleteMany({ where: { id: { in: createdMarkupRuleIds } } });
+    if (createdContractIds.length)
+      await prisma.contract.deleteMany({ where: { id: { in: createdContractIds } } });
+    if (createdSupplierIds.length)
+      await prisma.supplier.deleteMany({ where: { id: { in: createdSupplierIds } } });
+    if (createdMarkupRuleIds.length)
+      await prisma.markupRule.deleteMany({ where: { id: { in: createdMarkupRuleIds } } });
     const allClientAccountIds = [...createdClientAccountIds, ...createdMcpClientAccountIds];
-    if (allClientAccountIds.length) await prisma.clientAccount.deleteMany({ where: { id: { in: allClientAccountIds } } });
+    if (allClientAccountIds.length)
+      await prisma.clientAccount.deleteMany({ where: { id: { in: allClientAccountIds } } });
     const allUserIds = [...createdUserIds, ...createdMcpUserIds];
     if (allUserIds.length) {
       await prisma.userRole.deleteMany({ where: { userId: { in: allUserIds } } });
@@ -83,7 +97,9 @@ describe('M16 — izlazni kriterijum (e2e)', () => {
     });
     createdUserIds.push(user.id);
     const role = await prisma.role.findUniqueOrThrow({ where: { name: roleName } });
-    await prisma.userRole.create({ data: { userId: user.id, roleId: role.id, assignedBy: user.id } });
+    await prisma.userRole.create({
+      data: { userId: user.id, roleId: role.id, assignedBy: user.id },
+    });
     const accessToken = jwt.sign({ sub: user.id, sessionId: 'e2e-test-session' });
     return { user, accessToken };
   }
@@ -133,7 +149,14 @@ describe('M16 — izlazni kriterijum (e2e)', () => {
         visibleChannels: ['B2C_SITE'],
         attributes: { stars: 4 },
         translations: {
-          create: [{ languageCode: 'sr', name: `Hotel M16 Test ${testRunId}`, description: 'opis', slug: `hotel-m16-${testRunId}-${Math.random().toString(36).slice(2)}` }],
+          create: [
+            {
+              languageCode: 'sr',
+              name: `Hotel M16 Test ${testRunId}`,
+              description: 'opis',
+              slug: `hotel-m16-${testRunId}-${Math.random().toString(36).slice(2)}`,
+            },
+          ],
         },
       },
     });
@@ -152,17 +175,28 @@ describe('M16 — izlazni kriterijum (e2e)', () => {
     });
 
     const rateLine = await prisma.rateLine.create({
-      data: { contractPeriodId: contractPeriod.id, boardType: 'HALF_BOARD', occupancy: '2+0', priceBasis: 'PER_ROOM_PER_NIGHT', price: 10000 },
+      data: {
+        contractPeriodId: contractPeriod.id,
+        boardType: 'HALF_BOARD',
+        occupancy: '2+0',
+        priceBasis: 'PER_ROOM_PER_NIGHT',
+        price: 10000,
+      },
     });
 
-    const markupRule = await prisma.markupRule.create({ data: { scopeType: 'M3_SUPPLIER', scopeId: supplier.id, percentage: 20 } });
+    const markupRule = await prisma.markupRule.create({
+      data: { scopeType: 'M3_SUPPLIER', scopeId: supplier.id, percentage: 20 },
+    });
     createdMarkupRuleIds.push(markupRule.id);
 
     return { product, rateLine };
   }
 
   /** Registruje i aktivira MCP klijenta preko pravih HTTP admin endpoint-a (§3.1). */
-  async function registerAndActivateMcpClient(vlasnikToken: string, accessLevel: 'READ_ONLY' | 'READ_WRITE' = 'READ_ONLY') {
+  async function registerAndActivateMcpClient(
+    vlasnikToken: string,
+    accessLevel: 'READ_ONLY' | 'READ_WRITE' = 'READ_ONLY',
+  ) {
     const created = await request(app.getHttpServer())
       .post('/api/v1/mcp-admin/clients')
       .set(authed(vlasnikToken))
@@ -202,17 +236,26 @@ describe('M16 — izlazni kriterijum (e2e)', () => {
       .set('MCP-Protocol-Version', '2026-07-28')
       .set('Mcp-Method', 'tools/call')
       .set('Mcp-Name', toolName)
-      .send({ jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name: toolName, arguments: args, _meta: metaEnvelope() } });
+      .send({
+        jsonrpc: '2.0',
+        id: 1,
+        method: 'tools/call',
+        params: { name: toolName, arguments: args, _meta: metaEnvelope() },
+      });
   }
 
   describe('§9, stavka 1 — READ_ONLY klijent uspešno izvršava search_products, isti rezultati kao M5 search', () => {
     it('search_products preko MCP vraća isti proizvod koji M5 GET /sales/search vraća za isti upit', async () => {
-      const { user: vlasnik, accessToken: vlasnikToken } = await createInternalUser(SYSTEM_ROLES.VLASNIK);
+      const { user: vlasnik, accessToken: vlasnikToken } = await createInternalUser(
+        SYSTEM_ROLES.VLASNIK,
+      );
       void vlasnik;
       const { product } = await createBookableProductFixture();
       const { credential } = await registerAndActivateMcpClient(vlasnikToken, 'READ_ONLY');
 
-      const mcpRes = await callMcpTool(credential, 'search_products', { destinationCity: 'Kopaonik' });
+      const mcpRes = await callMcpTool(credential, 'search_products', {
+        destinationCity: 'Kopaonik',
+      });
       expect(mcpRes.status).toBe(200);
       const mcpProducts = mcpRes.body.result.structuredContent.results;
       expect(mcpProducts.some((p: any) => p.productId === product.id)).toBe(true);
@@ -230,7 +273,14 @@ describe('M16 — izlazni kriterijum (e2e)', () => {
       const { credential } = await registerAndActivateMcpClient(vlasnikToken, 'READ_ONLY');
 
       const res = await callMcpTool(credential, 'create_quote', {
-        items: [{ productId: product.id, stayFrom: '2027-06-10', stayTo: '2027-06-17', occupancy: { adults: 2, children: 0 } }],
+        items: [
+          {
+            productId: product.id,
+            stayFrom: '2027-06-10',
+            stayTo: '2027-06-17',
+            occupancy: { adults: 2, children: 0 },
+          },
+        ],
         contractTermsAccepted: true,
       });
       expect(res.status).toBe(200);
@@ -244,7 +294,9 @@ describe('M16 — izlazni kriterijum (e2e)', () => {
       const { accessToken: vlasnikToken } = await createInternalUser(SYSTEM_ROLES.VLASNIK);
       const { credential } = await registerAndActivateMcpClient(vlasnikToken, 'READ_WRITE');
 
-      const res = await callMcpTool(credential, 'confirm_booking', { quoteId: 'nepostojeci-quote-id' });
+      const res = await callMcpTool(credential, 'confirm_booking', {
+        quoteId: 'nepostojeci-quote-id',
+      });
       expect(res.status).toBe(200);
       expect(res.body.result.isError).toBe(true);
       expect(res.body.result.content[0].text).toContain('buyerName');
@@ -253,10 +305,14 @@ describe('M16 — izlazni kriterijum (e2e)', () => {
 
   describe('§9, stavka 3 — prelazak READ_ONLY→READ_WRITE zahteva eksplicitno ljudsko odobrenje, upisano u audit log', () => {
     it('approve-read-write menja access_level i upisuje audit log sa actorId', async () => {
-      const { user: vlasnik, accessToken: vlasnikToken } = await createInternalUser(SYSTEM_ROLES.VLASNIK);
+      const { user: vlasnik, accessToken: vlasnikToken } = await createInternalUser(
+        SYSTEM_ROLES.VLASNIK,
+      );
       const { registrationId } = await registerAndActivateMcpClient(vlasnikToken, 'READ_ONLY');
 
-      const before = await prisma.mCPClientRegistration.findUniqueOrThrow({ where: { id: registrationId } });
+      const before = await prisma.mCPClientRegistration.findUniqueOrThrow({
+        where: { id: registrationId },
+      });
       expect(before.accessLevel).toBe('READ_ONLY');
 
       const res = await request(app.getHttpServer())
@@ -266,7 +322,11 @@ describe('M16 — izlazni kriterijum (e2e)', () => {
       expect(res.body.accessLevel).toBe('READ_WRITE');
 
       const auditEntry = await prisma.auditLogEntry.findFirst({
-        where: { module: 'M16', action: 'mcp_client.approved_read_write', resourceId: registrationId },
+        where: {
+          module: 'M16',
+          action: 'mcp_client.approved_read_write',
+          resourceId: registrationId,
+        },
         orderBy: { timestamp: 'desc' },
       });
       expect(auditEntry).not.toBeNull();
@@ -292,7 +352,14 @@ describe('M16 — izlazni kriterijum (e2e)', () => {
       const { credential } = await registerAndActivateMcpClient(vlasnikToken, 'READ_WRITE');
 
       const quoteRes = await callMcpTool(credential, 'create_quote', {
-        items: [{ productId: product.id, stayFrom: '2027-06-10', stayTo: '2027-06-17', occupancy: { adults: 2, children: 0 } }],
+        items: [
+          {
+            productId: product.id,
+            stayFrom: '2027-06-10',
+            stayTo: '2027-06-17',
+            occupancy: { adults: 2, children: 0 },
+          },
+        ],
         contractTermsAccepted: true,
       });
       const quote = JSON.parse(quoteRes.body.result.content[0].text);
@@ -314,7 +381,14 @@ describe('M16 — izlazni kriterijum (e2e)', () => {
       // Kapacitet (totalCapacity=1) je potrošen — druga rezervacija preko ISTOG MCP kanala
       // mora biti odbijena istom M3 proverom kao bilo koji drugi kanal.
       const secondQuoteRes = await callMcpTool(credential, 'create_quote', {
-        items: [{ productId: product.id, stayFrom: '2027-06-10', stayTo: '2027-06-17', occupancy: { adults: 2, children: 0 } }],
+        items: [
+          {
+            productId: product.id,
+            stayFrom: '2027-06-10',
+            stayTo: '2027-06-17',
+            occupancy: { adults: 2, children: 0 },
+          },
+        ],
         contractTermsAccepted: true,
       });
       const secondQuote = JSON.parse(secondQuoteRes.body.result.content[0].text);
@@ -329,11 +403,24 @@ describe('M16 — izlazni kriterijum (e2e)', () => {
     it('get_booking_status vraća 404-stil grešku za tuđu (drugi MCP klijent) rezervaciju', async () => {
       const { accessToken: vlasnikToken } = await createInternalUser(SYSTEM_ROLES.VLASNIK);
       const { product } = await createBookableProductFixture();
-      const { credential: credentialA } = await registerAndActivateMcpClient(vlasnikToken, 'READ_WRITE');
-      const { credential: credentialB } = await registerAndActivateMcpClient(vlasnikToken, 'READ_WRITE');
+      const { credential: credentialA } = await registerAndActivateMcpClient(
+        vlasnikToken,
+        'READ_WRITE',
+      );
+      const { credential: credentialB } = await registerAndActivateMcpClient(
+        vlasnikToken,
+        'READ_WRITE',
+      );
 
       const quoteRes = await callMcpTool(credentialA, 'create_quote', {
-        items: [{ productId: product.id, stayFrom: '2027-07-10', stayTo: '2027-07-17', occupancy: { adults: 2, children: 0 } }],
+        items: [
+          {
+            productId: product.id,
+            stayFrom: '2027-07-10',
+            stayTo: '2027-07-17',
+            occupancy: { adults: 2, children: 0 },
+          },
+        ],
         contractTermsAccepted: true,
       });
       const quote = JSON.parse(quoteRes.body.result.content[0].text);
@@ -345,7 +432,9 @@ describe('M16 — izlazni kriterijum (e2e)', () => {
       const booking = JSON.parse(confirmRes.body.result.content[0].text);
       createdBookingIds.push(booking.id);
 
-      const statusRes = await callMcpTool(credentialB, 'get_booking_status', { bookingId: booking.id });
+      const statusRes = await callMcpTool(credentialB, 'get_booking_status', {
+        bookingId: booking.id,
+      });
       expect(statusRes.body.result.isError).toBe(true);
     });
   });
@@ -368,8 +457,13 @@ describe('M16 — izlazni kriterijum (e2e)', () => {
 
     it('SUSPENDED klijent gubi pristup', async () => {
       const { accessToken: vlasnikToken } = await createInternalUser(SYSTEM_ROLES.VLASNIK);
-      const { registrationId, credential } = await registerAndActivateMcpClient(vlasnikToken, 'READ_ONLY');
-      await request(app.getHttpServer()).post(`/api/v1/mcp-admin/clients/${registrationId}/suspend`).set(authed(vlasnikToken));
+      const { registrationId, credential } = await registerAndActivateMcpClient(
+        vlasnikToken,
+        'READ_ONLY',
+      );
+      await request(app.getHttpServer())
+        .post(`/api/v1/mcp-admin/clients/${registrationId}/suspend`)
+        .set(authed(vlasnikToken));
 
       const res = await callMcpTool(credential, 'search_products', {});
       expect(res.status).toBe(401);

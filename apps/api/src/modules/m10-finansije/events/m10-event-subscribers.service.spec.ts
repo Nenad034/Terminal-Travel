@@ -14,7 +14,14 @@ describe('M10EventSubscribersService (M10 spec §6.0/§8.0/§5.4.2)', () => {
       clientPaymentSchedules as any,
       supplierObligations as any,
     );
-    return { service, eventListener, prisma, fiscalDocuments, clientPaymentSchedules, supplierObligations };
+    return {
+      service,
+      eventListener,
+      prisma,
+      fiscalDocuments,
+      clientPaymentSchedules,
+      supplierObligations,
+    };
   }
 
   it('registruje handler za M5 booking.confirmed pri pokretanju', () => {
@@ -24,7 +31,8 @@ describe('M10EventSubscribersService (M10 spec §6.0/§8.0/§5.4.2)', () => {
   });
 
   it('onBookingConfirmed priprema fiskalni nacrt, raspored plaćanja i obaveze za CONTRACTED/CONFIRMED stavke', async () => {
-    const { service, prisma, fiscalDocuments, clientPaymentSchedules, supplierObligations } = makeService();
+    const { service, prisma, fiscalDocuments, clientPaymentSchedules, supplierObligations } =
+      makeService();
     prisma.bookingItem.findMany.mockResolvedValue([{ id: 'bi-1' }, { id: 'bi-2' }]);
 
     await service.onBookingConfirmed('booking-1');

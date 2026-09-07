@@ -37,7 +37,9 @@ describe('ProviderCallLogsService (M4 spec §7 — filtrirano po provajderu/oper
 
     const r = await service.find({});
 
-    expect(prisma.providerCallLog.findMany).toHaveBeenCalledWith(expect.objectContaining({ skip: 0, take: 50 }));
+    expect(prisma.providerCallLog.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ skip: 0, take: 50 }),
+    );
     // Jezgro nalaza: pozivalac vidi STVARAN broj poziva, ne broj koji je uspeo da povuče.
     expect(r.total).toBe(4300);
     expect(r.hasMore).toBe(true);
@@ -49,7 +51,9 @@ describe('ProviderCallLogsService (M4 spec §7 — filtrirano po provajderu/oper
 
     await service.find({}, { page: 4, limit: 25 });
 
-    expect(prisma.providerCallLog.findMany).toHaveBeenCalledWith(expect.objectContaining({ skip: 75, take: 25 }));
+    expect(prisma.providerCallLog.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ skip: 75, take: 25 }),
+    );
   });
 
   it('brojanje koristi ISTI filter kao i upit — inače „prikazano 50 od N" laže', async () => {

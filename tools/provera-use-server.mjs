@@ -22,8 +22,14 @@ const NASTAVCI = ['.ts', '.tsx'];
 
 /** `export const x`, `export let/var`, `export default <nešto što nije async function>`, `export { ... }`. */
 const SUMNJIVI = [
-  { re: /^export\s+(const|let|var)\s+(\w+)/, opis: (m) => `\`export ${m[1]} ${m[2]}\` — vrednost, ne async funkcija` },
-  { re: /^export\s+default\s+(?!async\s+function)/, opis: () => '`export default` koji nije `async function`' },
+  {
+    re: /^export\s+(const|let|var)\s+(\w+)/,
+    opis: (m) => `\`export ${m[1]} ${m[2]}\` — vrednost, ne async funkcija`,
+  },
+  {
+    re: /^export\s+default\s+(?!async\s+function)/,
+    opis: () => '`export default` koji nije `async function`',
+  },
   { re: /^export\s+function\s+(\w+)/, opis: (m) => `\`export function ${m[1]}\` — nije \`async\`` },
   { re: /^export\s+class\s+(\w+)/, opis: (m) => `\`export class ${m[1]}\`` },
 ];
@@ -64,7 +70,11 @@ for (const koren of KORENI) {
       for (const { re, opis } of SUMNJIVI) {
         const m = t.match(re);
         if (m) {
-          nalazi.push({ fajl: relative(process.cwd(), put).replace(/\\/g, '/'), linija: i + 1, poruka: opis(m) });
+          nalazi.push({
+            fajl: relative(process.cwd(), put).replace(/\\/g, '/'),
+            linija: i + 1,
+            poruka: opis(m),
+          });
           break;
         }
       }
@@ -82,7 +92,7 @@ for (const n of nalazi) {
   console.error(`  ${n.fajl}:${n.linija}  ${n.poruka}`);
 }
 console.error(
-  '\nFajl sa `\'use server\'` sme da izvozi samo `async` funkcije — sve ostalo ruši ceo ekran u',
+  "\nFajl sa `'use server'` sme da izvozi samo `async` funkcije — sve ostalo ruši ceo ekran u",
 );
 console.error('browseru, a ni `tsc` ni `next build` to ne prijavljuju (zamka 7.1a).');
 console.error('Rešenje: konstante i tipove premestiti u susedni `types.ts` BEZ te direktive.');

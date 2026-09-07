@@ -29,8 +29,15 @@ export function ConfirmationScreen({ bookingId, nacin }: { bookingId: string; na
       {booking && (
         <>
           <Text style={styles.number}>Broj rezervacije: {booking.bookingNumber}</Text>
-          {nacin === 'bank' && <Text style={styles.hint}>Uputstva za uplatu su poslata na email.</Text>}
-          <Pressable style={styles.button} onPress={() => router.push({ pathname: '/(guest)/vaucer/[bookingId]', params: { bookingId } })}>
+          {nacin === 'bank' && (
+            <Text style={styles.hint}>Uputstva za uplatu su poslata na email.</Text>
+          )}
+          <Pressable
+            style={styles.button}
+            onPress={() =>
+              router.push({ pathname: '/(guest)/vaucer/[bookingId]', params: { bookingId } })
+            }
+          >
             <Text style={styles.buttonText}>Prikaži vaučer</Text>
           </Pressable>
         </>
@@ -48,8 +55,22 @@ const styles = StyleSheet.create({
   title: { fontSize: 22, fontWeight: '700', color: '#1a4d8f', textAlign: 'center' },
   number: { fontSize: 16 },
   hint: { color: '#666', textAlign: 'center' },
-  button: { backgroundColor: '#1a4d8f', borderRadius: 8, padding: 14, alignItems: 'center', width: '100%', marginTop: 12 },
+  button: {
+    backgroundColor: '#1a4d8f',
+    borderRadius: 8,
+    padding: 14,
+    alignItems: 'center',
+    width: '100%',
+    marginTop: 12,
+  },
   buttonText: { color: '#fff', fontWeight: '600' },
-  buttonOutline: { borderWidth: 1, borderColor: '#1a4d8f', borderRadius: 8, padding: 14, alignItems: 'center', width: '100%' },
+  buttonOutline: {
+    borderWidth: 1,
+    borderColor: '#1a4d8f',
+    borderRadius: 8,
+    padding: 14,
+    alignItems: 'center',
+    width: '100%',
+  },
   buttonOutlineText: { color: '#1a4d8f', fontWeight: '600' },
 });

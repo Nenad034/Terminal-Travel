@@ -34,7 +34,11 @@ export default function BookingChangesCard({
 
   return (
     <div className="space-y-6">
-      {active.length === 0 && <p className="text-xs text-ink-faint">Sve stavke rezervacije su već otkazane — nema šta da se menja.</p>}
+      {active.length === 0 && (
+        <p className="text-xs text-ink-faint">
+          Sve stavke rezervacije su već otkazane — nema šta da se menja.
+        </p>
+      )}
 
       {canCancel && active.length > 0 && <CancelForm bookingId={bookingId} items={active} />}
       {!canCancel && (
@@ -64,7 +68,8 @@ function CancelForm({ bookingId, items }: { bookingId: string; items: Changeable
         <Icon name="trash" /> Otkazivanje
       </div>
       <p className="mb-3 text-[11px] text-ink-faint">
-        Oslobađa kapacitet kod dobavljača i računa procenat povraćaja po uslovima ugovora. Bez izabranih stavki otkazuje se cela rezervacija.
+        Oslobađa kapacitet kod dobavljača i računa procenat povraćaja po uslovima ugovora. Bez
+        izabranih stavki otkazuje se cela rezervacija.
       </p>
 
       <fieldset className="mb-3 space-y-1.5">
@@ -76,10 +81,18 @@ function CancelForm({ bookingId, items }: { bookingId: string; items: Changeable
               name="itemIds"
               value={item.id}
               checked={selected.includes(item.id)}
-              onChange={(e) => setSelected((prev) => (e.target.checked ? [...prev, item.id] : prev.filter((id) => id !== item.id)))}
+              onChange={(e) =>
+                setSelected((prev) =>
+                  e.target.checked ? [...prev, item.id] : prev.filter((id) => id !== item.id),
+                )
+              }
             />
             {item.name}
-            {item.stayFrom && <span className="text-ink-faint">({new Date(item.stayFrom).toLocaleDateString('sr-RS')})</span>}
+            {item.stayFrom && (
+              <span className="text-ink-faint">
+                ({new Date(item.stayFrom).toLocaleDateString('sr-RS')})
+              </span>
+            )}
           </label>
         ))}
       </fieldset>
@@ -106,11 +119,16 @@ function CancelForm({ bookingId, items }: { bookingId: string; items: Changeable
               <>
                 {' '}
                 Sporna rezervacija: <strong>{state.duplicateWarning.conflictBookingNumber}</strong>
-                {state.duplicateWarning.conflictPaymentStatus ? ` (${state.duplicateWarning.conflictPaymentStatus})` : ''}.
+                {state.duplicateWarning.conflictPaymentStatus
+                  ? ` (${state.duplicateWarning.conflictPaymentStatus})`
+                  : ''}
+                .
               </>
             )}
           </p>
-          <p className="mt-1 text-[11px] text-ink-faint">Otkazivanje još nije izvršeno. Proverite sporni zapis pre nego što potvrdite.</p>
+          <p className="mt-1 text-[11px] text-ink-faint">
+            Otkazivanje još nije izvršeno. Proverite sporni zapis pre nego što potvrdite.
+          </p>
           <input type="hidden" name="confirmDuplicateOverride" value="true" />
           <input type="hidden" name="reason" value={reason} />
           {selected.map((id) => (
@@ -131,7 +149,10 @@ function CancelForm({ bookingId, items }: { bookingId: string; items: Changeable
 }
 
 function ModifyForm({ bookingId, items }: { bookingId: string; items: ChangeableItem[] }) {
-  const [state, formAction] = useActionState(modifyBookingItem.bind(null, bookingId), emptyChangeState);
+  const [state, formAction] = useActionState(
+    modifyBookingItem.bind(null, bookingId),
+    emptyChangeState,
+  );
   const [itemId, setItemId] = useState(items[0]?.id ?? '');
   const current = items.find((i) => i.id === itemId);
 
@@ -141,8 +162,8 @@ function ModifyForm({ bookingId, items }: { bookingId: string; items: Changeable
         <Icon name="edit" className="text-accent" /> Izmena datuma / broja osoba
       </div>
       <p className="mb-3 text-[11px] text-ink-faint">
-        Sistem staru stavku otkazuje i pravi novu po novom zahtevu, uz novu proveru dostupnosti i cene — nova cena može biti različita od
-        prvobitne.
+        Sistem staru stavku otkazuje i pravi novu po novom zahtevu, uz novu proveru dostupnosti i
+        cene — nova cena može biti različita od prvobitne.
       </p>
 
       <div className="grid gap-3 sm:grid-cols-2">
@@ -165,15 +186,42 @@ function ModifyForm({ bookingId, items }: { bookingId: string; items: Changeable
           </select>
         </div>
 
-        <Input label="Novi datum od" name="stayFrom" type="date" defaultValue={current?.stayFrom?.slice(0, 10) ?? ''} key={`from-${itemId}`} />
-        <Input label="Novi datum do" name="stayTo" type="date" defaultValue={current?.stayTo?.slice(0, 10) ?? ''} key={`to-${itemId}`} />
-        <Input label="Odraslih" name="adults" type="number" min={1} defaultValue={String(current?.guestCount || 1)} key={`ad-${itemId}`} />
-        <Input label="Dece" name="children" type="number" min={0} defaultValue="0" key={`ch-${itemId}`} />
+        <Input
+          label="Novi datum od"
+          name="stayFrom"
+          type="date"
+          defaultValue={current?.stayFrom?.slice(0, 10) ?? ''}
+          key={`from-${itemId}`}
+        />
+        <Input
+          label="Novi datum do"
+          name="stayTo"
+          type="date"
+          defaultValue={current?.stayTo?.slice(0, 10) ?? ''}
+          key={`to-${itemId}`}
+        />
+        <Input
+          label="Odraslih"
+          name="adults"
+          type="number"
+          min={1}
+          defaultValue={String(current?.guestCount || 1)}
+          key={`ad-${itemId}`}
+        />
+        <Input
+          label="Dece"
+          name="children"
+          type="number"
+          min={0}
+          defaultValue="0"
+          key={`ch-${itemId}`}
+        />
       </div>
 
       <p className="mt-2 text-[11px] text-ink-faint">
-        Broj osoba je predložen iz spiska putnika na stavci; raspored po sobama se u ovom prolazu ne menja ovde (sve osobe se tretiraju kao
-        jedna soba) — za drugačiji raspored napravite novu rezervaciju.
+        Broj osoba je predložen iz spiska putnika na stavci; raspored po sobama se u ovom prolazu ne
+        menja ovde (sve osobe se tretiraju kao jedna soba) — za drugačiji raspored napravite novu
+        rezervaciju.
       </p>
 
       <div className="mt-3">
@@ -186,7 +234,19 @@ function ModifyForm({ bookingId, items }: { bookingId: string; items: Changeable
   );
 }
 
-function Input({ label, name, type, defaultValue, min }: { label: string; name: string; type: string; defaultValue: string; min?: number }) {
+function Input({
+  label,
+  name,
+  type,
+  defaultValue,
+  min,
+}: {
+  label: string;
+  name: string;
+  type: string;
+  defaultValue: string;
+  min?: number;
+}) {
   return (
     <div>
       <label htmlFor={`mod-${name}`} className="mb-1 block text-xs font-medium text-ink">
@@ -204,7 +264,15 @@ function Input({ label, name, type, defaultValue, min }: { label: string; name: 
   );
 }
 
-function SubmitButton({ label, pendingLabel, variant }: { label: string; pendingLabel: string; variant?: 'destructive' }) {
+function SubmitButton({
+  label,
+  pendingLabel,
+  variant,
+}: {
+  label: string;
+  pendingLabel: string;
+  variant?: 'destructive';
+}) {
   const { pending } = useFormStatus();
   return (
     <Button type="submit" size="sm" variant={variant} disabled={pending}>

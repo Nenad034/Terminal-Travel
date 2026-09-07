@@ -20,7 +20,12 @@ describe('PaymentTermsConfigService (M10 spec §5.4.1)', () => {
     prisma.paymentTermsConfig.create.mockResolvedValue({ id: 'ptc-1', depositPercentage: 30 });
 
     await service.update(
-      { depositPercentage: 30, depositDueDaysAfterConfirmation: 3, balanceDueDaysBeforeStay: 30, escalationDaysAfterDue: 5 },
+      {
+        depositPercentage: 30,
+        depositDueDaysAfterConfirmation: 3,
+        balanceDueDaysBeforeStay: 30,
+        escalationDaysAfterDue: 5,
+      },
       { userId: 'actor-1' },
     );
 

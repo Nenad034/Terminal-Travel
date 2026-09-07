@@ -50,7 +50,11 @@ export default function BookingOverviewHero({
           {/* Nosilac rezervacije je krupniji i podebljan — jedini deo zaglavlja koji nije ni
               šifra ni sitan tekst. Broj rezervacije se koristi za pretragu i dopisivanje, ali
               čovek pamti IME; zato ime stoji odmah ispod broja i čita se prvo. */}
-          {holderName && <div className="mt-1 text-[15px] font-semibold leading-tight text-ink">{holderName}</div>}
+          {holderName && (
+            <div className="mt-1 text-[15px] font-semibold leading-tight text-ink">
+              {holderName}
+            </div>
+          )}
           {/* Vlasnik/zaduženi ostaju VIDLJIVI kao podatak — sa vrha ekrana su sklonjene samo
               njihove forme za prenos (kartica Ownership), jer se koriste retko a zauzimale su
               najvredniji deo prvog ekrana. Same radnje su i dalje na istom mestu, ispod. */}
@@ -81,7 +85,9 @@ export default function BookingOverviewHero({
       <dl className="grid grid-cols-2 gap-x-5 gap-y-3.5 sm:grid-cols-3 lg:grid-cols-5">
         {facts.map((f) => (
           <div key={f.label}>
-            <dt className="mb-0.5 text-[9px] uppercase tracking-[0.1em] text-ink-faint">{f.label}</dt>
+            <dt className="mb-0.5 text-[9px] uppercase tracking-[0.1em] text-ink-faint">
+              {f.label}
+            </dt>
             <dd
               className={`font-mono font-semibold leading-tight ${f.compact ? 'text-sm' : 'text-lg'} ${
                 f.tone === 'warn' ? 'text-warn' : f.tone === 'danger' ? 'text-danger' : 'text-ink'
@@ -89,7 +95,9 @@ export default function BookingOverviewHero({
             >
               {f.value}
             </dd>
-            {f.note && <div className="mt-0.5 text-[10px] leading-snug text-ink-faint">{f.note}</div>}
+            {f.note && (
+              <div className="mt-0.5 text-[10px] leading-snug text-ink-faint">{f.note}</div>
+            )}
           </div>
         ))}
       </dl>
@@ -185,7 +193,14 @@ export function OverviewSection({
 }) {
   return (
     <div className="overflow-hidden rounded-lg border border-border bg-panel">
-      <SectionHeading title={title} icon={icon} meta={meta} href={href} linkLabel={linkLabel} linkTitle={linkTitle} />
+      <SectionHeading
+        title={title}
+        icon={icon}
+        meta={meta}
+        href={href}
+        linkLabel={linkLabel}
+        linkTitle={linkTitle}
+      />
       <div className="px-2.5 py-2">{children}</div>
     </div>
   );
@@ -201,7 +216,15 @@ export function OverviewSection({
 // vidljivih redova ima još. Nikad skraćivati bez tog linka.
 export const OVERVIEW_ROW_LIMIT = 5;
 
-export function ScrollableRows({ limited, maxHeight, children }: { limited: boolean; maxHeight: string; children: React.ReactNode }) {
+export function ScrollableRows({
+  limited,
+  maxHeight,
+  children,
+}: {
+  limited: boolean;
+  maxHeight: string;
+  children: React.ReactNode;
+}) {
   if (!limited) return <>{children}</>;
   return <div className={`tt-scroll-hidden overflow-y-auto ${maxHeight}`}>{children}</div>;
 }
@@ -231,7 +254,10 @@ export function RelatedRow({
         {meta && <span className="ml-1.5 text-ink-faint">{meta}</span>}
       </span>
       {href && actionLabel && (
-        <a href={href} className="flex-shrink-0 whitespace-nowrap text-[11px] text-accent hover:underline">
+        <a
+          href={href}
+          className="flex-shrink-0 whitespace-nowrap text-[11px] text-accent hover:underline"
+        >
           {actionLabel} →
         </a>
       )}

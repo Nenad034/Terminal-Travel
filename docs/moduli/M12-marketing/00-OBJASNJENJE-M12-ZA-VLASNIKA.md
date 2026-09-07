@@ -30,7 +30,7 @@ Zavisno od kanala koji je izabran za tu objavu:
 
 - **Sajt agencije** — sadržaj postaje vidljiv čim je objavljen (sam sajt još nije izgrađen — modul M8 je namerno pauziran; kad se izgradi, ovaj deo već postoji i čeka ga).
 - **Facebook / Instagram** — trenutno "probna verzija" (mock) koja simulira objavu i beleži je, umesto da stvarno gađa Facebook. Pravu konekciju treba potvrditi kasnije (koje mreže tačno, sa kojim nalogom).
-- **Email** — ide isključivo gostima koji su se izričito saglasili da primaju marketinške mejlove (to je zakonska obaveza, ne izbor). Ako se objava dodatno filtrira po "tagovima" (npr. samo gosti koji vole planinski turizam), taj filter samo *sužava* ko dobija mejl — nikad ne može da doda nekoga ko se nije saglasio.
+- **Email** — ide isključivo gostima koji su se izričito saglasili da primaju marketinške mejlove (to je zakonska obaveza, ne izbor). Ako se objava dodatno filtrira po "tagovima" (npr. samo gosti koji vole planinski turizam), taj filter samo _sužava_ ko dobija mejl — nikad ne može da doda nekoga ko se nije saglasio.
 - **Mobilna aplikacija (push notifikacija)** — čeka mobilnu aplikaciju (M9), koja još nije izgrađena; za sad je samo zabeleženo da bi trebalo poslati.
 
 ## Zašto svaka objava nosi svoj "tajni kod"
@@ -52,4 +52,4 @@ U praksi to znači: ako neko označi da objava sadrži AI-generisanu sliku (za r
 
 ---
 
-*Za tehničke detalje (tačna imena polja, redosled provera, API pozivi) vidi `15-SPECIFIKACIJA-M12-MARKETING.md` u istom folderu i `docs/api/M12-marketing.md` — ovaj dokument je namerno pojednostavljen, ne zamenjuje ih.*
+_Za tehničke detalje (tačna imena polja, redosled provera, API pozivi) vidi `15-SPECIFIKACIJA-M12-MARKETING.md` u istom folderu i `docs/api/M12-marketing.md` — ovaj dokument je namerno pojednostavljen, ne zamenjuje ih._

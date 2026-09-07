@@ -32,20 +32,30 @@ export async function GET() {
     // više vrednosti razdvojenih zarezom) i broj se čita iz `total` — tako je tačan bez obzira na
     // veličinu stranice, a povlači se najmanje što treba.
     canAudit
-      ? apiFetch<StranicenBroj>('/iam/audit-log?module=M1&action=user.locked,auth.login_failed&limit=1').catch(() => null)
+      ? apiFetch<StranicenBroj>(
+          '/iam/audit-log?module=M1&action=user.locked,auth.login_failed&limit=1',
+        ).catch(() => null)
       : Promise.resolve(null),
-    canContractPeriods ? apiFetch<ExpiringRelease[]>('/contracting/contracts/expiring-releases').catch(() => []) : Promise.resolve([]),
+    canContractPeriods
+      ? apiFetch<ExpiringRelease[]>('/contracting/contracts/expiring-releases').catch(() => [])
+      : Promise.resolve([]),
     canTravelGuarantee
-      ? apiFetch<{ utilizationPercent: number; guaranteeStatus: string | null }>('/compliance/travel-guarantee/utilization').catch(() => null)
+      ? apiFetch<{ utilizationPercent: number; guaranteeStatus: string | null }>(
+          '/compliance/travel-guarantee/utilization',
+        ).catch(() => null)
       : Promise.resolve(null),
-    canAgentInbox ? apiFetch<AgentInboxSource[]>('/ai-orchestration/inbox').catch(() => []) : Promise.resolve([]),
+    canAgentInbox
+      ? apiFetch<AgentInboxSource[]>('/ai-orchestration/inbox').catch(() => [])
+      : Promise.resolve([]),
   ]);
 
   const securityAlertsCount = (auditEntries as StranicenBroj | null)?.total ?? 0;
   const agentInboxTotal = (agentInbox as AgentInboxSource[]).reduce((sum, s) => sum + s.count, 0);
 
   return NextResponse.json({
-    expiringReleasesCount: canContractPeriods ? (expiringReleases as ExpiringRelease[]).length : null,
+    expiringReleasesCount: canContractPeriods
+      ? (expiringReleases as ExpiringRelease[]).length
+      : null,
     securityAlertsCount: canAudit ? securityAlertsCount : null,
     guaranteeStatus: canTravelGuarantee ? (guaranteeUtilization?.guaranteeStatus ?? null) : null,
     agentInboxTotal: canAgentInbox ? agentInboxTotal : null,

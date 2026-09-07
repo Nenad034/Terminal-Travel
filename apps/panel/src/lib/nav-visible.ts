@@ -14,5 +14,9 @@ import { NAV_ITEMS, type NavItem } from './nav';
  * komponenti (npr. (app)/layout.tsx), rezultat (NavItem[]) se dalje prosleđuje klijentu.
  */
 export function visibleNavItems(me: Me | null): NavItem[] {
-  return NAV_ITEMS.filter((item) => item.permission === null || hasPermission(me, item.permission.module, item.permission.resource, item.permission.action));
+  return NAV_ITEMS.filter(
+    (item) =>
+      item.permission === null ||
+      hasPermission(me, item.permission.module, item.permission.resource, item.permission.action),
+  );
 }

@@ -55,7 +55,8 @@ export const PRODUCT_ICONS: ProductIconDef[] = [
     label: 'Rent-a-car',
     icon: 'milestone',
     types: ['TRANSPORT'],
-    emptyMessage: 'Rent-a-car još nema ugovorene ponude — nijedan ugovor (M3) ni provajder (M4) još ne pokriva ovu vrstu.',
+    emptyMessage:
+      'Rent-a-car još nema ugovorene ponude — nijedan ugovor (M3) ni provajder (M4) još ne pokriva ovu vrstu.',
   },
   { label: 'Things to do', icon: 'compass', types: ['EXCURSION', 'EVENT', 'TICKET'] },
   { label: 'Individualni paketi', icon: 'map', types: [], packageMode: true },
@@ -63,7 +64,8 @@ export const PRODUCT_ICONS: ProductIconDef[] = [
     label: 'Grupni paketi',
     icon: 'gift',
     types: ['PACKAGE'],
-    emptyMessage: 'Grupni paketi još nemaju ugovorene ponude — nijedan ugovor (M3) ni provajder (M4) još ne pokriva ovu vrstu.',
+    emptyMessage:
+      'Grupni paketi još nemaju ugovorene ponude — nijedan ugovor (M3) ni provajder (M4) još ne pokriva ovu vrstu.',
   },
   {
     // `codicon-flag` NE POSTOJI u stvarnom @vscode/codicons setu (izmišljeno 5.9.2026, ispravljeno
@@ -74,19 +76,22 @@ export const PRODUCT_ICONS: ProductIconDef[] = [
     iconDuo: true,
     types: ['PACKAGE'],
     hasExpertGuide: true,
-    emptyMessage: 'Putovanja sa vodičem još nemaju ugovorene ponude — nijedan ugovor (M3) ni provajder (M4) još ne pokriva ovu vrstu.',
+    emptyMessage:
+      'Putovanja sa vodičem još nemaju ugovorene ponude — nijedan ugovor (M3) ni provajder (M4) još ne pokriva ovu vrstu.',
   },
   {
     label: 'Krstarenja',
     icon: 'globe',
     types: ['CRUISE'],
-    emptyMessage: 'Krstarenja još nemaju ugovorene ponude — nijedan ugovor (M3) ni provajder (M4) još ne pokriva ovu vrstu.',
+    emptyMessage:
+      'Krstarenja još nemaju ugovorene ponude — nijedan ugovor (M3) ni provajder (M4) još ne pokriva ovu vrstu.',
   },
   {
     label: 'Putno osiguranje',
     icon: 'shield',
     types: ['INSURANCE'],
-    emptyMessage: 'Putno osiguranje još nema ugovorene ponude — nijedan ugovor (M3) ni provajder (M4) još ne pokriva ovu vrstu.',
+    emptyMessage:
+      'Putno osiguranje još nema ugovorene ponude — nijedan ugovor (M3) ni provajder (M4) još ne pokriva ovu vrstu.',
   },
 ];
 
@@ -95,8 +100,15 @@ export const PRODUCT_ICONS: ProductIconDef[] = [
  * čiji `hasExpertGuide` fleg odgovara — bez ovog drugog uslova "Grupni paketi" i "Putovanja" (isti
  * `types: ['PACKAGE']`) ne bi mogli da se razdvoje (M5 spec §3.0d.6b, dopuna 5.9.2026).
  */
-export function findIconByTypes(types: string[], hasExpertGuide = false): ProductIconDef | undefined {
+export function findIconByTypes(
+  types: string[],
+  hasExpertGuide = false,
+): ProductIconDef | undefined {
   return PRODUCT_ICONS.find(
-    (p) => p.types.length > 0 && p.types.length === types.length && p.types.every((t) => types.includes(t)) && Boolean(p.hasExpertGuide) === hasExpertGuide,
+    (p) =>
+      p.types.length > 0 &&
+      p.types.length === types.length &&
+      p.types.every((t) => types.includes(t)) &&
+      Boolean(p.hasExpertGuide) === hasExpertGuide,
   );
 }

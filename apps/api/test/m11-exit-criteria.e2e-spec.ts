@@ -32,7 +32,9 @@ describe('M11 — izlazni kriterijum (e2e)', () => {
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
     app = moduleRef.createNestApplication();
     app.setGlobalPrefix('api/v1');
-    app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }));
+    app.useGlobalPipes(
+      new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }),
+    );
     app.useGlobalFilters(new PrismaExceptionFilter());
     await app.init();
     prisma = app.get(PrismaService);
@@ -43,11 +45,15 @@ describe('M11 — izlazni kriterijum (e2e)', () => {
   afterAll(async () => {
     if (createdBookingIds.length) {
       await prisma.postTripSurvey.deleteMany({ where: { bookingId: { in: createdBookingIds } } });
-      await prisma.travelGuaranteeRegistration.deleteMany({ where: { bookingId: { in: createdBookingIds } } });
+      await prisma.travelGuaranteeRegistration.deleteMany({
+        where: { bookingId: { in: createdBookingIds } },
+      });
       await prisma.booking.deleteMany({ where: { id: { in: createdBookingIds } } });
     }
     if (createdGuaranteeIds.length) {
-      await prisma.travelGuaranteeRegistration.deleteMany({ where: { travelGuaranteeId: { in: createdGuaranteeIds } } });
+      await prisma.travelGuaranteeRegistration.deleteMany({
+        where: { travelGuaranteeId: { in: createdGuaranteeIds } },
+      });
       await prisma.travelGuarantee.deleteMany({ where: { id: { in: createdGuaranteeIds } } });
     }
     if (createdUserIds.length) {
@@ -68,7 +74,9 @@ describe('M11 — izlazni kriterijum (e2e)', () => {
     });
     createdUserIds.push(user.id);
     const role = await prisma.role.findUniqueOrThrow({ where: { name: roleName } });
-    await prisma.userRole.create({ data: { userId: user.id, roleId: role.id, assignedBy: user.id } });
+    await prisma.userRole.create({
+      data: { userId: user.id, roleId: role.id, assignedBy: user.id },
+    });
     const accessToken = jwt.sign({ sub: user.id, sessionId: 'e2e-test-session' });
     return { user, accessToken };
   }
@@ -77,7 +85,9 @@ describe('M11 — izlazni kriterijum (e2e)', () => {
     return { Authorization: `Bearer ${accessToken}` };
   }
 
-  async function createOrganizatorBooking(overrides: { status?: 'CONFIRMED' | 'CANCELLED'; totalPrice?: number } = {}) {
+  async function createOrganizatorBooking(
+    overrides: { status?: 'CONFIRMED' | 'CANCELLED'; totalPrice?: number } = {},
+  ) {
     const booking = await prisma.booking.create({
       data: {
         bookingNumber: `TT-M11-E2E-${testRunId}-${Math.random().toString(36).slice(2)}`,
@@ -119,7 +129,9 @@ describe('M11 — izlazni kriterijum (e2e)', () => {
       expect(res.body.status).toBe('ACTIVE');
       createdGuaranteeIds.push(res.body.id);
 
-      const getRes = await request(app.getHttpServer()).get('/api/v1/compliance/travel-guarantee').set(authed(accessToken));
+      const getRes = await request(app.getHttpServer())
+        .get('/api/v1/compliance/travel-guarantee')
+        .set(authed(accessToken));
       expect(getRes.body.id).toBe(res.body.id);
 
       const auditEntries = await prisma.auditLogEntry.findMany({
@@ -161,7 +173,9 @@ describe('M11 — izlazni kriterijum (e2e)', () => {
 
       await createOrganizatorBooking({ totalPrice: 50000 });
 
-      const res = await request(app.getHttpServer()).get('/api/v1/compliance/travel-guarantee/utilization').set(authed(accessToken));
+      const res = await request(app.getHttpServer())
+        .get('/api/v1/compliance/travel-guarantee/utilization')
+        .set(authed(accessToken));
 
       expect(res.status).toBe(200);
       expect(res.body.utilizedAmount).toBeGreaterThanOrEqual(50000);

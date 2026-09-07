@@ -91,7 +91,10 @@ export default function TopBar({
           "pozicija tabova treba da prati veličinu prikaza, logika kao i u prikazu 100%").
           `paddingLeft` umesto pomeranja celog kontejnera — tabovi se pomeraju udesno, a prostor
           koji ostaje levo i dalje pripada istom flex-detetu, pa se ništa iza njega ne pomera. */}
-      <div className="flex h-full min-w-0 flex-1" style={tabOffset > 0 ? { paddingLeft: tabOffset } : undefined}>
+      <div
+        className="flex h-full min-w-0 flex-1"
+        style={tabOffset > 0 ? { paddingLeft: tabOffset } : undefined}
+      >
         <TabBar />
       </div>
       {/* Gornja traka posle ovoga NE nosi više nijednu ikonicu (5.9.2026, vlasnikov zahtev: "na

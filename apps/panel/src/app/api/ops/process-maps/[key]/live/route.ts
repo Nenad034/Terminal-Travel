@@ -9,11 +9,15 @@ export async function GET(req: NextRequest, props: { params: Promise<{ key: stri
   const windowMinutes = req.nextUrl.searchParams.get('windowMinutes');
   const qs = windowMinutes ? `?windowMinutes=${encodeURIComponent(windowMinutes)}` : '';
   try {
-    const result = await apiFetch(`/ops/process-maps/${params.key}/live${qs}`, { requireAuth: true });
+    const result = await apiFetch(`/ops/process-maps/${params.key}/live${qs}`, {
+      requireAuth: true,
+    });
     return NextResponse.json(result);
   } catch (err) {
     if (err instanceof ApiError) {
-      return NextResponse.json(err.body ?? { message: 'Procesna mapa nije dostupna' }, { status: err.status });
+      return NextResponse.json(err.body ?? { message: 'Procesna mapa nije dostupna' }, {
+        status: err.status,
+      });
     }
     throw err;
   }

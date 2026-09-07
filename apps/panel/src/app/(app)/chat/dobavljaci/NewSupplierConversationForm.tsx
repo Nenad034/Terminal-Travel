@@ -12,20 +12,32 @@ const initialState: FormState = { error: null };
 // M19 spec §9.3/§9.7 — POST /chat/conversations (type=EXTERNAL_SUPPLIER). Prikazuje se samo uz
 // M19/supplier-conversation/GRANT_ACCESS (page.tsx) — kreiranje ODMAH daje tvorcu pristup
 // (self-grant, ConversationsService.create komentar), pa je isti krug dozvola dovoljan.
-export default function NewSupplierConversationForm({ suppliers }: { suppliers: { id: string; name: string }[] }) {
+export default function NewSupplierConversationForm({
+  suppliers,
+}: {
+  suppliers: { id: string; name: string }[];
+}) {
   const [state, formAction] = useActionState(createSupplierConversation, initialState);
   const [open, setOpen] = useState(false);
 
   if (!open) {
     return (
-      <Button type="button" onClick={() => setOpen(true)} size="sm" className="flex items-center gap-1.5">
+      <Button
+        type="button"
+        onClick={() => setOpen(true)}
+        size="sm"
+        className="flex items-center gap-1.5"
+      >
         <Icon name="add" /> novi razgovor sa dobavljačem
       </Button>
     );
   }
 
   return (
-    <form action={formAction} className="flex flex-col gap-3 rounded-lg border border-border bg-panel p-4">
+    <form
+      action={formAction}
+      className="flex flex-col gap-3 rounded-lg border border-border bg-panel p-4"
+    >
       {state.error && <p className="rounded bg-danger-bg p-2 text-xs text-danger">{state.error}</p>}
       <label className="text-xs text-ink-faint">
         dobavljač

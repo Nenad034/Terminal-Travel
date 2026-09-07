@@ -129,4 +129,4 @@ Isto pravilo postoji i za jednu sitniju stvar: ako se iz dokumenta ne vidi da li
 
 ---
 
-*Za tehničke detalje (tačna imena polja, redosled provera, API pozivi) vidi `04-SPECIFIKACIJA-M3-UGOVARANJE-ALOTMANI.md` u istom folderu i `docs/api/M3-ugovaranje-alotmani.md` — ovaj dokument je namerno pojednostavljen, ne zamenjuje ih.*
+_Za tehničke detalje (tačna imena polja, redosled provera, API pozivi) vidi `04-SPECIFIKACIJA-M3-UGOVARANJE-ALOTMANI.md` u istom folderu i `docs/api/M3-ugovaranje-alotmani.md` — ovaj dokument je namerno pojednostavljen, ne zamenjuje ih._

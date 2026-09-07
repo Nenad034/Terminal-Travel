@@ -4,13 +4,22 @@ import { SupplierInvoiceImportsService } from './supplier-invoice-imports.servic
 describe('SupplierInvoiceImportsService (M10 spec §8.6)', () => {
   function makeService() {
     const prisma: any = {
-      supplierInvoiceImport: { create: jest.fn(), findUnique: jest.fn(), findMany: jest.fn(), update: jest.fn() },
+      supplierInvoiceImport: {
+        create: jest.fn(),
+        findUnique: jest.fn(),
+        findMany: jest.fn(),
+        update: jest.fn(),
+      },
       supplierInvoiceImportRow: { findUnique: jest.fn(), update: jest.fn(), count: jest.fn() },
       supplierObligation: { findUnique: jest.fn(), update: jest.fn() },
     };
     const auditLog = { write: jest.fn() };
     const exchangeRates = { findForCurrencyOnOrBefore: jest.fn() };
-    const service = new SupplierInvoiceImportsService(prisma, auditLog as any, exchangeRates as any);
+    const service = new SupplierInvoiceImportsService(
+      prisma,
+      auditLog as any,
+      exchangeRates as any,
+    );
     return { service, prisma, auditLog, exchangeRates };
   }
 
@@ -23,7 +32,9 @@ describe('SupplierInvoiceImportsService (M10 spec §8.6)', () => {
         matchedSupplierObligationId: null,
       });
 
-      await expect(service.confirmRow('imp-1', 'row-1', {}, { userId: 'actor-1' })).rejects.toThrow(BadRequestException);
+      await expect(service.confirmRow('imp-1', 'row-1', {}, { userId: 'actor-1' })).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('upisuje invoice_reference u ciljanu obavezu i status CONFIRMED za predloženo mapiranje', async () => {
@@ -35,9 +46,17 @@ describe('SupplierInvoiceImportsService (M10 spec §8.6)', () => {
         extractedAmount: 50000,
         extractedInvoiceReference: 'INV-2026-001',
       });
-      prisma.supplierObligation.findUnique.mockResolvedValue({ id: 'so-1', currencyOriginal: 'RSD' });
-      prisma.supplierObligation.update.mockResolvedValue({ id: 'so-1', invoiceReference: 'INV-2026-001' });
-      prisma.supplierInvoiceImportRow.update.mockImplementation(({ data }: any) => Promise.resolve({ id: 'row-1', ...data }));
+      prisma.supplierObligation.findUnique.mockResolvedValue({
+        id: 'so-1',
+        currencyOriginal: 'RSD',
+      });
+      prisma.supplierObligation.update.mockResolvedValue({
+        id: 'so-1',
+        invoiceReference: 'INV-2026-001',
+      });
+      prisma.supplierInvoiceImportRow.update.mockImplementation(({ data }: any) =>
+        Promise.resolve({ id: 'row-1', ...data }),
+      );
       prisma.supplierInvoiceImportRow.count.mockResolvedValue(0);
 
       const result = await service.confirmRow('imp-1', 'row-1', {}, { userId: 'actor-1' });
@@ -58,9 +77,14 @@ describe('SupplierInvoiceImportsService (M10 spec §8.6)', () => {
         extractedAmount: 50000,
         extractedInvoiceReference: 'INV-2026-001',
       });
-      prisma.supplierObligation.findUnique.mockResolvedValue({ id: 'so-manual', currencyOriginal: 'RSD' });
+      prisma.supplierObligation.findUnique.mockResolvedValue({
+        id: 'so-manual',
+        currencyOriginal: 'RSD',
+      });
       prisma.supplierObligation.update.mockResolvedValue({ id: 'so-manual' });
-      prisma.supplierInvoiceImportRow.update.mockImplementation(({ data }: any) => Promise.resolve({ id: 'row-1', ...data }));
+      prisma.supplierInvoiceImportRow.update.mockImplementation(({ data }: any) =>
+        Promise.resolve({ id: 'row-1', ...data }),
+      );
       prisma.supplierInvoiceImportRow.count.mockResolvedValue(0);
 
       const result = await service.confirmRow(
@@ -82,9 +106,15 @@ describe('SupplierInvoiceImportsService (M10 spec §8.6)', () => {
         extractedAmount: 50000,
         extractedInvoiceReference: 'INV-2026-001',
       });
-      prisma.supplierObligation.findUnique.mockResolvedValue({ id: 'so-1', currencyOriginal: 'RSD' });
+      prisma.supplierObligation.findUnique.mockResolvedValue({
+        id: 'so-1',
+        currencyOriginal: 'RSD',
+      });
       prisma.supplierObligation.update.mockResolvedValue({ id: 'so-1' });
-      prisma.supplierInvoiceImportRow.update.mockResolvedValue({ id: 'row-1', reviewStatus: 'CONFIRMED' });
+      prisma.supplierInvoiceImportRow.update.mockResolvedValue({
+        id: 'row-1',
+        reviewStatus: 'CONFIRMED',
+      });
       prisma.supplierInvoiceImportRow.count.mockResolvedValue(0);
 
       await service.confirmRow('imp-1', 'row-1', { correctedAmount: 55000 }, { userId: 'actor-1' });
@@ -98,8 +128,14 @@ describe('SupplierInvoiceImportsService (M10 spec §8.6)', () => {
 
   it('rejectRow postavlja REJECTED bez ikakvog efekta na SupplierObligation', async () => {
     const { service, prisma } = makeService();
-    prisma.supplierInvoiceImportRow.findUnique.mockResolvedValue({ id: 'row-1', supplierInvoiceImportId: 'imp-1' });
-    prisma.supplierInvoiceImportRow.update.mockResolvedValue({ id: 'row-1', reviewStatus: 'REJECTED' });
+    prisma.supplierInvoiceImportRow.findUnique.mockResolvedValue({
+      id: 'row-1',
+      supplierInvoiceImportId: 'imp-1',
+    });
+    prisma.supplierInvoiceImportRow.update.mockResolvedValue({
+      id: 'row-1',
+      reviewStatus: 'REJECTED',
+    });
     prisma.supplierInvoiceImportRow.count.mockResolvedValue(0);
 
     const result = await service.rejectRow('imp-1', 'row-1', { userId: 'actor-1' });

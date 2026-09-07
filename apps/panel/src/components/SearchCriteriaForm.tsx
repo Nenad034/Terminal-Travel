@@ -62,7 +62,9 @@ export interface SearchCriteriaValues {
   rooms: string;
 }
 
-export function valuesFromSearchParams(sp: { get(key: string): string | null }): SearchCriteriaValues {
+export function valuesFromSearchParams(sp: {
+  get(key: string): string | null;
+}): SearchCriteriaValues {
   return {
     destinationCountry: sp.get('destinationCountry') ?? '',
     destinationCity: sp.get('destinationCity') ?? '',
@@ -83,7 +85,10 @@ export function valuesFromSearchParams(sp: { get(key: string): string | null }):
 }
 
 async function suggestCountries(q: string): Promise<Suggestion[]> {
-  const res = await fetch(`/api/search-suggest?kind=countries${q ? `&q=${encodeURIComponent(q)}` : ''}`, { cache: 'no-store' });
+  const res = await fetch(
+    `/api/search-suggest?kind=countries${q ? `&q=${encodeURIComponent(q)}` : ''}`,
+    { cache: 'no-store' },
+  );
   if (!res.ok) return [];
   const rows = (await res.json()) as { country: string; count: number }[];
   return rows.map((r) => ({ value: r.country, label: r.country, hint: `${r.count}` }));
@@ -106,7 +111,7 @@ async function suggestDestinations(country: string, q: string): Promise<Suggesti
   return rows.map((r) =>
     r.type === 'PRODUCT'
       ? { value: r.city, label: r.name ?? '', hint: r.city, productId: r.productId }
-      : { value: r.city, label: r.city, hint: `${r.count}` }
+      : { value: r.city, label: r.city, hint: `${r.count}` },
   );
 }
 
@@ -131,7 +136,9 @@ export default function SearchCriteriaForm({
     ...initialValues,
     // Pretraga sačuvana pre nego što je unos po sobama postojao nosi samo zbirne brojeve —
     // pretvara se u jednu sobu umesto da se odbaci (`roomsFromTotals`).
-    rooms: initialValues.rooms || serializeRooms(roomsFromTotals(initialValues.adults, initialValues.children)),
+    rooms:
+      initialValues.rooms ||
+      serializeRooms(roomsFromTotals(initialValues.adults, initialValues.children)),
   }));
   const roomBased = isRoomBased(types);
   const rooms = parseRooms(values.rooms);
@@ -192,7 +199,11 @@ export default function SearchCriteriaForm({
       <div className="mb-3 flex items-center justify-between">
         <h2 className="text-sm font-semibold text-ink">Pretraga — {label}</h2>
         {onCancel && (
-          <button onClick={onCancel} title="Zatvori formu, zadrži postojeće rezultate" className="text-ink-faint hover:text-ink">
+          <button
+            onClick={onCancel}
+            title="Zatvori formu, zadrži postojeće rezultate"
+            className="text-ink-faint hover:text-ink"
+          >
             <Icon name="close" />
           </button>
         )}
@@ -201,206 +212,214 @@ export default function SearchCriteriaForm({
       {/* Dve kolone od `sm` naviše — forma je sad u centralnom panelu, ima širine; jedna
           kolona kao u nekadašnjem uskom popup-u bi je bez razloga izdužila. */}
       <div className="grid gap-3 text-xs sm:grid-cols-2">
-          {/* M5 spec §3.0c.2 — vođeni koraci sa predlaganjem (2.9.2026). Država se predlaže
+        {/* M5 spec §3.0c.2 — vođeni koraci sa predlaganjem (2.9.2026). Država se predlaže
               dok se kuca; čim je izabrana, polje za mesto ODMAH nudi sve njene destinacije,
               bez kucanja. Kucanje imena hotela u polju za mesto vodi pravo na taj hotel. */}
-          <label className="text-ink-faint">
-            država odredišta <span className="text-danger">*</span>
-            <div className="mt-1">
-              <SuggestField
-                value={values.destinationCountry}
-                onChange={(next) => {
-                  setCountryTouched(true);
-                  setValues((v) => ({
-                    ...v,
-                    destinationCountry: next,
-                    // Promena države poništava mesto — grad druge države nije smislen filter.
-                    destinationCity: next === v.destinationCountry ? v.destinationCity : '',
-                  }));
-                }}
-                fetchSuggestions={suggestCountries}
-                placeholder="Grčka"
-                required
-              />
-            </div>
-          </label>
-          <label className="text-ink-faint">
-            mesto ili naziv objekta
-            <div className="mt-1">
-              <SuggestField
-                value={values.destinationCity}
-                onChange={(next) => setValues((v) => ({ ...v, destinationCity: next }))}
-                fetchSuggestions={(q) => suggestDestinations(values.destinationCountry, q)}
-                onPickProduct={(productId) => router.push(`/katalog/${productId}`)}
-                placeholder="sve destinacije te države"
-                disabled={!values.destinationCountry.trim()}
-                disabledHint="prvo izaberite državu"
-              />
-            </div>
-          </label>
-          {/* Jedno polje umesto dva "od"/"do" (5.9.2026, vlasnikov zahtev: "ustedeti prostor")
+        <label className="text-ink-faint">
+          država odredišta <span className="text-danger">*</span>
+          <div className="mt-1">
+            <SuggestField
+              value={values.destinationCountry}
+              onChange={(next) => {
+                setCountryTouched(true);
+                setValues((v) => ({
+                  ...v,
+                  destinationCountry: next,
+                  // Promena države poništava mesto — grad druge države nije smislen filter.
+                  destinationCity: next === v.destinationCountry ? v.destinationCity : '',
+                }));
+              }}
+              fetchSuggestions={suggestCountries}
+              placeholder="Grčka"
+              required
+            />
+          </div>
+        </label>
+        <label className="text-ink-faint">
+          mesto ili naziv objekta
+          <div className="mt-1">
+            <SuggestField
+              value={values.destinationCity}
+              onChange={(next) => setValues((v) => ({ ...v, destinationCity: next }))}
+              fetchSuggestions={(q) => suggestDestinations(values.destinationCountry, q)}
+              onPickProduct={(productId) => router.push(`/katalog/${productId}`)}
+              placeholder="sve destinacije te države"
+              disabled={!values.destinationCountry.trim()}
+              disabledHint="prvo izaberite državu"
+            />
+          </div>
+        </label>
+        {/* Jedno polje umesto dva "od"/"do" (5.9.2026, vlasnikov zahtev: "ustedeti prostor")
               — klik otvara kalendar sa dva meseca, brzim +3/5/7 dana i brojem noćenja;
               `stayFrom`/`stayTo` (ISO) idu dalje nepromenjeno, isti ugovor sa ostatkom forme. */}
-          <label className="text-ink-faint">
-            termin
-            <div className="mt-1">
-              <DateRangeField
-                fromValue={values.stayFrom}
-                toValue={values.stayTo}
-                onChange={(from, to) => setValues((v) => ({ ...v, stayFrom: from, stayTo: to }))}
-                className="input w-full"
-              />
-            </div>
-          </label>
-          {/* Smeštaj i paket se cene po sobi (M5 spec §3.2a) — unos ide soba po soba, sa
+        <label className="text-ink-faint">
+          termin
+          <div className="mt-1">
+            <DateRangeField
+              fromValue={values.stayFrom}
+              toValue={values.stayTo}
+              onChange={(from, to) => setValues((v) => ({ ...v, stayFrom: from, stayTo: to }))}
+              className="input w-full"
+            />
+          </div>
+        </label>
+        {/* Smeštaj i paket se cene po sobi (M5 spec §3.2a) — unos ide soba po soba, sa
               uzrastom svakog deteta. Ostalih 7 vrsta nema sobe, pa ostaju dva zbirna broja. */}
-          {roomBased ? (
-            <>
-              <RoomsField rooms={rooms} onChange={setRooms} />
-              {roomsError && (
-                <p className="sm:col-span-2 rounded border border-danger bg-danger-bg px-2 py-1.5 text-[11px] text-danger">{roomsError}</p>
-              )}
-            </>
-          ) : (
-            <label className="text-ink-faint">
-              odrasli / deca
-              <div className="mt-1 flex gap-1">
-                <input
-                  type="number"
-                  min={1}
-                  value={values.adults}
-                  onChange={(e) => setValues((v) => ({ ...v, adults: e.target.value }))}
-                  className="input w-1/2"
-                />
-                <input
-                  type="number"
-                  min={0}
-                  value={values.children}
-                  onChange={(e) => setValues((v) => ({ ...v, children: e.target.value }))}
-                  className="input w-1/2"
-                />
-              </div>
-            </label>
-          )}
-
-          {types.length === 1 && types[0] === 'FLIGHT' && (
-            <>
-              <label className="text-ink-faint">
-                polazni grad
-                <input
-                  value={values.originCity}
-                  onChange={(e) => setValues((v) => ({ ...v, originCity: e.target.value }))}
-                  className="input mt-1 w-full"
-                  placeholder="Beograd"
-                />
-              </label>
-
-              <div>
-                <span className="text-ink-faint">tip putovanja</span>
-                <div className="mt-1 flex rounded border border-border text-[11px]">
-                  {[
-                    { value: 'ONE_WAY', label: 'Jednosmerno' },
-                    { value: 'ROUND_TRIP', label: 'Povratno' },
-                    { value: 'MULTI_CITY', label: 'Multidestinacija' },
-                  ].map((opt, i) => (
-                    <button
-                      key={opt.value}
-                      type="button"
-                      onClick={() =>
-                        setValues((v) => ({
-                          ...v,
-                          tripType: opt.value,
-                          returnDate: opt.value === 'ROUND_TRIP' ? v.returnDate : '',
-                          flightLegs: opt.value === 'MULTI_CITY' ? v.flightLegs : '',
-                        }))
-                      }
-                      className={`flex-1 px-2 py-1.5 ${i > 0 ? 'border-l border-border' : ''} ${
-                        values.tripType === opt.value ? 'bg-accent font-semibold text-accent-ink' : 'text-ink-dim hover:bg-panel2'
-                      }`}
-                    >
-                      {opt.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {values.tripType === 'ROUND_TRIP' && (
-                <label className="text-ink-faint">
-                  datum povratka
-                  <div className="mt-1">
-                    <DateField value={values.returnDate} onChange={(iso) => setValues((v) => ({ ...v, returnDate: iso }))} className="input w-full" />
-                  </div>
-                </label>
-              )}
-
-              {values.tripType === 'MULTI_CITY' && (
-                <FlightLegsEditor
-                  value={values.flightLegs}
-                  onChange={(next) => setValues((v) => ({ ...v, flightLegs: next }))}
-                />
-              )}
-
-              <label className="text-ink-faint">
-                klasa (cabin class)
-                <select
-                  value={values.cabinClass}
-                  onChange={(e) => setValues((v) => ({ ...v, cabinClass: e.target.value }))}
-                  className="input mt-1 w-full"
-                >
-                  <option value="">— svejedno —</option>
-                  <option value="ECONOMY">Economy</option>
-                  <option value="PREMIUM_ECONOMY">Premium Economy</option>
-                  <option value="BUSINESS">Business</option>
-                  <option value="FIRST">First</option>
-                </select>
-              </label>
-            </>
-          )}
-
-          {types.length === 1 && types[0] === 'TRANSPORT' && (
-            <label className="text-ink-faint">
-              starost vozača
+        {roomBased ? (
+          <>
+            <RoomsField rooms={rooms} onChange={setRooms} />
+            {roomsError && (
+              <p className="sm:col-span-2 rounded border border-danger bg-danger-bg px-2 py-1.5 text-[11px] text-danger">
+                {roomsError}
+              </p>
+            )}
+          </>
+        ) : (
+          <label className="text-ink-faint">
+            odrasli / deca
+            <div className="mt-1 flex gap-1">
               <input
                 type="number"
                 min={1}
-                value={values.minDriverAge}
-                onChange={(e) => setValues((v) => ({ ...v, minDriverAge: e.target.value }))}
+                value={values.adults}
+                onChange={(e) => setValues((v) => ({ ...v, adults: e.target.value }))}
+                className="input w-1/2"
+              />
+              <input
+                type="number"
+                min={0}
+                value={values.children}
+                onChange={(e) => setValues((v) => ({ ...v, children: e.target.value }))}
+                className="input w-1/2"
+              />
+            </div>
+          </label>
+        )}
+
+        {types.length === 1 && types[0] === 'FLIGHT' && (
+          <>
+            <label className="text-ink-faint">
+              polazni grad
+              <input
+                value={values.originCity}
+                onChange={(e) => setValues((v) => ({ ...v, originCity: e.target.value }))}
                 className="input mt-1 w-full"
-                placeholder="npr. 25"
+                placeholder="Beograd"
               />
             </label>
-          )}
 
-          {types.length === 1 && types[0] === 'CRUISE' && (
-            <>
+            <div>
+              <span className="text-ink-faint">tip putovanja</span>
+              <div className="mt-1 flex rounded border border-border text-[11px]">
+                {[
+                  { value: 'ONE_WAY', label: 'Jednosmerno' },
+                  { value: 'ROUND_TRIP', label: 'Povratno' },
+                  { value: 'MULTI_CITY', label: 'Multidestinacija' },
+                ].map((opt, i) => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() =>
+                      setValues((v) => ({
+                        ...v,
+                        tripType: opt.value,
+                        returnDate: opt.value === 'ROUND_TRIP' ? v.returnDate : '',
+                        flightLegs: opt.value === 'MULTI_CITY' ? v.flightLegs : '',
+                      }))
+                    }
+                    className={`flex-1 px-2 py-1.5 ${i > 0 ? 'border-l border-border' : ''} ${
+                      values.tripType === opt.value
+                        ? 'bg-accent font-semibold text-accent-ink'
+                        : 'text-ink-dim hover:bg-panel2'
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {values.tripType === 'ROUND_TRIP' && (
               <label className="text-ink-faint">
-                broj noćenja
-                <input
-                  type="number"
-                  min={1}
-                  value={values.durationNights}
-                  onChange={(e) => setValues((v) => ({ ...v, durationNights: e.target.value }))}
-                  className="input mt-1 w-full"
-                  placeholder="npr. 7"
-                />
+                datum povratka
+                <div className="mt-1">
+                  <DateField
+                    value={values.returnDate}
+                    onChange={(iso) => setValues((v) => ({ ...v, returnDate: iso }))}
+                    className="input w-full"
+                  />
+                </div>
               </label>
-              <label className="text-ink-faint">
-                tip kabine
-                <select
-                  value={values.cabinType}
-                  onChange={(e) => setValues((v) => ({ ...v, cabinType: e.target.value }))}
-                  className="input mt-1 w-full"
-                >
-                  <option value="">— svejedno —</option>
-                  <option value="INTERIOR">Interior</option>
-                  <option value="OCEANVIEW">Oceanview</option>
-                  <option value="BALCONY">Balcony</option>
-                  <option value="SUITE">Suite</option>
-                </select>
-              </label>
-            </>
-          )}
-        </div>
+            )}
+
+            {values.tripType === 'MULTI_CITY' && (
+              <FlightLegsEditor
+                value={values.flightLegs}
+                onChange={(next) => setValues((v) => ({ ...v, flightLegs: next }))}
+              />
+            )}
+
+            <label className="text-ink-faint">
+              klasa (cabin class)
+              <select
+                value={values.cabinClass}
+                onChange={(e) => setValues((v) => ({ ...v, cabinClass: e.target.value }))}
+                className="input mt-1 w-full"
+              >
+                <option value="">— svejedno —</option>
+                <option value="ECONOMY">Economy</option>
+                <option value="PREMIUM_ECONOMY">Premium Economy</option>
+                <option value="BUSINESS">Business</option>
+                <option value="FIRST">First</option>
+              </select>
+            </label>
+          </>
+        )}
+
+        {types.length === 1 && types[0] === 'TRANSPORT' && (
+          <label className="text-ink-faint">
+            starost vozača
+            <input
+              type="number"
+              min={1}
+              value={values.minDriverAge}
+              onChange={(e) => setValues((v) => ({ ...v, minDriverAge: e.target.value }))}
+              className="input mt-1 w-full"
+              placeholder="npr. 25"
+            />
+          </label>
+        )}
+
+        {types.length === 1 && types[0] === 'CRUISE' && (
+          <>
+            <label className="text-ink-faint">
+              broj noćenja
+              <input
+                type="number"
+                min={1}
+                value={values.durationNights}
+                onChange={(e) => setValues((v) => ({ ...v, durationNights: e.target.value }))}
+                className="input mt-1 w-full"
+                placeholder="npr. 7"
+              />
+            </label>
+            <label className="text-ink-faint">
+              tip kabine
+              <select
+                value={values.cabinType}
+                onChange={(e) => setValues((v) => ({ ...v, cabinType: e.target.value }))}
+                className="input mt-1 w-full"
+              >
+                <option value="">— svejedno —</option>
+                <option value="INTERIOR">Interior</option>
+                <option value="OCEANVIEW">Oceanview</option>
+                <option value="BALCONY">Balcony</option>
+                <option value="SUITE">Suite</option>
+              </select>
+            </label>
+          </>
+        )}
+      </div>
 
       {countryTouched && !destinationValid && (
         <p className="mt-3 text-[11px] text-danger">Unesite bar državu odredišta.</p>
@@ -419,7 +438,13 @@ export default function SearchCriteriaForm({
 // Uređivač nogu puta za multidestinacijski let (M5 spec §3.0d.1 — "multi-city... niz poziva, po
 // jedan po nozi puta"). Vrednost putuje kao JSON string kroz `SearchCriteriaValues.flightLegs`
 // (isti obrazac kao `occupancy` u page.tsx) da ostane deo iste ravne URL parametar strukture.
-function FlightLegsEditor({ value, onChange }: { value: string; onChange: (next: string) => void }) {
+function FlightLegsEditor({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (next: string) => void;
+}) {
   let legs: FlightLeg[] = [];
   try {
     const parsed = value ? JSON.parse(value) : [];
@@ -446,7 +471,11 @@ function FlightLegsEditor({ value, onChange }: { value: string; onChange: (next:
             <div className="mb-1 flex items-center justify-between">
               <span className="text-[11px] font-medium text-ink-dim">let {i + 1}</span>
               {legs.length > 1 && (
-                <button type="button" onClick={() => update(legs.filter((_, idx) => idx !== i))} className="text-ink-faint hover:text-danger">
+                <button
+                  type="button"
+                  onClick={() => update(legs.filter((_, idx) => idx !== i))}
+                  className="text-ink-faint hover:text-danger"
+                >
                   <Icon name="close" />
                 </button>
               )}
@@ -465,7 +494,11 @@ function FlightLegsEditor({ value, onChange }: { value: string; onChange: (next:
                 className="input w-1/3"
               />
               <div className="w-1/3">
-                <DateField value={leg.date} onChange={(iso) => updateLeg(i, { date: iso })} className="input" />
+                <DateField
+                  value={leg.date}
+                  onChange={(iso) => updateLeg(i, { date: iso })}
+                  className="input"
+                />
               </div>
             </div>
           </div>

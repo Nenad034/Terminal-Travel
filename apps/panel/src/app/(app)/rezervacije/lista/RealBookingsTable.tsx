@@ -7,7 +7,14 @@ import { useRowSummary } from '@/components/RowSummaryContext';
 import { useTabs } from '@/components/TabsContext';
 import { PRODUCT_ICONS } from '@/lib/search-product-types';
 import { Badge } from '@/components/ui/badge';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { deriveEmail, derivePhoneFromSeed } from './mock-data';
 import UrgentModal from './UrgentModal';
 import ExportButton from './ExportButton';
@@ -58,8 +65,14 @@ function decorate(b: RealBooking) {
   const firstItem = b.items[0];
   const destinationCity = firstItem?.product?.destinationCity;
   const destinationCountry = firstItem?.product?.destinationCountry;
-  const stayFrom = b.items.length > 0 ? b.items.reduce((min, i) => (i.stayFrom < min ? i.stayFrom : min), b.items[0].stayFrom) : null;
-  const stayTo = b.items.length > 0 ? b.items.reduce((max, i) => (i.stayTo > max ? i.stayTo : max), b.items[0].stayTo) : null;
+  const stayFrom =
+    b.items.length > 0
+      ? b.items.reduce((min, i) => (i.stayFrom < min ? i.stayFrom : min), b.items[0].stayFrom)
+      : null;
+  const stayTo =
+    b.items.length > 0
+      ? b.items.reduce((max, i) => (i.stayTo > max ? i.stayTo : max), b.items[0].stayTo)
+      : null;
   const productType = firstItem?.product?.type ?? null;
 
   return {
@@ -78,12 +91,29 @@ function decorate(b: RealBooking) {
     supplierName: 'Dobavljač (demo)',
     supplierEmail: `demo.dobavljac@primer.local`,
     supplierPhone: derivePhoneFromSeed(`supplier-${b.bookingNumber}`),
-    demoUrgent: h % 5 === 0 ? [{ reason: 'DEMO — ovo je izmišljen primer, ne stvaran signal (čeka pravi izvor).', target: (h % 2 === 0 ? 'BUYER' : 'SUPPLIER') as 'BUYER' | 'SUPPLIER' }] : null,
+    demoUrgent:
+      h % 5 === 0
+        ? [
+            {
+              reason: 'DEMO — ovo je izmišljen primer, ne stvaran signal (čeka pravi izvor).',
+              target: (h % 2 === 0 ? 'BUYER' : 'SUPPLIER') as 'BUYER' | 'SUPPLIER',
+            },
+          ]
+        : null,
   };
 }
 
 type DecoratedRow = ReturnType<typeof decorate>;
-type SortKey = 'bookingNumber' | 'buyerName' | 'channel' | 'status' | 'paymentStatus' | 'stayFrom' | 'stayTo' | 'createdAt' | 'totalPrice';
+type SortKey =
+  | 'bookingNumber'
+  | 'buyerName'
+  | 'channel'
+  | 'status'
+  | 'paymentStatus'
+  | 'stayFrom'
+  | 'stayTo'
+  | 'createdAt'
+  | 'totalPrice';
 
 // Zaglavlja koja se sortiraju — jedan red po koloni umesto devet ponovljenih blokova.
 // „Iznos" nije ovde jer je jedina desno poravnata, pa ostaje ispisana zasebno.
@@ -117,9 +147,16 @@ function SortLabel({
 }) {
   const active = sortKey === sortKeyValue;
   return (
-    <button type="button" onClick={() => onToggle(sortKeyValue)} title="Sortiraj" className={`flex items-center gap-1 hover:text-ink ${active ? 'text-ink' : ''}`}>
+    <button
+      type="button"
+      onClick={() => onToggle(sortKeyValue)}
+      title="Sortiraj"
+      className={`flex items-center gap-1 hover:text-ink ${active ? 'text-ink' : ''}`}
+    >
       {children}
-      <span className="w-[10px]">{active && <Icon name={sortDir === 'asc' ? 'triangle-up' : 'triangle-down'} />}</span>
+      <span className="w-[10px]">
+        {active && <Icon name={sortDir === 'asc' ? 'triangle-up' : 'triangle-down'} />}
+      </span>
     </button>
   );
 }
@@ -134,10 +171,19 @@ function SortLabel({
 // (Kreirano/Dolazak/Odlazak) NAMERNO nisu ovde — `RealFilterBar`/popup već imaju prave
 // opsežne kalendare za njih, dupliranje bi samo zbunjivalo koje polje šta tačno radi.
 type ColumnKey = 'bookingNumber' | 'buyerName' | 'channel' | 'status' | 'paymentStatus';
-const EMPTY_COLUMN_FILTERS: Record<ColumnKey, string> = { bookingNumber: '', buyerName: '', channel: '', status: '', paymentStatus: '' };
+const EMPTY_COLUMN_FILTERS: Record<ColumnKey, string> = {
+  bookingNumber: '',
+  buyerName: '',
+  channel: '',
+  status: '',
+  paymentStatus: '',
+};
 
 function formatAmount(amount: number): string {
-  return (amount / 100).toLocaleString('sr-RS', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return (amount / 100).toLocaleString('sr-RS', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
 }
 function formatDate(iso: string | null): string {
   if (!iso) return '—';
@@ -185,7 +231,8 @@ export default function RealBookingsTable({
   const [sortKey, setSortKey] = useState<SortKey | null>(null);
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
   const [urgentFor, setUrgentFor] = useState<DecoratedRow | null>(null);
-  const [columnFilters, setColumnFilters] = useState<Record<ColumnKey, string>>(EMPTY_COLUMN_FILTERS);
+  const [columnFilters, setColumnFilters] =
+    useState<Record<ColumnKey, string>>(EMPTY_COLUMN_FILTERS);
   const hasColumnFilters = Object.values(columnFilters).some(Boolean);
 
   function setColumnFilter(key: ColumnKey, value: string) {
@@ -211,13 +258,23 @@ export default function RealBookingsTable({
   const filtered = useMemo(() => {
     const needle = (key: ColumnKey) => columnFilters[key].trim().toLowerCase();
     return decorated.filter((b) => {
-      if (productTypeFilters.length > 0 && !productTypeFilters.includes(b.productType ?? '')) return false;
+      if (productTypeFilters.length > 0 && !productTypeFilters.includes(b.productType ?? ''))
+        return false;
       if (demoOnly && !b.demoUrgent) return false;
-      if (needle('bookingNumber') && !b.bookingNumber.toLowerCase().includes(needle('bookingNumber'))) return false;
-      if (needle('buyerName') && !b.buyerName.toLowerCase().includes(needle('buyerName'))) return false;
+      if (
+        needle('bookingNumber') &&
+        !b.bookingNumber.toLowerCase().includes(needle('bookingNumber'))
+      )
+        return false;
+      if (needle('buyerName') && !b.buyerName.toLowerCase().includes(needle('buyerName')))
+        return false;
       if (needle('channel') && !b.channel.toLowerCase().includes(needle('channel'))) return false;
       if (needle('status') && !b.status.toLowerCase().includes(needle('status'))) return false;
-      if (needle('paymentStatus') && !b.paymentStatus.toLowerCase().includes(needle('paymentStatus'))) return false;
+      if (
+        needle('paymentStatus') &&
+        !b.paymentStatus.toLowerCase().includes(needle('paymentStatus'))
+      )
+        return false;
       return true;
     });
   }, [decorated, productTypeFilters, demoOnly, columnFilters]);
@@ -274,14 +331,24 @@ export default function RealBookingsTable({
               <TableHead className="w-[70px]" />
               {KOLONE.map(({ kljuc, naslov }) => (
                 <TableHead key={kljuc}>
-                  <SortLabel sortKeyValue={kljuc} sortKey={sortKey} sortDir={sortDir} onToggle={toggleSort}>
+                  <SortLabel
+                    sortKeyValue={kljuc}
+                    sortKey={sortKey}
+                    sortDir={sortDir}
+                    onToggle={toggleSort}
+                  >
                     {naslov}
                   </SortLabel>
                 </TableHead>
               ))}
               <TableHead className="text-right">
                 <div className="flex justify-end">
-                  <SortLabel sortKeyValue="totalPrice" sortKey={sortKey} sortDir={sortDir} onToggle={toggleSort}>
+                  <SortLabel
+                    sortKeyValue="totalPrice"
+                    sortKey={sortKey}
+                    sortDir={sortDir}
+                    onToggle={toggleSort}
+                  >
                     Iznos
                   </SortLabel>
                 </div>
@@ -292,20 +359,35 @@ export default function RealBookingsTable({
             <TableRow className="hover:bg-transparent">
               <TableHead className="w-[70px]" />
               <TableHead>
-                <ColumnFilterInput value={columnFilters.bookingNumber} onChange={(v) => setColumnFilter('bookingNumber', v)} />
+                <ColumnFilterInput
+                  value={columnFilters.bookingNumber}
+                  onChange={(v) => setColumnFilter('bookingNumber', v)}
+                />
               </TableHead>
               <TableHead />
               <TableHead>
-                <ColumnFilterInput value={columnFilters.buyerName} onChange={(v) => setColumnFilter('buyerName', v)} />
+                <ColumnFilterInput
+                  value={columnFilters.buyerName}
+                  onChange={(v) => setColumnFilter('buyerName', v)}
+                />
               </TableHead>
               <TableHead>
-                <ColumnFilterInput value={columnFilters.channel} onChange={(v) => setColumnFilter('channel', v)} />
+                <ColumnFilterInput
+                  value={columnFilters.channel}
+                  onChange={(v) => setColumnFilter('channel', v)}
+                />
               </TableHead>
               <TableHead>
-                <ColumnFilterInput value={columnFilters.status} onChange={(v) => setColumnFilter('status', v)} />
+                <ColumnFilterInput
+                  value={columnFilters.status}
+                  onChange={(v) => setColumnFilter('status', v)}
+                />
               </TableHead>
               <TableHead>
-                <ColumnFilterInput value={columnFilters.paymentStatus} onChange={(v) => setColumnFilter('paymentStatus', v)} />
+                <ColumnFilterInput
+                  value={columnFilters.paymentStatus}
+                  onChange={(v) => setColumnFilter('paymentStatus', v)}
+                />
               </TableHead>
               <TableHead />
               <TableHead />
@@ -325,15 +407,28 @@ export default function RealBookingsTable({
           </TableHeader>
           <TableBody>
             {sorted.map((b) => (
-              <TableRow key={b.id} onClick={() => openSummary(b)} className="group cursor-pointer last:border-0">
+              <TableRow
+                key={b.id}
+                onClick={() => openSummary(b)}
+                className="group cursor-pointer last:border-0"
+              >
                 <TableCell>
                   <div className="flex items-center gap-1">
                     <AddToAiContextButton refLabel={`Rezervacija ${b.bookingNumber}`} />
                     <span
-                      title={PRODUCT_ICONS.find((p) => p.types.includes(b.productType ?? ''))?.label ?? b.productType ?? '—'}
+                      title={
+                        PRODUCT_ICONS.find((p) => p.types.includes(b.productType ?? ''))?.label ??
+                        b.productType ??
+                        '—'
+                      }
                       className="flex h-[22px] w-[22px] items-center justify-center text-ink-faint"
                     >
-                      <Icon name={PRODUCT_ICONS.find((p) => p.types.includes(b.productType ?? ''))?.icon ?? 'question'} />
+                      <Icon
+                        name={
+                          PRODUCT_ICONS.find((p) => p.types.includes(b.productType ?? ''))?.icon ??
+                          'question'
+                        }
+                      />
                     </span>
                     {b.demoUrgent && (
                       <button
@@ -350,7 +445,11 @@ export default function RealBookingsTable({
                   </div>
                 </TableCell>
                 <TableCell className="font-mono">
-                  <button onClick={(e) => openFullRecord(e, b)} title="Otvori pun zapis rezervacije" className="text-ink hover:text-accent hover:underline">
+                  <button
+                    onClick={(e) => openFullRecord(e, b)}
+                    title="Otvori pun zapis rezervacije"
+                    className="text-ink hover:text-accent hover:underline"
+                  >
                     {b.bookingNumber}
                   </button>
                 </TableCell>
@@ -393,7 +492,9 @@ export default function RealBookingsTable({
         </Table>
       </div>
       <div className="mt-2 flex items-center justify-between gap-3">
-        <p className="text-[11px] text-ink-faint">{sorted.length} / {bookings.length} rezervacija</p>
+        <p className="text-[11px] text-ink-faint">
+          {sorted.length} / {bookings.length} rezervacija
+        </p>
         {/* Izvoz u Excel (vraćen 6.9.2026). Tražen 23.8.2026 („Omoguciti export liste rezervacija
             u excel ili gogle drive"), napravljen tada, ali samo na mock tabeli — pri prelasku
             liste na prave podatke nije prenet, pa ga na ekranu nije bilo. Isti obrazac kao brzo
@@ -445,7 +546,13 @@ export default function RealBookingsTable({
   );
 }
 
-function ColumnFilterInput({ value, onChange }: { value: string; onChange: (next: string) => void }) {
+function ColumnFilterInput({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (next: string) => void;
+}) {
   return (
     <input
       value={value}

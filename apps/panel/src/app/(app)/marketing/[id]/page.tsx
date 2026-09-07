@@ -9,7 +9,6 @@ import TranslationsPanel from './TranslationsPanel';
 import ApproveContentButton from './ApproveContentButton';
 import MediaGallery from './MediaGallery';
 
-
 interface ContentPiece {
   id: string;
   productId: string | null;
@@ -44,12 +43,16 @@ export default async function ContentDetailPage(props: { params: Promise<{ id: s
     notFound();
   }
 
-  const canApproveNow = canApprove && (content.status === 'DRAFT' || content.status === 'PENDING_APPROVAL');
+  const canApproveNow =
+    canApprove && (content.status === 'DRAFT' || content.status === 'PENDING_APPROVAL');
 
   return (
     <div className="p-6">
       <RegisterTab label={content.slug ?? content.trackingCode} />
-      <Link href="/marketing" className="mb-3 inline-flex items-center gap-1 text-xs text-ink-faint hover:text-ink">
+      <Link
+        href="/marketing"
+        className="mb-3 inline-flex items-center gap-1 text-xs text-ink-faint hover:text-ink"
+      >
         <Icon name="arrow-left" /> nazad na listu
       </Link>
 
@@ -72,17 +75,27 @@ export default async function ContentDetailPage(props: { params: Promise<{ id: s
 
       <div className="mb-4 grid grid-cols-2 gap-3 rounded-lg border border-border bg-panel p-4 text-xs">
         <Info label="ciljni kanali" value={content.targetChannels.join(', ') || '—'} />
-        <Info label="zakazana objava" value={content.scheduledPublishAt ? new Date(content.scheduledPublishAt).toLocaleString('sr-RS') : '—'} />
+        <Info
+          label="zakazana objava"
+          value={
+            content.scheduledPublishAt
+              ? new Date(content.scheduledPublishAt).toLocaleString('sr-RS')
+              : '—'
+          }
+        />
         <Info label="proizvod (M2)" value={content.productId ?? '(opšti sadržaj)'} />
         <Info label="oznake (EMAIL)" value={content.targetTags?.join(', ') || '—'} />
-        <Info label="objavljeno" value={content.publishedAt ? new Date(content.publishedAt).toLocaleString('sr-RS') : '—'} />
+        <Info
+          label="objavljeno"
+          value={content.publishedAt ? new Date(content.publishedAt).toLocaleString('sr-RS') : '—'}
+        />
         <Info label="odobrio" value={content.approvedBy ?? '—'} />
       </div>
 
       {content.containsAiGeneratedMedia && (
         <p className="mb-4 rounded-lg border border-warn bg-warn-bg p-3 text-xs text-warn">
-          <Icon name="warning" /> Sadrži sintetički AI-generisan vizual (YUTA preporuka, M12 spec §3c) — pri odobrenju je obavezna vidljiva oznaka
-          transparentnosti u tekstu jezika objave.
+          <Icon name="warning" /> Sadrži sintetički AI-generisan vizual (YUTA preporuka, M12 spec
+          §3c) — pri odobrenju je obavezna vidljiva oznaka transparentnosti u tekstu jezika objave.
         </p>
       )}
 
@@ -117,6 +130,11 @@ function Info({ label, value }: { label: string; value: string }) {
 }
 
 function StatusBadge({ status }: { status: string }) {
-  const tone = status === 'PUBLISHED' ? 'text-ok bg-ok-bg' : status === 'APPROVED' ? 'text-accent-strong bg-accent-soft' : 'text-warn bg-warn-bg';
+  const tone =
+    status === 'PUBLISHED'
+      ? 'text-ok bg-ok-bg'
+      : status === 'APPROVED'
+        ? 'text-accent-strong bg-accent-soft'
+        : 'text-warn bg-warn-bg';
   return <span className={`rounded px-2 py-0.5 text-[11px] font-medium ${tone}`}>{status}</span>;
 }

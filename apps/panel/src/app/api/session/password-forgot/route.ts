@@ -11,7 +11,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true });
   } catch (err) {
     if (err instanceof ApiError) {
-      return NextResponse.json(err.body ?? { message: 'Zahtev nije uspeo' }, { status: err.status });
+      return NextResponse.json(err.body ?? { message: 'Zahtev nije uspeo' }, {
+        status: err.status,
+      });
     }
     throw err;
   }

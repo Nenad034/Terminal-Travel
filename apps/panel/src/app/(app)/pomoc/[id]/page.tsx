@@ -8,7 +8,6 @@ import TranslationsPanel from './TranslationsPanel';
 import PublishButton from './PublishButton';
 import StatusForm from './StatusForm';
 
-
 interface Translation {
   languageCode: string;
   title: string;
@@ -46,18 +45,27 @@ export default async function HelpArticleDetailPage(props: { params: Promise<{ i
   const params = await props.params;
   const me = await getMe();
 
-  const article = await apiFetch<HelpArticleDetail>(`/help/articles/${params.id}`).catch(() => null);
+  const article = await apiFetch<HelpArticleDetail>(`/help/articles/${params.id}`).catch(
+    () => null,
+  );
   if (!article) notFound();
 
   const realTranslations = article.translations;
 
-  const canEdit = article.audience.some((a) => hasPermission(me, 'M21', `article:${AUDIENCE_TO_SEGMENT[a]}`, 'EDIT'));
-  const canPublish = article.audience.some((a) => hasPermission(me, 'M21', `article:${AUDIENCE_TO_SEGMENT[a]}`, 'PUBLISH'));
+  const canEdit = article.audience.some((a) =>
+    hasPermission(me, 'M21', `article:${AUDIENCE_TO_SEGMENT[a]}`, 'EDIT'),
+  );
+  const canPublish = article.audience.some((a) =>
+    hasPermission(me, 'M21', `article:${AUDIENCE_TO_SEGMENT[a]}`, 'PUBLISH'),
+  );
 
   return (
     <div className="p-6">
       <RegisterTab label={article.slug} />
-      <Link href="/pomoc" className="mb-3 inline-flex items-center gap-1 text-xs text-ink-faint hover:text-ink">
+      <Link
+        href="/pomoc"
+        className="mb-3 inline-flex items-center gap-1 text-xs text-ink-faint hover:text-ink"
+      >
         <Icon name="arrow-left" /> nazad na listu
       </Link>
 
@@ -65,30 +73,45 @@ export default async function HelpArticleDetailPage(props: { params: Promise<{ i
         <div>
           <h1 className="text-lg font-semibold text-ink">{article.slug}</h1>
           <p className="text-xs text-ink-faint">
-            {article.audience.join(', ')} · {article.relatedModule ?? '(bez modula)'} · {article.generatedBy === 'AI' ? 'AI nacrt' : 'ručni unos'}
-            {article.isCriticalExample && <span className="ml-2 rounded bg-accent-soft px-1.5 py-0.5 text-[11px] text-accent-strong">kritičan primer</span>}
+            {article.audience.join(', ')} · {article.relatedModule ?? '(bez modula)'} ·{' '}
+            {article.generatedBy === 'AI' ? 'AI nacrt' : 'ručni unos'}
+            {article.isCriticalExample && (
+              <span className="ml-2 rounded bg-accent-soft px-1.5 py-0.5 text-[11px] text-accent-strong">
+                kritičan primer
+              </span>
+            )}
           </p>
         </div>
         <StatusBadge status={article.status} />
       </div>
 
       <div className="mb-4 grid grid-cols-2 gap-3 rounded-lg border border-border bg-panel p-4 text-xs">
-        <Info label="objavljeno" value={article.publishedAt ? new Date(article.publishedAt).toLocaleString('sr-RS') : '—'} />
+        <Info
+          label="objavljeno"
+          value={article.publishedAt ? new Date(article.publishedAt).toLocaleString('sr-RS') : '—'}
+        />
         <Info label="odobrio (approved_by)" value={article.approvedBy ?? '—'} />
       </div>
 
       <div className="mb-4 flex flex-wrap items-center gap-3">
         {canPublish && article.status !== 'PUBLISHED' && <PublishButton id={article.id} />}
-        {canEdit && article.status !== 'PUBLISHED' && <StatusForm id={article.id} status={article.status} />}
+        {canEdit && article.status !== 'PUBLISHED' && (
+          <StatusForm id={article.id} status={article.status} />
+        )}
       </div>
 
       {article.status === 'PUBLISHED' && (
         <p className="mb-4 rounded-lg border border-border bg-panel2 p-3 text-xs text-ink-faint">
-          Objavljen članak (nepovratna granica, M21 spec §2.1) — status se više ne menja sa ovog ekrana.
+          Objavljen članak (nepovratna granica, M21 spec §2.1) — status se više ne menja sa ovog
+          ekrana.
         </p>
       )}
 
-      <TranslationsPanel articleId={article.id} translations={realTranslations} canEdit={canEdit && article.status !== 'PUBLISHED'} />
+      <TranslationsPanel
+        articleId={article.id}
+        translations={realTranslations}
+        canEdit={canEdit && article.status !== 'PUBLISHED'}
+      />
     </div>
   );
 }
@@ -103,6 +126,11 @@ function Info({ label, value }: { label: string; value: string }) {
 }
 
 function StatusBadge({ status }: { status: string }) {
-  const tone = status === 'PUBLISHED' ? 'text-ok bg-ok-bg' : status === 'ARCHIVED' ? 'text-ink-faint bg-panel2' : 'text-warn bg-warn-bg';
+  const tone =
+    status === 'PUBLISHED'
+      ? 'text-ok bg-ok-bg'
+      : status === 'ARCHIVED'
+        ? 'text-ink-faint bg-panel2'
+        : 'text-warn bg-warn-bg';
   return <span className={`rounded px-2 py-0.5 text-[11px] font-medium ${tone}`}>{status}</span>;
 }

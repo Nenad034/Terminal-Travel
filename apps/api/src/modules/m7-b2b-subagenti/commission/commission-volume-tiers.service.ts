@@ -14,7 +14,10 @@ export class CommissionVolumeTiersService {
   ) {}
 
   async findMany(subagentId: string): Promise<CommissionVolumeTier[]> {
-    return this.prisma.commissionVolumeTier.findMany({ where: { subagentId }, orderBy: { rank: 'desc' } });
+    return this.prisma.commissionVolumeTier.findMany({
+      where: { subagentId },
+      orderBy: { rank: 'desc' },
+    });
   }
 
   async findOneOrThrow(id: string): Promise<CommissionVolumeTier> {
@@ -23,7 +26,10 @@ export class CommissionVolumeTiersService {
     return tier;
   }
 
-  private assertHasResultingValue(dto: { resultingCommissionPercentage?: number; resultingCommissionFixedAmount?: number }): void {
+  private assertHasResultingValue(dto: {
+    resultingCommissionPercentage?: number;
+    resultingCommissionFixedAmount?: number;
+  }): void {
     if (dto.resultingCommissionPercentage == null && dto.resultingCommissionFixedAmount == null) {
       throw new BadRequestException(
         'Bar jedno od resultingCommissionPercentage/resultingCommissionFixedAmount mora biti postavljeno (M7 spec §3.1, isti obrazac kao M5 MarkupRule).',
@@ -31,7 +37,11 @@ export class CommissionVolumeTiersService {
     }
   }
 
-  async create(subagentId: string, dto: CreateVolumeTierDto, actor: { userId: string }): Promise<CommissionVolumeTier> {
+  async create(
+    subagentId: string,
+    dto: CreateVolumeTierDto,
+    actor: { userId: string },
+  ): Promise<CommissionVolumeTier> {
     await this.authority.assertCanManageCommissionFor(subagentId, actor);
     this.assertHasResultingValue(dto);
 
@@ -51,13 +61,25 @@ export class CommissionVolumeTiersService {
     });
   }
 
-  async update(id: string, dto: UpdateVolumeTierDto, actor: { userId: string }): Promise<CommissionVolumeTier> {
+  async update(
+    id: string,
+    dto: UpdateVolumeTierDto,
+    actor: { userId: string },
+  ): Promise<CommissionVolumeTier> {
     const existing = await this.findOneOrThrow(id);
     await this.authority.assertCanManageCommissionFor(existing.subagentId, actor);
 
     const merged = {
-      resultingCommissionPercentage: dto.resultingCommissionPercentage ?? (existing.resultingCommissionPercentage != null ? Number(existing.resultingCommissionPercentage) : undefined),
-      resultingCommissionFixedAmount: dto.resultingCommissionFixedAmount ?? (existing.resultingCommissionFixedAmount != null ? Number(existing.resultingCommissionFixedAmount) : undefined),
+      resultingCommissionPercentage:
+        dto.resultingCommissionPercentage ??
+        (existing.resultingCommissionPercentage != null
+          ? Number(existing.resultingCommissionPercentage)
+          : undefined),
+      resultingCommissionFixedAmount:
+        dto.resultingCommissionFixedAmount ??
+        (existing.resultingCommissionFixedAmount != null
+          ? Number(existing.resultingCommissionFixedAmount)
+          : undefined),
     };
     this.assertHasResultingValue(merged);
 

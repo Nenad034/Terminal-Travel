@@ -20,20 +20,16 @@
 Profitabilnost po destinaciji/dobavljaču/kanalu (Faza 5 izlazni kriterijum). Query: `from`, `to`, `dateField`, `segment` (zajednički, gore), `destinationCountry`, `destinationCity`, `supplierId`, `providerCode`, `channel` — svi opcioni.
 
 **Odgovor `200`:**
+
 ```json
 {
-  "byDestination": [
-    { "key": "RS / Zlatibor", "count": 14, "revenue": 1680000, "margin": 240000 }
-  ],
-  "bySupplier": [
-    { "key": "Hotel Palisad", "count": 9, "revenue": 1080000, "margin": 150000 }
-  ],
-  "byChannel": [
-    { "key": "B2C_SITE", "count": 20, "revenue": 2400000, "margin": 340000 }
-  ],
+  "byDestination": [{ "key": "RS / Zlatibor", "count": 14, "revenue": 1680000, "margin": 240000 }],
+  "bySupplier": [{ "key": "Hotel Palisad", "count": 9, "revenue": 1080000, "margin": 150000 }],
+  "byChannel": [{ "key": "B2C_SITE", "count": 20, "revenue": 2400000, "margin": 340000 }],
   "lastSyncedAt": "2026-08-13T03:00:12.000Z"
 }
 ```
+
 `revenue`/`margin` su u najmanjoj jedinici valute stavke (M5 konvencija celobrojnih iznosa). Isključuje stavke sa `status = CANCELLED`.
 
 ### GET /bi/reports/sales
@@ -41,6 +37,7 @@ Profitabilnost po destinaciji/dobavljaču/kanalu (Faza 5 izlazni kriterijum). Qu
 Broj rezervacija, ukupna/prosečna vrednost, po kanalu/tipu proizvoda. Query: `from`, `to`, `dateField`, `segment`, `channel`, `productType`.
 
 **Odgovor `200`:**
+
 ```json
 {
   "bookingCount": 42,
@@ -51,6 +48,7 @@ Broj rezervacija, ukupna/prosečna vrednost, po kanalu/tipu proizvoda. Query: `f
   "lastSyncedAt": "2026-08-13T03:00:12.000Z"
 }
 ```
+
 `bookingCount` broji `FactBooking` redove (M5 `BookingItem` stavke), isti nivo agregacije kao ostali M13 izveštaji.
 
 ### GET /bi/reports/occupancy
@@ -58,6 +56,7 @@ Broj rezervacija, ukupna/prosečna vrednost, po kanalu/tipu proizvoda. Query: `f
 Operativna statistika smeštaja (poglavlje 4.1). Query: `from`, `to`, `dateField`, `segment`, `destinationCountry`, `destinationCity`, `supplierId`, `group_by` (opciono, jedno od `room_type`, `board_type`, `stars`, `accommodation_type`).
 
 **Odgovor `200`:**
+
 ```json
 {
   "guestCount": 96,
@@ -71,6 +70,7 @@ Operativna statistika smeštaja (poglavlje 4.1). Query: `from`, `to`, `dateField
   "lastSyncedAt": "2026-08-13T03:00:12.000Z"
 }
 ```
+
 `guestCount`/`nights` obuhvataju SVE tipove proizvoda; `soldUnitsTotal`/`breakdown` samo `ACCOMMODATION`. `unclassifiedCount` broji `ACCOMMODATION` stavke bez popunjene tražene dimenzije (tipično `API`-sourced stavke bez `room_type`/`board_type`, M13 spec §3.1 ograda) — ne izostavljene tiho, nego eksplicitno prikazane.
 
 ### GET /bi/reports/dynamic
@@ -80,6 +80,7 @@ Dinamički drill-down izveštaj (poglavlje 4.2). Query: `from`, `to`, `dateField
 **Zahtev:** `GET /bi/reports/dynamic?group_by=destination_country,channel`
 
 **Odgovor `200`:**
+
 ```json
 {
   "dimensions": ["destination_country", "channel"],
@@ -93,13 +94,23 @@ Dinamički drill-down izveštaj (poglavlje 4.2). Query: `from`, `to`, `dateField
       "paid": 2100000,
       "balance": 900000,
       "children": [
-        { "key": "B2C_SITE", "count": 18, "pax": 44, "nights": 176, "revenue": 2200000, "paid": 1600000, "balance": 600000, "children": [] }
+        {
+          "key": "B2C_SITE",
+          "count": 18,
+          "pax": 44,
+          "nights": 176,
+          "revenue": 2200000,
+          "paid": 1600000,
+          "balance": 600000,
+          "children": []
+        }
       ]
     }
   ],
   "lastSyncedAt": "2026-08-13T03:00:12.000Z"
 }
 ```
+
 Nepoznata dimenzija u `group_by` → `400`. `paid` se računa iz `FactPayment` po pripadajućim rezervacijama unutar čvora; `balance = revenue − paid`.
 
 ### GET /bi/reports/marketing
@@ -107,16 +118,23 @@ Nepoznata dimenzija u `group_by` → `400`. `paid` se računa iz `FactPayment` p
 Marketing performanse — atribucija rezervacije ka M12 sadržaju (poglavlje 4.3). Query: `from`, `to`, `dateField`, `segment`.
 
 **Odgovor `200`:**
+
 ```json
 {
   "byContent": [
-    { "key": "5 razloga da posetite Zlatibor ove zime", "count": 6, "revenue": 720000, "margin": 96000 }
+    {
+      "key": "5 razloga da posetite Zlatibor ove zime",
+      "count": 6,
+      "revenue": 720000,
+      "margin": 96000
+    }
   ],
   "withoutKnownOrigin": { "count": 34, "revenue": 4080000 },
   "attributedShare": 0.15,
   "lastSyncedAt": "2026-08-13T03:00:12.000Z"
 }
 ```
+
 **Napomena (avgust 2026):** M12 (Marketing i sadržajni engine) je trenutno samo specifikovan, još nema implementaciju u kodu — `referral_content_id`/`referral_content_name` na `FactBooking` ostaju trajno `null` dok M12 ne dobije kod, pa se sve rezervacije pojavljuju u `withoutKnownOrigin`. Ovo NIJE greška — spec §4.3 ovo eksplicitno predviđa kao normalan prelazni slučaj.
 
 ---
@@ -128,6 +146,7 @@ Marketing performanse — atribucija rezervacije ka M12 sadržaju (poglavlje 4.3
 Ručno pokretanje pune provere/ispravke projekcije (van noćnog rasporeda u `03:00`). Dozvola: `M13/report:profitability/VIEW` (Vlasnik/Direktor).
 
 **Odgovor `201`:**
+
 ```json
 {
   "bookingsChecked": 128,
@@ -138,4 +157,5 @@ Ručno pokretanje pune provere/ispravke projekcije (van noćnog rasporeda u `03:
   "ranAt": "2026-08-13T10:15:00.000Z"
 }
 ```
+
 `bookingsCorrected` broji `FactBooking` redove koji su bili nedostajali ili su se razlikovali od stvarnog stanja u M2/M3/M5/M6/M7 (npr. posle izgubljenog Event Bus događaja) i sad su ispravljeni. `bookingsRemoved`/`paymentsRemoved` su projektovani redovi čiji izvor u M5/M10 više ne kvalifikuje (npr. uplata koja je posle storno postala `VOIDED`).

@@ -8,6 +8,13 @@ import { BranchesModule } from './branches/branches.module';
 
 // docs/moduli/M01-core-identitet/02-SPECIFIKACIJA-M1-CORE-IDENTITET.md
 @Module({
-  imports: [AuthModule, UsersModule, RolesModule, PermissionsModule, AuditLogModule, BranchesModule],
+  imports: [
+    AuthModule,
+    UsersModule,
+    RolesModule,
+    PermissionsModule,
+    AuditLogModule,
+    BranchesModule,
+  ],
 })
 export class M1CoreIdentitetModule {}

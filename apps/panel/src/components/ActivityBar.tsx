@@ -30,7 +30,9 @@ function GroupFlyout({ group, groupItems }: { group: NavGroup; groupItems: NavIt
             tada meni ostaje jedan red i služi kao stilizovana zamena za sistemski `title`
             tooltip (koji se zato dok je traka skupljena i ne postavlja, da se ne pojave dva). */}
         {groupItems.length > 1 && (
-          <div className="px-3 pb-1 pt-0.5 text-[10px] uppercase tracking-wider text-ink-faint">{group.label}</div>
+          <div className="px-3 pb-1 pt-0.5 text-[10px] uppercase tracking-wider text-ink-faint">
+            {group.label}
+          </div>
         )}
         {groupItems.map((item) => (
           <Link
@@ -88,7 +90,8 @@ export default function ActivityBar({
         </button>
       )}
       {groups.map((group, idx) => {
-        const single = group.itemIds.length === 1 ? NAV_ITEMS.find((i) => i.id === group.itemIds[0]) : null;
+        const single =
+          group.itemIds.length === 1 ? NAV_ITEMS.find((i) => i.id === group.itemIds[0]) : null;
         const active = group.id === activeGroupId;
         const isLast = idx === groups.length - 1 && groups.length > 1;
         // Redosled iz `group.itemIds` je namerno merodavan (isti redosled koji `Sidebar`
@@ -111,7 +114,9 @@ export default function ActivityBar({
         // blaga zaobljenost, ne `rounded-full`/pilula). Veličina bedža (36px) namerno manja od
         // dugmeta (43px) da ostavi vidljivu marginu, isti odnos kao `h-7 w-7` bedž u `p-2` kartici.
         const className = `flex h-[36px] w-[36px] flex-shrink-0 items-center justify-center rounded-md ${
-          active ? 'bg-accent-soft text-accent-strong' : 'bg-panel text-ink-faint hover:bg-panel2 hover:text-ink'
+          active
+            ? 'bg-accent-soft text-accent-strong'
+            : 'bg-panel text-ink-faint hover:bg-panel2 hover:text-ink'
         }`;
         const wrapperClassName = `group relative flex-shrink-0 ${isLast ? 'mt-auto' : ''}`;
         // Dok podmeni radi, izostavlja se `title` — inače bi se preko stilizovanog menija

@@ -3,19 +3,38 @@ import { CommissionRebatesService } from './commission-rebates.service';
 
 describe('CommissionRebatesService (M7 spec §3.2)', () => {
   function makeService() {
-    const prisma: any = { commissionRebate: { findMany: jest.fn(), findUnique: jest.fn(), create: jest.fn(), update: jest.fn() } };
+    const prisma: any = {
+      commissionRebate: {
+        findMany: jest.fn(),
+        findUnique: jest.fn(),
+        create: jest.fn(),
+        update: jest.fn(),
+      },
+    };
     const auditLog = { write: jest.fn() };
     const fiscalDocumentBridge = { prepareCreditNoteDraftForRebate: jest.fn() };
-    const service = new CommissionRebatesService(prisma, auditLog as any, fiscalDocumentBridge as any);
+    const service = new CommissionRebatesService(
+      prisma,
+      auditLog as any,
+      fiscalDocumentBridge as any,
+    );
     return { service, prisma, auditLog, fiscalDocumentBridge };
   }
 
   describe('approve — DRAFT → APPROVED (ljudska odluka, ne APPLIED)', () => {
     it('postavlja status APPROVED, popunjava approvedBy/approvedAt, NE popunjava appliedAt', async () => {
       const { service, prisma, auditLog, fiscalDocumentBridge } = makeService();
-      const rebate = { id: 'rebate-1', status: 'DRAFT', subagentId: 'sub-1', calculatedAmount: 2000, currency: 'EUR' };
+      const rebate = {
+        id: 'rebate-1',
+        status: 'DRAFT',
+        subagentId: 'sub-1',
+        calculatedAmount: 2000,
+        currency: 'EUR',
+      };
       prisma.commissionRebate.findUnique.mockResolvedValue(rebate);
-      prisma.commissionRebate.update.mockImplementation(({ data }: any) => Promise.resolve({ ...rebate, ...data }));
+      prisma.commissionRebate.update.mockImplementation(({ data }: any) =>
+        Promise.resolve({ ...rebate, ...data }),
+      );
 
       const result = await service.approve('rebate-1', { userId: 'staff-1' });
 
@@ -24,20 +43,38 @@ describe('CommissionRebatesService (M7 spec §3.2)', () => {
       expect(result.approvedAt).toBeInstanceOf(Date);
       expect(result.appliedAt).toBeUndefined();
       expect(auditLog.write).toHaveBeenCalledWith(
-        expect.objectContaining({ actorType: 'HUMAN', actorId: 'staff-1', action: 'commission_rebate.approved' }),
+        expect.objectContaining({
+          actorType: 'HUMAN',
+          actorId: 'staff-1',
+          action: 'commission_rebate.approved',
+        }),
       );
     });
 
     it('poziva FiscalDocumentBridgeService.prepareCreditNoteDraftForRebate sa ažuriranim rabatom (M10 spec §5.1a)', async () => {
       const { service, prisma, fiscalDocumentBridge } = makeService();
-      const rebate = { id: 'rebate-1', status: 'DRAFT', subagentId: 'sub-1', calculatedAmount: 2000, currency: 'EUR' };
+      const rebate = {
+        id: 'rebate-1',
+        status: 'DRAFT',
+        subagentId: 'sub-1',
+        calculatedAmount: 2000,
+        currency: 'EUR',
+      };
       prisma.commissionRebate.findUnique.mockResolvedValue(rebate);
-      prisma.commissionRebate.update.mockImplementation(({ data }: any) => Promise.resolve({ ...rebate, ...data }));
+      prisma.commissionRebate.update.mockImplementation(({ data }: any) =>
+        Promise.resolve({ ...rebate, ...data }),
+      );
 
       await service.approve('rebate-1', { userId: 'staff-1' });
 
       expect(fiscalDocumentBridge.prepareCreditNoteDraftForRebate).toHaveBeenCalledWith(
-        expect.objectContaining({ id: 'rebate-1', status: 'APPROVED', subagentId: 'sub-1', calculatedAmount: 2000, currency: 'EUR' }),
+        expect.objectContaining({
+          id: 'rebate-1',
+          status: 'APPROVED',
+          subagentId: 'sub-1',
+          calculatedAmount: 2000,
+          currency: 'EUR',
+        }),
       );
     });
 
@@ -45,7 +82,9 @@ describe('CommissionRebatesService (M7 spec §3.2)', () => {
       const { service, prisma } = makeService();
       prisma.commissionRebate.findUnique.mockResolvedValue({ id: 'rebate-1', status: 'APPROVED' });
 
-      await expect(service.approve('rebate-1', { userId: 'staff-1' })).rejects.toThrow(BadRequestException);
+      await expect(service.approve('rebate-1', { userId: 'staff-1' })).rejects.toThrow(
+        BadRequestException,
+      );
     });
   });
 
@@ -54,13 +93,17 @@ describe('CommissionRebatesService (M7 spec §3.2)', () => {
       const { service, prisma, auditLog } = makeService();
       const rebate = { id: 'rebate-1', status: 'APPROVED', approvedBy: 'staff-1' };
       prisma.commissionRebate.findUnique.mockResolvedValue(rebate);
-      prisma.commissionRebate.update.mockImplementation(({ data }: any) => Promise.resolve({ ...rebate, ...data }));
+      prisma.commissionRebate.update.mockImplementation(({ data }: any) =>
+        Promise.resolve({ ...rebate, ...data }),
+      );
 
       const result = await service.markApplied('rebate-1');
 
       expect(result.status).toBe('APPLIED');
       expect(result.appliedAt).toBeInstanceOf(Date);
-      expect(auditLog.write).toHaveBeenCalledWith(expect.objectContaining({ actorType: 'SYSTEM', action: 'commission_rebate.applied' }));
+      expect(auditLog.write).toHaveBeenCalledWith(
+        expect.objectContaining({ actorType: 'SYSTEM', action: 'commission_rebate.applied' }),
+      );
     });
 
     it('odbija markApplied nad rabatom koji nije u statusu APPROVED', async () => {
@@ -76,12 +119,16 @@ describe('CommissionRebatesService (M7 spec §3.2)', () => {
       const { service, prisma, auditLog } = makeService();
       const rebate = { id: 'rebate-1', status: 'DRAFT' };
       prisma.commissionRebate.findUnique.mockResolvedValue(rebate);
-      prisma.commissionRebate.update.mockImplementation(({ data }: any) => Promise.resolve({ ...rebate, ...data }));
+      prisma.commissionRebate.update.mockImplementation(({ data }: any) =>
+        Promise.resolve({ ...rebate, ...data }),
+      );
 
       const result = await service.reject('rebate-1', 'ne primenjuje se', { userId: 'staff-1' });
 
       expect(result.status).toBe('REJECTED');
-      expect(auditLog.write).toHaveBeenCalledWith(expect.objectContaining({ context: { reason: 'ne primenjuje se' } }));
+      expect(auditLog.write).toHaveBeenCalledWith(
+        expect.objectContaining({ context: { reason: 'ne primenjuje se' } }),
+      );
     });
   });
 });

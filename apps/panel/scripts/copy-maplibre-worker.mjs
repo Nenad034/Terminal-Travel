@@ -32,5 +32,8 @@ try {
   console.log(`MapLibre worker kopiran u public/maplibre/ (${FILES.length} fajla).`);
 } catch (e) {
   // Ne obara `npm install` — bez ovoga radi sve osim mape, i poruka jasno kaže šta nedostaje.
-  console.warn('MapLibre worker NIJE kopiran — mapa neće raditi dok se ovo ne reši:', e?.message ?? e);
+  console.warn(
+    'MapLibre worker NIJE kopiran — mapa neće raditi dok se ovo ne reši:',
+    e?.message ?? e,
+  );
 }

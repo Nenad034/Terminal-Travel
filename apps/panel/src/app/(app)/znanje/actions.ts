@@ -32,7 +32,8 @@ export async function createArticle(_prev: FormState, formData: FormData): Promi
     body.productId = strOrUndef(formData, 'productId');
   } else {
     body.destinationCountry = strOrUndef(formData, 'destinationCountry');
-    if (subjectType === 'DESTINATION') body.destinationCity = strOrUndef(formData, 'destinationCity');
+    if (subjectType === 'DESTINATION')
+      body.destinationCity = strOrUndef(formData, 'destinationCity');
   }
 
   if (mode === 'manual') {
@@ -55,7 +56,9 @@ export async function createArticle(_prev: FormState, formData: FormData): Promi
   try {
     article = await apiFetch<{ id: string }>('/knowledge/articles', { method: 'POST', body });
   } catch (err) {
-    return { error: err instanceof ApiError ? extractMessage(err) : 'Kreiranje članka nije uspelo.' };
+    return {
+      error: err instanceof ApiError ? extractMessage(err) : 'Kreiranje članka nije uspelo.',
+    };
   }
   revalidatePath('/znanje');
   redirect(`/znanje/${article.id}`);
@@ -63,9 +66,16 @@ export async function createArticle(_prev: FormState, formData: FormData): Promi
 
 // M23 spec §8 — PATCH /knowledge/articles/:id, prelaz statusa BEZ objave (DRAFT/PENDING_APPROVAL/
 // ARCHIVED — PUBLISHED ide isključivo kroz publishArticle, poseban PUBLISH gate).
-export async function updateArticleStatus(id: string, _prev: FormState, formData: FormData): Promise<FormState> {
+export async function updateArticleStatus(
+  id: string,
+  _prev: FormState,
+  formData: FormData,
+): Promise<FormState> {
   try {
-    await apiFetch(`/knowledge/articles/${id}`, { method: 'PATCH', body: { status: strOrUndef(formData, 'status') } });
+    await apiFetch(`/knowledge/articles/${id}`, {
+      method: 'PATCH',
+      body: { status: strOrUndef(formData, 'status') },
+    });
   } catch (err) {
     return { error: err instanceof ApiError ? extractMessage(err) : 'Izmena statusa nije uspela.' };
   }
@@ -77,7 +87,11 @@ export async function updateArticleStatus(id: string, _prev: FormState, formData
 // M23 spec §2.1/§6/§8 — POST /knowledge/articles/:id/publish. Zahteva M23/article/PUBLISH,
 // nikad actor_type=AI_AGENT (assertHumanActor, sprovedeno na nivou koda). Generiše share_token
 // pri prvom prelasku u PUBLISHED.
-export async function publishArticle(id: string, _prev: FormState, _formData: FormData): Promise<FormState> {
+export async function publishArticle(
+  id: string,
+  _prev: FormState,
+  _formData: FormData,
+): Promise<FormState> {
   try {
     await apiFetch(`/knowledge/articles/${id}/publish`, { method: 'POST' });
   } catch (err) {
@@ -90,14 +104,20 @@ export async function publishArticle(id: string, _prev: FormState, _formData: Fo
 
 // M23 spec §2.3/§4a/§8 — POST /knowledge/articles/:id/sources. sourceType ograničen na tačno
 // 3 dozvoljene vrednosti (nema OTHER/OTA/REVIEW_SITE opcije, sprovedeno i u <select> i u DTO-u).
-export async function proposeSource(articleId: string, _prev: FormState, formData: FormData): Promise<FormState> {
+export async function proposeSource(
+  articleId: string,
+  _prev: FormState,
+  formData: FormData,
+): Promise<FormState> {
   try {
     await apiFetch(`/knowledge/articles/${articleId}/sources`, {
       method: 'POST',
       body: { url: strOrUndef(formData, 'url'), sourceType: strOrUndef(formData, 'sourceType') },
     });
   } catch (err) {
-    return { error: err instanceof ApiError ? extractMessage(err) : 'Predlaganje izvora nije uspelo.' };
+    return {
+      error: err instanceof ApiError ? extractMessage(err) : 'Predlaganje izvora nije uspelo.',
+    };
   }
   revalidatePath(`/znanje/${articleId}/izvori`);
   return { error: null };
@@ -113,7 +133,9 @@ export async function reviewSource(
   _formData: FormData,
 ): Promise<FormState> {
   try {
-    await apiFetch(`/knowledge/articles/${articleId}/sources/${sourceId}/${decision}`, { method: 'POST' });
+    await apiFetch(`/knowledge/articles/${articleId}/sources/${sourceId}/${decision}`, {
+      method: 'POST',
+    });
   } catch (err) {
     return { error: err instanceof ApiError ? extractMessage(err) : 'Obrada izvora nije uspela.' };
   }
@@ -159,9 +181,13 @@ export async function reviewRevision(
   _formData: FormData,
 ): Promise<FormState> {
   try {
-    await apiFetch(`/knowledge/articles/${articleId}/revisions/${revisionId}/${decision}`, { method: 'POST' });
+    await apiFetch(`/knowledge/articles/${articleId}/revisions/${revisionId}/${decision}`, {
+      method: 'POST',
+    });
   } catch (err) {
-    return { error: err instanceof ApiError ? extractMessage(err) : 'Obrada revizije nije uspela.' };
+    return {
+      error: err instanceof ApiError ? extractMessage(err) : 'Obrada revizije nije uspela.',
+    };
   }
   revalidatePath(`/znanje/${articleId}/revizije`);
   revalidatePath(`/znanje/${articleId}`);

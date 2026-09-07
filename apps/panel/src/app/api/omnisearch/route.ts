@@ -11,13 +11,21 @@ export async function POST(req: NextRequest) {
   try {
     const result = await apiFetch('/ai-orchestration/omnisearch', {
       method: 'POST',
-      body: { query: dto.query, channel: 'INTERNAL_PANEL', pageContent: dto.pageContent, contextItems: dto.contextItems, history: dto.history },
+      body: {
+        query: dto.query,
+        channel: 'INTERNAL_PANEL',
+        pageContent: dto.pageContent,
+        contextItems: dto.contextItems,
+        history: dto.history,
+      },
       requireAuth: true,
     });
     return NextResponse.json(result);
   } catch (err) {
     if (err instanceof ApiError) {
-      return NextResponse.json(err.body ?? { message: 'Pretraga nije uspela' }, { status: err.status });
+      return NextResponse.json(err.body ?? { message: 'Pretraga nije uspela' }, {
+        status: err.status,
+      });
     }
     throw err;
   }

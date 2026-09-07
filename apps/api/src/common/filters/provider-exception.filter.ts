@@ -1,5 +1,8 @@
 import { ArgumentsHost, Catch, ExceptionFilter, HttpStatus } from '@nestjs/common';
-import { ProviderError, ProviderErrorCode } from '../../modules/m4-integracije-api/provider-adapter.interface';
+import {
+  ProviderError,
+  ProviderErrorCode,
+} from '../../modules/m4-integracije-api/provider-adapter.interface';
 
 /**
  * M4 spec §3.2 definiše sedam normalizovanih vrsta greške provajdera, ali `ProviderError`

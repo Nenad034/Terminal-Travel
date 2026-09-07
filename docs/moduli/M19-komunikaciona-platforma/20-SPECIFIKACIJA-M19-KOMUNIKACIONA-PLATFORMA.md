@@ -1,12 +1,13 @@
 # Specifikacija modula M19 — Komunikaciona platforma
 
-**Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, `02-SPECIFIKACIJA-M1-CORE-IDENTITET.md`, `08-SPECIFIKACIJA-M11-COMPLIANCE.md` *(nije relevantno)*, `09-SPECIFIKACIJA-M6-CRM.md`, `12-SPECIFIKACIJA-M7-B2B-SUBAGENTI.md`, `14-SPECIFIKACIJA-M14-HELPDESK.md`, `16-SPECIFIKACIJA-M9-MOBILNA-APLIKACIJA.md`, `19-SPECIFIKACIJA-M18-OPERATIVNI-NADZOR.md`
+**Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, `02-SPECIFIKACIJA-M1-CORE-IDENTITET.md`, `08-SPECIFIKACIJA-M11-COMPLIANCE.md` _(nije relevantno)_, `09-SPECIFIKACIJA-M6-CRM.md`, `12-SPECIFIKACIJA-M7-B2B-SUBAGENTI.md`, `14-SPECIFIKACIJA-M14-HELPDESK.md`, `16-SPECIFIKACIJA-M9-MOBILNA-APLIKACIJA.md`, `19-SPECIFIKACIJA-M18-OPERATIVNI-NADZOR.md`
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Implementirano (backend + M17 ekran) — panel (M17) chat ekran implementiran i uživo proveren (avgust 2026, M17 Faza 7); M9 chat tab čeka poseban prolaz, vidi poglavlje 10
 **Verzija:** 1.8 — `GET /chat/conversations` vraća ime DRUGOG učesnika za DIRECT razgovore (5.9.2026, vlasnikov nalaz na ekranu "Podeli izveštaj": "zasto ima onoliko stavki za interni chat obavestenja i sva su ista... tu treba da bude naziv korisnika sistema"). `Conversation.name` postoji samo za GROUP (§2.1) — dosad je `ConversationsService.findAllForUser` vraćao `name: null` za svaki DIRECT razgovor, pa je svaki klijent koji čita SAMO ovaj (lakši) spisak i radi `c.name ?? c.type` video identičan naziv "DIRECT" za sve njih (`ShareReportButton.tsx` u M13/M17 "Podeli izveštaj" je jedini takav pozivalac — glavna lista `/chat` je ovo od ranije zaobilazila dodatnim pozivom po razgovoru, §"Otvoreno za dalje" napomena iz v1.5 o nepovezanom nalazu). Ispravljeno u samom `findAllForUser`: jedan dodatan grupni upit za sve DIRECT razgovore odjednom razrešava `userId` drugog učesnika → `User.fullName`, upisano kao `name` u odgovoru — bez N+1 poziva po razgovoru, i bez potrebe da svaki pozivalac spiska sam zaobilazi problem. **Provera:** `tsc --noEmit` čist za `apps/api`; jedinični testovi (`conversations.service.spec.ts`, novi slučaj "DIRECT razgovor dobija ime DRUGOG učesnika") prolaze.
 **Verzija:** 1.7 — M17 chat ekran zauzima punu visinu modula (4.9.2026, na zahtev vlasnika: "neka prikaz zauzima celu visinu modula"). Lista poruka je ranije bila fiksne visine (`max-h-[28rem]`), pa je ekran ostavljao prazan prostor ispod nje na svakom širem prozoru. `apps/panel/.../chat/[conversationId]/page.tsx` sad je flex kolona na punu visinu (`h-full`), `ChatPanel.tsx` prati istu visinu, a lista poruka koristi `flex-1` (uz `min-h-0` na omotaču, standardna flexbox ograda da unutrašnji skrol stvarno radi) umesto fiksnog `max-h` — header i polje za unos ostaju fiksne visine, lista se rasteže i skroluje unutar preostalog prostora. Čisto vizuelna izmena, bez uticaja na WS/REST tok poruka. **Provera:** `tsc --noEmit` čist za `apps/panel`; uživo kroz pravu VLASNIK sesiju (lokalni QA nalog) — razgovor sa 20 poruka, lista popunjava prostor od trake statusa do polja za unos, skrolovana na dno pokazuje poslednje poruke bez praznog prostora ispod.
 
 **Verzija:** 1.6 — Prilozi uz poruke (§2.5, novo, 22.8.2026, na zahtev vlasnika: "omogućite u chatovima i porukama da se šalju i preuzimaju fajlovi"). Pre ovog prolaza `Message` nije imao NIJEDNO polje za prilog, a `00-MASTER-ARHITEKTURA.md` nema izabran object storage servis (hosting provajder za produkciju namerno neizabran) — po tvrdom pravilu CLAUDE.md ovo je nova funkcionalnost, ne kozmetička dorada, pa je pre pisanja koda vlasnik preko `AskUserQuestion` odlučio: (a) skladištenje — lokalni disk API servera (`apps/api/uploads/chat/`, van git-a) dok se hosting provajder ne izabere, tada svesna izmena na S3-kompatibilan storage; (b) obim — SAMO M19 interni chat/razgovori u ovom prolazu, NE AI chat (AiChatBox/M15) — vlasnik je eksplicitno najavio da to dolazi kasnije ("u slučaju da hoćemo da analiziramo neki eksterni dokument u odnosu na nešto u aplikaciji"), zapisano u M15 spec §11 kao naredni korak, ne zaboravljeno.
+
 - **Model:** nov `MessageAttachment` (poglavlje 2.5) — `id`, `message_id` (FK), `file_name`, `mime_type`, `size_bytes`, `storage_path` (relativna putanja unutar `uploads/chat/`), `uploaded_at`. `Message.body` postaje NULLABLE (migracija `20260822214435_m19_message_attachments`) — poruka može biti čist prilog bez teksta; servis odbija poruku bez i teksta i priloga (400).
 - **API (poglavlje 8):** `POST /chat/conversations/:id/messages` sad prihvata i `multipart/form-data` sa opcionim poljem `file` (JSON telo bez fajla radi nepromenjeno — multer interceptor ne dira request kad `Content-Type` nije multipart). Nov `GET /chat/conversations/attachments/:attachmentId/download` — isključivo autentifikovano, `ConversationsService.getAttachmentForDownload` proverava učešće pozivaoca u razgovoru kom prilog pripada (isti `assertParticipant`/404-umesto-403 obrazac kao ostatak modula); meko obrisana poruka sakriva i prilog. WS `message.send` **ostaje tekst-only** (socket.io payload je JSON, ne nosi binarni fajl) — panel UVEK šalje prilog preko REST puta, čak i kad je WS povezan (`apps/panel/.../ChatPanel.tsx`, `sendMessageRestFallback`).
 - **Bezbednosna higijena:** max 20 MB po prilogu, blokirane izvršne/skript ekstenzije (`.exe .msi .bat .cmd .com .scr .ps1 .vbs .js .jar .sh`) — razuman podrazumevan izbor, ne vlasnikova poslovna odluka, podesivo kasnije (`apps/api/.../conversations/attachment-storage.ts`).
@@ -33,47 +34,51 @@ M19 dodaje **interni real-time tim-chat** (zaposleni ↔ zaposleni) — jedina z
 ## 2. Model podataka — interni tim-chat (genuinski novo)
 
 ### 2.1 `Conversation`
-| Polje | Tip | Napomena |
-| :---- | :---- | :---- |
-| id | UUID (PK) | |
-| type | enum: `DIRECT`, `GROUP` | |
-| name | string, nullable | samo za `GROUP` |
-| created_by | UUID (FK → M1 User) | |
-| created_at | timestamp | |
+
+| Polje      | Tip                     | Napomena        |
+| :--------- | :---------------------- | :-------------- |
+| id         | UUID (PK)               |                 |
+| type       | enum: `DIRECT`, `GROUP` |                 |
+| name       | string, nullable        | samo za `GROUP` |
+| created_by | UUID (FK → M1 User)     |                 |
+| created_at | timestamp               |                 |
 
 ### 2.2 `ConversationParticipant`
+
 `conversation_id`, `user_id` (FK → M1 User, **isključivo `account_type = STAFF`** — ovo je interni tim-chat, ne kanal ka gostima/subagentima), `joined_at`, `last_read_at` (za oznaku nepročitanih poruka).
 
 ### 2.3 `Message`
-| Polje | Tip | Napomena |
-| :---- | :---- | :---- |
-| id | UUID (PK) | |
-| conversation_id | UUID (FK) | |
-| sender_id | UUID (FK → M1 User) | |
-| body | text | |
-| sent_at | timestamp | |
-| edited_at / deleted_at | timestamp, nullable | meko brisanje, ne fizičko |
-| drafted_by_ai | boolean, difolt `false` | `true` ako telo poruke potiče iz AI nacrta (poglavlje 9.5), **i onda kad ga je čovek izmenio** pre slanja — polje beleži poreklo teksta, ne doslovnu istovetnost |
-| drafted_by_agent_id | UUID, nullable (FK → M1 User, `account_type = AI_AGENT`) | koji agent je napisao nacrt; popunjeno isključivo kad je `drafted_by_ai = true` |
+
+| Polje                  | Tip                                                      | Napomena                                                                                                                                                         |
+| :--------------------- | :------------------------------------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| id                     | UUID (PK)                                                |                                                                                                                                                                  |
+| conversation_id        | UUID (FK)                                                |                                                                                                                                                                  |
+| sender_id              | UUID (FK → M1 User)                                      |                                                                                                                                                                  |
+| body                   | text                                                     |                                                                                                                                                                  |
+| sent_at                | timestamp                                                |                                                                                                                                                                  |
+| edited_at / deleted_at | timestamp, nullable                                      | meko brisanje, ne fizičko                                                                                                                                        |
+| drafted_by_ai          | boolean, difolt `false`                                  | `true` ako telo poruke potiče iz AI nacrta (poglavlje 9.5), **i onda kad ga je čovek izmenio** pre slanja — polje beleži poreklo teksta, ne doslovnu istovetnost |
+| drafted_by_agent_id    | UUID, nullable (FK → M1 User, `account_type = AI_AGENT`) | koji agent je napisao nacrt; popunjeno isključivo kad je `drafted_by_ai = true`                                                                                  |
 
 **Ova dva polja su samo evidencija porekla — ne menjaju `sender_id`.** `sender_id` ostaje čovek koji je svesno pritisnuo "pošalji" i nosi odgovornost za poruku (poglavlje 9.5); poreklo teksta je zasebna činjenica koja se ljudskim slanjem ne poništava. Prikaz prati pravilo iz `docs/analize/29-DIZAJN-SISTEM-UI.md` poglavlje 6a: vide se **oba** podatka ("poslao: [ime] · nacrt: AI agent"), nikad samo jedan.
 
 Isti podatak M14 ima od početka (`TicketMessage.senderType = AI_DRAFT`) — razlika je što u M14 AI nacrt postoji kao zaseban zapis koji čeka slanje, dok ovde AI nacrt nikad ne postaje `Message` dok ga čovek ne pošalje (poglavlje 9.5), pa se poreklo mora upisati **u trenutku slanja** ili je zauvek izgubljeno.
 
 ### 2.4 `PresenceStatus`
+
 `user_id` (FK, unique), `status` (enum: `ONLINE`, `AWAY`, `OFFLINE`), `last_seen_at`, `updated_at`. Indikator "kuca poruku..." je efemeran (prenosi se uživo preko WebSocket-a, ne čuva se u bazi).
 
 ### 2.5 `MessageAttachment` (v1.6, 22.8.2026)
 
-| Polje | Tip | Napomena |
-| :---- | :---- | :---- |
-| id | UUID (PK) | |
-| message_id | UUID (FK → Message) | |
-| file_name | string | originalno ime koje je pošiljalac poslao |
-| mime_type | string | |
-| size_bytes | int | max 20 MB po prilogu |
-| storage_path | string | relativna putanja unutar `apps/api/uploads/chat/<conversation_id>/` — lokalni disk API servera, van git-a, dok se hosting provajder za produkciju ne izabere (vlasnikova odluka preko `AskUserQuestion`); tad svesno prelazi na S3-kompatibilan object storage |
-| uploaded_at | timestamp | |
+| Polje        | Tip                 | Napomena                                                                                                                                                                                                                                                       |
+| :----------- | :------------------ | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| id           | UUID (PK)           |                                                                                                                                                                                                                                                                |
+| message_id   | UUID (FK → Message) |                                                                                                                                                                                                                                                                |
+| file_name    | string              | originalno ime koje je pošiljalac poslao                                                                                                                                                                                                                       |
+| mime_type    | string              |                                                                                                                                                                                                                                                                |
+| size_bytes   | int                 | max 20 MB po prilogu                                                                                                                                                                                                                                           |
+| storage_path | string              | relativna putanja unutar `apps/api/uploads/chat/<conversation_id>/` — lokalni disk API servera, van git-a, dok se hosting provajder za produkciju ne izabere (vlasnikova odluka preko `AskUserQuestion`); tad svesno prelazi na S3-kompatibilan object storage |
+| uploaded_at  | timestamp           |                                                                                                                                                                                                                                                                |
 
 Jedna poruka može imati jedan ili više priloga. `Message.body` je od ove verzije nullable — poruka može biti čist prilog bez teksta, ali ne oboje odsutno (servis odbija 400). Preuzimanje isključivo preko autentifikovanog `GET /chat/conversations/attachments/:attachmentId/download` (poglavlje 8) — fajl se NIKAD ne servira kao javan statički resurs; pristup proverava isti `assertParticipant` obrazac kao ostatak modula (404, ne 403, za nekoga ko nije učesnik razgovora kom prilog pripada). Blokirane ekstenzije: `.exe .msi .bat .cmd .com .scr .ps1 .vbs .js .jar .sh` — osnovna higijena, ne bela lista.
 
@@ -106,8 +111,8 @@ U `15-SPECIFIKACIJA-M12-MARKETING.md`, `ContentPiece.target_channels` dobija nov
 
 ## 7. Dozvole (registruju se u M1 katalog dozvola)
 
-| Dozvola | Podrazumevana dodela po ulozi |
-| :---- | :---- |
+| Dozvola                                           | Podrazumevana dodela po ulozi                                                              |
+| :------------------------------------------------ | :----------------------------------------------------------------------------------------- |
 | `M19/conversation/CREATE`, `VIEW`, `SEND_MESSAGE` | Vlasnik, Direktor, HR, Sales Manager, Prodajni agent, Računovođa — svi interni tim članovi |
 
 Napomena: prikaz M14 tiketa kroz chat-stil komponentu (poglavlje 4) koristi već postojeće M14 dozvole, ne nove.
@@ -141,10 +146,10 @@ Kontakt-osoba kod dobavljača (`SupplierContact`, M3 poglavlje 2.1a) dobija sops
 
 Dopune `Conversation`/`ConversationParticipant` (poglavlje 2):
 
-| Polje | Tip | Napomena |
-| :---- | :---- | :---- |
-| `Conversation.type` | dopunjeno: `DIRECT`, `GROUP`, `EXTERNAL_SUPPLIER` | novi tip, poglavlje 2.1 |
-| `Conversation.supplier_id` | UUID, nullable (FK → M3 Supplier) | popunjeno isključivo za `EXTERNAL_SUPPLIER`; jedan `Supplier` može imati više razgovora (npr. po `SupplierContact`), ali svaki razgovor ima tačno jednog dobavljača |
+| Polje                      | Tip                                               | Napomena                                                                                                                                                            |
+| :------------------------- | :------------------------------------------------ | :------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `Conversation.type`        | dopunjeno: `DIRECT`, `GROUP`, `EXTERNAL_SUPPLIER` | novi tip, poglavlje 2.1                                                                                                                                             |
+| `Conversation.supplier_id` | UUID, nullable (FK → M3 Supplier)                 | popunjeno isključivo za `EXTERNAL_SUPPLIER`; jedan `Supplier` može imati više razgovora (npr. po `SupplierContact`), ali svaki razgovor ima tačno jednog dobavljača |
 
 `ConversationParticipant.user_id` (poglavlje 2.2) više nije striktno `account_type = STAFF` — ograda se pomera na nivo tipa razgovora: `DIRECT`/`GROUP` i dalje prihvataju isključivo `STAFF`; `EXTERNAL_SUPPLIER` prihvata `STAFF` (sa dodeljenim pristupom, poglavlje 9.4) **i** tačno jedan `SUPPLIER_CONTACT` nalog vezan za `Conversation.supplier_id`. `Message` (poglavlje 2.3) i `PresenceStatus` (poglavlje 2.4) se koriste bez izmene.
 
@@ -152,14 +157,14 @@ Dopune `Conversation`/`ConversationParticipant` (poglavlje 2):
 
 Isti princip kao `MailboxAccess` u M22 — pristup se dodeljuje pojedinačno, ne po opštoj ulozi:
 
-| Polje | Tip | Napomena |
-| :---- | :---- | :---- |
-| id | UUID (PK) | |
-| conversation_id | UUID (FK → Conversation, `type = EXTERNAL_SUPPLIER`) | |
-| user_id | UUID (FK → M1 User, `account_type = STAFF`) | |
-| granted_by / granted_at | UUID (FK → M1 User) / timestamp | |
+| Polje                   | Tip                                                  | Napomena |
+| :---------------------- | :--------------------------------------------------- | :------- |
+| id                      | UUID (PK)                                            |          |
+| conversation_id         | UUID (FK → Conversation, `type = EXTERNAL_SUPPLIER`) |          |
+| user_id                 | UUID (FK → M1 User, `account_type = STAFF`)          |          |
+| granted_by / granted_at | UUID (FK → M1 User) / timestamp                      |          |
 
-Zaposleni bez dodeljenog pristupa ne vidi razgovor u svojoj listi, čak i ako ima opštu `M19/supplier-conversation/VIEW` dozvolu (poglavlje 9.6) — dozvola određuje *da li tip pristupa uopšte postoji za tu ulogu*, `SupplierConversationAccess` određuje *koji konkretan razgovor*, isti dvoslojni obrazac kao M22 poglavlje 3.
+Zaposleni bez dodeljenog pristupa ne vidi razgovor u svojoj listi, čak i ako ima opštu `M19/supplier-conversation/VIEW` dozvolu (poglavlje 9.6) — dozvola određuje _da li tip pristupa uopšte postoji za tu ulogu_, `SupplierConversationAccess` određuje _koji konkretan razgovor_, isti dvoslojni obrazac kao M22 poglavlje 3.
 
 ### 9.5 AI agent — sažimanje/nacrt, nikad izvršenje (svesno uže ovlašćenje od M7 poglavlje 2.0.4)
 
@@ -172,10 +177,10 @@ Za razliku od M7 poglavlja 2.0.4 (AI agent sa **izvršnim** ovlašćenjem za sub
 
 ### 9.6 Dozvole (dopuna poglavlja 7)
 
-| Dozvola | Podrazumevana dodela po ulozi |
-| :---- | :---- |
+| Dozvola                                          | Podrazumevana dodela po ulozi                                                                                                     |
+| :----------------------------------------------- | :-------------------------------------------------------------------------------------------------------------------------------- |
 | `M19/supplier-conversation/VIEW`, `SEND_MESSAGE` | Vlasnik, Direktor, Sales Manager, Prodajni agent — **samo** za razgovore gde postoji `SupplierConversationAccess` (poglavlje 9.4) |
-| `M19/supplier-conversation/GRANT_ACCESS` | Vlasnik, Direktor, Sales Manager — isti krug kao `MailboxAccess` dodela u M22 |
+| `M19/supplier-conversation/GRANT_ACCESS`         | Vlasnik, Direktor, Sales Manager — isti krug kao `MailboxAccess` dodela u M22                                                     |
 
 Nalog `SUPPLIER_CONTACT` ima pristup isključivo sopstvenom `Conversation` preko `linked_user_id` — bez posebne dozvole u M1 katalogu, isti obrazac kao `SUBAGENT_ADMIN`.
 
@@ -183,10 +188,10 @@ Nalog `SUPPLIER_CONTACT` ima pristup isključivo sopstvenom `Conversation` preko
 
 REST `/conversations` (poglavlje 8) prima `type = EXTERNAL_SUPPLIER` i `supplier_id` pri kreiranju, zahteva `SupplierConversationAccess` za pristup. Novi endpoint-i:
 
-| Endpoint | Metod | Opis |
-| :---- | :---- | :---- |
-| `/supplier-conversations/:id/access` | GET / POST / DELETE | pregled / dodela / oduzimanje pristupa zaposlenom (poglavlje 9.4), zahteva `M19/supplier-conversation/GRANT_ACCESS` |
-| `/supplier-conversations/:id/invite-contact` | POST | pokreće tok iz poglavlja 9.2, korak 2 — kreira `User`, šalje pozivnicu, popunjava `SupplierContact.linked_user_id` |
+| Endpoint                                     | Metod               | Opis                                                                                                                |
+| :------------------------------------------- | :------------------ | :------------------------------------------------------------------------------------------------------------------ |
+| `/supplier-conversations/:id/access`         | GET / POST / DELETE | pregled / dodela / oduzimanje pristupa zaposlenom (poglavlje 9.4), zahteva `M19/supplier-conversation/GRANT_ACCESS` |
+| `/supplier-conversations/:id/invite-contact` | POST                | pokreće tok iz poglavlja 9.2, korak 2 — kreira `User`, šalje pozivnicu, popunjava `SupplierContact.linked_user_id`  |
 
 WebSocket: isti `/ws/chat` kanal (poglavlje 8) — `SUPPLIER_CONTACT` nalog se povezuje istim protokolom, ograničen serverski na sopstveni `conversation_id`.
 
@@ -207,7 +212,7 @@ postoji, po pravilu iz CLAUDE.md ("nema 'uglavnom radi'").
 - [x] Dobavljač sa dodeljenim portal nalogom (`SUPPLIER_CONTACT`) vidi isključivo sopstveni `EXTERNAL_SUPPLIER` razgovor — bez pristupa katalogu, cenama, drugim dobavljačima ili internom panelu (poglavlje 9.2) — potvrđeno e2e testom (`GET /chat/conversations` vraća tačno jedan razgovor; `GET /contracting/suppliers` vraća 403).
 - [x] Zaposleni bez `SupplierConversationAccess` za dati razgovor ne vidi taj razgovor, uprkos opštoj `M19/supplier-conversation/VIEW` dozvoli (poglavlje 9.4) — potvrđeno e2e testom (404, ne 403, pre granta; vidljivo posle granta).
 - [x] AI-generisan nacrt odgovora dobavljaču koji pominje cenu/obavezu ne može biti poslat bez ljudskog naloga sa dodeljenim pristupom (poglavlje 9.5) — `SupplierDraftService` nema nijednu putanju koja upisuje `Message`, vraća isključivo tekst; potvrđeno jediničnim i e2e testom.
-- [x] Poruka poslata iz AI nacrta nosi `drafted_by_ai = true` i popunjen `drafted_by_agent_id`, i u panelu se vidi da je nacrt napisao AI (uz ime čoveka koji je poslao) — dok poruka koju je zaposleni otkucao od nule nema tu oznaku (poglavlja 2.3 i 9.5, prikaz po `29-DIZAJN-SISTEM-UI.md` poglavlje 6a). *(avgust 2026 — migracija `20260817082515_m19_message_ai_provenance`; agenta razrešava server preko `SUPPLIER_DRAFT_AGENT` uloge, klijent šalje samo `draftedByAi` da ne može pripisati poruku proizvoljnom agentskom nalogu; `draftedByAi` na DIRECT/GROUP razgovoru se odbija sa 400 jer tamo nema toka koji nacrt proizvodi. Potvrđeno protiv prave baze e2e testom `m19-exit-criteria.e2e-spec.ts` — obična poruka `false`/`null`, poruka iz nacrta `true` uz `sender_id` koji i dalje pokazuje na čoveka.)*
+- [x] Poruka poslata iz AI nacrta nosi `drafted_by_ai = true` i popunjen `drafted_by_agent_id`, i u panelu se vidi da je nacrt napisao AI (uz ime čoveka koji je poslao) — dok poruka koju je zaposleni otkucao od nule nema tu oznaku (poglavlja 2.3 i 9.5, prikaz po `29-DIZAJN-SISTEM-UI.md` poglavlje 6a). _(avgust 2026 — migracija `20260817082515_m19_message_ai_provenance`; agenta razrešava server preko `SUPPLIER_DRAFT_AGENT` uloge, klijent šalje samo `draftedByAi` da ne može pripisati poruku proizvoljnom agentskom nalogu; `draftedByAi` na DIRECT/GROUP razgovoru se odbija sa 400 jer tamo nema toka koji nacrt proizvodi. Potvrđeno protiv prave baze e2e testom `m19-exit-criteria.e2e-spec.ts` — obična poruka `false`/`null`, poruka iz nacrta `true` uz `sender_id` koji i dalje pokazuje na čoveka.)_
 - [x] Zaposleni može poslati i primiti prilog fajla u razgovoru (§2.5, v1.6); učesnik razgovora ga preuzima, neko ko nije učesnik dobija 404 — potvrđeno uživo protiv prave baze/panela (poglavlje "Provera" u zaglavlju dokumenta, v1.6 unos).
 - [x] Nijedna radnja u M5 (potvrda dobavljača) ili M10 (obaveza prema dobavljaču) se ne pokreće automatski na osnovu poruke iz ovog chata — provereno da sistem to ne radi ni u jednom toku (statička provera koda u e2e test suite-u: nijedan `eventListener.on('M19', ...)` poziv ne postoji u `m5-rezervacije`/`m10-finansije`).
 

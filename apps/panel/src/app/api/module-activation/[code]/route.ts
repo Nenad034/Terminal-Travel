@@ -9,11 +9,15 @@ import { apiFetch, ApiError } from '@/lib/api-client';
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ code: string }> }) {
   const { code } = await params;
   try {
-    const result = await apiFetch(`/ai-orchestration/modules/${code}/activation`, { requireAuth: true });
+    const result = await apiFetch(`/ai-orchestration/modules/${code}/activation`, {
+      requireAuth: true,
+    });
     return NextResponse.json(result);
   } catch (err) {
     if (err instanceof ApiError) {
-      return NextResponse.json(err.body ?? { message: 'Status agenta nije dostupan' }, { status: err.status });
+      return NextResponse.json(err.body ?? { message: 'Status agenta nije dostupan' }, {
+        status: err.status,
+      });
     }
     throw err;
   }

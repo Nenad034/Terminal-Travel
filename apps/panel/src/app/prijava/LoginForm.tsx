@@ -119,7 +119,9 @@ export default function LoginForm() {
 
   // Tajna se čita iz otpauth URL-a — ista vrednost koju nosi QR kod, za ručan unos u
   // aplikaciju kad skeniranje nije moguće (npr. autentifikator na istom računaru).
-  const manualSecret = otpauthUrl ? new URLSearchParams(otpauthUrl.split('?')[1] ?? '').get('secret') : null;
+  const manualSecret = otpauthUrl
+    ? new URLSearchParams(otpauthUrl.split('?')[1] ?? '').get('secret')
+    : null;
 
   if (step === 'mfa-setup') {
     return (
@@ -133,16 +135,26 @@ export default function LoginForm() {
 
         {manualSecret && (
           <div className="rounded border border-border bg-panel-2 p-3">
-            <p className="text-xs text-ink-faint">1. skenirajte QR kod autentifikator aplikacijom</p>
+            <p className="text-xs text-ink-faint">
+              1. skenirajte QR kod autentifikator aplikacijom
+            </p>
             {qrDataUrl && (
               // Beli okvir je namerno fiksan, ne tematski — čitači QR koda traže svetlu
               // podlogu i tamne module; na tamnoj temi bi kod bez ovoga postao nečitljiv.
               <div className="mt-2 flex justify-center rounded bg-white p-3">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={qrDataUrl} alt="QR kod za podešavanje dvofaktorske prijave" width={220} height={220} />
+                <img
+                  src={qrDataUrl}
+                  alt="QR kod za podešavanje dvofaktorske prijave"
+                  width={220}
+                  height={220}
+                />
               </div>
             )}
-            <a href={otpauthUrl} className="mt-2 block break-all font-mono text-xs text-accent underline">
+            <a
+              href={otpauthUrl}
+              className="mt-2 block break-all font-mono text-xs text-accent underline"
+            >
               ili otvorite direktno u aplikaciji (na telefonu)
             </a>
             <p className="mt-2 text-xs text-ink-faint">ili unesite ključ ručno:</p>
@@ -160,7 +172,9 @@ export default function LoginForm() {
             <p className="text-xs text-ink-dim">Svaki važi jednom, za slučaj gubitka telefona.</p>
             <div className="mt-2 grid grid-cols-2 gap-1 font-mono text-xs text-ink">
               {recoveryCodes.map((c) => (
-                <code key={c} className="select-all rounded bg-bg px-2 py-1">{c}</code>
+                <code key={c} className="select-all rounded bg-bg px-2 py-1">
+                  {c}
+                </code>
               ))}
             </div>
           </div>
@@ -192,7 +206,9 @@ export default function LoginForm() {
     return (
       <form onSubmit={onMfaSubmit} className="flex flex-col gap-3">
         <h1 className="font-mono text-lg">&gt; 2fa --verify</h1>
-        <p className="text-xs text-ink-dim">6-cifreni kod iz autentifikator aplikacije. Obavezno za interne uloge.</p>
+        <p className="text-xs text-ink-dim">
+          6-cifreni kod iz autentifikator aplikacije. Obavezno za interne uloge.
+        </p>
         {error && <p className="rounded bg-danger-bg p-3 text-sm text-danger">{error}</p>}
         <input
           name="code"
@@ -216,7 +232,9 @@ export default function LoginForm() {
   return (
     <form onSubmit={onCredentialsSubmit} className="flex flex-col gap-3">
       <h1 className="font-mono text-lg">&gt; prijava --panel</h1>
-      <p className="text-xs text-ink-dim">Interni tim agencije. Unesite email i lozinku vašeg naloga.</p>
+      <p className="text-xs text-ink-dim">
+        Interni tim agencije. Unesite email i lozinku vašeg naloga.
+      </p>
       {error && <p className="rounded bg-danger-bg p-3 text-sm text-danger">{error}</p>}
       <label className="text-xs text-ink-faint">
         email
@@ -246,7 +264,10 @@ export default function LoginForm() {
       </button>
       {/* M1 spec §5 — dok slanje pošte nije bilo povezano, ovaj put nije imao smisla; od
           4.9.2026 link stvarno stiže na email, pa ekran postoji. */}
-      <Link href="/zaboravljena-lozinka" className="text-center text-xs text-ink-faint hover:text-ink">
+      <Link
+        href="/zaboravljena-lozinka"
+        className="text-center text-xs text-ink-faint hover:text-ink"
+      >
         zaboravljena lozinka?
       </Link>
     </form>

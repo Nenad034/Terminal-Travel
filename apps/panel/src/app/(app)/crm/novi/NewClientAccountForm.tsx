@@ -17,11 +17,20 @@ export default function NewClientAccountForm() {
   const [accountType, setAccountType] = useState<'INDIVIDUAL' | 'LEGAL_ENTITY'>('INDIVIDUAL');
 
   return (
-    <form action={formAction} className="flex flex-col gap-3 rounded-lg border border-border bg-panel p-5">
+    <form
+      action={formAction}
+      className="flex flex-col gap-3 rounded-lg border border-border bg-panel p-5"
+    >
       {state.error && <p className="rounded bg-danger-bg p-3 text-sm text-danger">{state.error}</p>}
 
       <Field label="tip naloga">
-        <select name="accountType" required className="input" value={accountType} onChange={(e) => setAccountType(e.target.value as 'INDIVIDUAL' | 'LEGAL_ENTITY')}>
+        <select
+          name="accountType"
+          required
+          className="input"
+          value={accountType}
+          onChange={(e) => setAccountType(e.target.value as 'INDIVIDUAL' | 'LEGAL_ENTITY')}
+        >
           <option value="INDIVIDUAL">Fizičko lice</option>
           <option value="LEGAL_ENTITY">Pravno lice</option>
         </select>

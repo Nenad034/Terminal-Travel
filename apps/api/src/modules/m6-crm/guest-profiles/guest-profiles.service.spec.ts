@@ -5,7 +5,12 @@ import { GuestProfilesService } from './guest-profiles.service';
 describe('GuestProfilesService', () => {
   function makeService() {
     const prisma: any = {
-      guestProfile: { findUnique: jest.fn(), findMany: jest.fn(), create: jest.fn(), update: jest.fn() },
+      guestProfile: {
+        findUnique: jest.fn(),
+        findMany: jest.fn(),
+        create: jest.fn(),
+        update: jest.fn(),
+      },
       user: { findUnique: jest.fn() },
     };
     const service = new GuestProfilesService(prisma);
@@ -16,7 +21,10 @@ describe('GuestProfilesService', () => {
     it('gost NE vidi profil povezan na tuđi nalog — 404', async () => {
       const { service, prisma } = makeService();
       prisma.user.findUnique.mockResolvedValue({ accountType: 'GUEST', linkedProfileId: 'acc-1' });
-      prisma.guestProfile.findUnique.mockResolvedValue({ id: 'gp-1', linkedClientAccountId: 'acc-tudj' });
+      prisma.guestProfile.findUnique.mockResolvedValue({
+        id: 'gp-1',
+        linkedClientAccountId: 'acc-tudj',
+      });
 
       await expect(service.findOne('gp-1', 'guest-1')).rejects.toThrow(NotFoundException);
     });
@@ -24,7 +32,10 @@ describe('GuestProfilesService', () => {
     it('gost vidi sopstveni profil', async () => {
       const { service, prisma } = makeService();
       prisma.user.findUnique.mockResolvedValue({ accountType: 'GUEST', linkedProfileId: 'acc-1' });
-      prisma.guestProfile.findUnique.mockResolvedValue({ id: 'gp-1', linkedClientAccountId: 'acc-1' });
+      prisma.guestProfile.findUnique.mockResolvedValue({
+        id: 'gp-1',
+        linkedClientAccountId: 'acc-1',
+      });
 
       const result = await service.findOne('gp-1', 'guest-1');
 
@@ -70,7 +81,9 @@ describe('GuestProfilesService', () => {
       );
 
       expect(prisma.guestProfile.create).toHaveBeenCalledWith(
-        expect.objectContaining({ data: expect.objectContaining({ linkedClientAccountId: 'acc-1' }) }),
+        expect.objectContaining({
+          data: expect.objectContaining({ linkedClientAccountId: 'acc-1' }),
+        }),
       );
     });
   });
@@ -83,16 +96,24 @@ describe('GuestProfilesService', () => {
     it('baca ForbiddenException ako gost pokuša da promeni linkedClientAccountId na tuđi nalog', async () => {
       const { service, prisma } = makeService();
       prisma.user.findUnique.mockResolvedValue({ accountType: 'GUEST', linkedProfileId: 'acc-1' });
-      prisma.guestProfile.findUnique.mockResolvedValue({ id: 'gp-1', linkedClientAccountId: 'acc-1' });
+      prisma.guestProfile.findUnique.mockResolvedValue({
+        id: 'gp-1',
+        linkedClientAccountId: 'acc-1',
+      });
 
-      await expect(service.update('gp-1', { linkedClientAccountId: 'acc-tudj' } as any, 'guest-1')).rejects.toThrow(ForbiddenException);
+      await expect(
+        service.update('gp-1', { linkedClientAccountId: 'acc-tudj' } as any, 'guest-1'),
+      ).rejects.toThrow(ForbiddenException);
       expect(prisma.guestProfile.update).not.toHaveBeenCalled();
     });
 
     it('dozvoljava izmenu kad gost ne dira linkedClientAccountId (ili ga postavlja na sopstveni)', async () => {
       const { service, prisma } = makeService();
       prisma.user.findUnique.mockResolvedValue({ accountType: 'GUEST', linkedProfileId: 'acc-1' });
-      prisma.guestProfile.findUnique.mockResolvedValue({ id: 'gp-1', linkedClientAccountId: 'acc-1' });
+      prisma.guestProfile.findUnique.mockResolvedValue({
+        id: 'gp-1',
+        linkedClientAccountId: 'acc-1',
+      });
       prisma.guestProfile.update.mockResolvedValue({ id: 'gp-1' });
 
       await service.update('gp-1', { fullName: 'Novo Ime' } as any, 'guest-1');

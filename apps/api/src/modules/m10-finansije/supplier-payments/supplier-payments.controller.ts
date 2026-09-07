@@ -35,7 +35,10 @@ export class SupplierPaymentsController {
   // potpuna dok kreiranje nije tražilo sopstveno pravo.
   @Post('supplier-payment-instructions')
   @RequirePermission('M10', 'supplier-payment-instruction', 'CREATE')
-  createInstruction(@Body() dto: CreateSupplierPaymentInstructionDto, @CurrentUser() actor: { userId: string }) {
+  createInstruction(
+    @Body() dto: CreateSupplierPaymentInstructionDto,
+    @CurrentUser() actor: { userId: string },
+  ) {
     return this.paymentInstructions.create(dto, actor);
   }
 

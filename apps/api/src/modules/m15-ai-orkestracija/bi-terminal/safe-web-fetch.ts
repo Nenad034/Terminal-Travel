@@ -49,8 +49,10 @@ async function assertPublicHost(hostname: string): Promise<void> {
     throw new Error(`Ne mogu da razrešim domen "${hostname}".`);
   }
   for (const { address } of addresses) {
-    if (isIPv4(address) && isPrivateIPv4(address)) throw new Error(`Domen "${hostname}" vodi ka privatnoj/internoj adresi — blokirano.`);
-    if (isIPv6(address) && isPrivateIPv6(address)) throw new Error(`Domen "${hostname}" vodi ka privatnoj/internoj adresi — blokirano.`);
+    if (isIPv4(address) && isPrivateIPv4(address))
+      throw new Error(`Domen "${hostname}" vodi ka privatnoj/internoj adresi — blokirano.`);
+    if (isIPv6(address) && isPrivateIPv6(address))
+      throw new Error(`Domen "${hostname}" vodi ka privatnoj/internoj adresi — blokirano.`);
   }
 }
 
@@ -94,7 +96,10 @@ export async function safeFetchText(rawUrl: string): Promise<SafeFetchResult> {
       response = await fetch(url.toString(), {
         redirect: 'manual',
         signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
-        headers: { 'User-Agent': 'TerminalTravel-BiTerminalAgent/1.0 (kontrolisano preuzimanje, uz odobrenje Vlasnika)' },
+        headers: {
+          'User-Agent':
+            'TerminalTravel-BiTerminalAgent/1.0 (kontrolisano preuzimanje, uz odobrenje Vlasnika)',
+        },
       });
     } catch (err) {
       return { ok: false, error: `Preuzimanje nije uspelo: ${(err as Error).message}` };
@@ -108,16 +113,27 @@ export async function safeFetchText(rawUrl: string): Promise<SafeFetchResult> {
     }
 
     if (!response.ok) {
-      return { ok: false, status: response.status, error: `Server je vratio status ${response.status}.` };
+      return {
+        ok: false,
+        status: response.status,
+        error: `Server je vratio status ${response.status}.`,
+      };
     }
 
     const contentType = response.headers.get('content-type') ?? '';
-    if (!contentType.includes('text/') && !contentType.includes('html') && !contentType.includes('json')) {
+    if (
+      !contentType.includes('text/') &&
+      !contentType.includes('html') &&
+      !contentType.includes('json')
+    ) {
       return { ok: false, error: `Sadržaj tipa "${contentType}" nije podržan — samo tekst/HTML.` };
     }
 
     const raw = await response.text();
-    const text = (contentType.includes('html') ? stripHtmlToText(raw) : raw).slice(0, MAX_TEXT_LENGTH);
+    const text = (contentType.includes('html') ? stripHtmlToText(raw) : raw).slice(
+      0,
+      MAX_TEXT_LENGTH,
+    );
     return { ok: true, status: response.status, text, finalUrl: url.toString() };
   }
 }

@@ -26,7 +26,11 @@ export class KnowledgeAssistantController {
   }
 
   @Post('questions/:id/feedback')
-  feedback(@Param('id') id: string, @Body() dto: FeedbackQuestionDto, @CurrentUser() actor: { userId: string }) {
+  feedback(
+    @Param('id') id: string,
+    @Body() dto: FeedbackQuestionDto,
+    @CurrentUser() actor: { userId: string },
+  ) {
     return this.assistant.feedback(id, dto.wasHelpful, actor.userId);
   }
 

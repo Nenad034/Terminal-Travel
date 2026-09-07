@@ -38,7 +38,9 @@ export async function createSubagent(_prev: FormState, formData: FormData): Prom
       },
     });
   } catch (err) {
-    return { error: err instanceof ApiError ? extractMessage(err) : 'Registracija subagenta nije uspela.' };
+    return {
+      error: err instanceof ApiError ? extractMessage(err) : 'Registracija subagenta nije uspela.',
+    };
   }
   revalidatePath('/b2b');
   redirect(`/b2b/${subagent.id}`);
@@ -47,7 +49,11 @@ export async function createSubagent(_prev: FormState, formData: FormData): Prom
 // M7 spec §9/§11 — POST /subagents/:id/approve. Vlasnik/Direktor postavlja kreditni limit
 // uvek, i proviziju samo ako je Tier 1 (backend to sprovodi — forma ovde šalje proviziju samo
 // kad je vidljivo polje, backend ignoriše/zahteva u skladu sa §9).
-export async function approveSubagent(id: string, _prev: FormState, formData: FormData): Promise<FormState> {
+export async function approveSubagent(
+  id: string,
+  _prev: FormState,
+  formData: FormData,
+): Promise<FormState> {
   try {
     await apiFetch(`/b2b/subagents/${id}/approve`, {
       method: 'POST',
@@ -58,7 +64,9 @@ export async function approveSubagent(id: string, _prev: FormState, formData: Fo
       },
     });
   } catch (err) {
-    return { error: err instanceof ApiError ? extractMessage(err) : 'Odobravanje subagenta nije uspelo.' };
+    return {
+      error: err instanceof ApiError ? extractMessage(err) : 'Odobravanje subagenta nije uspelo.',
+    };
   }
   revalidatePath(`/b2b/${id}`);
   revalidatePath('/b2b');
@@ -68,7 +76,11 @@ export async function approveSubagent(id: string, _prev: FormState, formData: Fo
 // M7 spec §10 (M7/subagent/EDIT) — PATCH /subagents/:id, kreditni limit/status. commission_percentage
 // se namerno ne menja odavde (§3 — Tier1 provizija se postavlja pri approve(), sub-subagent
 // isključivo preko roditeljskog portala).
-export async function updateSubagent(id: string, _prev: FormState, formData: FormData): Promise<FormState> {
+export async function updateSubagent(
+  id: string,
+  _prev: FormState,
+  formData: FormData,
+): Promise<FormState> {
   try {
     await apiFetch(`/b2b/subagents/${id}`, {
       method: 'PATCH',
@@ -79,7 +91,9 @@ export async function updateSubagent(id: string, _prev: FormState, formData: For
       },
     });
   } catch (err) {
-    return { error: err instanceof ApiError ? extractMessage(err) : 'Izmena subagenta nije uspela.' };
+    return {
+      error: err instanceof ApiError ? extractMessage(err) : 'Izmena subagenta nije uspela.',
+    };
   }
   revalidatePath(`/b2b/${id}`);
   revalidatePath('/b2b');
@@ -88,7 +102,11 @@ export async function updateSubagent(id: string, _prev: FormState, formData: For
 
 // M7 spec §3.1/§11 — POST /subagents/:id/volume-tiers. Isti autoritet kao osnovna provizija
 // (agencija za Tier 1) — CommissionAuthorityService sprovodi na backendu.
-export async function createVolumeTier(subagentId: string, _prev: FormState, formData: FormData): Promise<FormState> {
+export async function createVolumeTier(
+  subagentId: string,
+  _prev: FormState,
+  formData: FormData,
+): Promise<FormState> {
   try {
     await apiFetch(`/b2b/subagents/${subagentId}/volume-tiers`, {
       method: 'POST',
@@ -104,7 +122,9 @@ export async function createVolumeTier(subagentId: string, _prev: FormState, for
       },
     });
   } catch (err) {
-    return { error: err instanceof ApiError ? extractMessage(err) : 'Kreiranje praga obima nije uspelo.' };
+    return {
+      error: err instanceof ApiError ? extractMessage(err) : 'Kreiranje praga obima nije uspelo.',
+    };
   }
   revalidatePath(`/b2b/${subagentId}`);
   return { error: null };
@@ -113,11 +133,20 @@ export async function createVolumeTier(subagentId: string, _prev: FormState, for
 // M7 spec §3.2/§11 — POST /subagents/:id/commission-rebates/:rebateId/approve. Ovo je
 // eksplicitna, namerna ljudska radnja ("Predloži pa čovek odobri", M15 tier PROPOSE_THEN_APPROVE
 // za commission_rebate.apply) — sopstveno dugme, nikad deo druge radnje/forme.
-export async function approveRebate(subagentId: string, rebateId: string, _prev: FormState, _formData: FormData): Promise<FormState> {
+export async function approveRebate(
+  subagentId: string,
+  rebateId: string,
+  _prev: FormState,
+  _formData: FormData,
+): Promise<FormState> {
   try {
-    await apiFetch(`/b2b/subagents/${subagentId}/commission-rebates/${rebateId}/approve`, { method: 'POST' });
+    await apiFetch(`/b2b/subagents/${subagentId}/commission-rebates/${rebateId}/approve`, {
+      method: 'POST',
+    });
   } catch (err) {
-    return { error: err instanceof ApiError ? extractMessage(err) : 'Odobravanje rabata nije uspelo.' };
+    return {
+      error: err instanceof ApiError ? extractMessage(err) : 'Odobravanje rabata nije uspelo.',
+    };
   }
   revalidatePath(`/b2b/${subagentId}`);
   revalidatePath('/b2b/rabati');
@@ -125,14 +154,21 @@ export async function approveRebate(subagentId: string, rebateId: string, _prev:
 }
 
 // M7 spec §3.2/§11 — POST /subagents/:id/commission-rebates/:rebateId/reject, sa razlogom.
-export async function rejectRebate(subagentId: string, rebateId: string, _prev: FormState, formData: FormData): Promise<FormState> {
+export async function rejectRebate(
+  subagentId: string,
+  rebateId: string,
+  _prev: FormState,
+  formData: FormData,
+): Promise<FormState> {
   try {
     await apiFetch(`/b2b/subagents/${subagentId}/commission-rebates/${rebateId}/reject`, {
       method: 'POST',
       body: { reason: strOrUndef(formData, 'reason') ?? 'Bez navedenog razloga.' },
     });
   } catch (err) {
-    return { error: err instanceof ApiError ? extractMessage(err) : 'Odbijanje rabata nije uspelo.' };
+    return {
+      error: err instanceof ApiError ? extractMessage(err) : 'Odbijanje rabata nije uspelo.',
+    };
   }
   revalidatePath(`/b2b/${subagentId}`);
   revalidatePath('/b2b/rabati');

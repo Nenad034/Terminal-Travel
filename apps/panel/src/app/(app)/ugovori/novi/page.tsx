@@ -2,7 +2,6 @@ import { apiFetch } from '@/lib/api-client';
 import RegisterTab from '@/components/RegisterTab';
 import NewContractForm from './NewContractForm';
 
-
 interface Supplier {
   id: string;
   name: string;

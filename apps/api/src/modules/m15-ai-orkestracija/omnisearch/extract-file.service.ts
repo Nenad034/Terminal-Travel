@@ -35,7 +35,9 @@ export class ExtractFileService {
         `Stari format "${ext}" nije podržan — sačuvaj fajl kao ${ext === '.doc' ? '.docx' : '.xlsx'} pa pokušaj ponovo.`,
       );
     }
-    throw new BadRequestException(`Tip fajla "${ext || '(bez ekstenzije)'}" nije podržan za prilog u AI chat.`);
+    throw new BadRequestException(
+      `Tip fajla "${ext || '(bez ekstenzije)'}" nije podržan za prilog u AI chat.`,
+    );
   }
 }
 
@@ -81,7 +83,9 @@ async function extractXlsx(buffer: Buffer): Promise<string> {
   workbook.eachSheet((sheet) => {
     parts.push(`List "${sheet.name}":`);
     sheet.eachRow((row) => {
-      const cells = (row.values as unknown[]).slice(1).map((v) => (v === null || v === undefined ? '' : String(v)));
+      const cells = (row.values as unknown[])
+        .slice(1)
+        .map((v) => (v === null || v === undefined ? '' : String(v)));
       parts.push(cells.join('\t'));
     });
   });

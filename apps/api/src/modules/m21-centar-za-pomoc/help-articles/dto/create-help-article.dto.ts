@@ -1,4 +1,12 @@
-import { ArrayNotEmpty, IsArray, IsBoolean, IsIn, IsOptional, IsString, Matches } from 'class-validator';
+import {
+  ArrayNotEmpty,
+  IsArray,
+  IsBoolean,
+  IsIn,
+  IsOptional,
+  IsString,
+  Matches,
+} from 'class-validator';
 
 const AUDIENCE_VALUES = ['STAFF', 'SUBAGENT', 'BUSINESS_CLIENT', 'PUBLIC_GUEST'] as const;
 

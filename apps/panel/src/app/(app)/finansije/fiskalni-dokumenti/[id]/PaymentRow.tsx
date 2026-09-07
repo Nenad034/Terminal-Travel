@@ -14,7 +14,13 @@ export interface PaymentRowData {
   receivedAt?: string | null;
   createdAt?: string;
   bank?: { id: string; name: string } | null;
-  checkDetails?: { id: string; bankId: string; amount: number; checkNumber: string; clearanceDate: string }[];
+  checkDetails?: {
+    id: string;
+    bankId: string;
+    amount: number;
+    checkNumber: string;
+    clearanceDate: string;
+  }[];
   editable?: boolean;
 }
 
@@ -70,7 +76,10 @@ export default function PaymentRow({
   }
 
   const checkCount = payment.checkDetails?.length ?? 0;
-  const dateLabel = payment.receivedAt || payment.createdAt ? new Date(payment.receivedAt ?? payment.createdAt!).toLocaleDateString('sr-RS') : '';
+  const dateLabel =
+    payment.receivedAt || payment.createdAt
+      ? new Date(payment.receivedAt ?? payment.createdAt!).toLocaleDateString('sr-RS')
+      : '';
   const money = `${(payment.amount / 100).toLocaleString('sr-RS', { minimumFractionDigits: 2 })} ${payment.currency}`;
 
   if (variant === 'detailed') {
@@ -91,12 +100,21 @@ export default function PaymentRow({
           <span className="font-mono text-sm font-semibold text-ink">{money}</span>
           <StatusBadge status={payment.status} />
           {checkCount > 0 && (
-            <a href={`/finansije/uplate/${payment.id}`} target="_blank" rel="noreferrer" className="text-xs text-accent hover:underline">
+            <a
+              href={`/finansije/uplate/${payment.id}`}
+              target="_blank"
+              rel="noreferrer"
+              className="text-xs text-accent hover:underline"
+            >
               specifikacija →
             </a>
           )}
           {payment.editable && (
-            <button type="button" onClick={() => setEditing(true)} className="text-xs text-accent hover:underline">
+            <button
+              type="button"
+              onClick={() => setEditing(true)}
+              className="text-xs text-accent hover:underline"
+            >
               izmeni
             </button>
           )}
@@ -116,12 +134,21 @@ export default function PaymentRow({
         {dateLabel}
         <StatusBadge status={payment.status} />
         {checkCount > 0 && (
-          <a href={`/finansije/uplate/${payment.id}`} target="_blank" rel="noreferrer" className="text-accent hover:underline">
+          <a
+            href={`/finansije/uplate/${payment.id}`}
+            target="_blank"
+            rel="noreferrer"
+            className="text-accent hover:underline"
+          >
             specifikacija →
           </a>
         )}
         {payment.editable && (
-          <button type="button" onClick={() => setEditing(true)} className="text-accent hover:underline">
+          <button
+            type="button"
+            onClick={() => setEditing(true)}
+            className="text-accent hover:underline"
+          >
             izmeni
           </button>
         )}
@@ -131,7 +158,9 @@ export default function PaymentRow({
 }
 
 function StatusBadge({ status }: { status: string }) {
-  if (['ISSUED', 'RECEIVED', 'PAID', 'ACCEPTED'].includes(status)) return <Badge variant="ok">{status}</Badge>;
-  if (['REJECTED', 'STORNIRANO', 'FAILED', 'VOIDED', 'EXPIRED'].includes(status)) return <Badge variant="danger">{status}</Badge>;
+  if (['ISSUED', 'RECEIVED', 'PAID', 'ACCEPTED'].includes(status))
+    return <Badge variant="ok">{status}</Badge>;
+  if (['REJECTED', 'STORNIRANO', 'FAILED', 'VOIDED', 'EXPIRED'].includes(status))
+    return <Badge variant="danger">{status}</Badge>;
   return <Badge variant="warn">{status}</Badge>;
 }

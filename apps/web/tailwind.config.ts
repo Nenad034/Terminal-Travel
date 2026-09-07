@@ -45,7 +45,15 @@ const config: Config = {
         lg: '14px',
       },
       fontFamily: {
-        sans: ['"Segoe UI"', 'ui-sans-serif', 'system-ui', 'Roboto', 'Helvetica', 'Arial', 'sans-serif'],
+        sans: [
+          '"Segoe UI"',
+          'ui-sans-serif',
+          'system-ui',
+          'Roboto',
+          'Helvetica',
+          'Arial',
+          'sans-serif',
+        ],
       },
     },
   },

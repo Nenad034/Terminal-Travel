@@ -5,7 +5,14 @@ import { useFormStatus } from 'react-dom';
 import Icon from '@/components/Icon';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import {
   prepareForBooking,
   sendManifest,
@@ -41,7 +48,13 @@ export interface ChangeNotice {
     stayFrom: string | null;
     stayTo: string | null;
     booking: { id: string; bookingNumber: string } | null;
-    product: { type: string; destinationCity: string; sourceContract: { supplier: { id: string; name: string; contactEmail: string } | null } | null } | null;
+    product: {
+      type: string;
+      destinationCity: string;
+      sourceContract: {
+        supplier: { id: string; name: string; contactEmail: string } | null;
+      } | null;
+    } | null;
   } | null;
 }
 
@@ -92,12 +105,16 @@ export default function ManifestsClient({
                   <TableCell className="font-mono text-ink">{m.referenceCode ?? '—'}</TableCell>
                   <TableCell>
                     <div className="text-ink-dim">{m.supplier?.name ?? '—'}</div>
-                    <div className="text-[11px] text-ink-faint">{m.sentToEmail ?? m.supplier?.contactEmail ?? ''}</div>
+                    <div className="text-[11px] text-ink-faint">
+                      {m.sentToEmail ?? m.supplier?.contactEmail ?? ''}
+                    </div>
                   </TableCell>
                   <TableCell className="text-ink-faint">
                     {formatDate(m.periodFrom)} – {formatDate(m.periodTo)}
                   </TableCell>
-                  <TableCell className="text-right font-mono text-ink-dim">{m._count?.items ?? '—'}</TableCell>
+                  <TableCell className="text-right font-mono text-ink-dim">
+                    {m._count?.items ?? '—'}
+                  </TableCell>
                   <TableCell>
                     <ManifestStatus status={m.status} sentAt={m.sentAt} />
                   </TableCell>
@@ -112,7 +129,11 @@ export default function ManifestsClient({
                         />
                       )}
                       {canConfirm && m.status === 'SENT' && (
-                        <ActionButton action={confirmManifest.bind(null, m.id)} label="dobavljač je potvrdio" pendingLabel="Upisujem…" />
+                        <ActionButton
+                          action={confirmManifest.bind(null, m.id)}
+                          label="dobavljač je potvrdio"
+                          pendingLabel="Upisujem…"
+                        />
                       )}
                     </div>
                   </TableCell>
@@ -129,7 +150,8 @@ export default function ManifestsClient({
           <span className="text-xs font-normal text-ink-faint">({notices.length})</span>
         </h2>
         <p className="mb-2 text-[11px] text-ink-faint">
-          Izmena i storno ne čekaju sledeću rutinsku listu — dobavljač mora eksplicitno da sazna (M5 §8.8).
+          Izmena i storno ne čekaju sledeću rutinsku listu — dobavljač mora eksplicitno da sazna (M5
+          §8.8).
         </p>
         {notices.length === 0 ? (
           <EmptyHint text="Nema najava izmene ili storna." />
@@ -156,10 +178,14 @@ export default function ManifestsClient({
                         {n.noticeType === 'CANCELLATION' ? 'storno' : 'izmena'}
                       </Badge>
                     </TableCell>
-                    <TableCell className="font-mono text-ink-dim">{n.bookingItem?.booking?.bookingNumber ?? '—'}</TableCell>
+                    <TableCell className="font-mono text-ink-dim">
+                      {n.bookingItem?.booking?.bookingNumber ?? '—'}
+                    </TableCell>
                     <TableCell>
                       <div className="text-ink-dim">{supplier?.name ?? '—'}</div>
-                      <div className="text-[11px] text-ink-faint">{supplier?.contactEmail ?? ''}</div>
+                      <div className="text-[11px] text-ink-faint">
+                        {supplier?.contactEmail ?? ''}
+                      </div>
                     </TableCell>
                     <TableCell>
                       <NoticeStatus status={n.status} confirmedAt={n.supplierConfirmedAt} />
@@ -174,7 +200,11 @@ export default function ManifestsClient({
                           />
                         )}
                         {canConfirm && n.status === 'SENT' && !n.supplierConfirmedAt && (
-                          <ActionButton action={confirmChangeNotice.bind(null, n.id)} label="dobavljač je potvrdio" pendingLabel="Upisujem…" />
+                          <ActionButton
+                            action={confirmChangeNotice.bind(null, n.id)}
+                            label="dobavljač je potvrdio"
+                            pendingLabel="Upisujem…"
+                          />
                         )}
                       </div>
                     </TableCell>
@@ -195,10 +225,18 @@ export default function ManifestsClient({
  * samo „poslato", status ne bi vredeo ništa.
  */
 function ManifestStatus({ status, sentAt }: { status: Manifest['status']; sentAt: string | null }) {
-  if (status === 'SENT') return <Badge variant="ok" title={sentAt ? `poslato ${formatDateTime(sentAt)}` : undefined}>poslato</Badge>;
+  if (status === 'SENT')
+    return (
+      <Badge variant="ok" title={sentAt ? `poslato ${formatDateTime(sentAt)}` : undefined}>
+        poslato
+      </Badge>
+    );
   if (status === 'PENDING_SEND')
     return (
-      <Badge variant="warn" title="Pokušaj je zabeležen, ali poruka nije otišla. Stavke NISU najavljene.">
+      <Badge
+        variant="warn"
+        title="Pokušaj je zabeležen, ali poruka nije otišla. Stavke NISU najavljene."
+      >
         <Icon name="warning" /> čeka slanje
       </Badge>
     );
@@ -206,7 +244,13 @@ function ManifestStatus({ status, sentAt }: { status: Manifest['status']; sentAt
   return <Badge variant="secondary">nacrt</Badge>;
 }
 
-function NoticeStatus({ status, confirmedAt }: { status: ChangeNotice['status']; confirmedAt: string | null }) {
+function NoticeStatus({
+  status,
+  confirmedAt,
+}: {
+  status: ChangeNotice['status'];
+  confirmedAt: string | null;
+}) {
   if (confirmedAt) return <Badge variant="ok">dobavljač potvrdio</Badge>;
   if (status === 'SENT') return <Badge variant="ok">poslato</Badge>;
   if (status === 'PENDING_SEND')
@@ -227,14 +271,24 @@ function PrepareForm() {
         <Icon name="add" className="text-accent" /> Pripremi nacrte za rezervaciju
       </div>
       <p className="mb-2 text-[11px] text-ink-faint">
-        Ako rezervacija ima stavke od više dobavljača, nastaje po jedan nacrt za svakog. Priprema nikad ne šalje ništa.
+        Ako rezervacija ima stavke od više dobavljača, nastaje po jedan nacrt za svakog. Priprema
+        nikad ne šalje ništa.
       </p>
       <div className="flex flex-wrap items-center gap-2">
-        <input name="bookingId" required placeholder="ID rezervacije" className="input w-[22rem] font-mono text-xs" />
+        <input
+          name="bookingId"
+          required
+          placeholder="ID rezervacije"
+          className="input w-[22rem] font-mono text-xs"
+        />
         <PrepareSubmit />
       </div>
-      {state.error && <p className="mt-2 rounded bg-danger-bg p-2 text-[11px] text-danger">{state.error}</p>}
-      {state.notice && <p className="mt-2 rounded bg-panel2 p-2 text-[11px] text-ink-dim">{state.notice}</p>}
+      {state.error && (
+        <p className="mt-2 rounded bg-danger-bg p-2 text-[11px] text-danger">{state.error}</p>
+      )}
+      {state.notice && (
+        <p className="mt-2 rounded bg-panel2 p-2 text-[11px] text-ink-dim">{state.notice}</p>
+      )}
     </form>
   );
 }
@@ -284,7 +338,9 @@ function SmallSubmit({ label, pendingLabel }: { label: string; pendingLabel: str
 }
 
 function EmptyHint({ text }: { text: string }) {
-  return <p className="rounded border border-dashed border-border p-3 text-xs text-ink-faint">{text}</p>;
+  return (
+    <p className="rounded border border-dashed border-border p-3 text-xs text-ink-faint">{text}</p>
+  );
 }
 
 function formatDate(iso: string | null): string {

@@ -42,7 +42,9 @@ describe('M18 — izlazni kriterijum (e2e)', () => {
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
     app = moduleRef.createNestApplication();
     app.setGlobalPrefix('api/v1');
-    app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }));
+    app.useGlobalPipes(
+      new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }),
+    );
     app.useGlobalFilters(new PrismaExceptionFilter());
     await app.init();
     prisma = app.get(PrismaService);
@@ -59,11 +61,18 @@ describe('M18 — izlazni kriterijum (e2e)', () => {
   afterAll(async () => {
     await prisma.agentInvocationLog.deleteMany({ where: { agentId: { in: createdAiAgentIds } } });
     await prisma.aIAgentBudget.deleteMany({ where: { agentId: { in: createdAiAgentIds } } });
-    if (createdAiAgentIds.length) await prisma.aIAgent.deleteMany({ where: { id: { in: createdAiAgentIds } } });
+    if (createdAiAgentIds.length)
+      await prisma.aIAgent.deleteMany({ where: { id: { in: createdAiAgentIds } } });
     if (createdProviderCodes.length) {
-      await prisma.providerHealthSnapshot.deleteMany({ where: { providerCode: { in: createdProviderCodes } } });
-      await prisma.providerCallLog.deleteMany({ where: { providerCode: { in: createdProviderCodes } } });
-      await prisma.providerConfig.deleteMany({ where: { providerCode: { in: createdProviderCodes } } });
+      await prisma.providerHealthSnapshot.deleteMany({
+        where: { providerCode: { in: createdProviderCodes } },
+      });
+      await prisma.providerCallLog.deleteMany({
+        where: { providerCode: { in: createdProviderCodes } },
+      });
+      await prisma.providerConfig.deleteMany({
+        where: { providerCode: { in: createdProviderCodes } },
+      });
     }
     if (createdUserIds.length) {
       await prisma.userRole.deleteMany({ where: { userId: { in: createdUserIds } } });
@@ -84,7 +93,9 @@ describe('M18 — izlazni kriterijum (e2e)', () => {
     });
     createdUserIds.push(user.id);
     const role = await prisma.role.findUniqueOrThrow({ where: { name: roleName } });
-    await prisma.userRole.create({ data: { userId: user.id, roleId: role.id, assignedBy: user.id } });
+    await prisma.userRole.create({
+      data: { userId: user.id, roleId: role.id, assignedBy: user.id },
+    });
     const accessToken = jwt.sign({ sub: user.id, sessionId: 'e2e-test-session' });
     return { user, accessToken };
   }
@@ -100,7 +111,14 @@ describe('M18 — izlazni kriterijum (e2e)', () => {
     });
     createdUserIds.push(user.id);
     const agent = await prisma.aIAgent.create({
-      data: { userId: user.id, agentRole: 'DOMENSKI_AGENT', moduleCode: 'M18_TEST', status: 'ACTIVE', modelTier: 'LIGHT', modelIdentifier: 'claude-haiku-4-5-20251001' },
+      data: {
+        userId: user.id,
+        agentRole: 'DOMENSKI_AGENT',
+        moduleCode: 'M18_TEST',
+        status: 'ACTIVE',
+        modelTier: 'LIGHT',
+        modelIdentifier: 'claude-haiku-4-5-20251001',
+      },
     });
     createdAiAgentIds.push(agent.id);
     return agent;
@@ -134,7 +152,10 @@ describe('M18 — izlazni kriterijum (e2e)', () => {
   // ==========================================================================
   it('§10 — WeeklyHealthReview se generiše i šalje čak i bez signala u periodu', async () => {
     const { accessToken } = await createInternalUser(SYSTEM_ROLES.VLASNIK);
-    const res = await request(app.getHttpServer()).post('/api/v1/ops/weekly-reviews/run').set(authed(accessToken)).send();
+    const res = await request(app.getHttpServer())
+      .post('/api/v1/ops/weekly-reviews/run')
+      .set(authed(accessToken))
+      .send();
     expect(res.status).toBe(201);
     expect(res.body.status).toBe('SENT');
     expect(res.body.summary).toEqual(expect.any(String));
@@ -171,7 +192,15 @@ describe('M18 — izlazni kriterijum (e2e)', () => {
     const { user } = await createInternalUser(SYSTEM_ROLES.VLASNIK);
     for (let i = 0; i < 6; i++) {
       await prisma.auditLogEntry.create({
-        data: { actorType: 'HUMAN', actorId: user.id, module: 'M1', action: 'auth.login_failed', resourceType: 'User', resourceId: user.id, context: {} },
+        data: {
+          actorType: 'HUMAN',
+          actorId: user.id,
+          module: 'M1',
+          action: 'auth.login_failed',
+          resourceType: 'User',
+          resourceId: user.id,
+          context: {},
+        },
       });
     }
 
@@ -232,12 +261,22 @@ describe('M18 — izlazni kriterijum (e2e)', () => {
   it('§6.5/§10 — budžet degradacija forsira LIGHT za ne-bezbednosnu akciju; sledeći bezbednosno-kritičan poziv zadržava HEAVY i generiše povišen signal', async () => {
     const agent = await createAiAgent();
     const now = new Date();
-    const periodStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+    const periodStart = new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
+    );
     const periodEnd = new Date(periodStart);
     periodEnd.setUTCDate(periodEnd.getUTCDate() + 1);
 
     await prisma.aIAgentBudget.create({
-      data: { agentId: agent.id, period: 'DAILY', budgetLimitEur: 0.000001, consumedEur: 0, enforcementState: 'NORMAL', periodStart, periodEnd },
+      data: {
+        agentId: agent.id,
+        period: 'DAILY',
+        budgetLimitEur: 0.000001,
+        consumedEur: 0,
+        enforcementState: 'NORMAL',
+        periodStart,
+        periodEnd,
+      },
     });
 
     // Prvi poziv potroši sitan iznos i odmah probije budžet (limit je namerno mikroskopski).
@@ -293,10 +332,20 @@ describe('M18 — izlazni kriterijum (e2e)', () => {
   // ==========================================================================
   it('§9/§10 — ručan override piše AuditLogEntry i vraća enforcement_state na NORMAL', async () => {
     const { user, accessToken } = await createInternalUser(SYSTEM_ROLES.VLASNIK);
-    const quota = await aiProviderQuota.create({ providerName: `M18_TEST_${testRunId}`, period: 'DAILY', budgetLimitEur: 1 });
-    await prisma.aIProviderQuota.update({ where: { id: quota.id }, data: { enforcementState: 'DEGRADED', degradedAt: new Date() } });
+    const quota = await aiProviderQuota.create({
+      providerName: `M18_TEST_${testRunId}`,
+      period: 'DAILY',
+      budgetLimitEur: 1,
+    });
+    await prisma.aIProviderQuota.update({
+      where: { id: quota.id },
+      data: { enforcementState: 'DEGRADED', degradedAt: new Date() },
+    });
 
-    const res = await request(app.getHttpServer()).post(`/api/v1/ops/ai-provider-quota/${quota.id}/override`).set(authed(accessToken)).send();
+    const res = await request(app.getHttpServer())
+      .post(`/api/v1/ops/ai-provider-quota/${quota.id}/override`)
+      .set(authed(accessToken))
+      .send();
     expect(res.status).toBe(201);
     expect(res.body.enforcementState).toBe('NORMAL');
 
@@ -327,7 +376,10 @@ describe('M18 — izlazni kriterijum (e2e)', () => {
 
     await aiProviderQuota.rolloverPeriods();
 
-    const rows = await prisma.aIProviderQuota.findMany({ where: { providerName }, orderBy: { periodStart: 'desc' } });
+    const rows = await prisma.aIProviderQuota.findMany({
+      where: { providerName },
+      orderBy: { periodStart: 'desc' },
+    });
     expect(rows.length).toBeGreaterThanOrEqual(2);
     const newest = rows[0];
     expect(newest.enforcementState).toBe('NORMAL');
@@ -345,20 +397,40 @@ describe('M18 — izlazni kriterijum (e2e)', () => {
   // ==========================================================================
   it('§2.1/§10 — M3 low_capacity_critical, M10 payment_deadline_missed i M10 reconciliation_mismatch event odmah generišu HealthSignal preko pretplate', async () => {
     const marker = `e2e-${testRunId}`;
-    await eventBus.emit('M3', 'low_capacity_critical', { periodId: marker, remaining: 1, severity: 'CRITICAL' });
-    await eventBus.emit('M10', 'payment_deadline_missed', { bookingId: marker, kind: 'DEPOSIT', severity: 'WARNING' });
-    await eventBus.emit('M10', 'reconciliation_mismatch', { bookingId: marker, reason: 'MISSING_FISCAL_DOCUMENT' });
+    await eventBus.emit('M3', 'low_capacity_critical', {
+      periodId: marker,
+      remaining: 1,
+      severity: 'CRITICAL',
+    });
+    await eventBus.emit('M10', 'payment_deadline_missed', {
+      bookingId: marker,
+      kind: 'DEPOSIT',
+      severity: 'WARNING',
+    });
+    await eventBus.emit('M10', 'reconciliation_mismatch', {
+      bookingId: marker,
+      reason: 'MISSING_FISCAL_DOCUMENT',
+    });
     await wait(500);
 
-    const lowCapacity = await prisma.healthSignal.findFirst({ where: { signalType: 'LOW_CAPACITY_CRITICAL' }, orderBy: { detectedAt: 'desc' } });
+    const lowCapacity = await prisma.healthSignal.findFirst({
+      where: { signalType: 'LOW_CAPACITY_CRITICAL' },
+      orderBy: { detectedAt: 'desc' },
+    });
     expect(lowCapacity).not.toBeNull();
     expect((lowCapacity!.details as any).periodId).toBe(marker);
 
-    const paymentDeadline = await prisma.healthSignal.findFirst({ where: { signalType: 'PAYMENT_DEADLINE_MISSED' }, orderBy: { detectedAt: 'desc' } });
+    const paymentDeadline = await prisma.healthSignal.findFirst({
+      where: { signalType: 'PAYMENT_DEADLINE_MISSED' },
+      orderBy: { detectedAt: 'desc' },
+    });
     expect(paymentDeadline).not.toBeNull();
     expect((paymentDeadline!.details as any).bookingId).toBe(marker);
 
-    const reconciliation = await prisma.healthSignal.findFirst({ where: { signalType: 'RECONCILIATION_MISMATCH' }, orderBy: { detectedAt: 'desc' } });
+    const reconciliation = await prisma.healthSignal.findFirst({
+      where: { signalType: 'RECONCILIATION_MISMATCH' },
+      orderBy: { detectedAt: 'desc' },
+    });
     expect(reconciliation).not.toBeNull();
     expect((reconciliation!.details as any).bookingId).toBe(marker);
   });

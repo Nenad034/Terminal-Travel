@@ -84,7 +84,9 @@ export class FactSyncService {
     const load = <T>(space: string, key: string, fn: () => Promise<T>): Promise<T> =>
       cache ? cache.get(space, key, fn) : fn();
 
-    const product = await load('product', item.productId, () => this.products.findOne(item.productId));
+    const product = await load('product', item.productId, () =>
+      this.products.findOne(item.productId),
+    );
     const attrs = (product.attributes ?? {}) as { accommodation_type?: string; stars?: number };
 
     let roomType: string | null = null;
@@ -104,7 +106,9 @@ export class FactSyncService {
       }
       if (product.sourceContractId) {
         const contractId = product.sourceContractId;
-        const contract = await load('contract', contractId, () => this.contracts.findOne(contractId));
+        const contract = await load('contract', contractId, () =>
+          this.contracts.findOne(contractId),
+        );
         supplierId = contract.supplierId;
         const sid = supplierId;
         const supplier = await load('supplier', sid, () => this.suppliers.findOne(sid));
@@ -120,13 +124,19 @@ export class FactSyncService {
     const subagent = await load('subagent', booking.clientAccountId, () =>
       this.subagents.findByClientAccountId(booking.clientAccountId),
     );
-    const subagentName = subagent ? (clientAccount.companyName ?? clientAccount.fullName ?? null) : null;
+    const subagentName = subagent
+      ? (clientAccount.companyName ?? clientAccount.fullName ?? null)
+      : null;
 
-    const guestCount = await this.prisma.bookingItemGuest.count({ where: { bookingItemId: item.id } });
+    const guestCount = await this.prisma.bookingItemGuest.count({
+      where: { bookingItemId: item.id },
+    });
     const nights = Math.round((item.stayTo.getTime() - item.stayFrom.getTime()) / MS_PER_DAY);
 
     const referral = booking.referralTrackingCode
-      ? await load('referral', booking.referralTrackingCode, () => this.resolveContentAttribution(booking.referralTrackingCode))
+      ? await load('referral', booking.referralTrackingCode, () =>
+          this.resolveContentAttribution(booking.referralTrackingCode),
+        )
       : { contentId: null, contentName: null };
 
     return {
@@ -139,7 +149,8 @@ export class FactSyncService {
       guestCount,
       productId: item.productId,
       productType: product.type,
-      accommodationType: product.type === 'ACCOMMODATION' ? (attrs.accommodation_type ?? null) : null,
+      accommodationType:
+        product.type === 'ACCOMMODATION' ? (attrs.accommodation_type ?? null) : null,
       stars: product.type === 'ACCOMMODATION' ? (attrs.stars ?? null) : null,
       roomType,
       boardType,
@@ -195,9 +206,12 @@ export class FactSyncService {
     // isti upit hiljadu puta (dok. 39 nalaz 2.3).
     const rateKey = `${payment.currency}|${payment.receivedAt.toISOString().slice(0, 10)}`;
     const amountRsdPerUnit = cache
-      ? await cache.get('rate', rateKey, () => this.rateToRsd(payment.currency, payment.receivedAt!))
+      ? await cache.get('rate', rateKey, () =>
+          this.rateToRsd(payment.currency, payment.receivedAt!),
+        )
       : await this.rateToRsd(payment.currency, payment.receivedAt);
-    const amountRsd = amountRsdPerUnit === null ? null : Math.round(payment.amount * amountRsdPerUnit);
+    const amountRsd =
+      amountRsdPerUnit === null ? null : Math.round(payment.amount * amountRsdPerUnit);
     if (amountRsd === null) return; // nema kursa za taj datum — rekonsilijacija će ponoviti sledeće noći
 
     const data: Prisma.FactPaymentUncheckedCreateInput = {
@@ -207,7 +221,11 @@ export class FactSyncService {
       method: payment.method,
       receivedAt: payment.receivedAt,
     };
-    await this.prisma.factPayment.upsert({ where: { paymentId: payment.id }, create: data, update: data });
+    await this.prisma.factPayment.upsert({
+      where: { paymentId: payment.id },
+      create: data,
+      update: data,
+    });
   }
 
   /** Kurs za jednu valutu na jedan dan — izdvojeno da se može keširati po (valuta, dan), ne po uplati. */
@@ -217,7 +235,9 @@ export class FactSyncService {
       const snapshot = await this.exchangeRates.findForCurrencyOnOrBefore(currency, onDate);
       return Number(snapshot.nbsMiddleRate);
     } catch {
-      this.logger.warn(`Nema kursa za ${currency} na dan ${onDate.toISOString().slice(0, 10)} ili ranije — FactPayment sinhronizacija odložena za sledeću rekonsilijaciju.`);
+      this.logger.warn(
+        `Nema kursa za ${currency} na dan ${onDate.toISOString().slice(0, 10)} ili ranije — FactPayment sinhronizacija odložena za sledeću rekonsilijaciju.`,
+      );
       return null;
     }
   }

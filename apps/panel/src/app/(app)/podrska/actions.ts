@@ -38,7 +38,9 @@ export async function createTicket(_prev: FormState, formData: FormData): Promis
       },
     });
   } catch (err) {
-    return { error: err instanceof ApiError ? extractMessage(err) : 'Kreiranje tiketa nije uspelo.' };
+    return {
+      error: err instanceof ApiError ? extractMessage(err) : 'Kreiranje tiketa nije uspelo.',
+    };
   }
   revalidatePath('/podrska');
   redirect(`/podrska/${ticket.id}`);
@@ -47,7 +49,11 @@ export async function createTicket(_prev: FormState, formData: FormData): Promis
 // M14 spec §6 — PATCH /tickets/:id. refundDecision uz status=RESOLVED zatvara reklamaciju uz
 // odluku o povraćaju (§3.2) — okida M10 nacrt storno dokumenta, ne izvršava ga (i dalje ljudska
 // potvrda slanja u M10).
-export async function updateTicket(id: string, _prev: FormState, formData: FormData): Promise<FormState> {
+export async function updateTicket(
+  id: string,
+  _prev: FormState,
+  formData: FormData,
+): Promise<FormState> {
   try {
     await apiFetch(`/helpdesk/tickets/${id}`, {
       method: 'PATCH',
@@ -70,7 +76,11 @@ export async function updateTicket(id: string, _prev: FormState, formData: FormD
 // (sent_by se popunjava automatski na backendu) ili ostavlja is_internal_note=true belešku
 // vidljivu samo timu (§5) — nikad AI_DRAFT odavde (AI nacrti nastaju kroz M14 AI mehanizam,
 // ne ovaj ručni unos).
-export async function createTicketMessage(ticketId: string, _prev: FormState, formData: FormData): Promise<FormState> {
+export async function createTicketMessage(
+  ticketId: string,
+  _prev: FormState,
+  formData: FormData,
+): Promise<FormState> {
   try {
     await apiFetch(`/helpdesk/tickets/${ticketId}/messages`, {
       method: 'POST',
@@ -89,7 +99,12 @@ export async function createTicketMessage(ticketId: string, _prev: FormState, fo
 
 // M14 spec §4 — POST /tickets/:id/messages/:messageId/send. Jedini put kroz koji AI_DRAFT
 // poruka koja pominje cenu/obavezu dobija sent_by — uvek ljudska potvrda (M14/ticket/RESPOND).
-export async function sendTicketMessage(ticketId: string, messageId: string, _prev: FormState, _formData: FormData): Promise<FormState> {
+export async function sendTicketMessage(
+  ticketId: string,
+  messageId: string,
+  _prev: FormState,
+  _formData: FormData,
+): Promise<FormState> {
   try {
     await apiFetch(`/helpdesk/tickets/${ticketId}/messages/${messageId}/send`, { method: 'POST' });
   } catch (err) {

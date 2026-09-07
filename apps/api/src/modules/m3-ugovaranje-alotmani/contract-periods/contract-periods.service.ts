@@ -22,7 +22,10 @@ export class ContractPeriodsService {
   ) {}
 
   findAll(contractId: string) {
-    return this.prisma.contractPeriod.findMany({ where: { contractId }, orderBy: { stayFrom: 'asc' } });
+    return this.prisma.contractPeriod.findMany({
+      where: { contractId },
+      orderBy: { stayFrom: 'asc' },
+    });
   }
 
   findOne(id: string) {
@@ -112,7 +115,10 @@ export class ContractPeriodsService {
   }
 
   listRateLines(periodId: string) {
-    return this.prisma.rateLine.findMany({ where: { contractPeriodId: periodId }, include: { agePricing: true } });
+    return this.prisma.rateLine.findMany({
+      where: { contractPeriodId: periodId },
+      include: { agePricing: true },
+    });
   }
 
   // §2.5 — dopuna v1.12: rule_type razdvaja PRE_ARRIVAL od EARLY_DEPARTURE (poglavlje 2.5)
@@ -142,7 +148,10 @@ export class ContractPeriodsService {
   }
 
   listCancellationRules(periodId: string) {
-    return this.prisma.cancellationRule.findMany({ where: { contractPeriodId: periodId }, orderBy: { daysBeforeStay: 'desc' } });
+    return this.prisma.cancellationRule.findMany({
+      where: { contractPeriodId: periodId },
+      orderBy: { daysBeforeStay: 'desc' },
+    });
   }
 
   // §2.4b — dopuna v1.12. PUT uvek KREIRA novi red (isti obrazac kao upsertRateLine).
@@ -181,7 +190,10 @@ export class ContractPeriodsService {
   }
 
   listOffers(periodId: string) {
-    return this.prisma.pricelistOffer.findMany({ where: { contractPeriodId: periodId }, orderBy: { bookingFrom: 'asc' } });
+    return this.prisma.pricelistOffer.findMany({
+      where: { contractPeriodId: periodId },
+      orderBy: { bookingFrom: 'asc' },
+    });
   }
 
   // §2.6 — dopuna v1.12. PUT uvek KREIRA novi red (isti obrazac kao upsertRateLine).
@@ -223,7 +235,10 @@ export class ContractPeriodsService {
   }
 
   listAncillaryServices(periodId: string) {
-    return this.prisma.ancillaryService.findMany({ where: { contractPeriodId: periodId }, orderBy: { createdAt: 'asc' } });
+    return this.prisma.ancillaryService.findMany({
+      where: { contractPeriodId: periodId },
+      orderBy: { createdAt: 'asc' },
+    });
   }
 
   // §2.7 — dopuna v1.12. 1:1 po periodu — pravi Prisma `upsert`, ne "uvek kreiraj novi red"
@@ -262,7 +277,11 @@ export class ContractPeriodsService {
   async availability(periodId: string) {
     const period = await this.prisma.contractPeriod.findUniqueOrThrow({ where: { id: periodId } });
     if (period.totalCapacity === null) {
-      return { allotmentMode: period.allotmentMode, unlimited: false, requiresSupplierConfirmation: true };
+      return {
+        allotmentMode: period.allotmentMode,
+        unlimited: false,
+        requiresSupplierConfirmation: true,
+      };
     }
     return {
       allotmentMode: period.allotmentMode,
@@ -284,10 +303,16 @@ export class ContractPeriodsService {
     if (!period) throw new NotFoundException('Period nije pronađen');
 
     if (!CAPACITY_BEARING_MODES.includes(period.allotmentMode)) {
-      return { reserved: true, allotmentMode: period.allotmentMode, requiresSupplierConfirmation: true };
+      return {
+        reserved: true,
+        allotmentMode: period.allotmentMode,
+        requiresSupplierConfirmation: true,
+      };
     }
 
-    const rows = await this.prisma.$queryRaw<{ id: string; units_sold: number; total_capacity: number }[]>`
+    const rows = await this.prisma.$queryRaw<
+      { id: string; units_sold: number; total_capacity: number }[]
+    >`
       UPDATE contract_periods
       SET units_sold = units_sold + ${units}
       WHERE id = ${periodId} AND units_sold + ${units} <= total_capacity
@@ -295,7 +320,9 @@ export class ContractPeriodsService {
     `;
 
     if (rows.length === 0) {
-      throw new BadRequestException('Nema dovoljno preostalog kapaciteta za ovaj period (M3 spec §2.3)');
+      throw new BadRequestException(
+        'Nema dovoljno preostalog kapaciteta za ovaj period (M3 spec §2.3)',
+      );
     }
 
     const updated = rows[0];
@@ -316,9 +343,17 @@ export class ContractPeriodsService {
     // kao Prisma model — emituje se preko Event Bus-a (isti mehanizam kao M2
     // product.published), M18 se pretplaćuje kad taj modul dođe na red.
     if (remaining === 1) {
-      await this.eventBus.emit('M3', 'low_capacity_critical', { periodId, remaining, severity: 'CRITICAL' });
+      await this.eventBus.emit('M3', 'low_capacity_critical', {
+        periodId,
+        remaining,
+        severity: 'CRITICAL',
+      });
     } else if (remaining === 2) {
-      await this.eventBus.emit('M3', 'low_capacity_critical', { periodId, remaining, severity: 'WARNING' });
+      await this.eventBus.emit('M3', 'low_capacity_critical', {
+        periodId,
+        remaining,
+        severity: 'WARNING',
+      });
     }
 
     return { reserved: true, unitsSold: updated.units_sold, remaining };
@@ -338,7 +373,9 @@ export class ContractPeriodsService {
       return { released: true, allotmentMode: period.allotmentMode };
     }
 
-    const rows = await this.prisma.$queryRaw<{ id: string; units_sold: number; total_capacity: number }[]>`
+    const rows = await this.prisma.$queryRaw<
+      { id: string; units_sold: number; total_capacity: number }[]
+    >`
       UPDATE contract_periods
       SET units_sold = GREATEST(units_sold - ${units}, 0)
       WHERE id = ${periodId}
@@ -357,7 +394,11 @@ export class ContractPeriodsService {
       context: { units },
     });
 
-    return { released: true, unitsSold: updated.units_sold, remaining: updated.total_capacity - updated.units_sold };
+    return {
+      released: true,
+      unitsSold: updated.units_sold,
+      remaining: updated.total_capacity - updated.units_sold,
+    };
   }
 
   // §6 — GET /contracts/expiring-releases

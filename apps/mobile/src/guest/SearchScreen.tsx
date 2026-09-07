@@ -1,5 +1,13 @@
 import { useState } from 'react';
-import { View, Text, TextInput, Pressable, FlatList, StyleSheet, ActivityIndicator } from 'react-native';
+import {
+  View,
+  Text,
+  TextInput,
+  Pressable,
+  FlatList,
+  StyleSheet,
+  ActivityIndicator,
+} from 'react-native';
 import { router } from 'expo-router';
 import { apiFetch } from '../lib/api-client';
 import { formatPrice, type SearchResultProduct } from '../lib/types';
@@ -23,7 +31,10 @@ export function SearchScreen() {
     setLoading(true);
     setSearched(true);
     try {
-      const occupancy = JSON.stringify({ adults: Number(adults) || 2, children: Number(children) || 0 });
+      const occupancy = JSON.stringify({
+        adults: Number(adults) || 2,
+        children: Number(children) || 0,
+      });
       const query = new URLSearchParams({
         channel: 'MOBILE',
         occupancy,
@@ -31,7 +42,9 @@ export function SearchScreen() {
         ...(stayFrom ? { stayFrom } : {}),
         ...(stayTo ? { stayTo } : {}),
       });
-      const found = await apiFetch<SearchResultProduct[]>(`/sales/search?${query.toString()}`, { auth: false });
+      const found = await apiFetch<SearchResultProduct[]>(`/sales/search?${query.toString()}`, {
+        auth: false,
+      });
       setResults(found);
     } catch {
       setResults([]);
@@ -43,17 +56,48 @@ export function SearchScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.form}>
-        <TextInput style={styles.input} value={destination} onChangeText={setDestination} placeholder="Destinacija (grad)" />
+        <TextInput
+          style={styles.input}
+          value={destination}
+          onChangeText={setDestination}
+          placeholder="Destinacija (grad)"
+        />
         <View style={styles.row}>
-          <TextInput style={[styles.input, styles.flex1]} value={stayFrom} onChangeText={setStayFrom} placeholder="Od (GGGG-MM-DD)" />
-          <TextInput style={[styles.input, styles.flex1]} value={stayTo} onChangeText={setStayTo} placeholder="Do (GGGG-MM-DD)" />
+          <TextInput
+            style={[styles.input, styles.flex1]}
+            value={stayFrom}
+            onChangeText={setStayFrom}
+            placeholder="Od (GGGG-MM-DD)"
+          />
+          <TextInput
+            style={[styles.input, styles.flex1]}
+            value={stayTo}
+            onChangeText={setStayTo}
+            placeholder="Do (GGGG-MM-DD)"
+          />
         </View>
         <View style={styles.row}>
-          <TextInput style={[styles.input, styles.flex1]} value={adults} onChangeText={setAdults} placeholder="Odrasli" keyboardType="number-pad" />
-          <TextInput style={[styles.input, styles.flex1]} value={children} onChangeText={setChildren} placeholder="Deca" keyboardType="number-pad" />
+          <TextInput
+            style={[styles.input, styles.flex1]}
+            value={adults}
+            onChangeText={setAdults}
+            placeholder="Odrasli"
+            keyboardType="number-pad"
+          />
+          <TextInput
+            style={[styles.input, styles.flex1]}
+            value={children}
+            onChangeText={setChildren}
+            placeholder="Deca"
+            keyboardType="number-pad"
+          />
         </View>
         <Pressable style={styles.button} onPress={search} disabled={loading}>
-          {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Pretraži</Text>}
+          {loading ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.buttonText}>Pretraži</Text>
+          )}
         </Pressable>
       </View>
 
@@ -63,7 +107,9 @@ export function SearchScreen() {
         numColumns={screenSize === 'wide' ? 2 : 1}
         keyExtractor={(item) => item.productId}
         contentContainerStyle={styles.list}
-        ListEmptyComponent={searched && !loading ? <Text style={styles.empty}>Nema rezultata.</Text> : null}
+        ListEmptyComponent={
+          searched && !loading ? <Text style={styles.empty}>Nema rezultata.</Text> : null
+        }
         renderItem={({ item }) => (
           <Pressable
             style={[styles.card, screenSize === 'wide' && styles.cardWide]}
@@ -84,8 +130,14 @@ export function SearchScreen() {
             }
           >
             <Text style={styles.cardTitle}>{item.translation?.name ?? item.productId}</Text>
-            <Text style={styles.cardSubtitle}>{[item.destinationCity, item.destinationCountry].filter(Boolean).join(', ')}</Text>
-            {item.offers[0] && <Text style={styles.cardPrice}>{formatPrice(item.offers[0].finalPrice, item.offers[0].finalPriceCurrency)}</Text>}
+            <Text style={styles.cardSubtitle}>
+              {[item.destinationCity, item.destinationCountry].filter(Boolean).join(', ')}
+            </Text>
+            {item.offers[0] && (
+              <Text style={styles.cardPrice}>
+                {formatPrice(item.offers[0].finalPrice, item.offers[0].finalPriceCurrency)}
+              </Text>
+            )}
           </Pressable>
         )}
       />

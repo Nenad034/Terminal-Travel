@@ -1,4 +1,9 @@
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { relative } from 'path';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { AuditLogService } from '../../m1-core-identitet/audit-log/audit-log.service';
@@ -30,12 +35,16 @@ export class ConversationsService {
       throw new BadRequestException('Jedan ili više navedenih korisnika ne postoji.');
     }
     if (users.some((u) => u.accountType !== 'STAFF')) {
-      throw new BadRequestException('DIRECT/GROUP razgovor prihvata isključivo interne (STAFF) učesnike.');
+      throw new BadRequestException(
+        'DIRECT/GROUP razgovor prihvata isključivo interne (STAFF) učesnike.',
+      );
     }
   }
 
   private async assertParticipant(conversationId: string, actorUserId: string) {
-    const conversation = await this.prisma.conversation.findUnique({ where: { id: conversationId } });
+    const conversation = await this.prisma.conversation.findUnique({
+      where: { id: conversationId },
+    });
     if (!conversation) throw new NotFoundException(`Razgovor ${conversationId} nije pronađen.`);
 
     const participant = await this.prisma.conversationParticipant.findUnique({
@@ -63,7 +72,9 @@ export class ConversationsService {
     // u samom spisku, JEDNIM dodatnim upitom za sve DIRECT razgovore odjednom, da svaki
     // pozivalac ove liste (uklj. `ShareReportButton.tsx`) dobije čitljivo ime bez sopstvenog
     // N+1 zaobilaznog rešenja.
-    const directIds = memberships.filter((m) => m.conversation.type === 'DIRECT').map((m) => m.conversationId);
+    const directIds = memberships
+      .filter((m) => m.conversation.type === 'DIRECT')
+      .map((m) => m.conversationId);
     const otherParticipants =
       directIds.length > 0
         ? await this.prisma.conversationParticipant.findMany({
@@ -78,7 +89,10 @@ export class ConversationsService {
           })
         : [];
     const directNameByConversationId = new Map(
-      otherParticipants.map((p) => [p.conversationId, otherUsers.find((u) => u.id === p.userId)?.fullName ?? null]),
+      otherParticipants.map((p) => [
+        p.conversationId,
+        otherUsers.find((u) => u.id === p.userId)?.fullName ?? null,
+      ]),
     );
 
     const result = [];
@@ -90,12 +104,20 @@ export class ConversationsService {
       result.push({
         id: m.conversation.id,
         type: m.conversation.type,
-        name: m.conversation.type === 'DIRECT' ? (directNameByConversationId.get(m.conversationId) ?? null) : m.conversation.name,
+        name:
+          m.conversation.type === 'DIRECT'
+            ? (directNameByConversationId.get(m.conversationId) ?? null)
+            : m.conversation.name,
         supplierId: m.conversation.supplierId,
         createdAt: m.conversation.createdAt,
         lastReadAt: m.lastReadAt,
         lastMessage: lastMessage
-          ? { id: lastMessage.id, senderId: lastMessage.senderId, body: lastMessage.deletedAt ? null : lastMessage.body, sentAt: lastMessage.sentAt }
+          ? {
+              id: lastMessage.id,
+              senderId: lastMessage.senderId,
+              body: lastMessage.deletedAt ? null : lastMessage.body,
+              sentAt: lastMessage.sentAt,
+            }
           : null,
       });
     }
@@ -137,15 +159,24 @@ export class ConversationsService {
     }
 
     if (dto.type === 'EXTERNAL_SUPPLIER') {
-      const allowed = await this.permissions.hasPermission(actorUserId, 'M19', 'supplier-conversation', 'GRANT_ACCESS');
-      if (!allowed) throw new ForbiddenException('Nema dozvolu M19/supplier-conversation/GRANT_ACCESS');
-      if (!dto.supplierId) throw new BadRequestException('supplierId je obavezan za EXTERNAL_SUPPLIER razgovor.');
+      const allowed = await this.permissions.hasPermission(
+        actorUserId,
+        'M19',
+        'supplier-conversation',
+        'GRANT_ACCESS',
+      );
+      if (!allowed)
+        throw new ForbiddenException('Nema dozvolu M19/supplier-conversation/GRANT_ACCESS');
+      if (!dto.supplierId)
+        throw new BadRequestException('supplierId je obavezan za EXTERNAL_SUPPLIER razgovor.');
 
       const conversation = await this.prisma.conversation.create({
         data: { type: 'EXTERNAL_SUPPLIER', supplierId: dto.supplierId, createdBy: actorUserId },
       });
       await this.prisma.$transaction([
-        this.prisma.conversationParticipant.create({ data: { conversationId: conversation.id, userId: actorUserId } }),
+        this.prisma.conversationParticipant.create({
+          data: { conversationId: conversation.id, userId: actorUserId },
+        }),
         this.prisma.supplierConversationAccess.create({
           data: { conversationId: conversation.id, userId: actorUserId, grantedBy: actorUserId },
         }),
@@ -164,7 +195,12 @@ export class ConversationsService {
       return conversation;
     }
 
-    const allowed = await this.permissions.hasPermission(actorUserId, 'M19', 'conversation', 'CREATE');
+    const allowed = await this.permissions.hasPermission(
+      actorUserId,
+      'M19',
+      'conversation',
+      'CREATE',
+    );
     if (!allowed) throw new ForbiddenException('Nema dozvolu M19/conversation/CREATE');
 
     const otherParticipantIds = (dto.participantUserIds ?? []).filter((id) => id !== actorUserId);
@@ -180,13 +216,20 @@ export class ConversationsService {
     await this.assertStaffUsers(otherParticipantIds);
 
     if (dto.type === 'DIRECT') {
-      const existing = await this.findExistingDirectConversation(actorUserId, otherParticipantIds[0]);
+      const existing = await this.findExistingDirectConversation(
+        actorUserId,
+        otherParticipantIds[0],
+      );
       if (existing) return existing;
     }
 
     const allParticipantIds = [actorUserId, ...otherParticipantIds];
     const conversation = await this.prisma.conversation.create({
-      data: { type: dto.type, name: dto.type === 'GROUP' ? dto.name : null, createdBy: actorUserId },
+      data: {
+        type: dto.type,
+        name: dto.type === 'GROUP' ? dto.name : null,
+        createdBy: actorUserId,
+      },
     });
     await this.prisma.conversationParticipant.createMany({
       data: allParticipantIds.map((userId) => ({ conversationId: conversation.id, userId })),
@@ -210,7 +253,11 @@ export class ConversationsService {
       where: { type: 'DIRECT', participants: { some: { userId: userIdA } } },
       include: { participants: true },
     });
-    return candidates.find((c) => c.participants.length === 2 && c.participants.some((p) => p.userId === userIdB)) ?? null;
+    return (
+      candidates.find(
+        (c) => c.participants.length === 2 && c.participants.some((p) => p.userId === userIdB),
+      ) ?? null
+    );
   }
 
   async findMessages(conversationId: string, actorUserId: string) {
@@ -221,7 +268,11 @@ export class ConversationsService {
       include: { attachments: true },
     });
     // Obrisana poruka sakriva i telo i priloge — isti princip meke brisanja kao `body: null`.
-    return messages.map((m) => ({ ...m, body: m.deletedAt ? null : m.body, attachments: m.deletedAt ? [] : m.attachments }));
+    return messages.map((m) => ({
+      ...m,
+      body: m.deletedAt ? null : m.body,
+      attachments: m.deletedAt ? [] : m.attachments,
+    }));
   }
 
   // §3/§8 — zajednička ulazna tačka za slanje poruke, koriste je i REST fallback kontroler i
@@ -230,7 +281,12 @@ export class ConversationsService {
   // odluči da li treba emitovati M9 push (spec §3 zadnja rečenica).
   // `file` — prilog uz poruku (§2.5, v1.6), opcion. Poruka mora imati bar tekst ILI prilog —
   // klijent koji ne pošalje ni jedno ni drugo dobija 400, ne tihu praznu poruku.
-  async createMessage(conversationId: string, dto: CreateMessageDto, actorUserId: string, file?: Express.Multer.File) {
+  async createMessage(
+    conversationId: string,
+    dto: CreateMessageDto,
+    actorUserId: string,
+    file?: Express.Multer.File,
+  ) {
     const { conversation } = await this.assertParticipant(conversationId, actorUserId);
     await this.assertCanSend(conversation.type, actorUserId);
 
@@ -238,7 +294,9 @@ export class ConversationsService {
       throw new BadRequestException('Poruka mora sadržati tekst ili prilog.');
     }
 
-    const draftedByAgentId = dto.draftedByAi ? await this.resolveDraftAgentUserId(conversation.type) : null;
+    const draftedByAgentId = dto.draftedByAi
+      ? await this.resolveDraftAgentUserId(conversation.type)
+      : null;
 
     const message = await this.prisma.message.create({
       data: {
@@ -292,9 +350,16 @@ export class ConversationsService {
       }
     }
 
-    await this.eventBus.emit('M19', 'message.new', { conversationId, messageId: message.id, senderId: actorUserId });
+    await this.eventBus.emit('M19', 'message.new', {
+      conversationId,
+      messageId: message.id,
+      senderId: actorUserId,
+    });
 
-    return this.prisma.message.findUniqueOrThrow({ where: { id: message.id }, include: { attachments: true } });
+    return this.prisma.message.findUniqueOrThrow({
+      where: { id: message.id },
+      include: { attachments: true },
+    });
   }
 
   // §2.5 — pristup prilogu je vezan za učešće u razgovoru poruke kojoj pripada (isti
@@ -317,9 +382,13 @@ export class ConversationsService {
   // toka koji ga proizvodi, pa je oznaka tamo greška klijenta, ne tiho ignorisana vrednost.
   private async resolveDraftAgentUserId(conversationType: string): Promise<string | null> {
     if (conversationType !== 'EXTERNAL_SUPPLIER') {
-      throw new BadRequestException('draftedByAi je moguć isključivo za EXTERNAL_SUPPLIER razgovor (§9.5).');
+      throw new BadRequestException(
+        'draftedByAi je moguć isključivo za EXTERNAL_SUPPLIER razgovor (§9.5).',
+      );
     }
-    const agent = await this.prisma.aIAgent.findFirst({ where: { agentRole: 'SUPPLIER_DRAFT_AGENT' } });
+    const agent = await this.prisma.aIAgent.findFirst({
+      where: { agentRole: 'SUPPLIER_DRAFT_AGENT' },
+    });
     // Agentski nalog može nedostajati u okruženju bez seeda — poreklo se i dalje beleži
     // (draftedByAi = true), samo bez pokazivača na konkretan nalog. Bolje nepotpuna istina nego
     // odbijena poruka koju je zaposleni već napisao.
@@ -332,24 +401,38 @@ export class ConversationsService {
     // iznad) je jedina i dovoljna ograda, isti obrazac kao SUBAGENT_ADMIN.
     if (identity.accountType === 'SUPPLIER_CONTACT') return;
 
-    const resource = conversationType === 'EXTERNAL_SUPPLIER' ? 'supplier-conversation' : 'conversation';
-    const allowed = await this.permissions.hasPermission(actorUserId, 'M19', resource, 'SEND_MESSAGE');
+    const resource =
+      conversationType === 'EXTERNAL_SUPPLIER' ? 'supplier-conversation' : 'conversation';
+    const allowed = await this.permissions.hasPermission(
+      actorUserId,
+      'M19',
+      resource,
+      'SEND_MESSAGE',
+    );
     if (!allowed) throw new ForbiddenException(`Nema dozvolu M19/${resource}/SEND_MESSAGE`);
   }
 
   async editMessage(messageId: string, dto: UpdateMessageDto, actorUserId: string) {
     const message = await this.prisma.message.findUniqueOrThrow({ where: { id: messageId } });
-    if (message.senderId !== actorUserId) throw new ForbiddenException('Samo pošiljalac može izmeniti poruku.');
+    if (message.senderId !== actorUserId)
+      throw new ForbiddenException('Samo pošiljalac može izmeniti poruku.');
     if (message.deletedAt) throw new BadRequestException('Obrisana poruka se ne može izmeniti.');
 
-    return this.prisma.message.update({ where: { id: messageId }, data: { body: dto.body, editedAt: new Date() } });
+    return this.prisma.message.update({
+      where: { id: messageId },
+      data: { body: dto.body, editedAt: new Date() },
+    });
   }
 
   async deleteMessage(messageId: string, actorUserId: string) {
     const message = await this.prisma.message.findUniqueOrThrow({ where: { id: messageId } });
-    if (message.senderId !== actorUserId) throw new ForbiddenException('Samo pošiljalac može obrisati poruku.');
+    if (message.senderId !== actorUserId)
+      throw new ForbiddenException('Samo pošiljalac može obrisati poruku.');
 
-    return this.prisma.message.update({ where: { id: messageId }, data: { deletedAt: new Date() } });
+    return this.prisma.message.update({
+      where: { id: messageId },
+      data: { deletedAt: new Date() },
+    });
   }
 
   async markRead(conversationId: string, actorUserId: string) {

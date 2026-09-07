@@ -4,7 +4,6 @@ import { apiFetch } from '@/lib/api-client';
 import type { PublicProduct } from '@/lib/types';
 import { CATEGORY_TYPES, typeToSlug } from '@/lib/categories';
 
-
 // M8 spec poglavlje 1a — paleta "Zalazak", uobičajen izgled turističkog sajta.
 // "/" čita M2 /products?featured=true — M2 nema koncept "featured" (proverено pri
 // implementaciji), dok se ta dopuna ne doda specifikaciji prikazuju se najnovije
@@ -36,9 +35,20 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
             placeholder={ts('destination')}
             className="flex-1 rounded-md border border-border bg-bg px-3 py-2 text-ink"
           />
-          <input type="date" name="stayFrom" className="rounded-md border border-border bg-bg px-3 py-2 text-ink" />
-          <input type="date" name="stayTo" className="rounded-md border border-border bg-bg px-3 py-2 text-ink" />
-          <button type="submit" className="rounded-md bg-accent px-6 py-2 font-medium text-accent-ink hover:bg-accent-strong">
+          <input
+            type="date"
+            name="stayFrom"
+            className="rounded-md border border-border bg-bg px-3 py-2 text-ink"
+          />
+          <input
+            type="date"
+            name="stayTo"
+            className="rounded-md border border-border bg-bg px-3 py-2 text-ink"
+          />
+          <button
+            type="submit"
+            className="rounded-md bg-accent px-6 py-2 font-medium text-accent-ink hover:bg-accent-strong"
+          >
             {t('cta')}
           </button>
         </form>

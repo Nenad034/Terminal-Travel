@@ -4,7 +4,12 @@ import { FiscalDocumentsService } from './fiscal-documents.service';
 describe('FiscalDocumentsService (M10 spec §6)', () => {
   function makeService() {
     const prisma: any = {
-      fiscalDocument: { findFirst: jest.fn(), findUnique: jest.fn(), create: jest.fn(), update: jest.fn() },
+      fiscalDocument: {
+        findFirst: jest.fn(),
+        findUnique: jest.fn(),
+        create: jest.fn(),
+        update: jest.fn(),
+      },
       booking: { findUnique: jest.fn() },
       payment: { findMany: jest.fn() },
     };
@@ -12,7 +17,13 @@ describe('FiscalDocumentsService (M10 spec §6)', () => {
     const exchangeRates = { findForCurrencyOnOrBefore: jest.fn() };
     const gateway = { submitDocument: jest.fn() };
     const eventBus = { emit: jest.fn() };
-    const service = new FiscalDocumentsService(prisma, auditLog as any, exchangeRates as any, gateway as any, eventBus as any);
+    const service = new FiscalDocumentsService(
+      prisma,
+      auditLog as any,
+      exchangeRates as any,
+      gateway as any,
+      eventBus as any,
+    );
     return { service, prisma, auditLog, exchangeRates, gateway, eventBus };
   }
 
@@ -31,7 +42,9 @@ describe('FiscalDocumentsService (M10 spec §6)', () => {
         items: [{ baseCost: 60000 }],
       });
       exchangeRates.findForCurrencyOnOrBefore.mockResolvedValue({ id: 'ex-1', nbsMiddleRate: 117 });
-      prisma.fiscalDocument.create.mockImplementation(({ data }: any) => Promise.resolve({ id: 'fd-1', ...data }));
+      prisma.fiscalDocument.create.mockImplementation(({ data }: any) =>
+        Promise.resolve({ id: 'fd-1', ...data }),
+      );
 
       const doc = await service.prepareDraft('booking-1');
 
@@ -57,7 +70,9 @@ describe('FiscalDocumentsService (M10 spec §6)', () => {
         currency: 'RSD',
         items: [{ baseCost: 30000 }],
       });
-      prisma.fiscalDocument.create.mockImplementation(({ data }: any) => Promise.resolve({ id: 'fd-2', ...data }));
+      prisma.fiscalDocument.create.mockImplementation(({ data }: any) =>
+        Promise.resolve({ id: 'fd-2', ...data }),
+      );
 
       const doc = await service.prepareDraft('booking-2');
 
@@ -83,7 +98,9 @@ describe('FiscalDocumentsService (M10 spec §6)', () => {
       const { service, prisma } = makeService();
       prisma.fiscalDocument.findUnique.mockResolvedValue({ id: 'fd-1', status: 'SUBMITTED' });
 
-      await expect(service.submit('fd-1', { userId: 'actor-1' })).rejects.toThrow(BadRequestException);
+      await expect(service.submit('fd-1', { userId: 'actor-1' })).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('šalje nacrt, postavlja SUBMITTED i buyer_acceptance_deadline (15 dana) za SEF_EFAKTURA', async () => {
@@ -102,8 +119,14 @@ describe('FiscalDocumentsService (M10 spec §6)', () => {
         buyerTaxIdSnapshot: '123456789',
       };
       prisma.fiscalDocument.findUnique.mockResolvedValue(draft);
-      gateway.submitDocument.mockResolvedValue({ externalReference: 'SEF-123', xmlUrl: 'x.xml', pdfUrl: 'x.pdf' });
-      prisma.fiscalDocument.update.mockImplementation(({ data }: any) => Promise.resolve({ ...draft, ...data }));
+      gateway.submitDocument.mockResolvedValue({
+        externalReference: 'SEF-123',
+        xmlUrl: 'x.xml',
+        pdfUrl: 'x.pdf',
+      });
+      prisma.fiscalDocument.update.mockImplementation(({ data }: any) =>
+        Promise.resolve({ ...draft, ...data }),
+      );
 
       const result = await service.submit('fd-1', { userId: 'actor-1' });
 
@@ -111,9 +134,13 @@ describe('FiscalDocumentsService (M10 spec §6)', () => {
       expect(result.externalReference).toBe('SEF-123');
       expect(result.buyerAcceptanceStatus).toBe('PENDING');
       expect(result.buyerAcceptanceDeadline).toBeInstanceOf(Date);
-      const daysDiff = (result.buyerAcceptanceDeadline!.getTime() - result.submittedAt!.getTime()) / (24 * 60 * 60 * 1000);
+      const daysDiff =
+        (result.buyerAcceptanceDeadline!.getTime() - result.submittedAt!.getTime()) /
+        (24 * 60 * 60 * 1000);
       expect(daysDiff).toBeCloseTo(15, 5);
-      expect(auditLog.write).toHaveBeenCalledWith(expect.objectContaining({ actorType: 'HUMAN', actorId: 'actor-1' }));
+      expect(auditLog.write).toHaveBeenCalledWith(
+        expect.objectContaining({ actorType: 'HUMAN', actorId: 'actor-1' }),
+      );
     });
 
     it('preračunava amount_rsd po kursu na dan uplate koja dovodi do pune naplate, ako se razlikuje od kursa na dan nacrta (§3)', async () => {
@@ -132,12 +159,27 @@ describe('FiscalDocumentsService (M10 spec §6)', () => {
         buyerTaxIdSnapshot: '123456789',
       };
       prisma.fiscalDocument.findUnique.mockResolvedValue(draft);
-      prisma.booking.findUnique.mockResolvedValue({ id: 'booking-1', totalPrice: 100000, paymentStatus: 'PAID' });
+      prisma.booking.findUnique.mockResolvedValue({
+        id: 'booking-1',
+        totalPrice: 100000,
+        paymentStatus: 'PAID',
+      });
       const paymentDate = new Date('2026-08-15T10:00:00Z');
-      prisma.payment.findMany.mockResolvedValue([{ amount: 100000, status: 'RECEIVED', receivedAt: paymentDate }]);
-      exchangeRates.findForCurrencyOnOrBefore.mockResolvedValue({ id: 'ex-payment', nbsMiddleRate: 118 });
-      gateway.submitDocument.mockResolvedValue({ externalReference: 'SEF-123', xmlUrl: 'x.xml', pdfUrl: 'x.pdf' });
-      prisma.fiscalDocument.update.mockImplementation(({ data }: any) => Promise.resolve({ ...draft, ...data }));
+      prisma.payment.findMany.mockResolvedValue([
+        { amount: 100000, status: 'RECEIVED', receivedAt: paymentDate },
+      ]);
+      exchangeRates.findForCurrencyOnOrBefore.mockResolvedValue({
+        id: 'ex-payment',
+        nbsMiddleRate: 118,
+      });
+      gateway.submitDocument.mockResolvedValue({
+        externalReference: 'SEF-123',
+        xmlUrl: 'x.xml',
+        pdfUrl: 'x.pdf',
+      });
+      prisma.fiscalDocument.update.mockImplementation(({ data }: any) =>
+        Promise.resolve({ ...draft, ...data }),
+      );
 
       const result = await service.submit('fd-1', { userId: 'actor-1' });
 
@@ -164,12 +206,21 @@ describe('FiscalDocumentsService (M10 spec §6)', () => {
         creditedRebateId: 'rebate-1',
       };
       prisma.fiscalDocument.findUnique.mockResolvedValue(draft);
-      gateway.submitDocument.mockResolvedValue({ externalReference: 'SEF-CN-1', xmlUrl: 'cn.xml', pdfUrl: 'cn.pdf' });
-      prisma.fiscalDocument.update.mockImplementation(({ data }: any) => Promise.resolve({ ...draft, ...data }));
+      gateway.submitDocument.mockResolvedValue({
+        externalReference: 'SEF-CN-1',
+        xmlUrl: 'cn.xml',
+        pdfUrl: 'cn.pdf',
+      });
+      prisma.fiscalDocument.update.mockImplementation(({ data }: any) =>
+        Promise.resolve({ ...draft, ...data }),
+      );
 
       await service.submit('fd-credit-1', { userId: 'actor-1' });
 
-      expect(eventBus.emit).toHaveBeenCalledWith('M10', 'credit_note.submitted', { creditedRebateId: 'rebate-1', fiscalDocumentId: 'fd-credit-1' });
+      expect(eventBus.emit).toHaveBeenCalledWith('M10', 'credit_note.submitted', {
+        creditedRebateId: 'rebate-1',
+        fiscalDocumentId: 'fd-credit-1',
+      });
     });
 
     it('NE emituje credit_note.submitted za SEF_EFAKTURA/ESIR_RACUN (samo KNJIZNO_ODOBRENJE)', async () => {
@@ -188,8 +239,14 @@ describe('FiscalDocumentsService (M10 spec §6)', () => {
         buyerTaxIdSnapshot: null,
       };
       prisma.fiscalDocument.findUnique.mockResolvedValue(draft);
-      gateway.submitDocument.mockResolvedValue({ externalReference: 'ESIR-1', xmlUrl: null, pdfUrl: 'x.pdf' });
-      prisma.fiscalDocument.update.mockImplementation(({ data }: any) => Promise.resolve({ ...draft, ...data }));
+      gateway.submitDocument.mockResolvedValue({
+        externalReference: 'ESIR-1',
+        xmlUrl: null,
+        pdfUrl: 'x.pdf',
+      });
+      prisma.fiscalDocument.update.mockImplementation(({ data }: any) =>
+        Promise.resolve({ ...draft, ...data }),
+      );
 
       await service.submit('fd-1', { userId: 'actor-1' });
 
@@ -212,8 +269,14 @@ describe('FiscalDocumentsService (M10 spec §6)', () => {
         buyerTaxIdSnapshot: null,
       };
       prisma.fiscalDocument.findUnique.mockResolvedValue(draft);
-      gateway.submitDocument.mockResolvedValue({ externalReference: 'ESIR-1', xmlUrl: null, pdfUrl: 'x.pdf' });
-      prisma.fiscalDocument.update.mockImplementation(({ data }: any) => Promise.resolve({ ...draft, ...data }));
+      gateway.submitDocument.mockResolvedValue({
+        externalReference: 'ESIR-1',
+        xmlUrl: null,
+        pdfUrl: 'x.pdf',
+      });
+      prisma.fiscalDocument.update.mockImplementation(({ data }: any) =>
+        Promise.resolve({ ...draft, ...data }),
+      );
 
       const result = await service.submit('fd-2', { userId: 'actor-1' });
 
@@ -227,7 +290,9 @@ describe('FiscalDocumentsService (M10 spec §6)', () => {
       const { service, prisma } = makeService();
       prisma.fiscalDocument.findUnique.mockResolvedValue({ id: 'fd-1', status: 'DRAFT' });
 
-      await expect(service.storno('fd-1', { userId: 'actor-1' })).rejects.toThrow(BadRequestException);
+      await expect(service.storno('fd-1', { userId: 'actor-1' })).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('kreira nov dokument koji referencira original, ne menja original', async () => {
@@ -248,8 +313,14 @@ describe('FiscalDocumentsService (M10 spec §6)', () => {
         buyerTaxIdSnapshot: '123456789',
       };
       prisma.fiscalDocument.findUnique.mockResolvedValue(original);
-      gateway.submitDocument.mockResolvedValue({ externalReference: 'SEF-STORNO-1', xmlUrl: 'y.xml', pdfUrl: 'y.pdf' });
-      prisma.fiscalDocument.create.mockImplementation(({ data }: any) => Promise.resolve({ id: 'fd-storno-1', ...data }));
+      gateway.submitDocument.mockResolvedValue({
+        externalReference: 'SEF-STORNO-1',
+        xmlUrl: 'y.xml',
+        pdfUrl: 'y.pdf',
+      });
+      prisma.fiscalDocument.create.mockImplementation(({ data }: any) =>
+        Promise.resolve({ id: 'fd-storno-1', ...data }),
+      );
 
       const storno = await service.storno('fd-1', { userId: 'actor-1' });
 
@@ -257,7 +328,11 @@ describe('FiscalDocumentsService (M10 spec §6)', () => {
       expect(storno.stornoOfDocumentId).toBe('fd-1');
       expect(prisma.fiscalDocument.update).not.toHaveBeenCalled(); // original se ne menja
       expect(auditLog.write).toHaveBeenCalledWith(
-        expect.objectContaining({ actorType: 'HUMAN', actorId: 'actor-1', action: 'fiscal_document.storno' }),
+        expect.objectContaining({
+          actorType: 'HUMAN',
+          actorId: 'actor-1',
+          action: 'fiscal_document.storno',
+        }),
       );
     });
   });
@@ -265,7 +340,9 @@ describe('FiscalDocumentsService (M10 spec §6)', () => {
   describe('prepareCreditNoteDraft (§5.1a)', () => {
     it('kreira KNJIZNO_ODOBRENJE nacrt bez booking_id, sa popunjenim related_subagent_id/credited_rebate_id', async () => {
       const { service, prisma } = makeService();
-      prisma.fiscalDocument.create.mockImplementation(({ data }: any) => Promise.resolve({ id: 'fd-credit-1', ...data }));
+      prisma.fiscalDocument.create.mockImplementation(({ data }: any) =>
+        Promise.resolve({ id: 'fd-credit-1', ...data }),
+      );
 
       const doc = await service.prepareCreditNoteDraft({
         relatedSubagentId: 'subagent-1',
@@ -285,7 +362,9 @@ describe('FiscalDocumentsService (M10 spec §6)', () => {
 
     it('koristi prosleđen buyer_name_snapshot (M7 FiscalDocumentBridgeService, M10 spec §5.1a dopuna)', async () => {
       const { service, prisma } = makeService();
-      prisma.fiscalDocument.create.mockImplementation(({ data }: any) => Promise.resolve({ id: 'fd-credit-2', ...data }));
+      prisma.fiscalDocument.create.mockImplementation(({ data }: any) =>
+        Promise.resolve({ id: 'fd-credit-2', ...data }),
+      );
 
       const doc = await service.prepareCreditNoteDraft({
         relatedSubagentId: 'subagent-1',

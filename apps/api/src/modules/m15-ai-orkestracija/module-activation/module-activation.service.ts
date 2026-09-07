@@ -14,17 +14,25 @@ export class ModuleActivationService {
   ) {}
 
   async get(moduleCode: string) {
-    const activation = await this.prisma.moduleAgentActivation.findUnique({ where: { moduleCode } });
+    const activation = await this.prisma.moduleAgentActivation.findUnique({
+      where: { moduleCode },
+    });
     if (!activation) throw new NotFoundException(`Nepoznat module_code: ${moduleCode}`);
     return activation;
   }
 
-  async update(moduleCode: string, status: 'NOT_READY' | 'READY_FOR_ACTIVATION' | 'ACTIVATED', actorUserId: string) {
+  async update(
+    moduleCode: string,
+    status: 'NOT_READY' | 'READY_FOR_ACTIVATION' | 'ACTIVATED',
+    actorUserId: string,
+  ) {
     const actor = await this.prisma.user.findUniqueOrThrow({ where: { id: actorUserId } });
     // §3/§5 — defense in depth: čak i kad bi neka buduća greška dodelila AI agentu ovu M1
     // dozvolu, ova provera i dalje odbija zahtev na nivou koda.
     if (actor.accountType === 'AI_AGENT') {
-      throw new ForbiddenException('Aktivacija modula je uvek ljudska odluka — AI agent ne sme da je izvrši.');
+      throw new ForbiddenException(
+        'Aktivacija modula je uvek ljudska odluka — AI agent ne sme da je izvrši.',
+      );
     }
 
     const before = await this.prisma.moduleAgentActivation.findUnique({ where: { moduleCode } });

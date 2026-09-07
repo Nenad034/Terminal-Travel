@@ -11,25 +11,40 @@ import type {
 @Injectable()
 export class MockPaymentGatewayAdapter implements PaymentGatewayAdapter {
   private readonly byIdempotencyKey = new Map<string, string>();
-  private readonly transactions = new Map<string, { amount: number; status: PaymentStatusResult['status'] }>();
+  private readonly transactions = new Map<
+    string,
+    { amount: number; status: PaymentStatusResult['status'] }
+  >();
   private nextStatus: PaymentStatusResult['status'] = 'SUCCESS';
 
   setNextStatus(status: PaymentStatusResult['status']): void {
     this.nextStatus = status;
   }
 
-  async initiatePayment(amount: number, _currency: string, idempotencyKey: string): Promise<InitiatePaymentResult> {
+  async initiatePayment(
+    amount: number,
+    _currency: string,
+    idempotencyKey: string,
+  ): Promise<InitiatePaymentResult> {
     // §7.2 korak 1 — isti idempotency_key mora vratiti istu transakciju, ne duplu naplatu.
     const existing = this.byIdempotencyKey.get(idempotencyKey);
     if (existing) {
-      return { redirectUrl: null, clientToken: `mock-token-${existing}`, gatewayTransactionId: existing };
+      return {
+        redirectUrl: null,
+        clientToken: `mock-token-${existing}`,
+        gatewayTransactionId: existing,
+      };
     }
 
     const gatewayTransactionId = `mock-txn-${idempotencyKey}`;
     this.byIdempotencyKey.set(idempotencyKey, gatewayTransactionId);
     this.transactions.set(gatewayTransactionId, { amount, status: this.nextStatus });
 
-    return { redirectUrl: null, clientToken: `mock-token-${gatewayTransactionId}`, gatewayTransactionId };
+    return {
+      redirectUrl: null,
+      clientToken: `mock-token-${gatewayTransactionId}`,
+      gatewayTransactionId,
+    };
   }
 
   async getPaymentStatus(gatewayTransactionId: string): Promise<PaymentStatusResult> {

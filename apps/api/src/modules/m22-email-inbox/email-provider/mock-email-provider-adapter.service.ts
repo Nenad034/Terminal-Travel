@@ -1,6 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Mailbox } from '@prisma/client';
-import { EmailProviderAdapter, OutboundEmail, RawEmail, SendResult } from './email-provider-adapter.interface';
+import {
+  EmailProviderAdapter,
+  OutboundEmail,
+  RawEmail,
+  SendResult,
+} from './email-provider-adapter.interface';
 
 // M22 spec §10 (otvoreno za dalje) — jedina implementacija EmailProviderAdapter u ovom prolazu.
 // Isti graceful stil kao M18 EmailClientService/M12 EmailMockAdapter — nikad ne puca, samo
@@ -14,7 +19,9 @@ export class MockEmailProviderAdapter implements EmailProviderAdapter {
   readonly providerCode = 'MOCK';
 
   async fetchNewMessages(mailbox: Mailbox): Promise<RawEmail[]> {
-    this.logger.debug(`[MOCK] fetchNewMessages(${mailbox.address}) — nema žive konekcije u ovom prolazu, vraća prazan niz.`);
+    this.logger.debug(
+      `[MOCK] fetchNewMessages(${mailbox.address}) — nema žive konekcije u ovom prolazu, vraća prazan niz.`,
+    );
     return [];
   }
 
@@ -25,6 +32,10 @@ export class MockEmailProviderAdapter implements EmailProviderAdapter {
     // ISPRAVKA 5.9.2026 (dok. 39 nalaz 1.2): do danas je ovde vraćan izmišljen
     // `mock-<uuid>` identifikator, koji je pozivalac upisivao kao dokaz slanja — zapis u bazi
     // se time nije razlikovao od stvarno poslate poruke. Sada mock kaže istinu o sebi.
-    return { providerMessageId: null, delivered: false, reason: 'MOCK provajder — konekcija nije podešena (M22 §10).' };
+    return {
+      providerMessageId: null,
+      delivered: false,
+      reason: 'MOCK provajder — konekcija nije podešena (M22 §10).',
+    };
   }
 }

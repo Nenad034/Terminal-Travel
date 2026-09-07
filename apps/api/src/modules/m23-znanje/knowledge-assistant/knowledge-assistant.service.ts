@@ -2,11 +2,18 @@ import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/commo
 import { ArticleConfidence, LanguageCode } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { AuditLogService } from '../../m1-core-identitet/audit-log/audit-log.service';
-import { AssistantEngineService, type AssistantCandidate } from '../../m15-ai-orkestracija/assistant-engine/assistant-engine.service';
+import {
+  AssistantEngineService,
+  type AssistantCandidate,
+} from '../../m15-ai-orkestracija/assistant-engine/assistant-engine.service';
 import { AnthropicClientService } from '../../m15-ai-orkestracija/anthropic/anthropic-client.service';
 import { AgentInvocationLogService } from '../../m18-operativni-nadzor/agent-invocations/agent-invocation-log.service';
 import { AskQuestionDto } from './dto/ask-question.dto';
-import { type PaginationQueryDto, paginated, paginationArgs } from '../../../common/pagination/pagination';
+import {
+  type PaginationQueryDto,
+  paginated,
+  paginationArgs,
+} from '../../../common/pagination/pagination';
 
 const DEFAULT_LANGUAGE: LanguageCode = 'sr';
 const NO_ANSWER_MARKER = 'NEMA_ODGOVORA_U_ČLANCIMA';
@@ -38,14 +45,21 @@ export class KnowledgeAssistantService {
 
   async ask(dto: AskQuestionDto, actorUserId: string) {
     const candidates = await this.loadCandidates(dto.lang);
-    const { answerText, matchedArticleIds, confidence, usedAnthropic, inputTokens, outputTokens, latencyMs } =
-      await this.engine.resolveAnswer({
-        question: dto.question,
-        candidates,
-        embeddingTable: 'article_translations',
-        systemPrompt: SYSTEM_PROMPT,
-        noAnswerMarker: NO_ANSWER_MARKER,
-      });
+    const {
+      answerText,
+      matchedArticleIds,
+      confidence,
+      usedAnthropic,
+      inputTokens,
+      outputTokens,
+      latencyMs,
+    } = await this.engine.resolveAnswer({
+      question: dto.question,
+      candidates,
+      embeddingTable: 'article_translations',
+      systemPrompt: SYSTEM_PROMPT,
+      noAnswerMarker: NO_ANSWER_MARKER,
+    });
 
     const question = await this.prisma.question.create({
       data: {
@@ -58,7 +72,9 @@ export class KnowledgeAssistantService {
     });
 
     if (usedAnthropic) {
-      const agent = await this.prisma.aIAgent.findFirst({ where: { agentRole: 'KNOWLEDGE_AGENT' } });
+      const agent = await this.prisma.aIAgent.findFirst({
+        where: { agentRole: 'KNOWLEDGE_AGENT' },
+      });
       if (agent) {
         await this.invocationLog.record({
           agentId: agent.id,
@@ -73,7 +89,9 @@ export class KnowledgeAssistantService {
       }
     }
 
-    const agentUser = await this.prisma.aIAgent.findFirst({ where: { agentRole: 'KNOWLEDGE_AGENT' } });
+    const agentUser = await this.prisma.aIAgent.findFirst({
+      where: { agentRole: 'KNOWLEDGE_AGENT' },
+    });
     await this.auditLog.write({
       actorType: 'AI_AGENT',
       actorId: agentUser?.userId ?? null,
@@ -102,7 +120,13 @@ export class KnowledgeAssistantService {
     const out: AssistantCandidate[] = [];
     for (const article of articles) {
       const translation = resolveTranslation(article.translations, lang ?? DEFAULT_LANGUAGE);
-      if (translation) out.push({ articleId: article.id, translationId: translation.id, title: translation.title, body: translation.body });
+      if (translation)
+        out.push({
+          articleId: article.id,
+          translationId: translation.id,
+          title: translation.title,
+          body: translation.body,
+        });
     }
     return out;
   }
@@ -121,7 +145,9 @@ export class KnowledgeAssistantService {
   async requestResearch(questionId: string, actorUserId: string) {
     const question = await this.findOwnQuestion(questionId, actorUserId);
     if (question.confidence !== 'NONE') {
-      throw new ForbiddenException('Istraživanje se nudi samo za pitanja bez pouzdanog odgovora (confidence=NONE).');
+      throw new ForbiddenException(
+        'Istraživanje se nudi samo za pitanja bez pouzdanog odgovora (confidence=NONE).',
+      );
     }
 
     await this.auditLog.write({
@@ -145,7 +171,10 @@ export class KnowledgeAssistantService {
   // STRANIČENJE (6.9.2026, dok. 39 nalaz 2.2) — isti razlog kao M21 dnevnik pitanja: ovo je
   // uvid radi kvaliteta sadržaja, gde nepotpuna lista vodi na pogrešan zaključak da pitanja
   // sa niskim poverenjem nema više nego što ih stvarno ima.
-  async findQuestionLog(filter: { confidence?: ArticleConfidence }, pagination?: PaginationQueryDto) {
+  async findQuestionLog(
+    filter: { confidence?: ArticleConfidence },
+    pagination?: PaginationQueryDto,
+  ) {
     const where = { confidence: filter.confidence };
     const { skip, take, page, limit } = paginationArgs(pagination);
     const [redovi, total] = await this.prisma.$transaction([
@@ -159,13 +188,18 @@ export class KnowledgeAssistantService {
     const question = await this.prisma.question.findUnique({ where: { id: questionId } });
     if (!question) throw new NotFoundException(`Question ${questionId} nije pronađen.`);
     if (question.askedBy !== actorUserId) {
-      throw new ForbiddenException('Samo korisnik koji je postavio pitanje može da potvrdi zahtev/oceni odgovor.');
+      throw new ForbiddenException(
+        'Samo korisnik koji je postavio pitanje može da potvrdi zahtev/oceni odgovor.',
+      );
     }
     return question;
   }
 }
 
-function resolveTranslation<T extends { languageCode: LanguageCode }>(translations: T[], requestedLang: LanguageCode): T | null {
+function resolveTranslation<T extends { languageCode: LanguageCode }>(
+  translations: T[],
+  requestedLang: LanguageCode,
+): T | null {
   const byLang = (lang: LanguageCode) => translations.find((t) => t.languageCode === lang) ?? null;
   return byLang(requestedLang) ?? byLang('en') ?? byLang('sr') ?? null;
 }

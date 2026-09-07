@@ -52,7 +52,14 @@ export default function CommandPalette({ items }: { items: NavItem[] }) {
   // docs/analize/29-DIZAJN-SISTEM-UI.md §4 — prazan upit prikazuje i nedavno otvorene
   // zapise/tabove iznad pune nav liste (isti obrazac kao Linear/Spotlight), brz povratak na
   // ono na čemu se upravo radilo.
-  const recentTabs = useMemo(() => tabs.filter((t) => t.path !== activePath).slice(-5).reverse(), [tabs, activePath]);
+  const recentTabs = useMemo(
+    () =>
+      tabs
+        .filter((t) => t.path !== activePath)
+        .slice(-5)
+        .reverse(),
+    [tabs, activePath],
+  );
 
   useEffect(() => {
     const trimmed = query.trim();
@@ -128,7 +135,9 @@ export default function CommandPalette({ items }: { items: NavItem[] }) {
             placeholder="traži sekciju panela ili postavi pitanje…"
             className="flex-1 bg-transparent font-mono text-sm outline-none placeholder:text-ink-faint"
           />
-          <kbd className="rounded border border-border bg-panel-2 px-1.5 py-0.5 text-[11px] text-ink-faint">Esc</kbd>
+          <kbd className="rounded border border-border bg-panel-2 px-1.5 py-0.5 text-[11px] text-ink-faint">
+            Esc
+          </kbd>
         </div>
 
         {!showAiPanel && (
@@ -137,7 +146,9 @@ export default function CommandPalette({ items }: { items: NavItem[] }) {
           <div className="max-h-[65vh] overflow-y-auto p-2">
             {!query.trim() && recentTabs.length > 0 && (
               <div className="mb-2 border-b border-border pb-2">
-                <p className="px-3 pb-1 text-xs font-medium uppercase tracking-wide text-ink-faint">Nedavno otvoreno</p>
+                <p className="px-3 pb-1 text-xs font-medium uppercase tracking-wide text-ink-faint">
+                  Nedavno otvoreno
+                </p>
                 {recentTabs.map((tab) => (
                   <div
                     key={tab.path}
@@ -181,7 +192,9 @@ export default function CommandPalette({ items }: { items: NavItem[] }) {
                 poklapanje navigacije se sad UVEK prikazuje kad postoji, bez obzira na AI ishod. */}
             {navResults.length > 0 && (
               <div className="mb-2 border-b border-border pb-2">
-                <p className="px-3 pb-1 text-xs font-medium uppercase tracking-wide text-ink-faint">Sekcije panela</p>
+                <p className="px-3 pb-1 text-xs font-medium uppercase tracking-wide text-ink-faint">
+                  Sekcije panela
+                </p>
                 <NavFallbackList items={navResults} onGo={go} />
               </div>
             )}
@@ -232,15 +245,22 @@ function AiSearchPanel({ state, onGo }: { state: AiSearchState; onGo: (href: str
 
   const { data } = state;
   if (!data.active) {
-    return <p className="px-2 py-2 text-xs text-ink-faint">AI pretraga još nije uključena za ovaj panel.</p>;
+    return (
+      <p className="px-2 py-2 text-xs text-ink-faint">
+        AI pretraga još nije uključena za ovaj panel.
+      </p>
+    );
   }
 
-  const nothingFound = data.matchedRoutes.length === 0 && data.entityResults.length === 0 && !data.aiAnswer;
+  const nothingFound =
+    data.matchedRoutes.length === 0 && data.entityResults.length === 0 && !data.aiAnswer;
 
   return (
     <div className="space-y-2 p-1">
       {data.aiAnswer && (
-        <div className="rounded-md border border-border bg-panel-2 p-3 text-sm text-ink">{data.aiAnswer}</div>
+        <div className="rounded-md border border-border bg-panel-2 p-3 text-sm text-ink">
+          {data.aiAnswer}
+        </div>
       )}
       {data.entityResults.map((r) => (
         <div
@@ -269,7 +289,9 @@ function AiSearchPanel({ state, onGo }: { state: AiSearchState; onGo: (href: str
             <span className="flex-1">{m.label}</span>
           </div>
         ))}
-      {nothingFound && <p className="p-4 text-center text-xs text-ink-faint">Nema rezultata za ovaj upit.</p>}
+      {nothingFound && (
+        <p className="p-4 text-center text-xs text-ink-faint">Nema rezultata za ovaj upit.</p>
+      )}
     </div>
   );
 }

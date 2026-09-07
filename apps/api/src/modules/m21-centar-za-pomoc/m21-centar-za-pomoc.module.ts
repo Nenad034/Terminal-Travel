@@ -28,7 +28,13 @@ import { M14HelpdeskModule } from '../m14-helpdesk/m14-helpdesk.module';
 // KnowledgeAssistantService; AnthropicClientService/GeminiEmbeddingService ostaju ovde jer su
 // NJENE zavisnosti (HelpAssistantService ih više ne koristi direktno).
 @Module({
-  imports: [AuthModule, PermissionsModule, AuditLogModule, M18OperativniNadzorModule, M14HelpdeskModule],
+  imports: [
+    AuthModule,
+    PermissionsModule,
+    AuditLogModule,
+    M18OperativniNadzorModule,
+    M14HelpdeskModule,
+  ],
   controllers: [HelpArticlesController, HelpAssistantController, HelpSuggestionsController],
   providers: [
     HelpArticlesService,

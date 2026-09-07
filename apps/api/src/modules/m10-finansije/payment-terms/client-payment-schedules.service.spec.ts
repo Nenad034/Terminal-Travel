@@ -3,14 +3,24 @@ import { ClientPaymentSchedulesService } from './client-payment-schedules.servic
 describe('ClientPaymentSchedulesService (M10 spec §5.4.2/§5.4.3)', () => {
   function makeService() {
     const prisma: any = {
-      clientPaymentSchedule: { findUnique: jest.fn(), create: jest.fn(), update: jest.fn(), findMany: jest.fn() },
+      clientPaymentSchedule: {
+        findUnique: jest.fn(),
+        create: jest.fn(),
+        update: jest.fn(),
+        findMany: jest.fn(),
+      },
       booking: { findUnique: jest.fn() },
       payment: { aggregate: jest.fn() },
     };
     const eventBus = { emit: jest.fn() };
     const paymentTerms = { getActive: jest.fn() };
     const permissions = { hasPermission: jest.fn().mockResolvedValue(true) };
-    const service = new ClientPaymentSchedulesService(prisma, eventBus as any, paymentTerms as any, permissions as any);
+    const service = new ClientPaymentSchedulesService(
+      prisma,
+      eventBus as any,
+      paymentTerms as any,
+      permissions as any,
+    );
     return { service, prisma, eventBus, paymentTerms, permissions };
   }
 
@@ -22,7 +32,10 @@ describe('ClientPaymentSchedulesService (M10 spec §5.4.2/§5.4.3)', () => {
         id: 'booking-1',
         totalPrice: 100000,
         confirmedAt: new Date('2026-08-01T00:00:00Z'),
-        items: [{ stayFrom: new Date('2026-09-01T00:00:00Z') }, { stayFrom: new Date('2026-09-10T00:00:00Z') }],
+        items: [
+          { stayFrom: new Date('2026-09-01T00:00:00Z') },
+          { stayFrom: new Date('2026-09-10T00:00:00Z') },
+        ],
       });
       paymentTerms.getActive.mockResolvedValue({
         depositPercentage: 30,
@@ -30,7 +43,9 @@ describe('ClientPaymentSchedulesService (M10 spec §5.4.2/§5.4.3)', () => {
         balanceDueDaysBeforeStay: 20,
         escalationDaysAfterDue: 5,
       });
-      prisma.clientPaymentSchedule.create.mockImplementation(({ data }: any) => Promise.resolve({ id: 'cps-1', ...data }));
+      prisma.clientPaymentSchedule.create.mockImplementation(({ data }: any) =>
+        Promise.resolve({ id: 'cps-1', ...data }),
+      );
 
       const schedule: any = await service.createForBooking('booking-1');
 
@@ -60,7 +75,10 @@ describe('ClientPaymentSchedulesService (M10 spec §5.4.2/§5.4.3)', () => {
         depositStatus: 'PENDING',
         balanceStatus: 'PENDING',
       });
-      prisma.booking.findUnique.mockResolvedValue({ id: 'booking-1', paymentStatus: 'PARTIALLY_PAID' });
+      prisma.booking.findUnique.mockResolvedValue({
+        id: 'booking-1',
+        paymentStatus: 'PARTIALLY_PAID',
+      });
       prisma.payment.aggregate.mockResolvedValue({ _sum: { amount: 30000 } });
 
       await service.onPaymentReceived('booking-1');
@@ -163,7 +181,9 @@ describe('ClientPaymentSchedulesService (M10 spec §5.4.2/§5.4.3)', () => {
 
       expect(prisma.clientPaymentSchedule.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: expect.objectContaining({ booking: { OR: [{ ownerId: 'staff-1' }, { assignedToId: 'staff-1' }] } }),
+          where: expect.objectContaining({
+            booking: { OR: [{ ownerId: 'staff-1' }, { assignedToId: 'staff-1' }] },
+          }),
         }),
       );
     });

@@ -28,9 +28,21 @@ describe('KnowledgeResearchService.researchFromProvidedText (M23 spec §4/§4d/�
 
   it('kreira ArticleSource(CANDIDATE) i ArticleRevision(PENDING_REVIEW) iz dostavljenog teksta', async () => {
     const { service, prisma } = makeService();
-    prisma.article.findUnique.mockResolvedValue({ id: 'a1', subjectType: 'DESTINATION', productId: null });
-    prisma.articleSource.create.mockResolvedValue({ id: 's1', articleId: 'a1', status: 'CANDIDATE' });
-    prisma.articleRevision.create.mockResolvedValue({ id: 'r1', articleId: 'a1', status: 'PENDING_REVIEW' });
+    prisma.article.findUnique.mockResolvedValue({
+      id: 'a1',
+      subjectType: 'DESTINATION',
+      productId: null,
+    });
+    prisma.articleSource.create.mockResolvedValue({
+      id: 's1',
+      articleId: 'a1',
+      status: 'CANDIDATE',
+    });
+    prisma.articleRevision.create.mockResolvedValue({
+      id: 'r1',
+      articleId: 'a1',
+      status: 'PENDING_REVIEW',
+    });
     prisma.aIAgent.findFirst.mockResolvedValue({ userId: 'agent-user-1' });
 
     const result = await service.researchFromProvidedText(
@@ -45,10 +57,18 @@ describe('KnowledgeResearchService.researchFromProvidedText (M23 spec §4/§4d/�
     );
 
     expect(prisma.articleSource.create).toHaveBeenCalledWith(
-      expect.objectContaining({ data: expect.objectContaining({ articleId: 'a1', status: 'CANDIDATE' }) }),
+      expect.objectContaining({
+        data: expect.objectContaining({ articleId: 'a1', status: 'CANDIDATE' }),
+      }),
     );
     expect(prisma.articleRevision.create).toHaveBeenCalledWith(
-      expect.objectContaining({ data: expect.objectContaining({ articleId: 'a1', trigger: 'INITIAL_CREATION', status: 'PENDING_REVIEW' }) }),
+      expect.objectContaining({
+        data: expect.objectContaining({
+          articleId: 'a1',
+          trigger: 'INITIAL_CREATION',
+          status: 'PENDING_REVIEW',
+        }),
+      }),
     );
     expect(result.source.id).toBe('s1');
     expect(result.revision.id).toBe('r1');
@@ -56,9 +76,21 @@ describe('KnowledgeResearchService.researchFromProvidedText (M23 spec §4/§4d/�
 
   it('subject_type=PRODUCT kreira M2 ProductContentImport sa sourceArticleRevisionId popunjenim na svakom polju', async () => {
     const { service, prisma, productContentImports } = makeService();
-    prisma.article.findUnique.mockResolvedValue({ id: 'a1', subjectType: 'PRODUCT', productId: 'prod-1' });
-    prisma.articleSource.create.mockResolvedValue({ id: 's1', articleId: 'a1', status: 'CANDIDATE' });
-    prisma.articleRevision.create.mockResolvedValue({ id: 'r1', articleId: 'a1', status: 'PENDING_REVIEW' });
+    prisma.article.findUnique.mockResolvedValue({
+      id: 'a1',
+      subjectType: 'PRODUCT',
+      productId: 'prod-1',
+    });
+    prisma.articleSource.create.mockResolvedValue({
+      id: 's1',
+      articleId: 'a1',
+      status: 'CANDIDATE',
+    });
+    prisma.articleRevision.create.mockResolvedValue({
+      id: 'r1',
+      articleId: 'a1',
+      status: 'PENDING_REVIEW',
+    });
     prisma.aIAgent.findFirst.mockResolvedValue({ userId: 'agent-user-1' });
 
     await service.researchFromProvidedText(
@@ -86,13 +118,23 @@ describe('KnowledgeResearchService.researchFromProvidedText (M23 spec §4/§4d/�
 
   it('subject_type=DESTINATION/COUNTRY NIKAD ne poziva M2 most (nema product_id)', async () => {
     const { service, prisma, productContentImports } = makeService();
-    prisma.article.findUnique.mockResolvedValue({ id: 'a1', subjectType: 'COUNTRY', productId: null });
+    prisma.article.findUnique.mockResolvedValue({
+      id: 'a1',
+      subjectType: 'COUNTRY',
+      productId: null,
+    });
     prisma.articleSource.create.mockResolvedValue({ id: 's1' });
     prisma.articleRevision.create.mockResolvedValue({ id: 'r1' });
     prisma.aIAgent.findFirst.mockResolvedValue(null);
 
     await service.researchFromProvidedText(
-      { articleId: 'a1', sourceUrl: 'https://gov.example', sourceType: 'GOVERNMENT_OR_TOURISM_BOARD', rawText: 'Tekst o zemlji.', trigger: 'INITIAL_CREATION' },
+      {
+        articleId: 'a1',
+        sourceUrl: 'https://gov.example',
+        sourceType: 'GOVERNMENT_OR_TOURISM_BOARD',
+        rawText: 'Tekst o zemlji.',
+        trigger: 'INITIAL_CREATION',
+      },
       'human-1',
     );
 
@@ -103,19 +145,39 @@ describe('KnowledgeResearchService.researchFromProvidedText (M23 spec §4/§4d/�
   describe('researchFromProvidedText — revisionId (Nedostatak 3)', () => {
     it('bez revisionId pravi novu reviziju (isto ponašanje kao pri kreiranju)', async () => {
       const { service, prisma } = makeService();
-      prisma.article.findUnique.mockResolvedValue({ id: 'a1', subjectType: 'DESTINATION', productId: null });
+      prisma.article.findUnique.mockResolvedValue({
+        id: 'a1',
+        subjectType: 'DESTINATION',
+        productId: null,
+      });
       prisma.articleSource.create.mockResolvedValue({ id: 's1' });
-      prisma.articleRevision.create.mockResolvedValue({ id: 'r-new', articleId: 'a1', status: 'PENDING_REVIEW' });
+      prisma.articleRevision.create.mockResolvedValue({
+        id: 'r-new',
+        articleId: 'a1',
+        status: 'PENDING_REVIEW',
+      });
       prisma.aIAgent.findFirst.mockResolvedValue(null);
 
       const result = await service.researchFromProvidedText(
-        { articleId: 'a1', sourceUrl: 'https://x.example', sourceType: 'GOVERNMENT_OR_TOURISM_BOARD', rawText: 'Tekst.', trigger: 'QUESTION_GAP' },
+        {
+          articleId: 'a1',
+          sourceUrl: 'https://x.example',
+          sourceType: 'GOVERNMENT_OR_TOURISM_BOARD',
+          rawText: 'Tekst.',
+          trigger: 'QUESTION_GAP',
+        },
         'human-1',
       );
 
       expect(prisma.articleRevision.findUnique).not.toHaveBeenCalled();
       expect(prisma.articleRevision.create).toHaveBeenCalledWith(
-        expect.objectContaining({ data: expect.objectContaining({ articleId: 'a1', trigger: 'QUESTION_GAP', status: 'PENDING_REVIEW' }) }),
+        expect.objectContaining({
+          data: expect.objectContaining({
+            articleId: 'a1',
+            trigger: 'QUESTION_GAP',
+            status: 'PENDING_REVIEW',
+          }),
+        }),
       );
       expect(prisma.articleRevision.update).not.toHaveBeenCalled();
       expect(result.revision.id).toBe('r-new');
@@ -123,7 +185,11 @@ describe('KnowledgeResearchService.researchFromProvidedText (M23 spec §4/§4d/�
 
     it('sa revisionId popunjava POSTOJEĆU PENDING_REVIEW reviziju (npr. prazan SCHEDULED_REFRESH placeholder) umesto da pravi novu', async () => {
       const { service, prisma } = makeService();
-      prisma.article.findUnique.mockResolvedValue({ id: 'a1', subjectType: 'DESTINATION', productId: null });
+      prisma.article.findUnique.mockResolvedValue({
+        id: 'a1',
+        subjectType: 'DESTINATION',
+        productId: null,
+      });
       prisma.articleRevision.findUnique.mockResolvedValue({
         id: 'r-placeholder',
         articleId: 'a1',
@@ -168,12 +234,27 @@ describe('KnowledgeResearchService.researchFromProvidedText (M23 spec §4/§4d/�
 
     it('baca NotFoundException kad revisionId ne pripada članku', async () => {
       const { service, prisma } = makeService();
-      prisma.article.findUnique.mockResolvedValue({ id: 'a1', subjectType: 'DESTINATION', productId: null });
-      prisma.articleRevision.findUnique.mockResolvedValue({ id: 'r-x', articleId: 'DRUGI_CLANAK', status: 'PENDING_REVIEW' });
+      prisma.article.findUnique.mockResolvedValue({
+        id: 'a1',
+        subjectType: 'DESTINATION',
+        productId: null,
+      });
+      prisma.articleRevision.findUnique.mockResolvedValue({
+        id: 'r-x',
+        articleId: 'DRUGI_CLANAK',
+        status: 'PENDING_REVIEW',
+      });
 
       await expect(
         service.researchFromProvidedText(
-          { articleId: 'a1', sourceUrl: 'https://x.example', sourceType: 'HOTEL_OFFICIAL_WEBSITE', rawText: 'T', trigger: 'QUESTION_GAP', revisionId: 'r-x' },
+          {
+            articleId: 'a1',
+            sourceUrl: 'https://x.example',
+            sourceType: 'HOTEL_OFFICIAL_WEBSITE',
+            rawText: 'T',
+            trigger: 'QUESTION_GAP',
+            revisionId: 'r-x',
+          },
           'human-1',
         ),
       ).rejects.toThrow(NotFoundException);
@@ -181,12 +262,27 @@ describe('KnowledgeResearchService.researchFromProvidedText (M23 spec §4/§4d/�
 
     it('baca BadRequestException kad revisionId više nije PENDING_REVIEW (npr. već APPROVED)', async () => {
       const { service, prisma } = makeService();
-      prisma.article.findUnique.mockResolvedValue({ id: 'a1', subjectType: 'DESTINATION', productId: null });
-      prisma.articleRevision.findUnique.mockResolvedValue({ id: 'r-x', articleId: 'a1', status: 'APPROVED' });
+      prisma.article.findUnique.mockResolvedValue({
+        id: 'a1',
+        subjectType: 'DESTINATION',
+        productId: null,
+      });
+      prisma.articleRevision.findUnique.mockResolvedValue({
+        id: 'r-x',
+        articleId: 'a1',
+        status: 'APPROVED',
+      });
 
       await expect(
         service.researchFromProvidedText(
-          { articleId: 'a1', sourceUrl: 'https://x.example', sourceType: 'HOTEL_OFFICIAL_WEBSITE', rawText: 'T', trigger: 'QUESTION_GAP', revisionId: 'r-x' },
+          {
+            articleId: 'a1',
+            sourceUrl: 'https://x.example',
+            sourceType: 'HOTEL_OFFICIAL_WEBSITE',
+            rawText: 'T',
+            trigger: 'QUESTION_GAP',
+            revisionId: 'r-x',
+          },
           'human-1',
         ),
       ).rejects.toThrow(BadRequestException);

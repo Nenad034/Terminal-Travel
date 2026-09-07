@@ -97,4 +97,4 @@ Svaka izmena se **beleži u log** — ko je promenio, kad, i tačno šta je bilo
 
 ---
 
-*Za tehničke detalje (tačna imena polja, redosled provera, API pozivi) vidi `07-SPECIFIKACIJA-M10-FINANSIJE.md` u istom folderu — ovaj dokument je namerno pojednostavljen, ne zamenjuje ga.*
+_Za tehničke detalje (tačna imena polja, redosled provera, API pozivi) vidi `07-SPECIFIKACIJA-M10-FINANSIJE.md` u istom folderu — ovaj dokument je namerno pojednostavljen, ne zamenjuje ga._

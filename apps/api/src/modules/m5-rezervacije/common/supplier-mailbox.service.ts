@@ -68,7 +68,8 @@ export class SupplierMailboxService {
     // §8.8 — referentni kod na POČETKU naslova, u fiksnom obliku, da preživi i „Reply" i ručno
     // prekucan naslov (poklapanje odgovora ide preko njega, M22 §3.1a).
     const subject = `[REF: ${params.referenceCode}] ${params.subject}`;
-    const body = params.body ?? this.defaultBody(params.subject, params.referenceCode, params.documentUrl);
+    const body =
+      params.body ?? this.defaultBody(params.subject, params.referenceCode, params.documentUrl);
 
     const thread = await this.prisma.emailThread.create({
       data: {
@@ -109,7 +110,9 @@ export class SupplierMailboxService {
     });
 
     if (!result.delivered) {
-      this.logger.warn(`Poruka ka ${params.toEmail} (ref ${params.referenceCode}) NIJE isporučena: ${result.reason ?? 'bez razloga'}`);
+      this.logger.warn(
+        `Poruka ka ${params.toEmail} (ref ${params.referenceCode}) NIJE isporučena: ${result.reason ?? 'bez razloga'}`,
+      );
     } else {
       this.logger.log(`Poslato ka ${params.toEmail} preko ${mailbox.address} — "${subject}"`);
     }

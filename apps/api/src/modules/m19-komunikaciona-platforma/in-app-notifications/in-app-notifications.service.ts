@@ -28,14 +28,25 @@ export class InAppNotificationsService implements OnModuleInit {
 
   onModuleInit(): void {
     this.eventListener.on('M18', 'health-signal.critical', async (payload) => {
-      await this.deliverCriticalSignal(payload as { signalId: string; sourceModule: string; signalType: string; details: unknown });
+      await this.deliverCriticalSignal(
+        payload as { signalId: string; sourceModule: string; signalType: string; details: unknown },
+      );
     });
   }
 
-  private async deliverCriticalSignal(payload: { signalId: string; sourceModule: string; signalType: string; details: unknown }): Promise<void> {
-    const systemUser = await this.prisma.user.findUnique({ where: { email: InAppNotificationsService.SYSTEM_USER_EMAIL } });
+  private async deliverCriticalSignal(payload: {
+    signalId: string;
+    sourceModule: string;
+    signalType: string;
+    details: unknown;
+  }): Promise<void> {
+    const systemUser = await this.prisma.user.findUnique({
+      where: { email: InAppNotificationsService.SYSTEM_USER_EMAIL },
+    });
     if (!systemUser) {
-      this.logger.warn('Sistemski nalog za obaveštenja (seed) ne postoji — IN_APP isporuka preskočena.');
+      this.logger.warn(
+        'Sistemski nalog za obaveštenja (seed) ne postoji — IN_APP isporuka preskočena.',
+      );
       return;
     }
 
@@ -56,7 +67,9 @@ export class InAppNotificationsService implements OnModuleInit {
     await Promise.all(
       userRoles.map(async ({ userId }) => {
         const conversationId = await this.ensureNotificationsConversation(userId, systemUser.id);
-        const message = await this.prisma.message.create({ data: { conversationId, senderId: systemUser.id, body: text } });
+        const message = await this.prisma.message.create({
+          data: { conversationId, senderId: systemUser.id, body: text },
+        });
         // M17 dizajn dok. §5e (iskačuća obaveštenja) — bez ovoga poruka postoji samo u bazi,
         // panel je vidi tek kad korisnik ručno otvori "Obaveštenja" razgovor.
         this.chatGateway.emitToUser(userId, 'message.new', message);
@@ -64,7 +77,10 @@ export class InAppNotificationsService implements OnModuleInit {
     );
   }
 
-  private async ensureNotificationsConversation(userId: string, systemUserId: string): Promise<string> {
+  private async ensureNotificationsConversation(
+    userId: string,
+    systemUserId: string,
+  ): Promise<string> {
     const candidates = await this.prisma.conversation.findMany({
       where: { type: 'DIRECT', participants: { some: { userId } } },
       include: { participants: true },

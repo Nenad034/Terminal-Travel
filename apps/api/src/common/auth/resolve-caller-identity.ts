@@ -13,7 +13,10 @@ export interface CallerIdentity {
   ownProfileId: string | null;
 }
 
-export async function resolveCallerIdentity(prisma: PrismaService, userId: string): Promise<CallerIdentity> {
+export async function resolveCallerIdentity(
+  prisma: PrismaService,
+  userId: string,
+): Promise<CallerIdentity> {
   const user = await prisma.user.findUnique({ where: { id: userId } });
   return { accountType: user?.accountType ?? null, ownProfileId: user?.linkedProfileId ?? null };
 }

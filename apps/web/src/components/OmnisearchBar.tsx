@@ -89,7 +89,11 @@ export default function OmnisearchBar({
         <div className="absolute left-0 right-0 top-full z-30 mt-2 max-h-96 overflow-y-auto rounded-md border border-border bg-panel p-3 shadow-lg">
           {query.trim().length === 0 && !result && (
             <nav className="flex flex-col gap-2 text-sm">
-              <Link href={`/${locale}/pretraga`} className="rounded px-2 py-1.5 text-ink hover:bg-bg hover:text-accent" onClick={() => setOpen(false)}>
+              <Link
+                href={`/${locale}/pretraga`}
+                className="rounded px-2 py-1.5 text-ink hover:bg-bg hover:text-accent"
+                onClick={() => setOpen(false)}
+              >
                 {labels.destinations}
               </Link>
               {isLoggedIn && (
@@ -101,7 +105,11 @@ export default function OmnisearchBar({
                   {labels.myBookings}
                 </Link>
               )}
-              <button type="button" onClick={onHelpHintClick} className="rounded px-2 py-1.5 text-left text-ink hover:bg-bg hover:text-accent">
+              <button
+                type="button"
+                onClick={onHelpHintClick}
+                className="rounded px-2 py-1.5 text-left text-ink hover:bg-bg hover:text-accent"
+              >
                 {labels.help}
               </button>
             </nav>
@@ -122,7 +130,11 @@ export default function OmnisearchBar({
                       >
                         {r.media?.[0] && (
                           // eslint-disable-next-line @next/next/no-img-element
-                          <img src={r.media[0].url} alt="" className="h-8 w-8 rounded object-cover" />
+                          <img
+                            src={r.media[0].url}
+                            alt=""
+                            className="h-8 w-8 rounded object-cover"
+                          />
                         )}
                         <span>{r.label}</span>
                       </Link>
@@ -131,7 +143,9 @@ export default function OmnisearchBar({
                 </ul>
               )}
 
-              {result.aiAnswer && <p className="rounded bg-bg p-3 text-sm text-ink-dim">{result.aiAnswer}</p>}
+              {result.aiAnswer && (
+                <p className="rounded bg-bg p-3 text-sm text-ink-dim">{result.aiAnswer}</p>
+              )}
 
               {result.entityResults.length === 0 && !result.aiAnswer && (
                 <p className="p-2 text-sm text-ink-faint">{labels.noResults}</p>

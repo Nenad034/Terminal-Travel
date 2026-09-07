@@ -21,10 +21,27 @@ import type { CalendarFiltersShape, CalendarView } from './calendar-utils';
 // (13 polja u dva reda, stalno na ekranu) sad je iza jednog linka; posle primene sažima se u
 // oznaku sa brojem aktivnih kriterijuma + "Uredi"/"×". Forma je NEPROMENJENA (isti GET, ista
 // polja) — menja se samo OMOTAČ (uvek vidljiv blok naspram modala), ne podaci ni tok.
-const STATUSES = ['PENDING_SUPPLIER_CONFIRMATION', 'CONFIRMED', 'MODIFIED', 'CANCELLED', 'COMPLETED'];
+const STATUSES = [
+  'PENDING_SUPPLIER_CONFIRMATION',
+  'CONFIRMED',
+  'MODIFIED',
+  'CANCELLED',
+  'COMPLETED',
+];
 const PAYMENT_STATUSES = ['UNPAID', 'PARTIALLY_PAID', 'PAID', 'INVOICE_PENDING'];
 const TIP_NASTUPANJA = ['ORGANIZATOR', 'POSREDNIK'];
-const PRODUCT_TYPES = ['ACCOMMODATION', 'PACKAGE', 'TRANSFER', 'EXCURSION', 'FLIGHT', 'INSURANCE', 'TRANSPORT', 'TICKET', 'EVENT', 'CRUISE'];
+const PRODUCT_TYPES = [
+  'ACCOMMODATION',
+  'PACKAGE',
+  'TRANSFER',
+  'EXCURSION',
+  'FLIGHT',
+  'INSURANCE',
+  'TRANSPORT',
+  'TICKET',
+  'EVENT',
+  'CRUISE',
+];
 
 const inputClass = 'input text-xs';
 
@@ -41,8 +58,17 @@ function hasValue(v: string | string[] | undefined): boolean {
 // svaki je jedan pojam za korisnika, makar bio upisan u dva polja.
 function countActiveCriteria(f: CalendarFiltersShape): number {
   const singleFields: (keyof CalendarFiltersShape)[] = [
-    'bookingNumber', 'buyerName', 'status', 'paymentStatus', 'tipNastupanja',
-    'productType', 'productName', 'destinationCity', 'destinationCountry', 'currency', 'hasTravelGuarantee',
+    'bookingNumber',
+    'buyerName',
+    'status',
+    'paymentStatus',
+    'tipNastupanja',
+    'productType',
+    'productName',
+    'destinationCity',
+    'destinationCountry',
+    'currency',
+    'hasTravelGuarantee',
   ];
   let n = singleFields.filter((k) => hasValue(f[k])).length;
   if (f.createdFrom || f.createdTo) n += 1;
@@ -51,7 +77,15 @@ function countActiveCriteria(f: CalendarFiltersShape): number {
   return n;
 }
 
-export default function CalendarFilterBar({ view, date, filters }: { view: CalendarView; date: string; filters: CalendarFiltersShape }) {
+export default function CalendarFilterBar({
+  view,
+  date,
+  filters,
+}: {
+  view: CalendarView;
+  date: string;
+  filters: CalendarFiltersShape;
+}) {
   const activeCount = countActiveCriteria(filters);
   const hasAnyFilter = activeCount > 0;
   const [open, setOpen] = useState(false);
@@ -80,10 +114,17 @@ export default function CalendarFilterBar({ view, date, filters }: { view: Calen
               <Icon name="filter" className="!text-[13px]" />
               Detaljna pretraga · {activeCount} {activeCount === 1 ? 'kriterijum' : 'kriterijuma'}
             </button>
-            <button type="button" onClick={() => setOpen(true)} className="font-medium text-ink-faint hover:text-ink">
+            <button
+              type="button"
+              onClick={() => setOpen(true)}
+              className="font-medium text-ink-faint hover:text-ink"
+            >
               uredi
             </button>
-            <Link href={`/rezervacije/kalendar?view=${view}&date=${date}`} className="font-medium text-ink-faint hover:text-danger">
+            <Link
+              href={`/rezervacije/kalendar?view=${view}&date=${date}`}
+              className="font-medium text-ink-faint hover:text-danger"
+            >
               obriši pretragu
             </Link>
           </div>
@@ -101,7 +142,15 @@ export default function CalendarFilterBar({ view, date, filters }: { view: Calen
       {/* Ceo modal (uklj. sopstveno stanje za dolazak/odlazak, ispod) se montira TEK kad je
           otvoren — "otkaži" tako uvek odbacuje nedovršen unos i vraća se na `filters` iz URL-a,
           isto ponašanje kao ostala (uncontrolled) polja u ovoj formi. */}
-      {open && <DetailedSearchModal view={view} date={date} filters={filters} hasAnyFilter={hasAnyFilter} onClose={() => setOpen(false)} />}
+      {open && (
+        <DetailedSearchModal
+          view={view}
+          date={date}
+          filters={filters}
+          hasAnyFilter={hasAnyFilter}
+          onClose={() => setOpen(false)}
+        />
+      )}
     </div>
   );
 }
@@ -142,16 +191,31 @@ function DetailedSearchModal({
       hotelCache.current = res.ok ? await res.json() : [];
     }
     const needle = q.trim().toLowerCase();
-    const matches = needle ? hotelCache.current!.filter((p) => p.name.toLowerCase().includes(needle)) : hotelCache.current!;
-    return matches.slice(0, 8).map((p) => ({ value: p.name, label: p.name, hint: p.destinationCity }));
+    const matches = needle
+      ? hotelCache.current!.filter((p) => p.name.toLowerCase().includes(needle))
+      : hotelCache.current!;
+    return matches
+      .slice(0, 8)
+      .map((p) => ({ value: p.name, label: p.name, hint: p.destinationCity }));
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/40 p-4 pt-[8vh]" onClick={onClose}>
-      <div className="w-full max-w-4xl rounded-xl border border-border bg-panel p-4 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+    <div
+      className="fixed inset-0 z-50 flex items-start justify-center bg-black/40 p-4 pt-[8vh]"
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-4xl rounded-xl border border-border bg-panel p-4 shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-sm font-semibold text-ink">Detaljna pretraga</h2>
-          <button type="button" onClick={onClose} title="Zatvori" className="text-ink-faint hover:text-ink">
+          <button
+            type="button"
+            onClick={onClose}
+            title="Zatvori"
+            className="text-ink-faint hover:text-ink"
+          >
             <Icon name="close" />
           </button>
         </div>
@@ -174,10 +238,22 @@ function DetailedSearchModal({
               gridu redosledom kojim su ranije dodavani. */}
           <div className="grid grid-cols-3 gap-3">
             <Field label="Destinacija (država)">
-              <ClearableTextField name="destinationCountry" defaultValue={filters.destinationCountry ?? ''} placeholder="npr. Grčka" className={inputClass} autoSubmit={false} />
+              <ClearableTextField
+                name="destinationCountry"
+                defaultValue={filters.destinationCountry ?? ''}
+                placeholder="npr. Grčka"
+                className={inputClass}
+                autoSubmit={false}
+              />
             </Field>
             <Field label="Destinacija (grad)">
-              <ClearableTextField name="destinationCity" defaultValue={filters.destinationCity ?? ''} placeholder="npr. Budva" className={inputClass} autoSubmit={false} />
+              <ClearableTextField
+                name="destinationCity"
+                defaultValue={filters.destinationCity ?? ''}
+                placeholder="npr. Budva"
+                className={inputClass}
+                autoSubmit={false}
+              />
             </Field>
             {/* Naziv hotela, prediktivno (5.9.2026, vlasnikov zahtev) — pretražuje
                 `ProductTranslation.name` (M2 spec §2.2) na serveru; predlozi ovde su samo
@@ -185,26 +261,77 @@ function DetailedSearchModal({
                 ekranu pretrage), slobodan unos i dalje važi i bez izbora sa liste. */}
             <Field label="Naziv hotela">
               <input type="hidden" name="productName" value={productName} />
-              <SuggestField value={productName} onChange={setProductName} fetchSuggestions={fetchHotelSuggestions} placeholder="npr. Sunce" />
+              <SuggestField
+                value={productName}
+                onChange={setProductName}
+                fetchSuggestions={fetchHotelSuggestions}
+                placeholder="npr. Sunce"
+              />
             </Field>
           </div>
 
           <div className="grid grid-cols-3 gap-3">
             <Field label="Broj">
-              <ClearableTextField name="bookingNumber" defaultValue={filters.bookingNumber ?? ''} placeholder="TT-2026-..." className={inputClass} autoSubmit={false} />
+              <ClearableTextField
+                name="bookingNumber"
+                defaultValue={filters.bookingNumber ?? ''}
+                placeholder="TT-2026-..."
+                className={inputClass}
+                autoSubmit={false}
+              />
             </Field>
             <Field label="Nosilac rezervacije">
-              <ClearableTextField name="buyerName" defaultValue={filters.buyerName ?? ''} placeholder="ime/naziv" className={inputClass} autoSubmit={false} />
+              <ClearableTextField
+                name="buyerName"
+                defaultValue={filters.buyerName ?? ''}
+                placeholder="ime/naziv"
+                className={inputClass}
+                autoSubmit={false}
+              />
             </Field>
-            <MultiSelectDropdown name="status" label="Status" options={STATUSES.map((s) => ({ value: s, label: s }))} defaultValues={toArray(filters.status)} autoSubmit={false} />
-            <MultiSelectDropdown name="paymentStatus" label="Uplata" options={PAYMENT_STATUSES.map((s) => ({ value: s, label: s }))} defaultValues={toArray(filters.paymentStatus)} autoSubmit={false} />
-            <MultiSelectDropdown name="tipNastupanja" label="Tip nastupanja" options={TIP_NASTUPANJA.map((s) => ({ value: s, label: s }))} defaultValues={toArray(filters.tipNastupanja)} autoSubmit={false} />
-            <MultiSelectDropdown name="productType" label="Tip proizvoda" options={PRODUCT_TYPES.map((s) => ({ value: s, label: s }))} defaultValues={toArray(filters.productType)} autoSubmit={false} />
+            <MultiSelectDropdown
+              name="status"
+              label="Status"
+              options={STATUSES.map((s) => ({ value: s, label: s }))}
+              defaultValues={toArray(filters.status)}
+              autoSubmit={false}
+            />
+            <MultiSelectDropdown
+              name="paymentStatus"
+              label="Uplata"
+              options={PAYMENT_STATUSES.map((s) => ({ value: s, label: s }))}
+              defaultValues={toArray(filters.paymentStatus)}
+              autoSubmit={false}
+            />
+            <MultiSelectDropdown
+              name="tipNastupanja"
+              label="Tip nastupanja"
+              options={TIP_NASTUPANJA.map((s) => ({ value: s, label: s }))}
+              defaultValues={toArray(filters.tipNastupanja)}
+              autoSubmit={false}
+            />
+            <MultiSelectDropdown
+              name="productType"
+              label="Tip proizvoda"
+              options={PRODUCT_TYPES.map((s) => ({ value: s, label: s }))}
+              defaultValues={toArray(filters.productType)}
+              autoSubmit={false}
+            />
             <Field label="Valuta">
-              <ClearableTextField name="currency" defaultValue={filters.currency ?? ''} placeholder="EUR" className={inputClass} autoSubmit={false} />
+              <ClearableTextField
+                name="currency"
+                defaultValue={filters.currency ?? ''}
+                placeholder="EUR"
+                className={inputClass}
+                autoSubmit={false}
+              />
             </Field>
             <Field label="Garancija putovanja">
-              <select name="hasTravelGuarantee" defaultValue={filters.hasTravelGuarantee ?? ''} className={inputClass}>
+              <select
+                name="hasTravelGuarantee"
+                defaultValue={filters.hasTravelGuarantee ?? ''}
+                className={inputClass}
+              >
                 <option value="">svejedno</option>
                 <option value="true">ima</option>
                 <option value="false">nema</option>
@@ -270,11 +397,18 @@ function DetailedSearchModal({
               <Icon name="play" />
             </button>
             {hasAnyFilter && (
-              <Link href={`/rezervacije/kalendar?view=${view}&date=${date}`} className="rounded px-3 py-1.5 font-medium text-ink-faint hover:text-ink">
+              <Link
+                href={`/rezervacije/kalendar?view=${view}&date=${date}`}
+                className="rounded px-3 py-1.5 font-medium text-ink-faint hover:text-ink"
+              >
                 obriši filter
               </Link>
             )}
-            <button type="button" onClick={onClose} className="ml-auto rounded px-3 py-1.5 font-medium text-ink-faint hover:text-ink">
+            <button
+              type="button"
+              onClick={onClose}
+              className="ml-auto rounded px-3 py-1.5 font-medium text-ink-faint hover:text-ink"
+            >
               otkaži
             </button>
           </div>

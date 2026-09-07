@@ -1,11 +1,22 @@
-import { BadRequestException, Controller, ForbiddenException, Get, Query, Req, UnauthorizedException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Controller,
+  ForbiddenException,
+  Get,
+  Query,
+  Req,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { Request } from 'express';
 import { JwtService } from '@nestjs/jwt';
 import { SearchService } from './search.service';
 import { SearchQueryDto } from './dto/search-query.dto';
 import { PermissionsService } from '../../m1-core-identitet/permissions/permissions.service';
-import { AccessTokenPayload, assertAccessTokenPayload } from '../../m1-core-identitet/auth/guards/jwt-auth.guard';
+import {
+  AccessTokenPayload,
+  assertAccessTokenPayload,
+} from '../../m1-core-identitet/auth/guards/jwt-auth.guard';
 import { Public } from '../../../common/decorators/public.decorator';
 
 // M5 spec §11 dopuna (avgust 2026, priprema za M8) — pretraga je JAVNA, bez guard-a.
@@ -29,7 +40,10 @@ export class SearchController {
    * Izdvojeno u metodu 2.9.2026 kad su dodati endpointi za predlaganje: bez toga bi svaki nov
    * endpoint morao da ponovi istu proveru, a zaboravljena provera je tiha rupa.
    */
-  private async assertInternalPanelAccess(channel: string | undefined, req: Request): Promise<void> {
+  private async assertInternalPanelAccess(
+    channel: string | undefined,
+    req: Request,
+  ): Promise<void> {
     if (channel !== 'INTERNAL_PANEL') return;
     const authHeader = req.headers['authorization'];
     if (!authHeader?.startsWith('Bearer ')) {
@@ -37,7 +51,9 @@ export class SearchController {
     }
     let payload: AccessTokenPayload;
     try {
-      payload = assertAccessTokenPayload(this.jwt.verify<AccessTokenPayload>(authHeader.slice('Bearer '.length)));
+      payload = assertAccessTokenPayload(
+        this.jwt.verify<AccessTokenPayload>(authHeader.slice('Bearer '.length)),
+      );
     } catch {
       throw new UnauthorizedException('Nevažeći ili istekao token.');
     }
@@ -49,7 +65,11 @@ export class SearchController {
 
   /** M5 spec §3.0c.2, korak 1 — predlaganje država dok se kuca. */
   @Get('countries')
-  async countries(@Query('q') q: string | undefined, @Query('channel') channel: string, @Req() req: Request) {
+  async countries(
+    @Query('q') q: string | undefined,
+    @Query('channel') channel: string,
+    @Req() req: Request,
+  ) {
     await this.assertInternalPanelAccess(channel, req);
     return this.search.suggestCountries(q, (channel ?? 'B2C_SITE') as never);
   }
@@ -67,7 +87,8 @@ export class SearchController {
     @Query('lang') lang: string | undefined,
     @Req() req: Request,
   ) {
-    if (!country) throw new BadRequestException('Parametar `country` je obavezan (M5 spec §3.0c.2).');
+    if (!country)
+      throw new BadRequestException('Parametar `country` je obavezan (M5 spec §3.0c.2).');
     await this.assertInternalPanelAccess(channel, req);
     return this.search.suggestDestinations(country, q, (channel ?? 'B2C_SITE') as never, lang);
   }
@@ -83,7 +104,8 @@ export class SearchController {
     @Query('channel') channel: string,
     @Req() req: Request,
   ) {
-    if (!activity) throw new BadRequestException('Parametar `activity` je obavezan (M5 spec §3.0c.3e).');
+    if (!activity)
+      throw new BadRequestException('Parametar `activity` je obavezan (M5 spec §3.0c.3e).');
     await this.assertInternalPanelAccess(channel, req);
     return this.search.suggestDestinationsByActivity(activity, (channel ?? 'B2C_SITE') as never);
   }

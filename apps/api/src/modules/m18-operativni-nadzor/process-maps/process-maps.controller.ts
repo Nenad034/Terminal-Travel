@@ -1,4 +1,12 @@
-import { Controller, Get, Param, ParseIntPipe, Query, UseGuards, DefaultValuePipe } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Param,
+  ParseIntPipe,
+  Query,
+  UseGuards,
+  DefaultValuePipe,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { ProcessMapsService } from './process-maps.service';
 import { JwtAuthGuard } from '../../m1-core-identitet/auth/guards/jwt-auth.guard';
@@ -21,7 +29,10 @@ export class ProcessMapsController {
 
   @Get(':key/live')
   @RequirePermission('M18', 'process-map', 'VIEW')
-  live(@Param('key') key: string, @Query('windowMinutes', new DefaultValuePipe(1440), ParseIntPipe) windowMinutes: number) {
+  live(
+    @Param('key') key: string,
+    @Query('windowMinutes', new DefaultValuePipe(1440), ParseIntPipe) windowMinutes: number,
+  ) {
     return this.processMaps.live(key, windowMinutes);
   }
 }

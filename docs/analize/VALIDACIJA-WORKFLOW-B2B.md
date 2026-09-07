@@ -11,6 +11,7 @@
 ## Korak 0 — Preduslovi
 
 Isti kao B2C scenario (M3 ugovor, M2 proizvod, M5 MarkupRule) — plus:
+
 - **M7** — `Subagent` zapis postoji, `status = ACTIVE`, `commission_percentage` i `credit_limit` postavljeni od Vlasnika/Direktora (M7 §9). `client_account_id` referencira M6 `ClientAccount` sa `account_type = LEGAL_ENTITY`.
 
 **Nalaz:** ✅ nema rupe u preduslovima.
@@ -99,15 +100,15 @@ Isti nalaz kao B2C (nedefinisan okidač za `SupplierObligation`) — nema dodatn
 
 ## Rezime nalaza — Scenario 2 (B2B)
 
-| # | Ozbiljnost | Nalaz | Gde se rešava |
-| :---- | :---- | :---- | :---- |
-| 1 | 🔴 Kritično | Vaučer se ne izdaje bez pune uplate ili ručnog override-a — ali B2B kredit je redovan način poslovanja, ne izuzetak; trenutno pravilo ne skalira | M5 §6 / M7, poslovna odluka vlasnika |
-| 2 | 🔴 Ozbiljno | M10 `FiscalDocument.document_type` nema tip za knjižno odobrenje (credit note); nejasno kako se `CommissionRebate` stvarno provodi kroz SEF | M10 §5.1, uz potvrdu knjigovođe |
-| 3 | 🔴 Strukturno | M7 nema ekvivalent M8 §2/§3 — nedostaje opis stvarnog toka kroz B2B portal (stranice, koraci) | M7, novo poglavlje |
-| 4 | 🔴 Isto kao B2C #1 | `tip_nastupanja` nema nosioca odluke u samoposlužnom toku — dodatno nejasno za B2B distribuciju TT-ovog proizvoda | M5 §4 / M10 §4.1 |
-| 5 | 🟡 Manje | Nije eksplicitno kako M5 prepoznaje da je `client_account_id` Subagent (provera tipa vs. provera postojanja zapisa) | M5 §5 |
-| 6 | 🟡 Manje | Redosled provere kreditnog limita (M7 §4) naspram provere garancije putovanja (M11 §4.2) nije definisan | M5 §4 |
-| 7 | ✅ Isto kao B2C #3, #5 | Isti nalazi o automatskom okidaču fiskalnog nacrta i `/search` parametrima važe i ovde | — |
+| #   | Ozbiljnost             | Nalaz                                                                                                                                            | Gde se rešava                        |
+| :-- | :--------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------- | :----------------------------------- |
+| 1   | 🔴 Kritično            | Vaučer se ne izdaje bez pune uplate ili ručnog override-a — ali B2B kredit je redovan način poslovanja, ne izuzetak; trenutno pravilo ne skalira | M5 §6 / M7, poslovna odluka vlasnika |
+| 2   | 🔴 Ozbiljno            | M10 `FiscalDocument.document_type` nema tip za knjižno odobrenje (credit note); nejasno kako se `CommissionRebate` stvarno provodi kroz SEF      | M10 §5.1, uz potvrdu knjigovođe      |
+| 3   | 🔴 Strukturno          | M7 nema ekvivalent M8 §2/§3 — nedostaje opis stvarnog toka kroz B2B portal (stranice, koraci)                                                    | M7, novo poglavlje                   |
+| 4   | 🔴 Isto kao B2C #1     | `tip_nastupanja` nema nosioca odluke u samoposlužnom toku — dodatno nejasno za B2B distribuciju TT-ovog proizvoda                                | M5 §4 / M10 §4.1                     |
+| 5   | 🟡 Manje               | Nije eksplicitno kako M5 prepoznaje da je `client_account_id` Subagent (provera tipa vs. provera postojanja zapisa)                              | M5 §5                                |
+| 6   | 🟡 Manje               | Redosled provere kreditnog limita (M7 §4) naspram provere garancije putovanja (M11 §4.2) nije definisan                                          | M5 §4                                |
+| 7   | ✅ Isto kao B2C #3, #5 | Isti nalazi o automatskom okidaču fiskalnog nacrta i `/search` parametrima važe i ovde                                                           | —                                    |
 
 ---
 

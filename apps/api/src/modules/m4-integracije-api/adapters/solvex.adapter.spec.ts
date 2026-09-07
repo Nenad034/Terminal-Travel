@@ -9,15 +9,29 @@ function xmlResponse(status: number, method: string, resultXml: string) {
 
 describe('SolvexAdapter (M4 spec §5a)', () => {
   function makeAdapter(fetchMock: jest.Mock) {
-    return new SolvexAdapter('solvex', 'https://evaluation.solvex.bg/iservice/integrationservice.asmx', 'sol611s', 'En5AL535', 8000, new DictionaryCacheService(), fetchMock as any);
+    return new SolvexAdapter(
+      'solvex',
+      'https://evaluation.solvex.bg/iservice/integrationservice.asmx',
+      'sol611s',
+      'En5AL535',
+      8000,
+      new DictionaryCacheService(),
+      fetchMock as any,
+    );
   }
 
   describe('connect / autentikacija', () => {
     it('baca ProviderError(AUTH_FAILED) kad Connect vrati "Invalid login or password"', async () => {
-      const fetchMock = jest.fn().mockResolvedValue(xmlResponse(200, 'Connect', 'Connection result code: -1. Invalid login or password'));
+      const fetchMock = jest
+        .fn()
+        .mockResolvedValue(
+          xmlResponse(200, 'Connect', 'Connection result code: -1. Invalid login or password'),
+        );
       const adapter = makeAdapter(fetchMock);
 
-      await expect(adapter.search({ stayFrom: '2027-07-01', stayTo: '2027-07-08', adults: 2 })).rejects.toMatchObject({
+      await expect(
+        adapter.search({ stayFrom: '2027-07-01', stayTo: '2027-07-08', adults: 2 }),
+      ).rejects.toMatchObject({
         code: 'AUTH_FAILED',
       });
     });
@@ -34,7 +48,9 @@ describe('SolvexAdapter (M4 spec §5a)', () => {
       const secondCallBody = fetchMock.mock.calls[1][1].body as string;
       expect(secondCallBody).toContain('<GUID>guid-123</GUID>');
       const secondCallHeaders = fetchMock.mock.calls[1][1].headers;
-      expect(secondCallHeaders.SOAPAction).toBe('"http://www.megatec.ru/SearchHotelServicesMinHotel"');
+      expect(secondCallHeaders.SOAPAction).toBe(
+        '"http://www.megatec.ru/SearchHotelServicesMinHotel"',
+      );
     });
 
     it('reaktivno osvežava token kad naredni poziv vrati "invalid" (§2.2, ne na fiksni raspored)', async () => {
@@ -46,7 +62,11 @@ describe('SolvexAdapter (M4 spec §5a)', () => {
         .mockResolvedValueOnce(xmlResponse(200, 'SearchHotelServicesMinHotel', ''));
       const adapter = makeAdapter(fetchMock);
 
-      const result = await adapter.search({ stayFrom: '2027-07-01', stayTo: '2027-07-08', adults: 2 });
+      const result = await adapter.search({
+        stayFrom: '2027-07-01',
+        stayTo: '2027-07-08',
+        adults: 2,
+      });
 
       expect(result).toEqual([]);
       expect(fetchMock).toHaveBeenCalledTimes(4); // Connect, pokušaj (invalid), ponovni Connect, ponovljen poziv
@@ -64,7 +84,11 @@ describe('SolvexAdapter (M4 spec §5a)', () => {
         .mockResolvedValueOnce(xmlResponse(200, 'SearchHotelServicesMinHotel', rows));
       const adapter = makeAdapter(fetchMock);
 
-      const results = await adapter.search({ stayFrom: '2027-07-01', stayTo: '2027-07-08', adults: 2 });
+      const results = await adapter.search({
+        stayFrom: '2027-07-01',
+        stayTo: '2027-07-08',
+        adults: 2,
+      });
 
       expect(results.map((r) => r.quotaStatus)).toEqual(['ON_REQUEST', 'AVAILABLE', 'STOP_SALES']);
       expect(results[0].priceFrom).toBe(10000);
@@ -80,7 +104,11 @@ describe('SolvexAdapter (M4 spec §5a)', () => {
         .mockResolvedValueOnce(xmlResponse(200, 'SearchHotelServicesMinHotel', rows));
       const adapter = makeAdapter(fetchMock);
 
-      const results = await adapter.search({ stayFrom: '2027-07-01', stayTo: '2027-07-08', adults: 2 });
+      const results = await adapter.search({
+        stayFrom: '2027-07-01',
+        stayTo: '2027-07-08',
+        adults: 2,
+      });
       expect(results[0].quotaStatus).toBe('ON_REQUEST');
     });
   });
@@ -136,15 +164,19 @@ describe('SolvexAdapter (M4 spec §5a)', () => {
 
   describe('greške mreže/timeout', () => {
     it('AbortError → ProviderError(TIMEOUT)', async () => {
-      const fetchMock = jest.fn().mockRejectedValue(Object.assign(new Error('aborted'), { name: 'AbortError' }));
+      const fetchMock = jest
+        .fn()
+        .mockRejectedValue(Object.assign(new Error('aborted'), { name: 'AbortError' }));
       const adapter = makeAdapter(fetchMock);
-      await expect(adapter.search({ stayFrom: '2027-07-01', stayTo: '2027-07-08', adults: 2 })).rejects.toBeInstanceOf(
-        ProviderError,
-      );
+      await expect(
+        adapter.search({ stayFrom: '2027-07-01', stayTo: '2027-07-08', adults: 2 }),
+      ).rejects.toBeInstanceOf(ProviderError);
     });
 
     it('HTTP 500 → ProviderError(PROVIDER_UNAVAILABLE)', async () => {
-      const fetchMock = jest.fn().mockResolvedValue({ status: 500, ok: false, text: async () => '' });
+      const fetchMock = jest
+        .fn()
+        .mockResolvedValue({ status: 500, ok: false, text: async () => '' });
       const adapter = makeAdapter(fetchMock);
       await expect(
         adapter.search({ stayFrom: '2027-07-01', stayTo: '2027-07-08', adults: 2 }),

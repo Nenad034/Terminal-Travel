@@ -19,7 +19,15 @@ interface Translation {
 // M21 spec §2.2/§6 — isti obrazac kao M2 ProductTranslation / M12 ContentTranslation: redovi po
 // jeziku, fallback traženi jezik → engleski → srpski (§2.2). Bez `isReviewed` polja — HelpArticle-
 // Translation ga nema (razlika u odnosu na M12 ContentTranslation).
-export default function TranslationsPanel({ articleId, translations, canEdit }: { articleId: string; translations: Translation[]; canEdit: boolean }) {
+export default function TranslationsPanel({
+  articleId,
+  translations,
+  canEdit,
+}: {
+  articleId: string;
+  translations: Translation[];
+  canEdit: boolean;
+}) {
   const [editingLang, setEditingLang] = useState<string | null>(null);
 
   return (
@@ -28,7 +36,11 @@ export default function TranslationsPanel({ articleId, translations, canEdit }: 
         <Icon name="globe" className="text-accent" /> Prevodi
       </div>
 
-      {translations.length === 0 && <p className="mb-2 text-xs text-ink-faint">Nema unetih prevoda — članak se ne može objaviti bez bar jednog.</p>}
+      {translations.length === 0 && (
+        <p className="mb-2 text-xs text-ink-faint">
+          Nema unetih prevoda — članak se ne može objaviti bez bar jednog.
+        </p>
+      )}
 
       <div className="mb-3 flex flex-col gap-2">
         {translations.map((t) => (
@@ -36,7 +48,13 @@ export default function TranslationsPanel({ articleId, translations, canEdit }: 
             <div className="flex items-center justify-between">
               <span className="font-semibold text-ink">{t.languageCode}</span>
               {canEdit && (
-                <Button type="button" onClick={() => setEditingLang(t.languageCode)} variant="link" size="sm" className="h-auto p-0 text-[11px]">
+                <Button
+                  type="button"
+                  onClick={() => setEditingLang(t.languageCode)}
+                  variant="link"
+                  size="sm"
+                  className="h-auto p-0 text-[11px]"
+                >
                   izmeni
                 </Button>
               )}
@@ -83,7 +101,9 @@ function TranslationForm({
 
   return (
     <form action={formAction} className="mt-2 flex flex-col gap-2 border-t border-border pt-3">
-      {state.error && <p className="rounded bg-danger-bg p-2 text-[11px] text-danger">{state.error}</p>}
+      {state.error && (
+        <p className="rounded bg-danger-bg p-2 text-[11px] text-danger">{state.error}</p>
+      )}
       <select name="languageCode" defaultValue={initialLang} className="input">
         {LANGUAGES.map((l) => (
           <option key={l} value={l}>
@@ -91,7 +111,13 @@ function TranslationForm({
           </option>
         ))}
       </select>
-      <input name="title" required defaultValue={existing?.title ?? ''} placeholder="naslov" className="input" />
+      <input
+        name="title"
+        required
+        defaultValue={existing?.title ?? ''}
+        placeholder="naslov"
+        className="input"
+      />
       <textarea
         name="body"
         required

@@ -47,18 +47,26 @@ export function PanelCollectionProvider({
     });
   }
   function removeItem(moduleId: string, key: string) {
-    setItemsByModule((prev) => ({ ...prev, [moduleId]: (prev[moduleId] ?? []).filter((i) => i.key !== key) }));
+    setItemsByModule((prev) => ({
+      ...prev,
+      [moduleId]: (prev[moduleId] ?? []).filter((i) => i.key !== key),
+    }));
   }
   function removeItems(moduleId: string, keys: string[]) {
     const keySet = new Set(keys);
-    setItemsByModule((prev) => ({ ...prev, [moduleId]: (prev[moduleId] ?? []).filter((i) => !keySet.has(i.key)) }));
+    setItemsByModule((prev) => ({
+      ...prev,
+      [moduleId]: (prev[moduleId] ?? []).filter((i) => !keySet.has(i.key)),
+    }));
   }
   function clearModule(moduleId: string) {
     setItemsByModule((prev) => ({ ...prev, [moduleId]: [] }));
   }
 
   return (
-    <PanelCollectionContext.Provider value={{ itemsByModule, addItem, removeItem, removeItems, clearModule }}>
+    <PanelCollectionContext.Provider
+      value={{ itemsByModule, addItem, removeItem, removeItems, clearModule }}
+    >
       {children}
     </PanelCollectionContext.Provider>
   );

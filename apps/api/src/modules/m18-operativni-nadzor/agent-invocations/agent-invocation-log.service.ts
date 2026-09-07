@@ -41,7 +41,11 @@ export class AgentInvocationLogService {
       providerName,
     });
 
-    const costEur = estimateCostEur(params.modelIdentifier, params.inputTokens, params.outputTokens);
+    const costEur = estimateCostEur(
+      params.modelIdentifier,
+      params.inputTokens,
+      params.outputTokens,
+    );
 
     await this.prisma.agentInvocationLog.create({
       data: {
@@ -77,19 +81,34 @@ export class AgentInvocationLogService {
     return { tier: resolved.tier, estimatedCostEur: costEur };
   }
 
-  private async applyProviderQuotaConsumption(providerName: string, tokens: number, costEur: number): Promise<void> {
+  private async applyProviderQuotaConsumption(
+    providerName: string,
+    tokens: number,
+    costEur: number,
+  ): Promise<void> {
     const now = new Date();
-    const rows = await this.prisma.aIProviderQuota.findMany({ where: { providerName, periodStart: { lte: now }, periodEnd: { gt: now } } });
+    const rows = await this.prisma.aIProviderQuota.findMany({
+      where: { providerName, periodStart: { lte: now }, periodEnd: { gt: now } },
+    });
 
     for (const row of rows) {
       const newConsumed = row.consumed + tokens;
       const newConsumedEur = Number(row.consumedEur) + costEur;
 
-      const data: { consumed: number; consumedEur: number; enforcementState?: 'DEGRADED'; degradedAt?: Date } = {
+      const data: {
+        consumed: number;
+        consumedEur: number;
+        enforcementState?: 'DEGRADED';
+        degradedAt?: Date;
+      } = {
         consumed: newConsumed,
         consumedEur: newConsumedEur,
       };
-      if (row.enforcementState === 'NORMAL' && row.budgetLimitEur != null && newConsumedEur >= Number(row.budgetLimitEur)) {
+      if (
+        row.enforcementState === 'NORMAL' &&
+        row.budgetLimitEur != null &&
+        newConsumedEur >= Number(row.budgetLimitEur)
+      ) {
         data.enforcementState = 'DEGRADED';
         data.degradedAt = now;
       }
@@ -98,12 +117,21 @@ export class AgentInvocationLogService {
       if (row.quotaLimit != null) {
         const prevPercent = (row.consumed / row.quotaLimit) * 100;
         const newPercent = (newConsumed / row.quotaLimit) * 100;
-        if (prevPercent < row.alertThresholdPercentage && newPercent >= row.alertThresholdPercentage) {
+        if (
+          prevPercent < row.alertThresholdPercentage &&
+          newPercent >= row.alertThresholdPercentage
+        ) {
           await this.healthSignals.create({
             sourceModule: 'M18',
             signalType: 'TOKEN_USAGE_ANOMALY',
             severity: 'WARNING',
-            details: { reason: 'provider_quota_threshold', providerName, period: row.period, consumed: newConsumed, quotaLimit: row.quotaLimit },
+            details: {
+              reason: 'provider_quota_threshold',
+              providerName,
+              period: row.period,
+              consumed: newConsumed,
+              quotaLimit: row.quotaLimit,
+            },
           });
         }
       }
@@ -112,11 +140,15 @@ export class AgentInvocationLogService {
 
   private async applyAgentBudgetConsumption(agentId: string, costEur: number): Promise<void> {
     const now = new Date();
-    const rows = await this.prisma.aIAgentBudget.findMany({ where: { agentId, periodStart: { lte: now }, periodEnd: { gt: now } } });
+    const rows = await this.prisma.aIAgentBudget.findMany({
+      where: { agentId, periodStart: { lte: now }, periodEnd: { gt: now } },
+    });
 
     for (const row of rows) {
       const newConsumedEur = Number(row.consumedEur) + costEur;
-      const data: { consumedEur: number; enforcementState?: 'DEGRADED' } = { consumedEur: newConsumedEur };
+      const data: { consumedEur: number; enforcementState?: 'DEGRADED' } = {
+        consumedEur: newConsumedEur,
+      };
       if (row.enforcementState === 'NORMAL' && newConsumedEur >= Number(row.budgetLimitEur)) {
         data.enforcementState = 'DEGRADED';
       }
@@ -125,6 +157,9 @@ export class AgentInvocationLogService {
   }
 
   async findAll(filter: { agentId?: string }) {
-    return this.prisma.agentInvocationLog.findMany({ where: { agentId: filter.agentId }, orderBy: { timestamp: 'desc' } });
+    return this.prisma.agentInvocationLog.findMany({
+      where: { agentId: filter.agentId },
+      orderBy: { timestamp: 'desc' },
+    });
   }
 }

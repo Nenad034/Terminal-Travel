@@ -44,11 +44,14 @@ export class AnthropicClientService {
       (this.client.messages.create as unknown) = async (...args: Parameters<typeof original>) => {
         await this.assertUnderDevHardCap();
         const response = await original(...args);
-        const usage = (response as { usage?: { input_tokens: number; output_tokens: number } }).usage;
+        const usage = (response as { usage?: { input_tokens: number; output_tokens: number } })
+          .usage;
         if (usage) await this.recordDevSpend(usage.input_tokens, usage.output_tokens);
         return response;
       };
-      this.logger.warn(`Anthropic tvrda brava za testiranje aktivna: ${this.hardCapEur}€ (privremeno, na zahtev vlasnika).`);
+      this.logger.warn(
+        `Anthropic tvrda brava za testiranje aktivna: ${this.hardCapEur}€ (privremeno, na zahtev vlasnika).`,
+      );
     }
   }
 

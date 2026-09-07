@@ -19,7 +19,10 @@ export class ComplianceBridgeService {
 
   // M5 spec §4 korak 1a — "ako je tip_nastupanja = ORGANIZATOR, pozovi M11
   // GET /travel-guarantee/utilization — prekoračenje limita garancije odbija potvrdu."
-  async checkTravelGuaranteeUtilization(params: { bookingTotalPrice: number; currency: string }): Promise<{ allowed: boolean; reason?: string }> {
+  async checkTravelGuaranteeUtilization(params: {
+    bookingTotalPrice: number;
+    currency: string;
+  }): Promise<{ allowed: boolean; reason?: string }> {
     return this.travelGuarantee.assessForBooking(params);
   }
 
@@ -29,7 +32,10 @@ export class ComplianceBridgeService {
     clientAccountId: string;
     additionalAmount: number;
     currency: string;
-  }): Promise<{ isSubagent: false; allowed: true } | { isSubagent: true; allowed: boolean; withinCreditLimit: boolean }> {
+  }): Promise<
+    | { isSubagent: false; allowed: true }
+    | { isSubagent: true; allowed: boolean; withinCreditLimit: boolean }
+  > {
     return this.subagentBridge.checkCreditLimitIfSubagent(params);
   }
 

@@ -1,12 +1,7 @@
 'use client';
 
 import Icon from './Icon';
-import {
-  MAX_CHILD_AGE,
-  MAX_ROOMS,
-  setChildCount,
-  type SearchRoom,
-} from '@/lib/search-rooms';
+import { MAX_CHILD_AGE, MAX_ROOMS, setChildCount, type SearchRoom } from '@/lib/search-rooms';
 
 // Unos soba u formi pretrage smeštaja — M5 spec §3.0c.1/§3.2a/§3.0g.6, na vlasnikov zahtev
 // (3.9.2026): „kada se unese broj dece treba da se pojave isti broj polja za unos godina dece.
@@ -44,7 +39,9 @@ export default function RoomsField({
         {rooms.map((room, i) => (
           <div key={i} className="rounded border border-border bg-sunken p-2">
             <div className="mb-1.5 flex items-center justify-between">
-              <span className="text-[11px] font-medium text-ink-dim">{rooms.length > 1 ? `Soba ${i + 1}` : 'Soba'}</span>
+              <span className="text-[11px] font-medium text-ink-dim">
+                {rooms.length > 1 ? `Soba ${i + 1}` : 'Soba'}
+              </span>
               {rooms.length > 1 && (
                 <button
                   type="button"
@@ -65,7 +62,9 @@ export default function RoomsField({
                   min={1}
                   max={12}
                   value={room.adults}
-                  onChange={(e) => update(i, { ...room, adults: Math.max(1, Number(e.target.value) || 1) })}
+                  onChange={(e) =>
+                    update(i, { ...room, adults: Math.max(1, Number(e.target.value) || 1) })
+                  }
                   className="input mt-0.5 w-full"
                 />
               </label>
@@ -76,7 +75,9 @@ export default function RoomsField({
                   min={0}
                   max={8}
                   value={room.childrenAges.length}
-                  onChange={(e) => update(i, setChildCount(room, Math.max(0, Number(e.target.value) || 0)))}
+                  onChange={(e) =>
+                    update(i, setChildCount(room, Math.max(0, Number(e.target.value) || 0)))
+                  }
                   className="input mt-0.5 w-full"
                 />
               </label>
@@ -96,7 +97,9 @@ export default function RoomsField({
                         onChange={(e) =>
                           update(i, {
                             ...room,
-                            childrenAges: room.childrenAges.map((a, j) => (j === ci ? e.target.value : a)),
+                            childrenAges: room.childrenAges.map((a, j) =>
+                              j === ci ? e.target.value : a,
+                            ),
                           })
                         }
                         className="input w-16 px-1 py-1"
@@ -113,7 +116,8 @@ export default function RoomsField({
                   ))}
                 </div>
                 <p className="mt-1 text-[10px] text-ink-faint">
-                  Uzrast na dan putovanja — cena deteta zavisi od njega, pa bez unosa ponuda nije obavezujuća.
+                  Uzrast na dan putovanja — cena deteta zavisi od njega, pa bez unosa ponuda nije
+                  obavezujuća.
                 </p>
               </div>
             )}
@@ -122,7 +126,11 @@ export default function RoomsField({
       </div>
 
       {rooms.length < MAX_ROOMS && (
-        <button type="button" onClick={addRoom} className="mt-1.5 flex items-center gap-1 text-[11px] text-accent hover:text-accent-strong">
+        <button
+          type="button"
+          onClick={addRoom}
+          className="mt-1.5 flex items-center gap-1 text-[11px] text-accent hover:text-accent-strong"
+        >
           <Icon name="add" />
           Dodaj sobu
         </button>

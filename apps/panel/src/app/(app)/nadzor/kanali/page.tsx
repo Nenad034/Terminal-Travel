@@ -7,7 +7,6 @@ import NewChannelForm from './NewChannelForm';
 import ChannelStatusForm from './ChannelStatusForm';
 import { Badge } from '@/components/ui/badge';
 
-
 interface NotificationChannel {
   id: string;
   channelType: string;
@@ -44,12 +43,17 @@ export default async function NadzorKanaliPage() {
 
       {!error && (
         <div className="mb-4 flex flex-col gap-2">
-          {channels.length === 0 && <p className="rounded-lg border border-border bg-panel p-4 text-center text-xs text-ink-faint">Nema konfigurisanih kanala.</p>}
+          {channels.length === 0 && (
+            <p className="rounded-lg border border-border bg-panel p-4 text-center text-xs text-ink-faint">
+              Nema konfigurisanih kanala.
+            </p>
+          )}
           {channels.map((c) => (
             <div key={c.id} className="rounded-lg border border-border bg-panel p-3 text-sm">
               <div className="mb-2 flex items-center justify-between">
                 <div className="font-medium text-ink">
-                  {c.channelType} <span className="text-[11px] text-ink-faint">→ {c.recipientRole}</span>
+                  {c.channelType}{' '}
+                  <span className="text-[11px] text-ink-faint">→ {c.recipientRole}</span>
                 </div>
                 <StatusBadge status={c.status} />
               </div>

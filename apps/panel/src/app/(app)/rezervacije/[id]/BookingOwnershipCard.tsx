@@ -79,21 +79,46 @@ export default function BookingOwnershipCard({
       <div className="mb-3 grid gap-2 sm:grid-cols-2">
         <div>
           <div className="mb-1 text-ink-faint">Vlasnik (statistika/provizija)</div>
-          {ownerId ? <ActorLabel name={ownerName ?? undefined} origin="STAFF" /> : <span className="text-ink-faint">—</span>}
+          {ownerId ? (
+            <ActorLabel name={ownerName ?? undefined} origin="STAFF" />
+          ) : (
+            <span className="text-ink-faint">—</span>
+          )}
         </div>
         <div>
           <div className="mb-1 text-ink-faint">Trenutno zadužen</div>
-          {assignedToId ? <ActorLabel name={assignedName ?? undefined} origin="STAFF" /> : <span className="text-ink-faint">—</span>}
+          {assignedToId ? (
+            <ActorLabel name={assignedName ?? undefined} origin="STAFF" />
+          ) : (
+            <span className="text-ink-faint">—</span>
+          )}
         </div>
       </div>
 
       {pendingHandoff && (
-        <PendingHandoffRow bookingId={bookingId} handoff={pendingHandoff} currentUserId={currentUserId} canAcceptAssignment={canAcceptAssignment} />
+        <PendingHandoffRow
+          bookingId={bookingId}
+          handoff={pendingHandoff}
+          currentUserId={currentUserId}
+          canAcceptAssignment={canAcceptAssignment}
+        />
       )}
 
       <div className="mt-3 flex flex-wrap gap-4">
-        {showTransferForm && <TransferOwnershipForm bookingId={bookingId} directory={directory} excludeUserId={ownerId} />}
-        {showProposeForm && <ProposeHandoffForm bookingId={bookingId} directory={directory} excludeUserId={assignedToId} />}
+        {showTransferForm && (
+          <TransferOwnershipForm
+            bookingId={bookingId}
+            directory={directory}
+            excludeUserId={ownerId}
+          />
+        )}
+        {showProposeForm && (
+          <ProposeHandoffForm
+            bookingId={bookingId}
+            directory={directory}
+            excludeUserId={assignedToId}
+          />
+        )}
       </div>
     </div>
   );
@@ -140,13 +165,23 @@ function PendingHandoffRow({
         )}
       </div>
       {(acceptState.error || declineState.error || cancelState.error) && (
-        <p className="mt-1 text-danger">{acceptState.error || declineState.error || cancelState.error}</p>
+        <p className="mt-1 text-danger">
+          {acceptState.error || declineState.error || cancelState.error}
+        </p>
       )}
     </div>
   );
 }
 
-function TransferOwnershipForm({ bookingId, directory, excludeUserId }: { bookingId: string; directory: DirectoryUser[]; excludeUserId: string | null }) {
+function TransferOwnershipForm({
+  bookingId,
+  directory,
+  excludeUserId,
+}: {
+  bookingId: string;
+  directory: DirectoryUser[];
+  excludeUserId: string | null;
+}) {
   const boundAction = transferOwnership.bind(null, bookingId);
   const [state, formAction] = useActionState(boundAction, initialState);
   const options = directory.filter((u) => u.id !== excludeUserId);
@@ -156,7 +191,12 @@ function TransferOwnershipForm({ bookingId, directory, excludeUserId }: { bookin
         Prenesi vlasništvo na
       </label>
       <div className="flex items-center gap-2">
-        <select id={`transfer-${bookingId}`} name="newOwnerId" required className="h-7 rounded border border-border bg-bg px-2 text-xs text-ink">
+        <select
+          id={`transfer-${bookingId}`}
+          name="newOwnerId"
+          required
+          className="h-7 rounded border border-border bg-bg px-2 text-xs text-ink"
+        >
           <option value="">— izaberi kolegu —</option>
           {options.map((u) => (
             <option key={u.id} value={u.id}>
@@ -171,7 +211,15 @@ function TransferOwnershipForm({ bookingId, directory, excludeUserId }: { bookin
   );
 }
 
-function ProposeHandoffForm({ bookingId, directory, excludeUserId }: { bookingId: string; directory: DirectoryUser[]; excludeUserId: string | null }) {
+function ProposeHandoffForm({
+  bookingId,
+  directory,
+  excludeUserId,
+}: {
+  bookingId: string;
+  directory: DirectoryUser[];
+  excludeUserId: string | null;
+}) {
   const boundAction = proposeHandoff.bind(null, bookingId);
   const [state, formAction] = useActionState(boundAction, initialState);
   const options = directory.filter((u) => u.id !== excludeUserId);
@@ -181,7 +229,12 @@ function ProposeHandoffForm({ bookingId, directory, excludeUserId }: { bookingId
         Predaj zaduženje kolegi
       </label>
       <div className="flex items-center gap-2">
-        <select id={`handoff-${bookingId}`} name="toUserId" required className="h-7 rounded border border-border bg-bg px-2 text-xs text-ink">
+        <select
+          id={`handoff-${bookingId}`}
+          name="toUserId"
+          required
+          className="h-7 rounded border border-border bg-bg px-2 text-xs text-ink"
+        >
           <option value="">— izaberi kolegu —</option>
           {options.map((u) => (
             <option key={u.id} value={u.id}>

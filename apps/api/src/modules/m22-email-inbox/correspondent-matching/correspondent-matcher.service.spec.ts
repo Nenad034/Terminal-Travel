@@ -19,7 +19,11 @@ describe('CorrespondentMatcherService (M22 spec §3.1)', () => {
 
     const result = await service.match('gost@primer.rs');
 
-    expect(result).toEqual({ correspondentType: 'GUEST', correspondentClientAccountId: 'ca-1', correspondentSupplierId: null });
+    expect(result).toEqual({
+      correspondentType: 'GUEST',
+      correspondentClientAccountId: 'ca-1',
+      correspondentSupplierId: null,
+    });
   });
 
   it('tačno poklapanje po ClientAccount.email uz Subagent zapis -> SUBAGENT', async () => {
@@ -53,7 +57,11 @@ describe('CorrespondentMatcherService (M22 spec §3.1)', () => {
 
     const result = await service.match('hotel@dobavljac.rs');
 
-    expect(result).toEqual({ correspondentType: 'SUPPLIER', correspondentClientAccountId: null, correspondentSupplierId: 'sup-1' });
+    expect(result).toEqual({
+      correspondentType: 'SUPPLIER',
+      correspondentClientAccountId: null,
+      correspondentSupplierId: 'sup-1',
+    });
   });
 
   it('tačno poklapanje po SupplierContact.email -> SUPPLIER', async () => {
@@ -65,7 +73,11 @@ describe('CorrespondentMatcherService (M22 spec §3.1)', () => {
 
     const result = await service.match('kontakt@dobavljac.rs');
 
-    expect(result).toEqual({ correspondentType: 'SUPPLIER', correspondentClientAccountId: null, correspondentSupplierId: 'sup-2' });
+    expect(result).toEqual({
+      correspondentType: 'SUPPLIER',
+      correspondentClientAccountId: null,
+      correspondentSupplierId: 'sup-2',
+    });
   });
 
   it('bez poklapanja ni u jednom od četiri izvora -> OTHER', async () => {
@@ -77,7 +89,11 @@ describe('CorrespondentMatcherService (M22 spec §3.1)', () => {
 
     const result = await service.match('nepoznat@negde.rs');
 
-    expect(result).toEqual({ correspondentType: 'OTHER', correspondentClientAccountId: null, correspondentSupplierId: null });
+    expect(result).toEqual({
+      correspondentType: 'OTHER',
+      correspondentClientAccountId: null,
+      correspondentSupplierId: null,
+    });
   });
 
   it('nikad ne poziva jezički model (čisto deterministička provera nad Prisma upitima)', async () => {

@@ -51,7 +51,9 @@ export function ItineraryScreen() {
         keyExtractor={(item) => item.bookingItemId}
         contentContainerStyle={styles.list}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={loadFromNetwork} />}
-        ListEmptyComponent={<Text style={styles.empty}>Nema dodeljenih tura u narednih {WINDOW_DAYS} dana.</Text>}
+        ListEmptyComponent={
+          <Text style={styles.empty}>Nema dodeljenih tura u narednih {WINDOW_DAYS} dana.</Text>
+        }
         renderItem={({ item }) => (
           <Pressable
             style={[styles.card, screenSize === 'wide' && styles.cardWide]}
@@ -62,7 +64,8 @@ export function ItineraryScreen() {
             </Text>
             <Text style={styles.cardSubtitle}>Rezervacija {item.bookingNumber}</Text>
             <Text style={styles.cardDates}>
-              {new Date(item.stayFrom).toLocaleDateString()} – {new Date(item.stayTo).toLocaleDateString()}
+              {new Date(item.stayFrom).toLocaleDateString()} –{' '}
+              {new Date(item.stayTo).toLocaleDateString()}
             </Text>
             <Text style={styles.cardGuests}>{item.guests.length} gost(a)</Text>
           </Pressable>

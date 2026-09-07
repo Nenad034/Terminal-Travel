@@ -3,7 +3,6 @@ import { getMe, hasPermission } from '@/lib/me';
 import RegisterTab from '@/components/RegisterTab';
 import NewUserForm from './NewUserForm';
 
-
 interface RoleOption {
   id: string;
   name: string;
@@ -17,7 +16,9 @@ export default async function NoviKorisnikPage() {
     return (
       <div className="p-6">
         <RegisterTab label="Pozovi korisnika" />
-        <p className="rounded bg-danger-bg p-3 text-sm text-danger">Nemate dozvolu za pozivanje korisnika (M1/user/CREATE).</p>
+        <p className="rounded bg-danger-bg p-3 text-sm text-danger">
+          Nemate dozvolu za pozivanje korisnika (M1/user/CREATE).
+        </p>
       </div>
     );
   }

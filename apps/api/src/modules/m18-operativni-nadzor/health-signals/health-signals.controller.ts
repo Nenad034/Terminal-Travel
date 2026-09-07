@@ -16,7 +16,11 @@ export class HealthSignalsController {
 
   @Get()
   @RequirePermission('M18', 'health-signal', 'VIEW')
-  findAll(@Query('module') module?: string, @Query('type') type?: HealthSignalType, @Query('severity') severity?: HealthSignalSeverity) {
+  findAll(
+    @Query('module') module?: string,
+    @Query('type') type?: HealthSignalType,
+    @Query('severity') severity?: HealthSignalSeverity,
+  ) {
     return this.healthSignals.findAll({ module, type, severity });
   }
 }

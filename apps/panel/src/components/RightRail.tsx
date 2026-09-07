@@ -81,7 +81,10 @@ export default function RightRail({
 }: {
   rightPanelOpen: boolean;
   onToggleRightPanel: () => void;
-  layoutProps: Omit<ComponentProps<typeof CustomizeLayoutButton>, 'rightPanelOpen' | 'onToggleRightPanel'>;
+  layoutProps: Omit<
+    ComponentProps<typeof CustomizeLayoutButton>,
+    'rightPanelOpen' | 'onToggleRightPanel'
+  >;
 }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -97,12 +100,18 @@ export default function RightRail({
       <ThemeToggle />
       <NotificationBell />
       <InboxButton />
-      <CustomizeLayoutButton {...layoutProps} rightPanelOpen={rightPanelOpen} onToggleRightPanel={onToggleRightPanel} />
+      <CustomizeLayoutButton
+        {...layoutProps}
+        rightPanelOpen={rightPanelOpen}
+        onToggleRightPanel={onToggleRightPanel}
+      />
       <button
         onClick={onToggleRightPanel}
         title="Desni panel — sažetak/Povezano (dizajn dok. §5b)"
         className={`flex h-[36px] w-[36px] flex-shrink-0 items-center justify-center rounded-md ${
-          rightPanelOpen ? 'bg-accent-soft text-accent-strong' : 'bg-panel text-ink-faint hover:bg-panel2 hover:text-ink'
+          rightPanelOpen
+            ? 'bg-accent-soft text-accent-strong'
+            : 'bg-panel text-ink-faint hover:bg-panel2 hover:text-ink'
         }`}
       >
         <Icon name={rightPanelOpen ? 'layout-sidebar-right' : 'layout-sidebar-right-off'} />
@@ -119,7 +128,9 @@ export default function RightRail({
           href="/ai-asistent"
           title="AI asistent"
           className={`flex h-[36px] w-[36px] items-center justify-center rounded-md ${
-            pathname === '/ai-asistent' ? 'bg-accent-soft text-accent-strong' : 'bg-panel text-ink-faint hover:bg-panel2 hover:text-ink'
+            pathname === '/ai-asistent'
+              ? 'bg-accent-soft text-accent-strong'
+              : 'bg-panel text-ink-faint hover:bg-panel2 hover:text-ink'
           }`}
         >
           <Icon name="sparkle" />

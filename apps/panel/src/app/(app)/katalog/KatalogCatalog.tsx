@@ -43,7 +43,8 @@ export default function KatalogCatalog({ products }: { products: Product[] }) {
       if (filters.status.length > 0 && !filters.status.includes(p.status)) return false;
       if (filters.drzava.length > 0 && !filters.drzava.includes(p.destinationCountry)) return false;
       if (filters.grad.length > 0 && !filters.grad.includes(p.destinationCity)) return false;
-      if (filters.konekcija.length > 0 && !filters.konekcija.includes(connectionKey(p))) return false;
+      if (filters.konekcija.length > 0 && !filters.konekcija.includes(connectionKey(p)))
+        return false;
       if (q) {
         const name = p.translations?.find((t) => t.languageCode === 'sr')?.name ?? '';
         if (!name.toLowerCase().includes(q)) return false;
@@ -53,18 +54,26 @@ export default function KatalogCatalog({ products }: { products: Product[] }) {
   }, [products, filters]);
 
   const activeCount =
-    filters.tip.length + filters.status.length + filters.drzava.length + filters.grad.length + filters.konekcija.length + (filters.q ? 1 : 0);
+    filters.tip.length +
+    filters.status.length +
+    filters.drzava.length +
+    filters.grad.length +
+    filters.konekcija.length +
+    (filters.q ? 1 : 0);
 
   return (
     <div className="flex flex-col gap-3">
       <p className="text-[11px] text-ink-faint">
-        {filtered.length} {filtered.length === 1 ? 'proizvod' : 'proizvoda'} {activeCount > 0 && <>od ukupno {products.length}</>}
+        {filtered.length} {filtered.length === 1 ? 'proizvod' : 'proizvoda'}{' '}
+        {activeCount > 0 && <>od ukupno {products.length}</>}
       </p>
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {filtered.length === 0 && (
           <p className="text-xs text-ink-faint">
-            {products.length === 0 ? 'Nema proizvoda u katalogu.' : 'Nijedan proizvod ne odgovara izabranim filterima.'}
+            {products.length === 0
+              ? 'Nema proizvoda u katalogu.'
+              : 'Nijedan proizvod ne odgovara izabranim filterima.'}
           </p>
         )}
         {filtered.map((p) => {
@@ -84,10 +93,16 @@ export default function KatalogCatalog({ products }: { products: Product[] }) {
               }}
             >
               <div className="mb-1 flex items-center justify-between">
-                <Badge variant="outline" className="border-transparent bg-accent2-soft text-accent2">
+                <Badge
+                  variant="outline"
+                  className="border-transparent bg-accent2-soft text-accent2"
+                >
                   {p.type}
                 </Badge>
-                <Badge variant={p.status === 'ACTIVE' ? 'ok' : 'secondary'} className={p.status === 'ACTIVE' ? '' : 'text-ink-faint'}>
+                <Badge
+                  variant={p.status === 'ACTIVE' ? 'ok' : 'secondary'}
+                  className={p.status === 'ACTIVE' ? '' : 'text-ink-faint'}
+                >
                   {p.status}
                 </Badge>
               </div>

@@ -29,7 +29,11 @@ export class SupplierAnnouncementRulesController {
 
   @Patch(':id')
   @RequirePermission('M5', 'supplier-announcement-rule', 'EDIT')
-  update(@Param('id') id: string, @Body() dto: UpsertAnnouncementRuleDto, @CurrentUser() actor: { userId: string }) {
+  update(
+    @Param('id') id: string,
+    @Body() dto: UpsertAnnouncementRuleDto,
+    @CurrentUser() actor: { userId: string },
+  ) {
     return this.rules.update(id, dto, actor.userId);
   }
 }

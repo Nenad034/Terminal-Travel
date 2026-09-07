@@ -24,7 +24,16 @@ const sampleItem: ItineraryItem = {
   stayTo: '2027-06-14',
   itemStatus: 'CONFIRMED',
   voucherUrl: null,
-  guests: [{ bookingItemGuestId: 'g-1', firstName: 'Petar', lastName: 'Petrović', email: null, phone: null, preferences: null }],
+  guests: [
+    {
+      bookingItemGuestId: 'g-1',
+      firstName: 'Petar',
+      lastName: 'Petrović',
+      email: null,
+      phone: null,
+      preferences: null,
+    },
+  ],
 };
 
 describe('itinerary cache', () => {
@@ -51,19 +60,41 @@ describe('sync red čekanja (offline check-in/beleška)', () => {
   });
 
   it('enkjuovan check-in i beleška se broje u redu čekanja', async () => {
-    await enqueueCheckIn({ id: 'ci-1', bookingItemGuestId: 'g-1', checkedInAt: new Date().toISOString() });
-    await enqueueIncidentNote({ id: 'note-1', bookingId: 'booking-1', note: 'test', severity: 'URGENT', createdAt: new Date().toISOString() });
+    await enqueueCheckIn({
+      id: 'ci-1',
+      bookingItemGuestId: 'g-1',
+      checkedInAt: new Date().toISOString(),
+    });
+    await enqueueIncidentNote({
+      id: 'note-1',
+      bookingId: 'booking-1',
+      note: 'test',
+      severity: 'URGENT',
+      createdAt: new Date().toISOString(),
+    });
     expect(await getQueueSize()).toBe(2);
   });
 
   it('ponovljen isti klijentski id (idempotency key) ne duplira lokalni zapis', async () => {
-    await enqueueCheckIn({ id: 'ci-1', bookingItemGuestId: 'g-1', checkedInAt: '2027-01-01T10:00:00.000Z' });
-    await enqueueCheckIn({ id: 'ci-1', bookingItemGuestId: 'g-1', checkedInAt: '2027-01-01T10:05:00.000Z' });
+    await enqueueCheckIn({
+      id: 'ci-1',
+      bookingItemGuestId: 'g-1',
+      checkedInAt: '2027-01-01T10:00:00.000Z',
+    });
+    await enqueueCheckIn({
+      id: 'ci-1',
+      bookingItemGuestId: 'g-1',
+      checkedInAt: '2027-01-01T10:05:00.000Z',
+    });
     expect(await getQueueSize()).toBe(1);
   });
 
   it('praznjenje reda posle uspešnog sync-a briše sve stavke', async () => {
-    await enqueueCheckIn({ id: 'ci-1', bookingItemGuestId: 'g-1', checkedInAt: new Date().toISOString() });
+    await enqueueCheckIn({
+      id: 'ci-1',
+      bookingItemGuestId: 'g-1',
+      checkedInAt: new Date().toISOString(),
+    });
     await clearQueue();
     expect(await getQueueSize()).toBe(0);
   });

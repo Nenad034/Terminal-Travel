@@ -34,13 +34,21 @@ export class CommissionController {
 
   @Post('volume-tiers')
   @RequirePermission('M7', 'subagent', 'MANAGE_OWN_NETWORK')
-  createTier(@Param('id') subagentId: string, @Body() dto: CreateVolumeTierDto, @CurrentUser() actor: { userId: string }) {
+  createTier(
+    @Param('id') subagentId: string,
+    @Body() dto: CreateVolumeTierDto,
+    @CurrentUser() actor: { userId: string },
+  ) {
     return this.volumeTiers.create(subagentId, dto, actor);
   }
 
   @Patch('volume-tiers/:tierId')
   @RequirePermission('M7', 'subagent', 'MANAGE_OWN_NETWORK')
-  updateTier(@Param('tierId') tierId: string, @Body() dto: UpdateVolumeTierDto, @CurrentUser() actor: { userId: string }) {
+  updateTier(
+    @Param('tierId') tierId: string,
+    @Body() dto: UpdateVolumeTierDto,
+    @CurrentUser() actor: { userId: string },
+  ) {
     return this.volumeTiers.update(tierId, dto, actor);
   }
 
@@ -59,7 +67,11 @@ export class CommissionController {
 
   @Post('commission-rebates/:rebateId/reject')
   @RequirePermission('M7', 'commission-rebate', 'APPROVE')
-  rejectRebate(@Param('rebateId') rebateId: string, @Body() dto: RejectRebateDto, @CurrentUser() actor: { userId: string }) {
+  rejectRebate(
+    @Param('rebateId') rebateId: string,
+    @Body() dto: RejectRebateDto,
+    @CurrentUser() actor: { userId: string },
+  ) {
     return this.rebates.reject(rebateId, dto.reason, actor);
   }
 }

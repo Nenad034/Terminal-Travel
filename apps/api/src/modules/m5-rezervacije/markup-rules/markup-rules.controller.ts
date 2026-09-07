@@ -31,7 +31,11 @@ export class MarkupRulesController {
 
   @Patch(':id')
   @RequirePermission('M5', 'markup-rule', 'EDIT')
-  update(@Param('id') id: string, @Body() dto: UpdateMarkupRuleDto, @CurrentUser() actor: { userId: string }) {
+  update(
+    @Param('id') id: string,
+    @Body() dto: UpdateMarkupRuleDto,
+    @CurrentUser() actor: { userId: string },
+  ) {
     return this.markupRules.update(id, dto, actor.userId);
   }
 }

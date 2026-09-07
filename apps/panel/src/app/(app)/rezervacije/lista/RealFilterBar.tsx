@@ -99,7 +99,8 @@ function countActiveFilters(f: BookingFilters): number {
     'supplierType',
     'accommodationType',
   ];
-  const hasValue = (v: string | string[] | undefined) => (Array.isArray(v) ? v.length > 0 : Boolean(v));
+  const hasValue = (v: string | string[] | undefined) =>
+    Array.isArray(v) ? v.length > 0 : Boolean(v);
   let n = singleFields.filter((k) => hasValue(f[k] as string | string[] | undefined)).length;
   if (f.createdFrom || f.createdTo) n += 1;
   if (f.stayFrom || f.stayTo) n += 1;
@@ -118,7 +119,9 @@ export default function RealFilterBar({
   employees: FilterOption[];
   suppliers: FilterOption[];
 }) {
-  const hasAnyFilter = Object.values(filters).some((v) => (Array.isArray(v) ? v.length > 0 : Boolean(v)));
+  const hasAnyFilter = Object.values(filters).some((v) =>
+    Array.isArray(v) ? v.length > 0 : Boolean(v),
+  );
   const { mode } = useFilterMode();
   const [modalOpen, setModalOpen] = useState(false);
   const { formRef, handleFormChange } = useAutoSubmitForm();
@@ -132,11 +135,16 @@ export default function RealFilterBar({
           type="button"
           onClick={() => setModalOpen(true)}
           className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 font-medium ${
-            hasAnyFilter ? 'border-accent bg-accent-soft text-accent-strong' : 'border-border text-ink-dim hover:border-accent hover:text-ink'
+            hasAnyFilter
+              ? 'border-accent bg-accent-soft text-accent-strong'
+              : 'border-border text-ink-dim hover:border-accent hover:text-ink'
           }`}
         >
           <Icon name="filter" className="!text-[13px]" />
-          Filteri{hasAnyFilter ? ` · ${activeCount} ${activeCount === 1 ? 'kriterijum' : 'kriterijuma'}` : ''}
+          Filteri
+          {hasAnyFilter
+            ? ` · ${activeCount} ${activeCount === 1 ? 'kriterijum' : 'kriterijuma'}`
+            : ''}
         </button>
         {hasAnyFilter && (
           <Link href="/rezervacije/lista" className="font-medium text-ink-faint hover:text-danger">
@@ -144,7 +152,13 @@ export default function RealFilterBar({
           </Link>
         )}
         {modalOpen && (
-          <FilterModal filters={filters} branches={branches} employees={employees} suppliers={suppliers} onClose={() => setModalOpen(false)} />
+          <FilterModal
+            filters={filters}
+            branches={branches}
+            employees={employees}
+            suppliers={suppliers}
+            onClose={() => setModalOpen(false)}
+          />
         )}
       </div>
     );
@@ -157,7 +171,13 @@ export default function RealFilterBar({
       onChange={handleFormChange}
       className="mb-3 flex flex-col gap-2 rounded-lg border border-border bg-panel p-2 text-xs"
     >
-      <RealFilterFields filters={filters} autoSubmit branches={branches} employees={employees} suppliers={suppliers} />
+      <RealFilterFields
+        filters={filters}
+        autoSubmit
+        branches={branches}
+        employees={employees}
+        suppliers={suppliers}
+      />
       <div className="flex items-center gap-2">
         <button
           type="submit"
@@ -167,7 +187,10 @@ export default function RealFilterBar({
           <Icon name="play" />
         </button>
         {hasAnyFilter && (
-          <Link href="/rezervacije/lista" className="rounded px-3 py-1.5 font-medium text-ink-faint hover:text-ink">
+          <Link
+            href="/rezervacije/lista"
+            className="rounded px-3 py-1.5 font-medium text-ink-faint hover:text-ink"
+          >
             obriši filter
           </Link>
         )}
@@ -205,19 +228,38 @@ function FilterModal({
   }, [onClose]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/40 p-4 pt-[4vh]" onClick={onClose}>
+    <div
+      className="fixed inset-0 z-50 flex items-start justify-center bg-black/40 p-4 pt-[4vh]"
+      onClick={onClose}
+    >
       <div
         className="max-h-[92vh] w-full max-w-6xl overflow-y-auto rounded-xl border border-border bg-panel p-4 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-sm font-semibold text-ink">Filteri — Lista rezervacija</h2>
-          <button type="button" onClick={onClose} title="Zatvori" className="text-ink-faint hover:text-ink">
+          <button
+            type="button"
+            onClick={onClose}
+            title="Zatvori"
+            className="text-ink-faint hover:text-ink"
+          >
             <Icon name="close" />
           </button>
         </div>
-        <form ref={formRef} action="/rezervacije/lista" onChange={handleFormChange} className="flex flex-col gap-3 text-xs">
-          <RealFilterFields filters={filters} autoSubmit branches={branches} employees={employees} suppliers={suppliers} />
+        <form
+          ref={formRef}
+          action="/rezervacije/lista"
+          onChange={handleFormChange}
+          className="flex flex-col gap-3 text-xs"
+        >
+          <RealFilterFields
+            filters={filters}
+            autoSubmit
+            branches={branches}
+            employees={employees}
+            suppliers={suppliers}
+          />
           <div className="mt-1 flex items-center gap-2 border-t border-border pt-3">
             <button
               type="submit"
@@ -226,10 +268,17 @@ function FilterModal({
             >
               <Icon name="play" />
             </button>
-            <Link href="/rezervacije/lista" className="rounded px-3 py-1.5 font-medium text-ink-faint hover:text-ink">
+            <Link
+              href="/rezervacije/lista"
+              className="rounded px-3 py-1.5 font-medium text-ink-faint hover:text-ink"
+            >
               obriši filter
             </Link>
-            <button type="button" onClick={onClose} className="ml-auto rounded px-3 py-1.5 font-medium text-ink-faint hover:text-ink">
+            <button
+              type="button"
+              onClick={onClose}
+              className="ml-auto rounded px-3 py-1.5 font-medium text-ink-faint hover:text-ink"
+            >
               otkaži
             </button>
           </div>

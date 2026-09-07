@@ -10,14 +10,34 @@ export const M10_MONEY_FLOW_PROCESS_MAP: ProcessMapDefinition = {
   label: 'M10 — tok novca',
   module: 'M10',
   nodes: [
-    { id: 'payment-recorded', label: 'Uplata gosta zabeležena', matchActions: ['payment.recorded'] },
-    { id: 'invoice-created', label: 'Faktura kreirana', matchActions: ['fiscal_document.draft_created'] },
+    {
+      id: 'payment-recorded',
+      label: 'Uplata gosta zabeležena',
+      matchActions: ['payment.recorded'],
+    },
+    {
+      id: 'invoice-created',
+      label: 'Faktura kreirana',
+      matchActions: ['fiscal_document.draft_created'],
+    },
     { id: 'invoice-storno', label: 'Faktura stornirana', matchActions: ['fiscal_document.storno'] },
     // `supplier_obligation.created` (ručni unos) i `.auto_created` (iz M3 payment_schedule
     // rate ili M10 uvoza fakture dobavljača) predstavljaju isti poslovni trenutak — nastanak
     // obaveze — razlika je samo u tome ko/šta ju je pokrenulo, ne u čvoru na mapi.
-    { id: 'supplier-obligation-created', label: 'Obaveza dobavljaču kreirana', matchActions: ['supplier_obligation.created', 'supplier_obligation.auto_created'] },
-    { id: 'supplier-obligation-paid', label: 'Obaveza dobavljaču isplaćena', matchActions: ['supplier_obligation.paid'] },
-    { id: 'refund-executed', label: 'Povraćaj gostu izvršen', matchActions: ['refund_instruction.executed'] },
+    {
+      id: 'supplier-obligation-created',
+      label: 'Obaveza dobavljaču kreirana',
+      matchActions: ['supplier_obligation.created', 'supplier_obligation.auto_created'],
+    },
+    {
+      id: 'supplier-obligation-paid',
+      label: 'Obaveza dobavljaču isplaćena',
+      matchActions: ['supplier_obligation.paid'],
+    },
+    {
+      id: 'refund-executed',
+      label: 'Povraćaj gostu izvršen',
+      matchActions: ['refund_instruction.executed'],
+    },
   ],
 };

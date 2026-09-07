@@ -50,7 +50,9 @@ describe('M7 — izlazni kriterijum (e2e)', () => {
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
     app = moduleRef.createNestApplication();
     app.setGlobalPrefix('api/v1');
-    app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }));
+    app.useGlobalPipes(
+      new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }),
+    );
     app.useGlobalFilters(new PrismaExceptionFilter());
     await app.init();
     prisma = app.get(PrismaService);
@@ -75,34 +77,51 @@ describe('M7 — izlazni kriterijum (e2e)', () => {
   afterAll(async () => {
     if (createdBookingIds.length) {
       await prisma.postTripSurvey.deleteMany({ where: { bookingId: { in: createdBookingIds } } });
-      await prisma.travelGuaranteeRegistration.deleteMany({ where: { bookingId: { in: createdBookingIds } } });
+      await prisma.travelGuaranteeRegistration.deleteMany({
+        where: { bookingId: { in: createdBookingIds } },
+      });
       await prisma.clientContract.deleteMany({ where: { bookingId: { in: createdBookingIds } } });
-      await prisma.bookingItemGuest.deleteMany({ where: { bookingItem: { bookingId: { in: createdBookingIds } } } });
+      await prisma.bookingItemGuest.deleteMany({
+        where: { bookingItem: { bookingId: { in: createdBookingIds } } },
+      });
       await prisma.bookingItem.deleteMany({ where: { bookingId: { in: createdBookingIds } } });
       await prisma.booking.deleteMany({ where: { id: { in: createdBookingIds } } });
     }
-    await prisma.fiscalDocument.deleteMany({ where: { relatedSubagentId: { in: createdSubagentIds } } });
+    await prisma.fiscalDocument.deleteMany({
+      where: { relatedSubagentId: { in: createdSubagentIds } },
+    });
     await prisma.commissionRebate.deleteMany({ where: { subagentId: { in: createdSubagentIds } } });
-    await prisma.subagentVolumeStatus.deleteMany({ where: { subagentId: { in: createdSubagentIds } } });
-    await prisma.commissionVolumeTier.deleteMany({ where: { subagentId: { in: createdSubagentIds } } });
+    await prisma.subagentVolumeStatus.deleteMany({
+      where: { subagentId: { in: createdSubagentIds } },
+    });
+    await prisma.commissionVolumeTier.deleteMany({
+      where: { subagentId: { in: createdSubagentIds } },
+    });
     if (createdSubagentIds.length) {
       // deca pre roditelja (parent_subagent_id nema DB FK ka istoj tabeli sa ON DELETE, ali
       // redosled i dalje najbezbedniji — obrni redosled kreiranja).
       await prisma.subagent.deleteMany({ where: { id: { in: createdSubagentIds } } });
     }
     if (createdProductIds.length) {
-      await prisma.quote.deleteMany({ where: { items: { some: { productId: { in: createdProductIds } } } } });
+      await prisma.quote.deleteMany({
+        where: { items: { some: { productId: { in: createdProductIds } } } },
+      });
       await prisma.product.deleteMany({ where: { id: { in: createdProductIds } } });
     }
-    if (createdContractIds.length) await prisma.contract.deleteMany({ where: { id: { in: createdContractIds } } });
-    if (createdSupplierIds.length) await prisma.supplier.deleteMany({ where: { id: { in: createdSupplierIds } } });
-    if (createdMarkupRuleIds.length) await prisma.markupRule.deleteMany({ where: { id: { in: createdMarkupRuleIds } } });
-    if (createdClientAccountIds.length) await prisma.clientAccount.deleteMany({ where: { id: { in: createdClientAccountIds } } });
+    if (createdContractIds.length)
+      await prisma.contract.deleteMany({ where: { id: { in: createdContractIds } } });
+    if (createdSupplierIds.length)
+      await prisma.supplier.deleteMany({ where: { id: { in: createdSupplierIds } } });
+    if (createdMarkupRuleIds.length)
+      await prisma.markupRule.deleteMany({ where: { id: { in: createdMarkupRuleIds } } });
+    if (createdClientAccountIds.length)
+      await prisma.clientAccount.deleteMany({ where: { id: { in: createdClientAccountIds } } });
     if (createdUserIds.length) {
       await prisma.userRole.deleteMany({ where: { userId: { in: createdUserIds } } });
       await prisma.user.deleteMany({ where: { id: { in: createdUserIds } } });
     }
-    if (exchangeRateSnapshot) await prisma.exchangeRateSnapshot.deleteMany({ where: { id: exchangeRateSnapshot.id } });
+    if (exchangeRateSnapshot)
+      await prisma.exchangeRateSnapshot.deleteMany({ where: { id: exchangeRateSnapshot.id } });
     await app.close();
   });
 
@@ -117,7 +136,9 @@ describe('M7 — izlazni kriterijum (e2e)', () => {
     });
     createdUserIds.push(user.id);
     const role = await prisma.role.findUniqueOrThrow({ where: { name: roleName } });
-    await prisma.userRole.create({ data: { userId: user.id, roleId: role.id, assignedBy: user.id } });
+    await prisma.userRole.create({
+      data: { userId: user.id, roleId: role.id, assignedBy: user.id },
+    });
     const accessToken = jwt.sign({ sub: user.id, sessionId: 'e2e-test-session' });
     return { user, accessToken };
   }
@@ -140,14 +161,24 @@ describe('M7 — izlazni kriterijum (e2e)', () => {
   }
 
   // Tier 1 ACTIVE subagent — najčešća fixture (SubagentsService.create + approve).
-  async function createActiveSubagent(overrides: { commissionPercentage?: number; creditLimit?: number; creditLimitCurrency?: string } = {}) {
+  async function createActiveSubagent(
+    overrides: {
+      commissionPercentage?: number;
+      creditLimit?: number;
+      creditLimitCurrency?: string;
+    } = {},
+  ) {
     const account = await createLegalEntityAccount();
     const { user: staff } = await createInternalUser(SYSTEM_ROLES.VLASNIK);
     const created = await subagents.create({ clientAccountId: account.id }, { userId: staff.id });
     createdSubagentIds.push(created.id);
     const approved = await subagents.approve(
       created.id,
-      { creditLimit: overrides.creditLimit ?? 1_000_000, creditLimitCurrency: overrides.creditLimitCurrency ?? 'EUR', commissionPercentage: overrides.commissionPercentage ?? 10 },
+      {
+        creditLimit: overrides.creditLimit ?? 1_000_000,
+        creditLimitCurrency: overrides.creditLimitCurrency ?? 'EUR',
+        commissionPercentage: overrides.commissionPercentage ?? 10,
+      },
       { userId: staff.id },
     );
     return { subagent: approved, clientAccount: account };
@@ -164,15 +195,25 @@ describe('M7 — izlazni kriterijum (e2e)', () => {
       },
     });
     createdUserIds.push(user.id);
-    const role = await prisma.role.findUniqueOrThrow({ where: { name: SYSTEM_ROLES.SUBAGENT_ADMIN } });
-    await prisma.userRole.create({ data: { userId: user.id, roleId: role.id, assignedBy: user.id } });
+    const role = await prisma.role.findUniqueOrThrow({
+      where: { name: SYSTEM_ROLES.SUBAGENT_ADMIN },
+    });
+    await prisma.userRole.create({
+      data: { userId: user.id, roleId: role.id, assignedBy: user.id },
+    });
     const accessToken = jwt.sign({ sub: user.id, sessionId: 'e2e-test-session' });
     return { user, accessToken };
   }
 
   async function createBooking(
     clientAccountId: string,
-    overrides: Partial<{ totalPrice: number; currency: string; status: string; paymentStatus: string; confirmedAt: Date | null }> = {},
+    overrides: Partial<{
+      totalPrice: number;
+      currency: string;
+      status: string;
+      paymentStatus: string;
+      confirmedAt: Date | null;
+    }> = {},
   ) {
     const booking = await prisma.booking.create({
       data: {
@@ -236,7 +277,14 @@ describe('M7 — izlazni kriterijum (e2e)', () => {
         status: 'ACTIVE',
         attributes: { stars: 4 },
         translations: {
-          create: [{ languageCode: 'sr', name: 'Hotel M7 Test', description: 'opis', slug: `hotel-m7-${testRunId}-${Math.random().toString(36).slice(2)}` }],
+          create: [
+            {
+              languageCode: 'sr',
+              name: 'Hotel M7 Test',
+              description: 'opis',
+              slug: `hotel-m7-${testRunId}-${Math.random().toString(36).slice(2)}`,
+            },
+          ],
         },
       },
     });
@@ -255,10 +303,18 @@ describe('M7 — izlazni kriterijum (e2e)', () => {
     });
 
     const rateLine = await prisma.rateLine.create({
-      data: { contractPeriodId: contractPeriod.id, boardType: 'HALF_BOARD', occupancy: '2+0', priceBasis: 'PER_ROOM_PER_NIGHT', price: 10000 },
+      data: {
+        contractPeriodId: contractPeriod.id,
+        boardType: 'HALF_BOARD',
+        occupancy: '2+0',
+        priceBasis: 'PER_ROOM_PER_NIGHT',
+        price: 10000,
+      },
     });
 
-    const markupRule = await prisma.markupRule.create({ data: { scopeType: 'M3_SUPPLIER', scopeId: supplier.id, percentage: 20 } });
+    const markupRule = await prisma.markupRule.create({
+      data: { scopeType: 'M3_SUPPLIER', scopeId: supplier.id, percentage: 20 },
+    });
     createdMarkupRuleIds.push(markupRule.id);
 
     return { product, rateLine, markupRule, contractPeriod };
@@ -273,11 +329,24 @@ describe('M7 — izlazni kriterijum (e2e)', () => {
       expect(created.status).toBe('PENDING_APPROVAL');
 
       const bookingsBefore = await prisma.booking.count({ where: { clientAccountId: account.id } });
-      const quote = await quotes.create({ channel: 'B2B_PORTAL', clientAccountId: account.id, items: [] } as any, { userId: undefined });
-      await expect(bookings.confirmQuote(quote.id, { buyerName: 'Test', buyerType: 'FIZICKO_LICE' } as any, { userId: staff.id })).rejects.toThrow();
-      expect(await prisma.booking.count({ where: { clientAccountId: account.id } })).toBe(bookingsBefore);
+      const quote = await quotes.create(
+        { channel: 'B2B_PORTAL', clientAccountId: account.id, items: [] } as any,
+        { userId: undefined },
+      );
+      await expect(
+        bookings.confirmQuote(quote.id, { buyerName: 'Test', buyerType: 'FIZICKO_LICE' } as any, {
+          userId: staff.id,
+        }),
+      ).rejects.toThrow();
+      expect(await prisma.booking.count({ where: { clientAccountId: account.id } })).toBe(
+        bookingsBefore,
+      );
 
-      const approved = await subagents.approve(created.id, { creditLimit: 5000, creditLimitCurrency: 'EUR', commissionPercentage: 10 }, { userId: staff.id });
+      const approved = await subagents.approve(
+        created.id,
+        { creditLimit: 5000, creditLimitCurrency: 'EUR', commissionPercentage: 10 },
+        { userId: staff.id },
+      );
       expect(approved.status).toBe('ACTIVE');
       expect(Number(approved.creditLimit)).toBe(5000);
     });
@@ -294,7 +363,11 @@ describe('M7 — izlazni kriterijum (e2e)', () => {
       const childAccount = await createLegalEntityAccount();
 
       await expect(
-        subagents.createChild(parent.id, { clientAccountId: childAccount.id, commissionPercentage: 15 }, { userId: (await createInternalUser(SYSTEM_ROLES.VLASNIK)).user.id }),
+        subagents.createChild(
+          parent.id,
+          { clientAccountId: childAccount.id, commissionPercentage: 15 },
+          { userId: (await createInternalUser(SYSTEM_ROLES.VLASNIK)).user.id },
+        ),
       ).rejects.toThrow();
     });
 
@@ -303,24 +376,44 @@ describe('M7 — izlazni kriterijum (e2e)', () => {
       const childAccount = await createLegalEntityAccount();
       const { user: staff } = await createInternalUser(SYSTEM_ROLES.VLASNIK);
 
-      const child = await subagents.createChild(parent.id, { clientAccountId: childAccount.id, commissionPercentage: 8 }, { userId: staff.id });
+      const child = await subagents.createChild(
+        parent.id,
+        { clientAccountId: childAccount.id, commissionPercentage: 8 },
+        { userId: staff.id },
+      );
       createdSubagentIds.push(child.id);
       expect(Number(child.commissionPercentage)).toBe(8);
 
       // Roditeljski autoritet: pokušaj da postavi proviziju deteta iznad roditeljeve (10%) — odbijeno.
       const parentEffective = await volumeStatus.getEffectiveCommissionPercentage(parent.id);
       await expect(
-        subagents.updateChildCommission(parent.id, child.id, { commissionPercentage: 20 }, { userId: staff.id }, parentEffective),
+        subagents.updateChildCommission(
+          parent.id,
+          child.id,
+          { commissionPercentage: 20 },
+          { userId: staff.id },
+          parentEffective,
+        ),
       ).rejects.toThrow();
 
-      const updated = await subagents.updateChildCommission(parent.id, child.id, { commissionPercentage: 9 }, { userId: staff.id }, parentEffective);
+      const updated = await subagents.updateChildCommission(
+        parent.id,
+        child.id,
+        { commissionPercentage: 9 },
+        { userId: staff.id },
+        parentEffective,
+      );
       expect(Number(updated.commissionPercentage)).toBe(9);
     });
   });
 
   describe('§4 — kreditni limit sprovodi se PRE bilo kakve rezervacije kod M3/M4', () => {
     it('rezervacija koja bi prekoračila kreditni limit se odbija, i nijedna rezervacija kapaciteta se ne dešava', async () => {
-      const { clientAccount } = await createActiveSubagent({ commissionPercentage: 5, creditLimit: 1, creditLimitCurrency: 'EUR' });
+      const { clientAccount } = await createActiveSubagent({
+        commissionPercentage: 5,
+        creditLimit: 1,
+        creditLimitCurrency: 'EUR',
+      });
       const { product, rateLine, contractPeriod } = await createBookableProductFixture();
       const { user: staff } = await createInternalUser(SYSTEM_ROLES.VLASNIK);
 
@@ -342,20 +435,30 @@ describe('M7 — izlazni kriterijum (e2e)', () => {
         { userId: undefined },
       );
 
-      const before = await prisma.contractPeriod.findUniqueOrThrow({ where: { id: contractPeriod.id } });
+      const before = await prisma.contractPeriod.findUniqueOrThrow({
+        where: { id: contractPeriod.id },
+      });
       expect(before.unitsSold).toBe(0);
 
       await expect(
-        bookings.confirmQuote(quote.id, { buyerName: 'M7 E2E', buyerType: 'FIZICKO_LICE' } as any, { userId: staff.id }),
+        bookings.confirmQuote(quote.id, { buyerName: 'M7 E2E', buyerType: 'FIZICKO_LICE' } as any, {
+          userId: staff.id,
+        }),
       ).rejects.toThrow(/kreditnog limita/);
 
-      const after = await prisma.contractPeriod.findUniqueOrThrow({ where: { id: contractPeriod.id } });
+      const after = await prisma.contractPeriod.findUniqueOrThrow({
+        where: { id: contractPeriod.id },
+      });
       expect(after.unitsSold).toBe(0); // M3 rezervacija kapaciteta se NIJE desila (M5 spec §4 korak 1b pre koraka 2/3)
       expect(await prisma.booking.count({ where: { clientAccountId: clientAccount.id } })).toBe(0);
     });
 
     it('rezervacija unutar kredita prolazi normalno kroz confirmQuote', async () => {
-      const { clientAccount } = await createActiveSubagent({ commissionPercentage: 5, creditLimit: 1_000_000, creditLimitCurrency: 'EUR' });
+      const { clientAccount } = await createActiveSubagent({
+        commissionPercentage: 5,
+        creditLimit: 1_000_000,
+        creditLimitCurrency: 'EUR',
+      });
       const { product, rateLine } = await createBookableProductFixture();
       const { user: staff } = await createInternalUser(SYSTEM_ROLES.VLASNIK);
 
@@ -377,7 +480,11 @@ describe('M7 — izlazni kriterijum (e2e)', () => {
         { userId: undefined },
       );
 
-      const booking: any = await bookings.confirmQuote(quote.id, { buyerName: 'M7 E2E OK', buyerType: 'FIZICKO_LICE' } as any, { userId: staff.id });
+      const booking: any = await bookings.confirmQuote(
+        quote.id,
+        { buyerName: 'M7 E2E OK', buyerType: 'FIZICKO_LICE' } as any,
+        { userId: staff.id },
+      );
       createdBookingIds.push(booking.id);
       expect(booking.status).toBe('CONFIRMED');
     });
@@ -396,8 +503,14 @@ describe('M7 — izlazni kriterijum (e2e)', () => {
         occupancy: { adults: 2, children: 0, roomConfig: [{ adults: 2, children: 0 }] },
       };
 
-      const subagentQuote = await quotes.create({ channel: 'B2B_PORTAL', clientAccountId: clientAccount.id, items: [itemInput] } as any, { userId: undefined });
-      const baselineQuote = await quotes.create({ channel: 'B2B_PORTAL', items: [itemInput] } as any, { userId: undefined });
+      const subagentQuote = await quotes.create(
+        { channel: 'B2B_PORTAL', clientAccountId: clientAccount.id, items: [itemInput] } as any,
+        { userId: undefined },
+      );
+      const baselineQuote = await quotes.create(
+        { channel: 'B2B_PORTAL', items: [itemInput] } as any,
+        { userId: undefined },
+      );
 
       const discounted = subagentQuote.items[0].finalPrice;
       const baseline = baselineQuote.items[0].finalPrice;
@@ -416,8 +529,13 @@ describe('M7 — izlazni kriterijum (e2e)', () => {
         occupancy: { adults: 2, children: 0, roomConfig: [{ adults: 2, children: 0 }] },
       };
 
-      const quote = await quotes.create({ channel: 'B2C_SITE', clientAccountId: account.id, items: [itemInput] } as any, { userId: undefined });
-      const baseline = await quotes.create({ channel: 'B2C_SITE', items: [itemInput] } as any, { userId: undefined });
+      const quote = await quotes.create(
+        { channel: 'B2C_SITE', clientAccountId: account.id, items: [itemInput] } as any,
+        { userId: undefined },
+      );
+      const baseline = await quotes.create({ channel: 'B2C_SITE', items: [itemInput] } as any, {
+        userId: undefined,
+      });
 
       expect(quote.items[0].finalPrice).toBe(baseline.items[0].finalPrice); // nema provizije, nema lojalnosti
     });
@@ -428,7 +546,11 @@ describe('M7 — izlazni kriterijum (e2e)', () => {
       const { subagent: parent } = await createActiveSubagent({ commissionPercentage: 10 });
       const childAccount = await createLegalEntityAccount();
       const { user: staff } = await createInternalUser(SYSTEM_ROLES.VLASNIK);
-      const child = await subagents.createChild(parent.id, { clientAccountId: childAccount.id, commissionPercentage: 8 }, { userId: staff.id });
+      const child = await subagents.createChild(
+        parent.id,
+        { clientAccountId: childAccount.id, commissionPercentage: 8 },
+        { userId: staff.id },
+      );
       createdSubagentIds.push(child.id);
 
       const { user: parentUser } = await createSubagentAdminUser(parent.id);
@@ -440,11 +562,21 @@ describe('M7 — izlazni kriterijum (e2e)', () => {
     });
 
     it('subagent NE može da vidi rezervacije svog sub-subagenta (samo sopstvene)', async () => {
-      const { subagent: parent, clientAccount: parentAccount } = await createActiveSubagent({ commissionPercentage: 10 });
+      const { subagent: parent, clientAccount: parentAccount } = await createActiveSubagent({
+        commissionPercentage: 10,
+      });
       const childAccount = await createLegalEntityAccount();
       const { user: staff } = await createInternalUser(SYSTEM_ROLES.VLASNIK);
-      const child = await subagents.createChild(parent.id, { clientAccountId: childAccount.id, commissionPercentage: 8 }, { userId: staff.id });
-      const approvedChild = await subagents.approve(child.id, { creditLimit: 100_000, creditLimitCurrency: 'EUR' }, { userId: staff.id });
+      const child = await subagents.createChild(
+        parent.id,
+        { clientAccountId: childAccount.id, commissionPercentage: 8 },
+        { userId: staff.id },
+      );
+      const approvedChild = await subagents.approve(
+        child.id,
+        { creditLimit: 100_000, creditLimitCurrency: 'EUR' },
+        { userId: staff.id },
+      );
       createdSubagentIds.push(child.id);
       void approvedChild;
 
@@ -464,7 +596,13 @@ describe('M7 — izlazni kriterijum (e2e)', () => {
       const { subagent, clientAccount } = await createActiveSubagent({ commissionPercentage: 5 });
       const tier = await volumeTiers.create(
         subagent.id,
-        { rank: 1, thresholdMetric: 'BOOKING_COUNT', thresholdPeriod: 'CALENDAR_YEAR', thresholdValue: 1, resultingCommissionPercentage: 25 },
+        {
+          rank: 1,
+          thresholdMetric: 'BOOKING_COUNT',
+          thresholdPeriod: 'CALENDAR_YEAR',
+          thresholdValue: 1,
+          resultingCommissionPercentage: 25,
+        },
         { userId: (await createInternalUser(SYSTEM_ROLES.VLASNIK)).user.id },
       );
       expect(tier.rank).toBe(1);
@@ -483,8 +621,13 @@ describe('M7 — izlazni kriterijum (e2e)', () => {
         stayTo: '2027-06-17',
         occupancy: { adults: 2, children: 0, roomConfig: [{ adults: 2, children: 0 }] },
       };
-      const newQuote = await quotes.create({ channel: 'B2B_PORTAL', clientAccountId: clientAccount.id, items: [itemInput] } as any, { userId: undefined });
-      const baseline = await quotes.create({ channel: 'B2B_PORTAL', items: [itemInput] } as any, { userId: undefined });
+      const newQuote = await quotes.create(
+        { channel: 'B2B_PORTAL', clientAccountId: clientAccount.id, items: [itemInput] } as any,
+        { userId: undefined },
+      );
+      const baseline = await quotes.create({ channel: 'B2B_PORTAL', items: [itemInput] } as any, {
+        userId: undefined,
+      });
       expect(newQuote.items[0].finalPrice).toBe(Math.round(baseline.items[0].finalPrice * 0.75));
     });
 
@@ -492,7 +635,13 @@ describe('M7 — izlazni kriterijum (e2e)', () => {
       const { subagent, clientAccount } = await createActiveSubagent({ commissionPercentage: 5 });
       await volumeTiers.create(
         subagent.id,
-        { rank: 1, thresholdMetric: 'BOOKING_COUNT', thresholdPeriod: 'CALENDAR_YEAR', thresholdValue: 1, resultingCommissionPercentage: 30 },
+        {
+          rank: 1,
+          thresholdMetric: 'BOOKING_COUNT',
+          thresholdPeriod: 'CALENDAR_YEAR',
+          thresholdValue: 1,
+          resultingCommissionPercentage: 30,
+        },
         { userId: (await createInternalUser(SYSTEM_ROLES.VLASNIK)).user.id },
       );
       const booking = await createBooking(clientAccount.id);
@@ -511,7 +660,11 @@ describe('M7 — izlazni kriterijum (e2e)', () => {
       const childAccount = await createLegalEntityAccount();
       const { user: staff } = await createInternalUser(SYSTEM_ROLES.VLASNIK);
       // Dete dobija 18% dok je roditelj na 20% — u granici.
-      const child = await subagents.createChild(parent.id, { clientAccountId: childAccount.id, commissionPercentage: 18 }, { userId: staff.id });
+      const child = await subagents.createChild(
+        parent.id,
+        { clientAccountId: childAccount.id, commissionPercentage: 18 },
+        { userId: staff.id },
+      );
       createdSubagentIds.push(child.id);
 
       // Roditeljev preračun sad ispadne NIŽI od 20% (nema tier-a koji bi ga održao, a base ostaje 20%
@@ -519,7 +672,10 @@ describe('M7 — izlazni kriterijum (e2e)', () => {
       // "novom" efektivnom vrednošću preko privremenog CommissionVolumeTier koji ne dostiže prag,
       // pa se koristi baza; da bismo simulirali PAD, privremeno menjamo Subagent.commissionPercentage
       // na 10% (npr. agencija ručno umanjila) i preračunavamo.
-      await prisma.subagent.update({ where: { id: parent.id }, data: { commissionPercentage: 10 } });
+      await prisma.subagent.update({
+        where: { id: parent.id },
+        data: { commissionPercentage: 10 },
+      });
       await volumeStatus.recalculate(parent.id);
 
       const status = await volumeStatus.get(parent.id);
@@ -529,7 +685,11 @@ describe('M7 — izlazni kriterijum (e2e)', () => {
       expect(Number(childAfter.commissionPercentage)).toBe(18); // NIJE tiho promenjeno
 
       const warnings = await prisma.auditLogEntry.findMany({
-        where: { module: 'M7', action: 'subagent.commission_ceiling_warning', resourceId: child.id },
+        where: {
+          module: 'M7',
+          action: 'subagent.commission_ceiling_warning',
+          resourceId: child.id,
+        },
       });
       expect(warnings.length).toBeGreaterThan(0);
     });
@@ -544,8 +704,14 @@ describe('M7 — izlazni kriterijum (e2e)', () => {
       await volumeStatus.recalculate(subagent.id);
 
       // Dve rezervacije potvrđene u tekućoj kalendarskoj godini, ukupno 20000 EUR.
-      const booking1 = await createBooking(clientAccount.id, { totalPrice: 10000, currency: 'EUR' });
-      const booking2 = await createBooking(clientAccount.id, { totalPrice: 10000, currency: 'EUR' });
+      const booking1 = await createBooking(clientAccount.id, {
+        totalPrice: 10000,
+        currency: 'EUR',
+      });
+      const booking2 = await createBooking(clientAccount.id, {
+        totalPrice: 10000,
+        currency: 'EUR',
+      });
       void booking1;
       void booking2;
 
@@ -591,13 +757,24 @@ describe('M7 — izlazni kriterijum (e2e)', () => {
 
       await volumeTiers.create(
         subagent.id,
-        { rank: 1, thresholdMetric: 'BOOKING_COUNT', thresholdPeriod: 'CALENDAR_YEAR', thresholdValue: 1, resultingCommissionPercentage: 20, retroactive: true },
+        {
+          rank: 1,
+          thresholdMetric: 'BOOKING_COUNT',
+          thresholdPeriod: 'CALENDAR_YEAR',
+          thresholdValue: 1,
+          resultingCommissionPercentage: 20,
+          retroactive: true,
+        },
         { userId: staff.id },
       );
       await volumeStatus.recalculate(subagent.id);
 
       const [rebate] = await rebates.findMany(subagent.id);
-      const rejected = await rebates.reject(rebate.id, 'Interni dogovor — ne primenjuje se ovog kvartala', { userId: staff.id });
+      const rejected = await rebates.reject(
+        rebate.id,
+        'Interni dogovor — ne primenjuje se ovog kvartala',
+        { userId: staff.id },
+      );
       expect(rejected.status).toBe('REJECTED');
     });
   });
@@ -613,7 +790,14 @@ describe('M7 — izlazni kriterijum (e2e)', () => {
 
       await volumeTiers.create(
         subagent.id,
-        { rank: 1, thresholdMetric: 'BOOKING_COUNT', thresholdPeriod: 'CALENDAR_YEAR', thresholdValue: 2, resultingCommissionPercentage: 15, retroactive: true },
+        {
+          rank: 1,
+          thresholdMetric: 'BOOKING_COUNT',
+          thresholdPeriod: 'CALENDAR_YEAR',
+          thresholdValue: 2,
+          resultingCommissionPercentage: 15,
+          retroactive: true,
+        },
         { userId: staff.id },
       );
       await volumeStatus.recalculate(subagent.id);
@@ -626,7 +810,9 @@ describe('M7 — izlazni kriterijum (e2e)', () => {
       const approved = await rebates.approve(rebate.id, { userId: staff.id });
       expect(approved.status).toBe('APPROVED');
 
-      const creditNote = await prisma.fiscalDocument.findFirst({ where: { creditedRebateId: rebate.id } });
+      const creditNote = await prisma.fiscalDocument.findFirst({
+        where: { creditedRebateId: rebate.id },
+      });
       expect(creditNote).not.toBeNull();
       expect(creditNote!.documentType).toBe('KNJIZNO_ODOBRENJE');
       expect(creditNote!.bookingId).toBeNull();
@@ -652,7 +838,9 @@ describe('M7 — izlazni kriterijum (e2e)', () => {
       const { subagent } = await createActiveSubagent({ commissionPercentage: 10 });
       const { accessToken } = await createSubagentAdminUser(subagent.id);
 
-      const res = await request(app.getHttpServer()).get(`/api/v1/b2b/subagents/${subagent.id}`).set(authed(accessToken));
+      const res = await request(app.getHttpServer())
+        .get(`/api/v1/b2b/subagents/${subagent.id}`)
+        .set(authed(accessToken));
       expect(res.status).toBe(200);
       expect(res.body.id).toBe(subagent.id);
     });

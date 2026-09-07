@@ -43,7 +43,7 @@ Gost bira "nastavi bez naloga" → kreira se minimalan `GuestProfile`/`ClientAcc
 
 ## Korak 4 — Prihvatanje ugovora, clickwrap (M8 §3, korak 4 → M20 §3.2)
 
-Gost potvrđuje "Prihvatam uslove ugovora" pre plaćanja. M8 §3 kaže: *"ovaj klik se privremeno beleži uz `Quote` i primenjuje na `ClientContract` čim on nastane"*.
+Gost potvrđuje "Prihvatam uslove ugovora" pre plaćanja. M8 §3 kaže: _"ovaj klik se privremeno beleži uz `Quote` i primenjuje na `ClientContract` čim on nastane"_.
 
 **🔴 Ozbiljan nalaz:** `Quote` entitet (M5 §3.1) **nema nijedno polje** za čuvanje ovog pristanka (nema `contract_terms_accepted`, `accepted_at` ili slično). M8 specifikacija pretpostavlja mehanizam koji M5 model podataka trenutno ne podržava. Ovo mora da se dopuni — ili dodavanjem polja na `Quote` (M5 §3.1), ili definisanjem posebnog privremenog zapisa koji M20 kasnije čita. Trenutno je ovo neizvodljivo tačno onako kako je opisano.
 
@@ -53,9 +53,10 @@ Gost potvrđuje "Prihvatam uslove ugovora" pre plaćanja. M8 §3 kaže: *"ovaj k
 
 Pre nego što M5 pokrene tok potvrde, mora se znati `Booking.tip_nastupanja` (`ORGANIZATOR`/`POSREDNIK`) — ono direktno određuje PDV tretman (M10 §4), proveru garancije putovanja (M11 §4.2), i tip ugovora sa klijentom (M20 §2.2).
 
-**🔴 Kritičan nalaz:** M10 §4.1 kaže eksplicitno: *"Ovo polje bira prodajni tim/agent pri potvrdi rezervacije"*. Ali u ovom scenariju **nema prodajnog tima** — gost sam, na sajtu, potvrđuje sopstvenu rezervaciju, potpuno samostalno (M8 §3 je dizajniran kao samoposlužni tok od početka do kraja). Nigde u dokumentaciji nije definisano ko ili šta postavlja `tip_nastupanja` za samostalnu B2C rezervaciju sa sajta. Ovo nije kozmetički propust — bez ove vrednosti, M5 §4 korak 1 ne može da odluči da li uopšte da pozove M11 proveru garancije, M10 ne zna po kojoj formuli da obračuna PDV, M20 ne zna koji `contract_type` da generiše. Ovo je verovatno **najvažniji nalaz u celom ovom vežbanju** — mora se rešiti pre nego što M5/M8 dođu na red za implementaciju. Realno rešenje je verovatno: pošto agencija kroz M8 uvek prodaje sopstveni katalog kao organizator (osim kad izričito posreduje za tuđi aranžman), vrednost bi trebalo da bude izvedena iz `Product`/`Contract` konfiguracije (npr. novo polje na `Contract` ili `Product` koje kaže "ovaj proizvod se uvek prodaje kao ORGANIZATOR/POSREDNIK"), ne da je bira čovek koji ne postoji u ovom toku — ali ovo je odluka koju treba doneti eksplicitno, ne pretpostaviti.
+**🔴 Kritičan nalaz:** M10 §4.1 kaže eksplicitno: _"Ovo polje bira prodajni tim/agent pri potvrdi rezervacije"_. Ali u ovom scenariju **nema prodajnog tima** — gost sam, na sajtu, potvrđuje sopstvenu rezervaciju, potpuno samostalno (M8 §3 je dizajniran kao samoposlužni tok od početka do kraja). Nigde u dokumentaciji nije definisano ko ili šta postavlja `tip_nastupanja` za samostalnu B2C rezervaciju sa sajta. Ovo nije kozmetički propust — bez ove vrednosti, M5 §4 korak 1 ne može da odluči da li uopšte da pozove M11 proveru garancije, M10 ne zna po kojoj formuli da obračuna PDV, M20 ne zna koji `contract_type` da generiše. Ovo je verovatno **najvažniji nalaz u celom ovom vežbanju** — mora se rešiti pre nego što M5/M8 dođu na red za implementaciju. Realno rešenje je verovatno: pošto agencija kroz M8 uvek prodaje sopstveni katalog kao organizator (osim kad izričito posreduje za tuđi aranžman), vrednost bi trebalo da bude izvedena iz `Product`/`Contract` konfiguracije (npr. novo polje na `Contract` ili `Product` koje kaže "ovaj proizvod se uvek prodaje kao ORGANIZATOR/POSREDNIK"), ne da je bira čovek koji ne postoji u ovom toku — ali ovo je odluka koju treba doneti eksplicitno, ne pretpostaviti.
 
 Dalje, M5 §4:
+
 1. Provera isteka Ponude, provera garancije (M11, ako se `tip_nastupanja` uopšte zna).
 2. Poziv M3 `/contracts/:id/periods/:periodId/reserve` — uspeh, `FIXED` alotman.
 3. "Sve ili ništa" — nema drugih stavki koje bi propale u ovom scenariju.
@@ -71,6 +72,7 @@ Dalje, M5 §4:
 M5 §9 navodi da se pretplaćuju: M6 (istorija), M10 (fakturisanje), M11 (eTurista + CIS garancija), M12 (marketing), M20 (ugovor sa klijentom).
 
 Provera po modulu:
+
 - **M6** — §3.2 eksplicitno opisuje pretplatu na `booking.confirmed`, automatski preračun lojalnosti. ✅ Konzistentno.
 - **M11 eTurista** — §2.2 kaže da se šalje "odmah po potvrdi rezervacije, ako je poznato unapred" ili na `check_in_date`. ✅ Konzistentno, deterministički.
 - **M11 CIS garancija** — §4.3 eksplicitno: "kad `Booking.status` pređe u `CONFIRMED`... kreira se zapis". ✅ Konzistentno.
@@ -109,13 +111,13 @@ AI agent periodično priprema nacrt (`SupplierManifest`, DRAFT) agregacijom potv
 
 ## Rezime nalaza — Scenario 1 (B2C)
 
-| # | Ozbiljnost | Nalaz | Gde se rešava |
-| :---- | :---- | :---- | :---- |
-| 1 | 🔴 Kritično | `tip_nastupanja` nema definisanog nosioca odluke u potpuno samoposlužnom B2C toku | M5 §4 / M10 §4.1 / M2 ili M3 (poreklo pravila) |
-| 2 | 🔴 Ozbiljno | `Quote` nema polje za privremeno čuvanje clickwrap pristanka pre nego što `ClientContract` postoji | M5 §3.1 |
-| 3 | 🔴 Ozbiljno | M10 ne definiše automatski okidač za `FiscalDocument` nacrt po `booking.confirmed`, iako M5 §9 to sugeriše | M10, novo poglavlje |
-| 4 | 🔴 Ozbiljno | Nije definisano šta pokreće kreiranje `SupplierObligation` (automatski pri potvrdi, ili tek po ulaznoj fakturi dobavljača) | M10 §8 |
-| 5 | 🟡 Manje | `/search` (M5 §11) nema definisane query parametre (ranije identifikovano) | M5 §11 |
-| 6 | 🟡 Manje | Nije eksplicitno rečeno da anonimni gost bez naloga dobija `account_type = INDIVIDUAL` | M8 §3 / M6 §2.1 |
-| 7 | 🟡 Manje | M10 API ugovor ne pokazuje eksplicitan poziv ka M11 za stopu boravišne takse | M10 §10 |
-| 8 | 🟡 Operativno | Nema proaktivnog prikaza reda čekanja za ručno slanje fiskalnih dokumenata iz samoposlužnih B2C rezervacija | M17 / M10 |
+| #   | Ozbiljnost    | Nalaz                                                                                                                      | Gde se rešava                                  |
+| :-- | :------------ | :------------------------------------------------------------------------------------------------------------------------- | :--------------------------------------------- |
+| 1   | 🔴 Kritično   | `tip_nastupanja` nema definisanog nosioca odluke u potpuno samoposlužnom B2C toku                                          | M5 §4 / M10 §4.1 / M2 ili M3 (poreklo pravila) |
+| 2   | 🔴 Ozbiljno   | `Quote` nema polje za privremeno čuvanje clickwrap pristanka pre nego što `ClientContract` postoji                         | M5 §3.1                                        |
+| 3   | 🔴 Ozbiljno   | M10 ne definiše automatski okidač za `FiscalDocument` nacrt po `booking.confirmed`, iako M5 §9 to sugeriše                 | M10, novo poglavlje                            |
+| 4   | 🔴 Ozbiljno   | Nije definisano šta pokreće kreiranje `SupplierObligation` (automatski pri potvrdi, ili tek po ulaznoj fakturi dobavljača) | M10 §8                                         |
+| 5   | 🟡 Manje      | `/search` (M5 §11) nema definisane query parametre (ranije identifikovano)                                                 | M5 §11                                         |
+| 6   | 🟡 Manje      | Nije eksplicitno rečeno da anonimni gost bez naloga dobija `account_type = INDIVIDUAL`                                     | M8 §3 / M6 §2.1                                |
+| 7   | 🟡 Manje      | M10 API ugovor ne pokazuje eksplicitan poziv ka M11 za stopu boravišne takse                                               | M10 §10                                        |
+| 8   | 🟡 Operativno | Nema proaktivnog prikaza reda čekanja za ručno slanje fiskalnih dokumenata iz samoposlužnih B2C rezervacija                | M17 / M10                                      |

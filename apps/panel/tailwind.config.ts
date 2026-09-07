@@ -84,14 +84,33 @@ const config: Config = {
         lg: '12px',
       },
       fontFamily: {
-        sans: ['-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', 'Helvetica', 'Arial', 'sans-serif'],
-        mono: ['ui-monospace', '"Cascadia Code"', '"Cascadia Mono"', '"SFMono-Regular"', 'Menlo', 'Consolas', 'monospace'],
+        sans: [
+          '-apple-system',
+          'BlinkMacSystemFont',
+          '"Segoe UI"',
+          'Roboto',
+          'Helvetica',
+          'Arial',
+          'sans-serif',
+        ],
+        mono: [
+          'ui-monospace',
+          '"Cascadia Code"',
+          '"Cascadia Mono"',
+          '"SFMono-Regular"',
+          'Menlo',
+          'Consolas',
+          'monospace',
+        ],
         // Wordmark loga (26.8.2026) — vidi napomenu uz @import u globals.css.
         brand: ['"Chakra Petch"', 'ui-monospace', 'Consolas', 'monospace'],
       },
       keyframes: {
         'fade-in': { from: { opacity: '0' }, to: { opacity: '1' } },
-        'scale-in': { from: { opacity: '0', transform: 'scale(0.98)' }, to: { opacity: '1', transform: 'scale(1)' } },
+        'scale-in': {
+          from: { opacity: '0', transform: 'scale(0.98)' },
+          to: { opacity: '1', transform: 'scale(1)' },
+        },
       },
       animation: {
         'fade-in': 'fade-in 120ms ease-out',

@@ -37,7 +37,9 @@ describe('M22 — izlazni kriterijum (e2e)', () => {
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
     app = moduleRef.createNestApplication();
     app.setGlobalPrefix('api/v1');
-    app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }));
+    app.useGlobalPipes(
+      new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }),
+    );
     app.useGlobalFilters(new PrismaExceptionFilter());
     await app.init();
     prisma = app.get(PrismaService);
@@ -58,7 +60,9 @@ describe('M22 — izlazni kriterijum (e2e)', () => {
       await prisma.mailbox.deleteMany({ where: { id: { in: createdMailboxIds } } });
     }
     if (createdSupplierManifestIds.length) {
-      await prisma.supplierManifest.deleteMany({ where: { id: { in: createdSupplierManifestIds } } });
+      await prisma.supplierManifest.deleteMany({
+        where: { id: { in: createdSupplierManifestIds } },
+      });
     }
     if (createdSupplierIds.length) {
       await prisma.supplier.deleteMany({ where: { id: { in: createdSupplierIds } } });
@@ -85,7 +89,9 @@ describe('M22 — izlazni kriterijum (e2e)', () => {
     });
     createdUserIds.push(user.id);
     const role = await prisma.role.findUniqueOrThrow({ where: { name: roleName } });
-    await prisma.userRole.create({ data: { userId: user.id, roleId: role.id, assignedBy: user.id } });
+    await prisma.userRole.create({
+      data: { userId: user.id, roleId: role.id, assignedBy: user.id },
+    });
     const accessToken = jwt.sign({ sub: user.id, sessionId: 'e2e-test-session' });
     return { user, accessToken };
   }
@@ -95,7 +101,10 @@ describe('M22 — izlazni kriterijum (e2e)', () => {
   }
 
   async function createMailbox(actorToken: string, body: Record<string, unknown>) {
-    const res = await request(app.getHttpServer()).post('/api/v1/email/mailboxes').set(authed(actorToken)).send(body);
+    const res = await request(app.getHttpServer())
+      .post('/api/v1/email/mailboxes')
+      .set(authed(actorToken))
+      .send(body);
     expect(res.status).toBe(201);
     createdMailboxIds.push(res.body.id);
     return res.body;
@@ -113,13 +122,17 @@ describe('M22 — izlazni kriterijum (e2e)', () => {
       providerConnectionRef: 'mock',
     });
 
-    const listBefore = await request(app.getHttpServer()).get('/api/v1/email/threads').set(authed(salesManager.accessToken));
+    const listBefore = await request(app.getHttpServer())
+      .get('/api/v1/email/threads')
+      .set(authed(salesManager.accessToken));
     expect(listBefore.status).toBe(200);
     expect(listBefore.body).toEqual([]);
 
     // Vlasnik (bez eksplicitne MailboxAccess dodele — samo je kreirao sanduče preko mailbox/CREATE)
     // takođe ne vidi niti — čak ni Vlasnik nije izuzet iz §2.2.
-    const listVlasnik = await request(app.getHttpServer()).get('/api/v1/email/threads').set(authed(vlasnik.accessToken));
+    const listVlasnik = await request(app.getHttpServer())
+      .get('/api/v1/email/threads')
+      .set(authed(vlasnik.accessToken));
     expect(listVlasnik.status).toBe(200);
     expect(listVlasnik.body).toEqual([]);
 
@@ -277,10 +290,14 @@ describe('M22 — izlazni kriterijum (e2e)', () => {
 
     // M5 potvrda ostaje isključivo ljudski klik — ReferenceMatcherService/EmailThreadsService
     // NIKAD ne dotiču supplierConfirmedAt/supplierConfirmedBy.
-    const manifestAfter = await prisma.supplierManifest.findUniqueOrThrow({ where: { id: manifest.id } });
+    const manifestAfter = await prisma.supplierManifest.findUniqueOrThrow({
+      where: { id: manifest.id },
+    });
     expect(manifestAfter.status).toBe('SENT'); // nepromenjeno
 
-    const changeNoticeRelated = await prisma.supplierChangeNotice.findFirst({ where: { supplierConfirmedAt: { not: null } } });
+    const changeNoticeRelated = await prisma.supplierChangeNotice.findFirst({
+      where: { supplierConfirmedAt: { not: null } },
+    });
     // Statička provera koda (ne runtime) — nijedan M22 fajl ne sme pozivati M5 confirmSupplier
     // niti direktno pisati supplierConfirmedAt/supplierConfirmedBy.
     const m22Root = path.join(__dirname, '..', 'src', 'modules', 'm22-email-inbox');
@@ -295,7 +312,8 @@ describe('M22 — izlazni kriterijum (e2e)', () => {
             .split('\n')
             .filter((line) => !line.trim().startsWith('//'))
             .join('\n');
-          if (/confirmSupplier|supplierConfirmedAt\s*:|supplierConfirmedBy\s*:/.test(codeOnly)) matches++;
+          if (/confirmSupplier|supplierConfirmedAt\s*:|supplierConfirmedBy\s*:/.test(codeOnly))
+            matches++;
         }
       }
     };
@@ -355,7 +373,10 @@ describe('M22 — izlazni kriterijum (e2e)', () => {
     expect(secondSend.body.deliveredAt).toBeNull();
 
     // Ono što se NE sme desiti dvaput je slanje STVARNO isporučene poruke — to i dalje stoji.
-    await prisma.emailMessage.update({ where: { id: draftRes.body.id }, data: { deliveredAt: new Date() } });
+    await prisma.emailMessage.update({
+      where: { id: draftRes.body.id },
+      data: { deliveredAt: new Date() },
+    });
     const thirdSend = await request(app.getHttpServer())
       .post(`/api/v1/email/threads/${thread.id}/messages/${draftRes.body.id}/send`)
       .set(authed(staff.accessToken))
@@ -379,7 +400,12 @@ describe('M22 — izlazni kriterijum (e2e)', () => {
       .send({ userId: vlasnik.user.id, accessLevel: 'REPLY' });
 
     const thread = await prisma.emailThread.create({
-      data: { mailboxId: mailbox.id, subject: `Za konverziju ${testRunId}`, status: 'OPEN', correspondentType: 'OTHER' },
+      data: {
+        mailboxId: mailbox.id,
+        subject: `Za konverziju ${testRunId}`,
+        status: 'OPEN',
+        correspondentType: 'OTHER',
+      },
     });
     createdThreadIds.push(thread.id);
 
@@ -424,17 +450,26 @@ describe('M22 — izlazni kriterijum (e2e)', () => {
 
     // Sales Manager NEMA M22/mailbox/VIEW — GET /email/mailboxes bi mu vratio 403 — ali GET
     // /email/threads mu i dalje mora pokazati naziv sandučeta na koje ima MailboxAccess.
-    const mailboxesForbidden = await request(app.getHttpServer()).get('/api/v1/email/mailboxes').set(authed(staff.accessToken));
+    const mailboxesForbidden = await request(app.getHttpServer())
+      .get('/api/v1/email/mailboxes')
+      .set(authed(staff.accessToken));
     expect(mailboxesForbidden.status).toBe(403);
 
-    const listRes = await request(app.getHttpServer()).get('/api/v1/email/threads').set(authed(staff.accessToken));
+    const listRes = await request(app.getHttpServer())
+      .get('/api/v1/email/threads')
+      .set(authed(staff.accessToken));
     expect(listRes.status).toBe(200);
     const found = listRes.body.find((t: any) => t.id === thread.id);
     expect(found).toBeDefined();
     expect(found.mailbox).toEqual({ address: mailbox.address, displayName: mailbox.displayName });
 
-    const detailRes = await request(app.getHttpServer()).get(`/api/v1/email/threads/${thread.id}`).set(authed(staff.accessToken));
+    const detailRes = await request(app.getHttpServer())
+      .get(`/api/v1/email/threads/${thread.id}`)
+      .set(authed(staff.accessToken));
     expect(detailRes.status).toBe(200);
-    expect(detailRes.body.mailbox).toEqual({ address: mailbox.address, displayName: mailbox.displayName });
+    expect(detailRes.body.mailbox).toEqual({
+      address: mailbox.address,
+      displayName: mailbox.displayName,
+    });
   });
 });

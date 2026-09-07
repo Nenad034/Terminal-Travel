@@ -36,4 +36,4 @@ Postoji pravilo da gost ne sme dobiti vaučer za putovanje pre nego što ugovor 
 
 ---
 
-*Za tehničke detalje (tačna imena polja, redosled provera, API pozivi) vidi `21-SPECIFIKACIJA-M20-UGOVORI-KLIJENTI.md` u istom folderu — ovaj dokument je namerno pojednostavljen, ne zamenjuje ga.*
+_Za tehničke detalje (tačna imena polja, redosled provera, API pozivi) vidi `21-SPECIFIKACIJA-M20-UGOVORI-KLIJENTI.md` u istom folderu — ovaj dokument je namerno pojednostavljen, ne zamenjuje ga._

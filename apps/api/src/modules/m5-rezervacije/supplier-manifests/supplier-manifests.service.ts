@@ -59,16 +59,16 @@ export class SupplierManifestsService {
         itemStatus: 'CONFIRMED',
         stayFrom: { lte: periodTo },
         stayTo: { gte: periodFrom },
-        ...(dto.contractPeriodId
-          ? { rateLine: { contractPeriodId: dto.contractPeriodId } }
-          : {}),
+        ...(dto.contractPeriodId ? { rateLine: { contractPeriodId: dto.contractPeriodId } } : {}),
         product: { sourceContract: { supplierId: dto.supplierId } },
         manifestEntries: { none: { supplierManifest: { status: { not: 'SUPERSEDED' } } } },
       },
     });
 
     if (candidateItems.length === 0) {
-      throw new BadRequestException('Nema potvrđenih CONTRACTED stavki za ovog dobavljača u traženom periodu.');
+      throw new BadRequestException(
+        'Nema potvrđenih CONTRACTED stavki za ovog dobavljača u traženom periodu.',
+      );
     }
 
     return this.createManifest({
@@ -91,7 +91,11 @@ export class SupplierManifestsService {
    * agregiranje iznad, samo obim je jedna rezervacija umesto vremenskog perioda). Slanje
    * ostaje nepromenjeno — ručni klik po listi (POST /supplier-manifests/:id/send).
    */
-  async prepareForBooking(bookingId: string, generatedBy: string, language?: SupplierManifestLanguage) {
+  async prepareForBooking(
+    bookingId: string,
+    generatedBy: string,
+    language?: SupplierManifestLanguage,
+  ) {
     return this.prepareGrouped({ bookingId }, generatedBy, language);
   }
 
@@ -133,22 +137,35 @@ export class SupplierManifestsService {
     const and: Prisma.BookingItemWhereInput[] = [];
 
     if (params.createdFrom != null && params.createdTo != null) {
-      and.push({ booking: { createdAt: { gte: new Date(params.createdFrom), lte: new Date(params.createdTo) } } });
+      and.push({
+        booking: {
+          createdAt: { gte: new Date(params.createdFrom), lte: new Date(params.createdTo) },
+        },
+      });
     }
     // "boravak od-do" — preklapanje opsega (isti obrazac kao periodFrom/periodTo u generateDraft).
     if (params.stayFrom != null && params.stayTo != null) {
-      and.push({ stayFrom: { lte: new Date(params.stayTo) }, stayTo: { gte: new Date(params.stayFrom) } });
+      and.push({
+        stayFrom: { lte: new Date(params.stayTo) },
+        stayTo: { gte: new Date(params.stayFrom) },
+      });
     }
     // "dolasci od-do" — sam stay_from pada u opseg (kad tačno gost stiže), ne preklapanje.
     if (params.arrivalFrom != null && params.arrivalTo != null) {
-      and.push({ stayFrom: { gte: new Date(params.arrivalFrom), lte: new Date(params.arrivalTo) } });
+      and.push({
+        stayFrom: { gte: new Date(params.arrivalFrom), lte: new Date(params.arrivalTo) },
+      });
     }
     // "odlasci od-do" — sam stay_to pada u opseg.
     if (params.departureFrom != null && params.departureTo != null) {
-      and.push({ stayTo: { gte: new Date(params.departureFrom), lte: new Date(params.departureTo) } });
+      and.push({
+        stayTo: { gte: new Date(params.departureFrom), lte: new Date(params.departureTo) },
+      });
     }
     if (params.bookingStatus) {
-      const statuses = Array.isArray(params.bookingStatus) ? params.bookingStatus : [params.bookingStatus];
+      const statuses = Array.isArray(params.bookingStatus)
+        ? params.bookingStatus
+        : [params.bookingStatus];
       and.push({ booking: { status: { in: statuses } } });
     }
 
@@ -191,7 +208,9 @@ export class SupplierManifestsService {
       const supplier = await this.prisma.supplier.findUniqueOrThrow({ where: { id: supplierId } });
       const stayFroms = groupItems.map((i) => i.stayFrom.getTime());
       const stayTos = groupItems.map((i) => i.stayTo.getTime());
-      const contractPeriodIds = new Set(groupItems.map((i) => i.rateLine?.contractPeriodId).filter(Boolean));
+      const contractPeriodIds = new Set(
+        groupItems.map((i) => i.rateLine?.contractPeriodId).filter(Boolean),
+      );
 
       manifests.push(
         await this.createManifest({
@@ -262,7 +281,9 @@ export class SupplierManifestsService {
     if (manifest.status !== 'DRAFT' && manifest.status !== 'PENDING_SEND') {
       throw new BadRequestException(`SupplierManifest ${id} nije u statusu DRAFT ni PENDING_SEND.`);
     }
-    const supplier = await this.prisma.supplier.findUniqueOrThrow({ where: { id: manifest.supplierId } });
+    const supplier = await this.prisma.supplier.findUniqueOrThrow({
+      where: { id: manifest.supplierId },
+    });
 
     const result = await this.mailbox.sendViaSharedMailbox({
       toEmail: supplier.contactEmail,
@@ -284,7 +305,12 @@ export class SupplierManifestsService {
           await this.prisma.$transaction([
             this.prisma.supplierManifest.update({
               where: { id },
-              data: { status: 'SENT', sentAt: now, sentBy: actorId, sentToEmail: supplier.contactEmail },
+              data: {
+                status: 'SENT',
+                sentAt: now,
+                sentBy: actorId,
+                sentToEmail: supplier.contactEmail,
+              },
             }),
             // §8.6 — announced_at se popunjava na svakoj obuhvaćenoj BookingItem.
             this.prisma.bookingItem.updateMany({
@@ -316,7 +342,8 @@ export class SupplierManifestsService {
   // §8.6 — ručni unos potvrde dobavljača, popunjava sve stavke te liste.
   async confirmSupplier(id: string, actorId: string) {
     const manifest = await this.findOne(id);
-    if (manifest.status !== 'SENT') throw new BadRequestException(`SupplierManifest ${id} nije poslat.`);
+    if (manifest.status !== 'SENT')
+      throw new BadRequestException(`SupplierManifest ${id} nije poslat.`);
     const now = new Date();
 
     await this.prisma.bookingItem.updateMany({
@@ -352,14 +379,20 @@ export class SupplierManifestsService {
     const oldManifest = entry.supplierManifest;
     const remainingItemIds = (
       await this.prisma.bookingItem.findMany({
-        where: { id: { in: oldManifest.items.map((i) => i.bookingItemId) }, itemStatus: { not: 'CANCELLED' } },
+        where: {
+          id: { in: oldManifest.items.map((i) => i.bookingItemId) },
+          itemStatus: { not: 'CANCELLED' },
+        },
         select: { id: true },
       })
     ).map((i) => i.id);
 
     const referenceCode = await nextReferenceCode(this.prisma);
     const [, newManifest] = await this.prisma.$transaction([
-      this.prisma.supplierManifest.update({ where: { id: oldManifest.id }, data: { status: 'SUPERSEDED' } }),
+      this.prisma.supplierManifest.update({
+        where: { id: oldManifest.id },
+        data: { status: 'SUPERSEDED' },
+      }),
       this.prisma.supplierManifest.create({
         data: {
           supplierId: oldManifest.supplierId,

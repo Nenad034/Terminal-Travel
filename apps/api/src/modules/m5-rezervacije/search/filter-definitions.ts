@@ -32,7 +32,11 @@ export const FILTER_DEFINITIONS: FilterDefinition[] = [
   // M5 spec §3.0c.3d — konkretan primer 2 (Bad Klajnkirhajm): blizina ski lifta, samo za planinske
   // destinacije, I samo tokom zimskih meseci (novembar–mart). Van ovog perioda se NE prikazuje,
   // čak i za planinsku destinaciju — oba uslova moraju proći.
-  { key: 'DISTANCE_TO_SKI_LIFT', applicableDestinationTypes: ['MOUNTAIN'], activeMonths: [11, 12, 1, 2, 3] },
+  {
+    key: 'DISTANCE_TO_SKI_LIFT',
+    applicableDestinationTypes: ['MOUNTAIN'],
+    activeMonths: [11, 12, 1, 2, 3],
+  },
 ];
 
 /**
@@ -48,10 +52,14 @@ export function isFilterApplicable(
   const destinationTypeOk =
     !definition.applicableDestinationTypes ||
     definition.applicableDestinationTypes.length === 0 ||
-    presentDestinationTypes.some((t) => t !== null && definition.applicableDestinationTypes!.includes(t));
+    presentDestinationTypes.some(
+      (t) => t !== null && definition.applicableDestinationTypes!.includes(t),
+    );
 
   const monthOk =
-    !definition.activeMonths || definition.activeMonths.length === 0 || definition.activeMonths.includes(searchMonth);
+    !definition.activeMonths ||
+    definition.activeMonths.length === 0 ||
+    definition.activeMonths.includes(searchMonth);
 
   return destinationTypeOk && monthOk;
 }
@@ -61,5 +69,7 @@ export function applicableFilters(
   presentDestinationTypes: (DestinationType | null)[],
   searchMonth: number,
 ): FilterDefinition[] {
-  return FILTER_DEFINITIONS.filter((d) => isFilterApplicable(d, presentDestinationTypes, searchMonth));
+  return FILTER_DEFINITIONS.filter((d) =>
+    isFilterApplicable(d, presentDestinationTypes, searchMonth),
+  );
 }

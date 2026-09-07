@@ -61,7 +61,11 @@ export class RolesController {
 
   @Patch(':id')
   @RequirePermission('M1', 'role', 'EDIT')
-  update(@Param('id') id: string, @Body('description') description: string, @CurrentUser() actor: { userId: string }) {
+  update(
+    @Param('id') id: string,
+    @Body('description') description: string,
+    @CurrentUser() actor: { userId: string },
+  ) {
     return this.roles.update(id, description, actor.userId);
   }
 }

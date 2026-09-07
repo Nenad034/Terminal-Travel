@@ -12,7 +12,11 @@ export function signPaymentWebhookPayload(gatewayTransactionId: string, secret: 
   return createHmac('sha256', secret).update(gatewayTransactionId).digest('hex');
 }
 
-export function verifyPaymentWebhookSignature(gatewayTransactionId: string, signature: string | undefined, secret: string): boolean {
+export function verifyPaymentWebhookSignature(
+  gatewayTransactionId: string,
+  signature: string | undefined,
+  secret: string,
+): boolean {
   if (!signature) return false;
   const expected = signPaymentWebhookPayload(gatewayTransactionId, secret);
   const expectedBuf = Buffer.from(expected, 'hex');

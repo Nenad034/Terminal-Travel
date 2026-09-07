@@ -19,10 +19,15 @@ export class SupplierPaymentInstructionsService {
   }
 
   async create(dto: CreateSupplierPaymentInstructionDto, actor: { userId: string }) {
-    const obligation = await this.prisma.supplierObligation.findUnique({ where: { id: dto.supplierObligationId } });
-    if (!obligation) throw new NotFoundException(`SupplierObligation ${dto.supplierObligationId} nije pronađena.`);
+    const obligation = await this.prisma.supplierObligation.findUnique({
+      where: { id: dto.supplierObligationId },
+    });
+    if (!obligation)
+      throw new NotFoundException(`SupplierObligation ${dto.supplierObligationId} nije pronađena.`);
     if (obligation.status !== 'APPROVED') {
-      throw new BadRequestException('Instrukcija za isplatu se pravi tek nad APPROVED obavezom (M10 spec §8.5.2/§8.3).');
+      throw new BadRequestException(
+        'Instrukcija za isplatu se pravi tek nad APPROVED obavezom (M10 spec §8.5.2/§8.3).',
+      );
     }
 
     const instruction = await this.prisma.supplierPaymentInstruction.create({
@@ -51,9 +56,12 @@ export class SupplierPaymentInstructionsService {
   // §8.5.2 — obavezno ljudski nalog, nikad AI agent.
   async execute(id: string, actor: { userId: string }) {
     const instruction = await this.prisma.supplierPaymentInstruction.findUnique({ where: { id } });
-    if (!instruction) throw new NotFoundException(`SupplierPaymentInstruction ${id} nije pronađena.`);
+    if (!instruction)
+      throw new NotFoundException(`SupplierPaymentInstruction ${id} nije pronađena.`);
     if (instruction.status !== 'PENDING') {
-      throw new BadRequestException(`SupplierPaymentInstruction ${id} nije u statusu PENDING (status: ${instruction.status}).`);
+      throw new BadRequestException(
+        `SupplierPaymentInstruction ${id} nije u statusu PENDING (status: ${instruction.status}).`,
+      );
     }
 
     const updated = await this.prisma.supplierPaymentInstruction.update({

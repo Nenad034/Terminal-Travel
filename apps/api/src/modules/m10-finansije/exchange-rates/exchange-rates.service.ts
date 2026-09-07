@@ -1,9 +1,17 @@
 import { ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
-import { type PaginationQueryDto, paginated, paginationArgs } from '../../../common/pagination/pagination';
+import {
+  type PaginationQueryDto,
+  paginated,
+  paginationArgs,
+} from '../../../common/pagination/pagination';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { CreateExchangeRateDto } from './dto/create-exchange-rate.dto';
-import { type NbsRatePage, NbsRateFetcherService, TRACKED_CURRENCIES } from './nbs-rate-fetcher.service';
+import {
+  type NbsRatePage,
+  NbsRateFetcherService,
+  TRACKED_CURRENCIES,
+} from './nbs-rate-fetcher.service';
 
 // M10 spec §3.1 — kurs NBS na dan X, koristi se i za konverziju gostu (§3) i za obaveze
 // prema dobavljaču (§8.1). source = NBS_API otkad postoji dnevni automatski uvoz (§11,
@@ -52,7 +60,12 @@ export class ExchangeRatesService {
     const where = { currency: filters.currency };
     const { skip, take, page, limit } = paginationArgs(pagination);
     const [redovi, total] = await this.prisma.$transaction([
-      this.prisma.exchangeRateSnapshot.findMany({ where, orderBy: { rateDate: 'desc' }, skip, take }),
+      this.prisma.exchangeRateSnapshot.findMany({
+        where,
+        orderBy: { rateDate: 'desc' },
+        skip,
+        take,
+      }),
       this.prisma.exchangeRateSnapshot.count({ where }),
     ]);
     return paginated(redovi, total, page, limit);
@@ -85,7 +98,9 @@ export class ExchangeRatesService {
    * listu nekog RANIJEG dana — to nije greška nego neradni dan (NBS vraća poslednju važeću
    * listu), i zapis za taj raniji dan ili već postoji ili će ga doneti njegov sopstveni poziv.
    */
-  async importFromNbsForDate(date: Date): Promise<{ imported: string[]; skipped: string[] } | null> {
+  async importFromNbsForDate(
+    date: Date,
+  ): Promise<{ imported: string[]; skipped: string[] } | null> {
     const page = await this.nbsFetcher.fetchRatesForDate(date);
     if (page.rateDate.toISOString().slice(0, 10) !== date.toISOString().slice(0, 10)) {
       this.logger.log(
@@ -120,7 +135,8 @@ export class ExchangeRatesService {
     const imaSve = new Set<string>();
     for (const valuta of TRACKED_CURRENCIES) {
       for (const zapis of postojeci) {
-        if (zapis.currency === valuta) imaSve.add(`${valuta}|${zapis.rateDate.toISOString().slice(0, 10)}`);
+        if (zapis.currency === valuta)
+          imaSve.add(`${valuta}|${zapis.rateDate.toISOString().slice(0, 10)}`);
       }
     }
 
@@ -147,16 +163,23 @@ export class ExchangeRatesService {
       } catch (err) {
         // Jedan neuspeo dan ne sme prekinuti ceo raspon — sledeći prolaz ga pokušava ponovo.
         neuspelo += 1;
-        opcije?.onProgress?.(kljuc, `NEUSPELO: ${err instanceof Error ? err.message : String(err)}`);
+        opcije?.onProgress?.(
+          kljuc,
+          `NEUSPELO: ${err instanceof Error ? err.message : String(err)}`,
+        );
       }
       if (pauseMs > 0) await new Promise((r) => setTimeout(r, pauseMs));
     }
 
-    this.logger.log(`Popunjavanje kursne liste: ${popunjeno} dana uvezeno, ${preskoceno} preskočeno, ${neuspelo} neuspelo.`);
+    this.logger.log(
+      `Popunjavanje kursne liste: ${popunjeno} dana uvezeno, ${preskoceno} preskočeno, ${neuspelo} neuspelo.`,
+    );
     return { popunjeno, preskoceno, neuspelo };
   }
 
-  private async upisiStranicu(page: NbsRatePage): Promise<{ imported: string[]; skipped: string[] }> {
+  private async upisiStranicu(
+    page: NbsRatePage,
+  ): Promise<{ imported: string[]; skipped: string[] }> {
     const imported: string[] = [];
     const skipped: string[] = [];
 

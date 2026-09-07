@@ -9,7 +9,6 @@ import VolumeTiersPanel from './VolumeTiersPanel';
 import RebatesPanel from '../RebatesPanel';
 import { Badge } from '@/components/ui/badge';
 
-
 interface Subagent {
   id: string;
   clientAccountId: string;
@@ -90,21 +89,44 @@ export default async function SubagentDetailPage(props: { params: Promise<{ id: 
   try {
     subagent = await apiFetch<Subagent>(`/b2b/subagents/${params.id}`);
   } catch (err) {
-    error = err instanceof ApiError && err.status === 404 ? 'Subagent nije pronađen.' : 'Subagent trenutno nije dostupan.';
+    error =
+      err instanceof ApiError && err.status === 404
+        ? 'Subagent nije pronađen.'
+        : 'Subagent trenutno nije dostupan.';
   }
 
   const [account, balance, volumeStatus, tiers, children, rebates] = await Promise.all([
-    subagent && canViewAccount ? apiFetch<ClientAccountSummary>(`/crm/client-accounts/${subagent.clientAccountId}`).catch(() => null) : Promise.resolve(null),
-    subagent ? apiFetch<OutstandingBalance>(`/b2b/subagents/${subagent.id}/outstanding-balance`).catch(() => null) : Promise.resolve(null),
-    subagent ? apiFetch<VolumeStatus>(`/b2b/subagents/${subagent.id}/volume-status`).catch(() => null) : Promise.resolve(null),
-    subagent ? apiFetch<VolumeTier[]>(`/b2b/subagents/${subagent.id}/volume-tiers`).catch(() => []) : Promise.resolve([]),
-    subagent ? apiFetch<Subagent[]>(`/b2b/subagents/${subagent.id}/children`).catch(() => []) : Promise.resolve([]),
-    subagent && canViewRebates ? apiFetch<CommissionRebate[]>(`/b2b/subagents/${subagent.id}/commission-rebates`).catch(() => []) : Promise.resolve([]),
+    subagent && canViewAccount
+      ? apiFetch<ClientAccountSummary>(`/crm/client-accounts/${subagent.clientAccountId}`).catch(
+          () => null,
+        )
+      : Promise.resolve(null),
+    subagent
+      ? apiFetch<OutstandingBalance>(`/b2b/subagents/${subagent.id}/outstanding-balance`).catch(
+          () => null,
+        )
+      : Promise.resolve(null),
+    subagent
+      ? apiFetch<VolumeStatus>(`/b2b/subagents/${subagent.id}/volume-status`).catch(() => null)
+      : Promise.resolve(null),
+    subagent
+      ? apiFetch<VolumeTier[]>(`/b2b/subagents/${subagent.id}/volume-tiers`).catch(() => [])
+      : Promise.resolve([]),
+    subagent
+      ? apiFetch<Subagent[]>(`/b2b/subagents/${subagent.id}/children`).catch(() => [])
+      : Promise.resolve([]),
+    subagent && canViewRebates
+      ? apiFetch<CommissionRebate[]>(`/b2b/subagents/${subagent.id}/commission-rebates`).catch(
+          () => [],
+        )
+      : Promise.resolve([]),
   ]);
 
   return (
     <div className="p-6">
-      <RegisterTab label={account ? (account.companyName ?? account.fullName ?? '') : params.id.slice(0, 8)} />
+      <RegisterTab
+        label={account ? (account.companyName ?? account.fullName ?? '') : params.id.slice(0, 8)}
+      />
       {error && <p className="rounded bg-danger-bg p-3 text-sm text-danger">{error}</p>}
 
       {subagent && (
@@ -126,15 +148,23 @@ export default async function SubagentDetailPage(props: { params: Promise<{ id: 
                   <p>PIB: {account.taxId ?? '—'}</p>
                   <p className="mt-1">Email: {account.email ?? '—'}</p>
                   <p className="mt-1">Telefon: {account.phone ?? '—'}</p>
-                  <Link href={`/crm/${account.id}`} className="mt-2 inline-block text-accent hover:underline">
+                  <Link
+                    href={`/crm/${account.id}`}
+                    className="mt-2 inline-block text-accent hover:underline"
+                  >
                     otvori nalogodavca u CRM →
                   </Link>
                 </>
               ) : (
                 <p className="text-ink-faint">Nalog nije dostupan.</p>
               )}
-              <p className="mt-2">Tip: {subagent.parentSubagentId ? 'Sub-subagent' : 'Tier 1 (direktan partner agencije)'}</p>
-              <p className="mt-1">Registrovan: {new Date(subagent.createdAt).toLocaleDateString('sr-RS')}</p>
+              <p className="mt-2">
+                Tip:{' '}
+                {subagent.parentSubagentId ? 'Sub-subagent' : 'Tier 1 (direktan partner agencije)'}
+              </p>
+              <p className="mt-1">
+                Registrovan: {new Date(subagent.createdAt).toLocaleDateString('sr-RS')}
+              </p>
             </div>
 
             <div className="rounded-lg border border-border bg-panel p-4 text-xs text-ink-dim">
@@ -142,14 +172,25 @@ export default async function SubagentDetailPage(props: { params: Promise<{ id: 
                 <Icon name="credit-card" className="text-accent" /> Kreditni limit i dug
               </div>
               <p>
-                Limit: <b className="text-ink">{subagent.creditLimit != null ? subagent.creditLimit.toLocaleString('sr-RS') : '—'}</b> {subagent.creditLimitCurrency ?? ''}
+                Limit:{' '}
+                <b className="text-ink">
+                  {subagent.creditLimit != null
+                    ? subagent.creditLimit.toLocaleString('sr-RS')
+                    : '—'}
+                </b>{' '}
+                {subagent.creditLimitCurrency ?? ''}
               </p>
               {balance && balance.currency && (
                 <p className="mt-1">
-                  Trenutni dug: <b className="text-ink">{balance.amount.toLocaleString('sr-RS')}</b> {balance.currency}
+                  Trenutni dug: <b className="text-ink">{balance.amount.toLocaleString('sr-RS')}</b>{' '}
+                  {balance.currency}
                 </p>
               )}
-              {subagent.approvedAt && <p className="mt-1">Odobren: {new Date(subagent.approvedAt).toLocaleDateString('sr-RS')}</p>}
+              {subagent.approvedAt && (
+                <p className="mt-1">
+                  Odobren: {new Date(subagent.approvedAt).toLocaleDateString('sr-RS')}
+                </p>
+              )}
             </div>
           </div>
 
@@ -158,30 +199,42 @@ export default async function SubagentDetailPage(props: { params: Promise<{ id: 
               <div className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-ink">
                 <Icon name="verified" /> Čeka odobrenje (M7 spec §9)
               </div>
-              <p className="mb-2 text-xs text-ink-dim">Subagent ne može da naruči dok se ne odobri i postavi kreditni limit.</p>
+              <p className="mb-2 text-xs text-ink-dim">
+                Subagent ne može da naruči dok se ne odobri i postavi kreditni limit.
+              </p>
               <ApproveSubagentForm id={subagent.id} isTier1={subagent.parentSubagentId === null} />
             </div>
           )}
 
           <div className="mb-4 rounded-lg border border-border bg-panel p-4 text-xs text-ink-dim">
             <div className="mb-1 flex items-center gap-1.5 font-semibold text-ink">
-              <Icon name="graph-line" className="text-accent" /> Provizija i obimski status (M7 §3/§3.1)
+              <Icon name="graph-line" className="text-accent" /> Provizija i obimski status (M7
+              §3/§3.1)
             </div>
             <p>
-              Osnovna provizija: <b className="text-ink">{subagent.commissionPercentage != null ? `${subagent.commissionPercentage}%` : 'nije postavljena'}</b>
+              Osnovna provizija:{' '}
+              <b className="text-ink">
+                {subagent.commissionPercentage != null
+                  ? `${subagent.commissionPercentage}%`
+                  : 'nije postavljena'}
+              </b>
             </p>
             {volumeStatus && (
               <>
                 <p className="mt-1">
-                  Efektivna provizija (uz eventualni obimski bonus): <b className="text-ink">{volumeStatus.effectiveCommissionPercentage}%</b>
+                  Efektivna provizija (uz eventualni obimski bonus):{' '}
+                  <b className="text-ink">{volumeStatus.effectiveCommissionPercentage}%</b>
                 </p>
                 <p className="mt-1">
                   Tekući obim u periodu: {volumeStatus.calculatedMetricValue}
-                  {volumeStatus.currentTier ? ` (dostignut prag ${volumeStatus.currentTier.thresholdValue})` : ' (nijedan prag nije dostignut)'}
+                  {volumeStatus.currentTier
+                    ? ` (dostignut prag ${volumeStatus.currentTier.thresholdValue})`
+                    : ' (nijedan prag nije dostignut)'}
                 </p>
                 {volumeStatus.periodStart && volumeStatus.periodEnd && (
                   <p className="mt-1 text-ink-faint">
-                    Period: {new Date(volumeStatus.periodStart).toLocaleDateString('sr-RS')} – {new Date(volumeStatus.periodEnd).toLocaleDateString('sr-RS')}
+                    Period: {new Date(volumeStatus.periodStart).toLocaleDateString('sr-RS')} –{' '}
+                    {new Date(volumeStatus.periodEnd).toLocaleDateString('sr-RS')}
                   </p>
                 )}
               </>
@@ -194,7 +247,9 @@ export default async function SubagentDetailPage(props: { params: Promise<{ id: 
 
           {canEdit && (
             <details className="mb-4 rounded-lg border border-border bg-panel p-4 text-xs">
-              <summary className="cursor-pointer font-medium text-ink">Izmeni kreditni limit / status</summary>
+              <summary className="cursor-pointer font-medium text-ink">
+                Izmeni kreditni limit / status
+              </summary>
               <div className="mt-3">
                 <EditSubagentForm subagent={subagent} />
               </div>
@@ -203,21 +258,30 @@ export default async function SubagentDetailPage(props: { params: Promise<{ id: 
 
           <div className="mb-4 rounded-lg border border-border bg-panel p-4">
             <div className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-ink">
-              <Icon name="type-hierarchy" className="text-accent" /> Mreža — direktni sub-subagenti (M7 §6, samo uvid)
+              <Icon name="type-hierarchy" className="text-accent" /> Mreža — direktni sub-subagenti
+              (M7 §6, samo uvid)
             </div>
             <p className="mb-2 text-[11px] text-ink-faint">
-              Upravljanje ovom mrežom (kreiranje, provizija) radi isključivo roditeljski subagent kroz sopstveni portal nalog — agencija ima uvid, ne intervenciju (M7 spec §3/§6).
+              Upravljanje ovom mrežom (kreiranje, provizija) radi isključivo roditeljski subagent
+              kroz sopstveni portal nalog — agencija ima uvid, ne intervenciju (M7 spec §3/§6).
             </p>
             {children.length === 0 ? (
               <p className="text-xs text-ink-faint">Nema sub-subagenata.</p>
             ) : (
               <div className="flex flex-col gap-1">
                 {children.map((c) => (
-                  <Link key={c.id} href={`/b2b/${c.id}`} className="flex items-center justify-between rounded px-2 py-1.5 text-xs text-ink hover:bg-panel2">
+                  <Link
+                    key={c.id}
+                    href={`/b2b/${c.id}`}
+                    className="flex items-center justify-between rounded px-2 py-1.5 text-xs text-ink hover:bg-panel2"
+                  >
                     <span>{c.clientAccountId.slice(0, 8)}…</span>
                     <span className="text-ink-faint">
-                      provizija {c.commissionPercentage != null ? `${c.commissionPercentage}%` : '—'} · kredit{' '}
-                      {c.creditLimit != null ? `${c.creditLimit.toLocaleString('sr-RS')} ${c.creditLimitCurrency}` : '—'}
+                      provizija{' '}
+                      {c.commissionPercentage != null ? `${c.commissionPercentage}%` : '—'} · kredit{' '}
+                      {c.creditLimit != null
+                        ? `${c.creditLimit.toLocaleString('sr-RS')} ${c.creditLimitCurrency}`
+                        : '—'}
                     </span>
                     <StatusBadge status={c.status} />
                   </Link>
@@ -227,7 +291,11 @@ export default async function SubagentDetailPage(props: { params: Promise<{ id: 
           </div>
 
           {canViewRebates && (
-            <RebatesPanel subagentId={subagent.id} rebates={rebates} canApprove={canApproveRebate} />
+            <RebatesPanel
+              subagentId={subagent.id}
+              rebates={rebates}
+              canApprove={canApproveRebate}
+            />
           )}
         </>
       )}

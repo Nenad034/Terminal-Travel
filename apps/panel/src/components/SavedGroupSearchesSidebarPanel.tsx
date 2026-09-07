@@ -41,7 +41,9 @@ export default function SavedGroupSearchesSidebarPanel() {
         return;
       }
       const data = await res.json();
-      const next: SavedGroupSearch[] = Array.isArray(data[PREFERENCE_KEY]) ? data[PREFERENCE_KEY] : [];
+      const next: SavedGroupSearch[] = Array.isArray(data[PREFERENCE_KEY])
+        ? data[PREFERENCE_KEY]
+        : [];
       setGroups(next);
       if (next.length > 0) setOpen(true);
     } catch {
@@ -75,38 +77,48 @@ export default function SavedGroupSearchesSidebarPanel() {
 
   return (
     <div className="mx-2 mt-1.5 text-xs">
-      <SidebarSection title={`Grupne pretrage (${groups.length}/10)`} icon="layers" open={open} onToggle={() => setOpen((v) => !v)}>
-      {groups.length === 0 ? (
-        <p className="px-1 text-[11px] text-ink-faint">
-          Dodaj bar dve pretrage u grupu (dugme „dodaj u grupu“ pored „sačuvaj“ na vrhu) da je vidiš ovde.
-        </p>
-      ) : (
-        <ul className="flex flex-col gap-1">
-          {groups.map((g) => (
-            <li key={g.id} className="group flex items-center gap-2 rounded-lg border border-border bg-panel p-2 hover:border-accent">
-              <button
-                onClick={() => openGroup(g)}
-                title={g.searches.map((s) => s.label).join('\n')}
-                className="flex flex-1 items-center gap-2 truncate text-left"
+      <SidebarSection
+        title={`Grupne pretrage (${groups.length}/10)`}
+        icon="layers"
+        open={open}
+        onToggle={() => setOpen((v) => !v)}
+      >
+        {groups.length === 0 ? (
+          <p className="px-1 text-[11px] text-ink-faint">
+            Dodaj bar dve pretrage u grupu (dugme „dodaj u grupu“ pored „sačuvaj“ na vrhu) da je
+            vidiš ovde.
+          </p>
+        ) : (
+          <ul className="flex flex-col gap-1">
+            {groups.map((g) => (
+              <li
+                key={g.id}
+                className="group flex items-center gap-2 rounded-lg border border-border bg-panel p-2 hover:border-accent"
               >
-                <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md bg-panel2 text-ink-dim">
-                  <Icon name="layers" />
-                </span>
-                <span className="truncate text-xs font-medium text-ink">
-                  {g.name} <span className="font-normal text-ink-faint">({g.searches.length})</span>
-                </span>
-              </button>
-              <button
-                onClick={() => remove(g.id)}
-                title="Obriši grupnu pretragu"
-                className="hidden h-[20px] w-[20px] flex-shrink-0 items-center justify-center rounded text-ink-faint hover:bg-danger-bg hover:text-danger group-hover:flex"
-              >
-                <Icon name="close" />
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
+                <button
+                  onClick={() => openGroup(g)}
+                  title={g.searches.map((s) => s.label).join('\n')}
+                  className="flex flex-1 items-center gap-2 truncate text-left"
+                >
+                  <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md bg-panel2 text-ink-dim">
+                    <Icon name="layers" />
+                  </span>
+                  <span className="truncate text-xs font-medium text-ink">
+                    {g.name}{' '}
+                    <span className="font-normal text-ink-faint">({g.searches.length})</span>
+                  </span>
+                </button>
+                <button
+                  onClick={() => remove(g.id)}
+                  title="Obriši grupnu pretragu"
+                  className="hidden h-[20px] w-[20px] flex-shrink-0 items-center justify-center rounded text-ink-faint hover:bg-danger-bg hover:text-danger group-hover:flex"
+                >
+                  <Icon name="close" />
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
       </SidebarSection>
     </div>
   );

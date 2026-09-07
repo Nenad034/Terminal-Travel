@@ -27,7 +27,11 @@ export function OfferScreen(params: OfferParams) {
         <Text style={styles.detail}>
           {params.adults} odraslih, {params.children} dece
         </Text>
-        {params.finalPrice ? <Text style={styles.price}>{formatPrice(Number(params.finalPrice), params.finalPriceCurrency)}</Text> : null}
+        {params.finalPrice ? (
+          <Text style={styles.price}>
+            {formatPrice(Number(params.finalPrice), params.finalPriceCurrency)}
+          </Text>
+        ) : null}
       </View>
       <Pressable
         style={styles.button}

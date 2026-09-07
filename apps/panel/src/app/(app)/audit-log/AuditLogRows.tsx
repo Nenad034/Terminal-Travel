@@ -47,11 +47,16 @@ export default function AuditLogRows({ entries }: { entries: AuditLogEntry[] }) 
           className="block w-full border-b border-border bg-panel px-4 py-2 text-left font-mono text-xs last:border-b-0 hover:bg-panel-2"
         >
           <span className="text-ink-faint">{new Date(e.timestamp).toLocaleString('sr-RS')}</span>{' '}
-          <span className="text-accent2">{e.module}</span> <span className="text-ink">{e.action}</span>{' '}
+          <span className="text-accent2">{e.module}</span>{' '}
+          <span className="text-ink">{e.action}</span>{' '}
           <span className="text-ink-dim">
             {e.resourceType}#{e.resourceId?.slice(0, 8)}
           </span>{' '}
-          <ActorLabel origin={e.actorType} name={actorWord(e.actorType)} className="text-ink-faint" />{' '}
+          <ActorLabel
+            origin={e.actorType}
+            name={actorWord(e.actorType)}
+            className="text-ink-faint"
+          />{' '}
           <span className="text-ink-faint">#{e.actorId?.slice(0, 8) ?? '—'}</span>
         </button>
       ))}

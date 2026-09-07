@@ -11,9 +11,22 @@ const PATHS: Record<string, string> = {
     'M27.6 4.4 3.9 13.6c-1.6.6-1.6 1.5-.3 1.9l6.1 1.9 2.3 7.2c.3.8.4 1.1 1 1.1.5 0 .7-.2 1-.5l2.5-2.5 5.2 3.9c1 .5 1.7.3 2-.9l3.6-17c.4-1.5-.5-2.1-1.7-1.6zM10.9 16.9l12.4-7.8c.6-.4 1.1-.2.7.2l-10 9.1-.4 3.9-1.9-4.2z',
 };
 
-export default function BrandIcon({ name, className = '' }: { name: 'whatsapp' | 'viber' | 'telegram'; className?: string }) {
+export default function BrandIcon({
+  name,
+  className = '',
+}: {
+  name: 'whatsapp' | 'viber' | 'telegram';
+  className?: string;
+}) {
   return (
-    <svg viewBox="0 0 32 32" width="21" height="21" fill="currentColor" className={className} aria-hidden="true">
+    <svg
+      viewBox="0 0 32 32"
+      width="21"
+      height="21"
+      fill="currentColor"
+      className={className}
+      aria-hidden="true"
+    >
       <path d={PATHS[name]} />
     </svg>
   );

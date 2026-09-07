@@ -26,7 +26,8 @@ export async function GET(_req: Request, props: { params: Promise<{ id: string }
   const params = await props.params;
   const me = await getMe();
   if (!me) return NextResponse.json({ message: 'Nije prijavljen' }, { status: 401 });
-  if (!hasPermission(me, 'M2', 'product', 'VIEW')) return NextResponse.json({ message: 'Nema dozvolu za katalog.' }, { status: 403 });
+  if (!hasPermission(me, 'M2', 'product', 'VIEW'))
+    return NextResponse.json({ message: 'Nema dozvolu za katalog.' }, { status: 403 });
 
   try {
     const product = await apiFetch<ProductDetail>(`/catalog/products/${params.id}`);
@@ -41,8 +42,13 @@ export async function GET(_req: Request, props: { params: Promise<{ id: string }
       amenities: (attrs.amenities as string[] | undefined) ?? null,
       // `attributes.contact` — opciona konvencija (M2 spec §2.3, dopuna 26.8.2026), nedostaje
       // kod proizvoda uvezenih pre ove dopune — kartica tad prikazuje "kontakt nije unet".
-      contact: (attrs.contact as { phone?: string; email?: string; address?: string } | undefined) ?? null,
-      photos: (product.media ?? []).map((m) => ({ url: m.url, caption: m.caption ?? null, category: m.category })),
+      contact:
+        (attrs.contact as { phone?: string; email?: string; address?: string } | undefined) ?? null,
+      photos: (product.media ?? []).map((m) => ({
+        url: m.url,
+        caption: m.caption ?? null,
+        category: m.category,
+      })),
     });
   } catch (err) {
     const status = err instanceof ApiError ? err.status : 500;

@@ -52,13 +52,17 @@ export async function generatePdfBuffer(report: ReportData): Promise<Buffer> {
     }
 
     doc.fontSize(9);
-    const colWidth = (doc.page.width - doc.page.margins.left - doc.page.margins.right) / columns.length;
+    const colWidth =
+      (doc.page.width - doc.page.margins.left - doc.page.margins.right) / columns.length;
     let y = doc.y;
     columns.forEach((col, i) => {
       doc.text(col, doc.page.margins.left + i * colWidth, y, { width: colWidth, ellipsis: true });
     });
     y += 16;
-    doc.moveTo(doc.page.margins.left, y).lineTo(doc.page.width - doc.page.margins.right, y).stroke();
+    doc
+      .moveTo(doc.page.margins.left, y)
+      .lineTo(doc.page.width - doc.page.margins.right, y)
+      .stroke();
     y += 4;
 
     for (const row of report.rows) {
@@ -67,7 +71,10 @@ export async function generatePdfBuffer(report: ReportData): Promise<Buffer> {
         y = doc.page.margins.top;
       }
       columns.forEach((col, i) => {
-        doc.text(formatCell(row[col]), doc.page.margins.left + i * colWidth, y, { width: colWidth, ellipsis: true });
+        doc.text(formatCell(row[col]), doc.page.margins.left + i * colWidth, y, {
+          width: colWidth,
+          ellipsis: true,
+        });
       });
       y += 16;
     }
@@ -77,10 +84,13 @@ export async function generatePdfBuffer(report: ReportData): Promise<Buffer> {
 
 export function generateHtmlString(report: ReportData): string {
   const columns = report.rows.length > 0 ? Object.keys(report.rows[0]) : [];
-  const escape = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const escape = (s: string) =>
+    s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   const headerRow = columns.map((c) => `<th>${escape(c)}</th>`).join('');
   const bodyRows = report.rows
-    .map((row) => `<tr>${columns.map((c) => `<td>${escape(formatCell(row[c]))}</td>`).join('')}</tr>`)
+    .map(
+      (row) => `<tr>${columns.map((c) => `<td>${escape(formatCell(row[c]))}</td>`).join('')}</tr>`,
+    )
     .join('\n');
   return `<!doctype html>
 <html lang="sr">

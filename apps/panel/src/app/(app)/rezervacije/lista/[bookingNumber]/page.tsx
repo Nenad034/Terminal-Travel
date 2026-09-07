@@ -4,7 +4,6 @@ import Icon from '@/components/Icon';
 import { MOCK_BOOKINGS } from '../mock-data';
 import BookingRecordClient from './BookingRecordClient';
 
-
 // "Pun zapis" (23.8.2026, na zahtev vlasnika: "Jos treba da osmislimo celu formu koja ce se
 // otvarati klikom na broj rezervacije... dajte neki predlog" — predlog dat u razgovoru, potvrđen
 // istog dana: "Da gradi po predlogu, s tim sto cemo sigurno imati izmene i dorade"). Otvara se
@@ -16,7 +15,9 @@ import BookingRecordClient from './BookingRecordClient';
 // Dopuna (23.8.2026, "Izmeni" dugme, na zahtev vlasnika — videti mock-data.ts za pun kontekst):
 // interaktivni deo (stavke/segmenti + workflow log) izdvojen u `BookingRecordClient.tsx`, ova
 // stranica ostaje tanak server-komponent wrapper (pronalaženje po broju + prazno stanje).
-export default async function BookingFullRecordPage(props: { params: Promise<{ bookingNumber: string }> }) {
+export default async function BookingFullRecordPage(props: {
+  params: Promise<{ bookingNumber: string }>;
+}) {
   const params = await props.params;
   const booking = MOCK_BOOKINGS.find((b) => b.bookingNumber === params.bookingNumber);
 
@@ -24,8 +25,13 @@ export default async function BookingFullRecordPage(props: { params: Promise<{ b
     return (
       <div className="p-6">
         <RegisterTab label={params.bookingNumber} />
-        <p className="rounded bg-danger-bg p-3 text-sm text-danger">Rezervacija „{params.bookingNumber}“ nije pronađena (mock lista).</p>
-        <Link href="/rezervacije/lista" className="mt-3 inline-block text-xs text-accent hover:underline">
+        <p className="rounded bg-danger-bg p-3 text-sm text-danger">
+          Rezervacija „{params.bookingNumber}“ nije pronađena (mock lista).
+        </p>
+        <Link
+          href="/rezervacije/lista"
+          className="mt-3 inline-block text-xs text-accent hover:underline"
+        >
           ← nazad na listu
         </Link>
       </div>
@@ -36,7 +42,8 @@ export default async function BookingFullRecordPage(props: { params: Promise<{ b
     <div className="p-6">
       <RegisterTab label={booking.bookingNumber} />
       <p className="mb-4 flex items-center gap-1.5 text-xs text-warn">
-        <Icon name="warning" /> MOCK prikaz — izmišljen zapis, ne dolazi iz baze. Izmene stavki ispod ostaju samo u ovoj sesiji (nestaju pri osvežavanju stranice).
+        <Icon name="warning" /> MOCK prikaz — izmišljen zapis, ne dolazi iz baze. Izmene stavki
+        ispod ostaju samo u ovoj sesiji (nestaju pri osvežavanju stranice).
       </p>
       <BookingRecordClient booking={booking} />
     </div>

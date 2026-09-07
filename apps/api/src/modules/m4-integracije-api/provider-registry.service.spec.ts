@@ -38,7 +38,9 @@ describe('ProviderRegistryService (M4 spec §2/§9 — use_mock formalizacija)',
 
   it('vraća TravelgateAdapter za provider_code=travelgate kad useMock=false', () => {
     const registry = makeRegistry();
-    const authConfig = encryptSecret(JSON.stringify({ endpoint: 'https://api.travelgate.com/', apiKey: 'kljuc' }));
+    const authConfig = encryptSecret(
+      JSON.stringify({ endpoint: 'https://api.travelgate.com/', apiKey: 'kljuc' }),
+    );
     const adapter = registry.getAdapter({
       providerCode: 'travelgate',
       category: 'HOTEL',
@@ -55,7 +57,11 @@ describe('ProviderRegistryService (M4 spec §2/§9 — use_mock formalizacija)',
   it('vraća SolvexAdapter za provider_code=solvex kad useMock=false', () => {
     const registry = makeRegistry();
     const authConfig = encryptSecret(
-      JSON.stringify({ endpoint: 'https://evaluation.solvex.bg/iservice/integrationservice.asmx', login: 'sol611s', password: 'x' }),
+      JSON.stringify({
+        endpoint: 'https://evaluation.solvex.bg/iservice/integrationservice.asmx',
+        login: 'sol611s',
+        password: 'x',
+      }),
     );
     const adapter = registry.getAdapter({
       providerCode: 'solvex',
@@ -73,7 +79,11 @@ describe('ProviderRegistryService (M4 spec §2/§9 — use_mock formalizacija)',
   it('vraća WebHotelierAdapter za provider_code=webhotelier kad useMock=false', () => {
     const registry = makeRegistry();
     const authConfig = encryptSecret(
-      JSON.stringify({ endpoint: 'https://rest.reserve-online.net', username: 'agent', password: 'x' }),
+      JSON.stringify({
+        endpoint: 'https://rest.reserve-online.net',
+        username: 'agent',
+        password: 'x',
+      }),
     );
     const adapter = registry.getAdapter({
       providerCode: 'webhotelier',

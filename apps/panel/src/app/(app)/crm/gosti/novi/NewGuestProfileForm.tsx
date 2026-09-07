@@ -10,15 +10,26 @@ const initialState: FormState = { error: null };
 
 // M6 spec §2.2 — polja prate CreateGuestProfileDto tačno (apps/api/src/modules/m6-crm/
 // guest-profiles/dto/create-guest-profile.dto.ts).
-export default function NewGuestProfileForm({ linkedClientAccountId }: { linkedClientAccountId?: string }) {
+export default function NewGuestProfileForm({
+  linkedClientAccountId,
+}: {
+  linkedClientAccountId?: string;
+}) {
   const [state, formAction] = useActionState(createGuestProfile, initialState);
 
   return (
-    <form action={formAction} className="flex flex-col gap-3 rounded-lg border border-border bg-panel p-5">
+    <form
+      action={formAction}
+      className="flex flex-col gap-3 rounded-lg border border-border bg-panel p-5"
+    >
       {state.error && <p className="rounded bg-danger-bg p-3 text-sm text-danger">{state.error}</p>}
 
       <input type="hidden" name="linkedClientAccountId" value={linkedClientAccountId ?? ''} />
-      {linkedClientAccountId && <p className="text-[11px] text-ink-faint">povezuje se sa nalogodavcem {linkedClientAccountId.slice(0, 8)}…</p>}
+      {linkedClientAccountId && (
+        <p className="text-[11px] text-ink-faint">
+          povezuje se sa nalogodavcem {linkedClientAccountId.slice(0, 8)}…
+        </p>
+      )}
 
       <Field label="puno ime">
         <input name="fullName" required className="input" />

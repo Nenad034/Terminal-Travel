@@ -5,7 +5,6 @@ import RegisterTab from '@/components/RegisterTab';
 import { AcceptButton, VoidButton } from './ContractActions';
 import { Badge } from '@/components/ui/badge';
 
-
 interface ClientContract {
   id: string;
   bookingId: string;
@@ -32,7 +31,10 @@ export default async function ClientContractDetailPage(props: { params: Promise<
   try {
     contract = await apiFetch<ClientContract>(`/client-contracts/${params.id}`);
   } catch (err) {
-    error = err instanceof ApiError && err.status === 404 ? 'Ugovor nije pronađen.' : 'Ugovor trenutno nije dostupan.';
+    error =
+      err instanceof ApiError && err.status === 404
+        ? 'Ugovor nije pronađen.'
+        : 'Ugovor trenutno nije dostupan.';
   }
 
   return (
@@ -50,20 +52,31 @@ export default async function ClientContractDetailPage(props: { params: Promise<
           <div className="mb-4 rounded-lg border border-border bg-panel p-4 text-xs text-ink-dim">
             <p>
               Rezervacija:{' '}
-              <Link href={`/rezervacije/${contract.bookingId}`} className="text-accent hover:underline">
+              <Link
+                href={`/rezervacije/${contract.bookingId}`}
+                className="text-accent hover:underline"
+              >
                 {contract.bookingId.slice(0, 8)}…
               </Link>
             </p>
-            {contract.generatedAt && <p className="mt-1">Generisan: {new Date(contract.generatedAt).toLocaleString('sr-RS')}</p>}
+            {contract.generatedAt && (
+              <p className="mt-1">
+                Generisan: {new Date(contract.generatedAt).toLocaleString('sr-RS')}
+              </p>
+            )}
             {contract.acceptedAt && (
               <p className="mt-1">
-                Prihvaćen: {new Date(contract.acceptedAt).toLocaleString('sr-RS')} ({contract.acceptedMethod})
+                Prihvaćen: {new Date(contract.acceptedAt).toLocaleString('sr-RS')} (
+                {contract.acceptedMethod})
               </p>
             )}
             {contract.supersedesContractId && (
               <p className="mt-1">
                 Zamenjuje raniju verziju:{' '}
-                <Link href={`/ugovori-klijenti/${contract.supersedesContractId}`} className="text-accent hover:underline">
+                <Link
+                  href={`/ugovori-klijenti/${contract.supersedesContractId}`}
+                  className="text-accent hover:underline"
+                >
                   {contract.supersedesContractId.slice(0, 8)}…
                 </Link>
               </p>
@@ -96,7 +109,9 @@ export default async function ClientContractDetailPage(props: { params: Promise<
           )}
 
           <details className="rounded-lg border border-border bg-panel p-4 text-xs text-ink-dim">
-            <summary className="cursor-pointer font-medium text-ink">Sadržaj ugovora (snimak elemenata, M20 §2.3)</summary>
+            <summary className="cursor-pointer font-medium text-ink">
+              Sadržaj ugovora (snimak elemenata, M20 §2.3)
+            </summary>
             <pre className="mt-2 overflow-x-auto whitespace-pre-wrap text-[11px] text-ink-faint">
               {JSON.stringify(contract.contentSnapshot, null, 2)}
             </pre>

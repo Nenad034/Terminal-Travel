@@ -57,7 +57,9 @@ export function isValidSort(value: string | null | undefined, types: string[]): 
 export function resolveSort(value: string | null | undefined, types: string[]): string {
   if (isValidSort(value, types)) return value as string;
   // Letovi nemaju `NAME_ASC`, pa podrazumevano mora biti opcija koja u tom skupu postoji.
-  return sortOptionsFor(types).some((o) => o.value === DEFAULT_SORT) ? DEFAULT_SORT : sortOptionsFor(types)[0].value;
+  return sortOptionsFor(types).some((o) => o.value === DEFAULT_SORT)
+    ? DEFAULT_SORT
+    : sortOptionsFor(types)[0].value;
 }
 
 /**
@@ -69,7 +71,11 @@ export function resolveSort(value: string | null | undefined, types: string[]): 
  * isključivo redosledu prikaza. Ako se pokaže da ne odgovaraju načinu na koji tim bira letove,
  * menjaju se ovde, na jednom mestu.
  */
-export function flightBestScore(priceCents: number, durationMinutes: number, stops: number): number {
+export function flightBestScore(
+  priceCents: number,
+  durationMinutes: number,
+  stops: number,
+): number {
   return priceCents + durationMinutes * 100 + stops * 3000;
 }
 

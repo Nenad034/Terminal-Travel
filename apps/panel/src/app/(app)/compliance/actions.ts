@@ -10,11 +10,18 @@ export interface FormState {
 
 // M11 spec §5 — POST /travel-guarantee-registrations/:id/retry, dozvola
 // M11/travel-guarantee-registration/RETRY (Vlasnik, Direktor).
-export async function retryRegistration(id: string, _prev: FormState, _formData: FormData): Promise<FormState> {
+export async function retryRegistration(
+  id: string,
+  _prev: FormState,
+  _formData: FormData,
+): Promise<FormState> {
   try {
     await apiFetch(`/compliance/travel-guarantee-registrations/${id}/retry`, { method: 'POST' });
   } catch (err) {
-    return { error: err instanceof ApiError ? extractMessage(err) : 'Ponavljanje registracije nije uspelo.' };
+    return {
+      error:
+        err instanceof ApiError ? extractMessage(err) : 'Ponavljanje registracije nije uspelo.',
+    };
   }
   revalidatePath('/compliance');
   return { error: null };
@@ -31,7 +38,9 @@ export async function updateGuarantee(_prev: FormState, formData: FormData): Pro
         createNew,
         provider: formData.get('provider') || undefined,
         policyNumber: formData.get('policyNumber') || undefined,
-        coverageAmount: formData.get('coverageAmount') ? Number(formData.get('coverageAmount')) * 100 : undefined,
+        coverageAmount: formData.get('coverageAmount')
+          ? Number(formData.get('coverageAmount')) * 100
+          : undefined,
         currency: formData.get('currency') || undefined,
         validFrom: formData.get('validFrom') || undefined,
         validTo: formData.get('validTo') || undefined,
@@ -40,7 +49,10 @@ export async function updateGuarantee(_prev: FormState, formData: FormData): Pro
       },
     });
   } catch (err) {
-    return { error: err instanceof ApiError ? extractMessage(err) : 'Izmena garancije putovanja nije uspela.' };
+    return {
+      error:
+        err instanceof ApiError ? extractMessage(err) : 'Izmena garancije putovanja nije uspela.',
+    };
   }
   revalidatePath('/compliance');
   redirect('/compliance');

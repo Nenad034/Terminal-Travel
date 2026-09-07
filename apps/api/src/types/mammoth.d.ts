@@ -2,5 +2,7 @@
 // niti @types/mammoth paket na npm-u — minimalna ambijentalna deklaracija, samo za oblik koji
 // ovaj repozitorijum stvarno koristi (extractRawText iz buffer-a).
 declare module 'mammoth' {
-  export function extractRawText(input: { buffer: Buffer }): Promise<{ value: string; messages: unknown[] }>;
+  export function extractRawText(input: {
+    buffer: Buffer;
+  }): Promise<{ value: string; messages: unknown[] }>;
 }

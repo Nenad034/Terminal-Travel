@@ -31,63 +31,66 @@ M19 je real-time chat isključivo zaposleni↔zaposleni. M22 pokriva email — d
 ## 2. Model podataka
 
 ### 2.1 `Mailbox`
-| Polje | Tip | Napomena |
-| :---- | :---- | :---- |
-| id | UUID (PK) | |
-| address | string, unique | mejl adresa (npr. `rezervacije@terminaltravel.rs`, ili lična adresa zaposlenog) |
-| display_name | string | |
-| mailbox_type | enum: `SHARED`, `PERSONAL` | `SHARED` — sandučad odeljenja/funkcije (`rezervacije@`, `dobavljaci@`); `PERSONAL` — sandučad pojedinačnog zaposlenog |
-| owner_user_id | UUID, nullable (FK → M1 User) | samo za `PERSONAL` — podrazumevani vlasnik |
-| provider_connection_ref | string | referenca ka kredencijalima konekcije (enkriptovano skladište, isti princip kao M4 `ProviderConfig`) |
-| status | enum: `ACTIVE`, `INACTIVE` | |
-| created_at | timestamp | |
+
+| Polje                   | Tip                           | Napomena                                                                                                              |
+| :---------------------- | :---------------------------- | :-------------------------------------------------------------------------------------------------------------------- |
+| id                      | UUID (PK)                     |                                                                                                                       |
+| address                 | string, unique                | mejl adresa (npr. `rezervacije@terminaltravel.rs`, ili lična adresa zaposlenog)                                       |
+| display_name            | string                        |                                                                                                                       |
+| mailbox_type            | enum: `SHARED`, `PERSONAL`    | `SHARED` — sandučad odeljenja/funkcije (`rezervacije@`, `dobavljaci@`); `PERSONAL` — sandučad pojedinačnog zaposlenog |
+| owner_user_id           | UUID, nullable (FK → M1 User) | samo za `PERSONAL` — podrazumevani vlasnik                                                                            |
+| provider_connection_ref | string                        | referenca ka kredencijalima konekcije (enkriptovano skladište, isti princip kao M4 `ProviderConfig`)                  |
+| status                  | enum: `ACTIVE`, `INACTIVE`    |                                                                                                                       |
+| created_at              | timestamp                     |                                                                                                                       |
 
 ### 2.2 `MailboxAccess` — pojedinačna dodela pristupa (potvrđeno na zahtev vlasnika, avgust 2026)
 
 Pristup se **ne** izvodi iz opšte uloge (M1 RBAC) — svaki zaposleni mora biti eksplicitno dodat na svako sanduče do kog treba pristup, čak i ako nije vlasnik `PERSONAL` sandučeta.
 
-| Polje | Tip | Napomena |
-| :---- | :---- | :---- |
-| id | UUID (PK) | |
-| mailbox_id | UUID (FK) | |
-| user_id | UUID (FK → M1 User) | |
+| Polje        | Tip                   | Napomena                            |
+| :----------- | :-------------------- | :---------------------------------- |
+| id           | UUID (PK)             |                                     |
+| mailbox_id   | UUID (FK)             |                                     |
+| user_id      | UUID (FK → M1 User)   |                                     |
 | access_level | enum: `VIEW`, `REPLY` | `REPLY` implicitno uključuje `VIEW` |
-| granted_by | UUID (FK → M1 User) | |
-| granted_at | timestamp | |
+| granted_by   | UUID (FK → M1 User)   |                                     |
+| granted_at   | timestamp             |                                     |
 
 Vlasnik `PERSONAL` sandučeta (`Mailbox.owner_user_id`) dobija `REPLY` automatski pri kreiranju sandučeta — ne mora se ručno dodeliti sam sebi.
 
 ### 2.3 `EmailThread`
-| Polje | Tip | Napomena |
-| :---- | :---- | :---- |
-| id | UUID (PK) | |
-| mailbox_id | UUID (FK) | |
-| subject | string | |
-| correspondent_type | enum: `GUEST`, `SUBAGENT`, `SUPPLIER`, `OTHER` | određuje se automatski po tačnom poklapanju mejl adrese (poglavlje 3.1) |
-| correspondent_client_account_id | UUID, nullable (FK → M6 `ClientAccount`) | popunjeno kad `correspondent_type = GUEST`/`SUBAGENT` i mejl adresa tačno poklopi postojeći profil |
-| correspondent_supplier_id | UUID, nullable (FK → M3 `Supplier`) | popunjeno kad `correspondent_type = SUPPLIER` |
-| related_booking_id | UUID, nullable (FK → M5 `Booking`) | opciono, ručno ili AI-predloženo povezivanje (poglavlje 3.2) |
-| related_supplier_manifest_id | UUID, nullable (FK → M5 `SupplierManifest`) | dopuna avgust 2026 (poglavlje 3.1a) — popunjeno kad je nit prepoznata kao odgovor na najavu rezervacije |
+
+| Polje                             | Tip                                             | Napomena                                                                                                  |
+| :-------------------------------- | :---------------------------------------------- | :-------------------------------------------------------------------------------------------------------- |
+| id                                | UUID (PK)                                       |                                                                                                           |
+| mailbox_id                        | UUID (FK)                                       |                                                                                                           |
+| subject                           | string                                          |                                                                                                           |
+| correspondent_type                | enum: `GUEST`, `SUBAGENT`, `SUPPLIER`, `OTHER`  | određuje se automatski po tačnom poklapanju mejl adrese (poglavlje 3.1)                                   |
+| correspondent_client_account_id   | UUID, nullable (FK → M6 `ClientAccount`)        | popunjeno kad `correspondent_type = GUEST`/`SUBAGENT` i mejl adresa tačno poklopi postojeći profil        |
+| correspondent_supplier_id         | UUID, nullable (FK → M3 `Supplier`)             | popunjeno kad `correspondent_type = SUPPLIER`                                                             |
+| related_booking_id                | UUID, nullable (FK → M5 `Booking`)              | opciono, ručno ili AI-predloženo povezivanje (poglavlje 3.2)                                              |
+| related_supplier_manifest_id      | UUID, nullable (FK → M5 `SupplierManifest`)     | dopuna avgust 2026 (poglavlje 3.1a) — popunjeno kad je nit prepoznata kao odgovor na najavu rezervacije   |
 | related_supplier_change_notice_id | UUID, nullable (FK → M5 `SupplierChangeNotice`) | dopuna avgust 2026 (poglavlje 3.1a) — popunjeno kad je nit prepoznata kao odgovor na najavu izmene/storna |
-| status | enum: `OPEN`, `AWAITING_REPLY`, `CLOSED` | |
-| converted_to_ticket_id | UUID, nullable (FK → M14 `Ticket`) | popunjeno kad tim konvertuje nit u formalni tiket (poglavlje 5) |
-| last_message_at | timestamp | |
-| created_at | timestamp | |
+| status                            | enum: `OPEN`, `AWAITING_REPLY`, `CLOSED`        |                                                                                                           |
+| converted_to_ticket_id            | UUID, nullable (FK → M14 `Ticket`)              | popunjeno kad tim konvertuje nit u formalni tiket (poglavlje 5)                                           |
+| last_message_at                   | timestamp                                       |                                                                                                           |
+| created_at                        | timestamp                                       |                                                                                                           |
 
 ### 2.4 `EmailMessage`
-| Polje | Tip | Napomena |
-| :---- | :---- | :---- |
-| id | UUID (PK) | |
-| thread_id | UUID (FK) | |
-| direction | enum: `INBOUND`, `OUTBOUND` | |
-| sender_type | enum: `CORRESPONDENT`, `STAFF`, `AI_DRAFT` | isti obrazac kao M14 `TicketMessage.sender_type` |
-| from_address / to_addresses | string / string[] | |
-| body | text | |
-| ai_summary | text, nullable | popunjeno za `INBOUND` poruke kad AI sažme sadržaj (poglavlje 4) |
-| sent_by | UUID, nullable (FK → M1 User) | **ko je kliknuo „pošalji"** — isti mehanizam kao M14 `TicketMessage.sent_by`. Pažnja (5.9.2026): popunjeno polje znači *pokušaj*, ne isporuku; za isporuku gledati `delivered_at` |
-| delivered_at | timestamp, nullable | **novo 5.9.2026** — popunjeno tek kad je provajder stvarno primio poruku (`SendResult.delivered = true`). `sent_by` popunjen a `delivered_at` prazan = „čeka slanje": čovek je kliknuo, ali poruka nije otišla (provajder nije podešen ili je odbio). Razlog za odvojeno polje umesto oslanjanja na `sent_by`: bez njega se pripremljeno ne razlikuje od poslatog, što je i bio nalaz 1.2 revizije koda |
-| provider_message_id | string, nullable | Message-ID header, za threading i idempotentnost pri ponovnom uvozu. Za neisporučenu poruku ostaje prazan — ne upisuje se izmišljen identifikator |
-| received_at / created_at | timestamp | |
+
+| Polje                       | Tip                                        | Napomena                                                                                                                                                                                                                                                                                                                                                                                                |
+| :-------------------------- | :----------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| id                          | UUID (PK)                                  |                                                                                                                                                                                                                                                                                                                                                                                                         |
+| thread_id                   | UUID (FK)                                  |                                                                                                                                                                                                                                                                                                                                                                                                         |
+| direction                   | enum: `INBOUND`, `OUTBOUND`                |                                                                                                                                                                                                                                                                                                                                                                                                         |
+| sender_type                 | enum: `CORRESPONDENT`, `STAFF`, `AI_DRAFT` | isti obrazac kao M14 `TicketMessage.sender_type`                                                                                                                                                                                                                                                                                                                                                        |
+| from_address / to_addresses | string / string[]                          |                                                                                                                                                                                                                                                                                                                                                                                                         |
+| body                        | text                                       |                                                                                                                                                                                                                                                                                                                                                                                                         |
+| ai_summary                  | text, nullable                             | popunjeno za `INBOUND` poruke kad AI sažme sadržaj (poglavlje 4)                                                                                                                                                                                                                                                                                                                                        |
+| sent_by                     | UUID, nullable (FK → M1 User)              | **ko je kliknuo „pošalji"** — isti mehanizam kao M14 `TicketMessage.sent_by`. Pažnja (5.9.2026): popunjeno polje znači _pokušaj_, ne isporuku; za isporuku gledati `delivered_at`                                                                                                                                                                                                                       |
+| delivered_at                | timestamp, nullable                        | **novo 5.9.2026** — popunjeno tek kad je provajder stvarno primio poruku (`SendResult.delivered = true`). `sent_by` popunjen a `delivered_at` prazan = „čeka slanje": čovek je kliknuo, ali poruka nije otišla (provajder nije podešen ili je odbio). Razlog za odvojeno polje umesto oslanjanja na `sent_by`: bez njega se pripremljeno ne razlikuje od poslatog, što je i bio nalaz 1.2 revizije koda |
+| provider_message_id         | string, nullable                           | Message-ID header, za threading i idempotentnost pri ponovnom uvozu. Za neisporučenu poruku ostaje prazan — ne upisuje se izmišljen identifikator                                                                                                                                                                                                                                                       |
+| received_at / created_at    | timestamp                                  |                                                                                                                                                                                                                                                                                                                                                                                                         |
 
 **`SendResult` nosi ishod, ne samo identifikator (dopuna 5.9.2026).** Ugovor `EmailProviderAdapter.sendMessage` vraća `{ providerMessageId, delivered }`. Adapter koji ne šalje stvarno (mock) vraća `delivered: false` — ranije je vraćao samo izmišljen `providerMessageId`, pa je pozivalac nikako nije mogao razlikovati od uspeha. Nijedan pozivalac ne sme da upiše isporuku bez `delivered = true`.
 
@@ -104,6 +107,7 @@ Za razliku od M5 poglavlja 6.4 (fuzzy-match imena gosta pri otkazivanju) i M10 p
 Za nit u sandučetu koje je označeno kao jedinstveno sanduče za dobavljače (M5 poglavlje 8.8), svaka nova `INBOUND` poruka se dodatno proverava na obrazac `[REF: TT-NNNNNN]` u naslovu i telu poruke, **pre** fuzzy-match pokušaja iz poglavlja 3.2. Ovo je pouzdaniji signal od bilo kog fuzzy-matching-a — isti princip kao broj tiketa u naslovu (M14) — jer referenca dolazi direktno od nas (upisana pri slanju, M5 poglavlje 8.8) i hotel je najčešće samo vraća neizmenjenu kroz "Reply".
 
 **Tok:**
+
 1. Ako se prepozna tačan `TT-NNNNNN` obrazac koji odgovara postojećem `SupplierManifest.reference_code` ili `SupplierChangeNotice.reference_code` (M5) — `related_supplier_manifest_id`/`related_supplier_change_notice_id` se popunjava kao **predlog**, nivo **"Autonomno"** za samo prepoznavanje/predlaganje (čisto informativno, ništa se još ne piše u M5 status).
 2. Ako referenca nije pronađena, pokušava se fuzzy-match po imenu dobavljača/gosta/datumima (isti obrazac kao poglavlje 3.2 i M5 poglavlje 6.4) — slabiji predlog, jasno obeležen u UI drugačije od poklapanja po referenci (npr. "predlog po sličnosti" naspram "tačna referenca").
 3. **Konačno postavljanje `BookingItem.supplier_confirmed_at`/`by` (M5)** zahteva eksplicitnu potvrdu zaposlenog kroz `M5/supplier-confirmation/CONFIRM` (M5 poglavlje 10) — M22 sam nikad ne piše u M5 status, samo predlaže vezu; potvrđeno sa vlasnikom da ovo važi bez obzira na pouzdanost poklapanja (poglavlje 3.1a se ovim namerno razlikuje od `related_booking_id` u poglavlju 3.2, gde je ceo predlog interan M22 podatak — ovde predlog prelazi granicu modula ka M5 stanju rezervacije, pa nosi isti oprez kao svaka druga izmena preko granice modula, princip #2 Master dokumenta).
@@ -141,13 +145,13 @@ Prepiska sa dobavljačima (npr. slanje `SupplierManifest`-a i odgovori dobavlja�
 
 ## 7. Dozvole (registruju se u M1 katalog dozvola)
 
-| Dozvola | Podrazumevana dodela po ulozi |
-| :---- | :---- |
-| `M22/mailbox/VIEW`, `CREATE`, `EDIT` | Vlasnik, Direktor — upravljanje konekcijama sandučadi |
-| `M22/mailbox-access/GRANT` | Vlasnik, Direktor — dodela `MailboxAccess` (poglavlje 2.2) |
-| `M22/email-thread/VIEW` | Svaki zaposleni sa `MailboxAccess.access_level ∈ {VIEW, REPLY}` za dato sanduče — **ovo se proverava po pojedinačnom sandučetu, ne po opštoj ulozi** |
-| `M22/email-thread/REPLY` | Svaki zaposleni sa `MailboxAccess.access_level = REPLY` za dato sanduče |
-| `M22/email-thread/CONVERT_TO_TICKET` | Isto kao `REPLY` na dotičnom sandučetu |
+| Dozvola                              | Podrazumevana dodela po ulozi                                                                                                                        |
+| :----------------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `M22/mailbox/VIEW`, `CREATE`, `EDIT` | Vlasnik, Direktor — upravljanje konekcijama sandučadi                                                                                                |
+| `M22/mailbox-access/GRANT`           | Vlasnik, Direktor — dodela `MailboxAccess` (poglavlje 2.2)                                                                                           |
+| `M22/email-thread/VIEW`              | Svaki zaposleni sa `MailboxAccess.access_level ∈ {VIEW, REPLY}` za dato sanduče — **ovo se proverava po pojedinačnom sandučetu, ne po opštoj ulozi** |
+| `M22/email-thread/REPLY`             | Svaki zaposleni sa `MailboxAccess.access_level = REPLY` za dato sanduče                                                                              |
+| `M22/email-thread/CONVERT_TO_TICKET` | Isto kao `REPLY` na dotičnom sandučetu                                                                                                               |
 
 ---
 
@@ -155,32 +159,32 @@ Prepiska sa dobavljačima (npr. slanje `SupplierManifest`-a i odgovori dobavlja�
 
 Prefiks: `/api/v1/email`
 
-| Endpoint | Metod | Opis |
-| :---- | :---- | :---- |
-| `/mailboxes` | GET / POST | pregled / kreiranje sandučeta, zahteva `M22/mailbox/CREATE` |
-| `/mailboxes/:id/access` | GET / POST | pregled / dodela `MailboxAccess`, zahteva `M22/mailbox-access/GRANT` |
-| `/threads` | GET | lista niti, filtrirano po `mailbox_id`/`status`/`correspondent_type` — samo sandučad na koja korisnik ima pristup; odgovor uključuje `mailbox: { address, displayName }` (M17 Faza 7, rešeno 16.8.2026) |
-| `/threads/:id` | GET | detalji sa svim `EmailMessage` porukama i `mailbox: { address, displayName }` |
-| `/threads/:id/messages` | POST | dodavanje poruke (nacrt ili direktno slanje), zahteva `REPLY` |
-| `/threads/:id/messages/:messageId/send` | POST | ljudska potvrda slanja AI nacrta |
-| `/threads/:id/convert-to-ticket` | POST | konverzija u M14 `Ticket` (poglavlje 5), zahteva `CONVERT_TO_TICKET` |
-| `/threads/:id/link-booking` | POST | ručna potvrda `related_booking_id` (poglavlje 3.2) |
-| `/threads/:id/link-supplier-announcement` | POST | ručna potvrda `related_supplier_manifest_id`/`related_supplier_change_notice_id` (poglavlje 3.1a) — samo veza u M22; stvarno postavljanje M5 `supplier_confirmed_at` ide preko posebnog M5 endpoint-a (M5 poglavlje 8.8), zahteva `M5/supplier-confirmation/CONFIRM` |
+| Endpoint                                  | Metod      | Opis                                                                                                                                                                                                                                                                 |
+| :---------------------------------------- | :--------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/mailboxes`                              | GET / POST | pregled / kreiranje sandučeta, zahteva `M22/mailbox/CREATE`                                                                                                                                                                                                          |
+| `/mailboxes/:id/access`                   | GET / POST | pregled / dodela `MailboxAccess`, zahteva `M22/mailbox-access/GRANT`                                                                                                                                                                                                 |
+| `/threads`                                | GET        | lista niti, filtrirano po `mailbox_id`/`status`/`correspondent_type` — samo sandučad na koja korisnik ima pristup; odgovor uključuje `mailbox: { address, displayName }` (M17 Faza 7, rešeno 16.8.2026)                                                              |
+| `/threads/:id`                            | GET        | detalji sa svim `EmailMessage` porukama i `mailbox: { address, displayName }`                                                                                                                                                                                        |
+| `/threads/:id/messages`                   | POST       | dodavanje poruke (nacrt ili direktno slanje), zahteva `REPLY`                                                                                                                                                                                                        |
+| `/threads/:id/messages/:messageId/send`   | POST       | ljudska potvrda slanja AI nacrta                                                                                                                                                                                                                                     |
+| `/threads/:id/convert-to-ticket`          | POST       | konverzija u M14 `Ticket` (poglavlje 5), zahteva `CONVERT_TO_TICKET`                                                                                                                                                                                                 |
+| `/threads/:id/link-booking`               | POST       | ručna potvrda `related_booking_id` (poglavlje 3.2)                                                                                                                                                                                                                   |
+| `/threads/:id/link-supplier-announcement` | POST       | ručna potvrda `related_supplier_manifest_id`/`related_supplier_change_notice_id` (poglavlje 3.1a) — samo veza u M22; stvarno postavljanje M5 `supplier_confirmed_at` ide preko posebnog M5 endpoint-a (M5 poglavlje 8.8), zahteva `M5/supplier-confirmation/CONFIRM` |
 
 ---
 
 ## 9. Izlazni kriterijum (M22)
 
-- [x] Zaposleni bez `MailboxAccess` zapisa za dato sanduče ne može ni da vidi ni da odgovori na niti u tom sandučetu, čak i ako ima široku ulogu (Direktor/Vlasnik izuzetak samo ako je eksplicitno tako dodeljen). *(e2e `m22-exit-criteria.e2e-spec.ts`)*
-- [x] Vlasnik `PERSONAL` sandučeta automatski ima `REPLY` pristup sopstvenom sandučetu bez ručne dodele. *(unit + e2e)*
-- [x] `EmailThread.correspondent_type`/`correspondent_client_account_id`/`correspondent_supplier_id` se ispravno određuju tačnim poklapanjem mejl adrese, bez fuzzy-match rizika pogrešnog poklapanja. *(unit `correspondent-matcher.service.spec.ts` — sve četiri putanje: GuestProfile/ClientAccount+Subagent/Supplier/SupplierContact/OTHER)*
-- [x] AI sažetak i nacrt odgovora se automatski generišu za svaku novu `INBOUND` poruku, bez ljudske intervencije (kad je `ANTHROPIC_API_KEY` podešen — graceful degradation bez ključa, isti obrazac kao M21). *(unit `email-ai-assistant.service.spec.ts` + poziv na svaku `receiveInboundMessage`)*
-- [x] Nacrt koji pominje cenu/obavezu/promenu rezervacije se ne može poslati bez `sent_by` popunjenog ljudskim nalogom — sprovedeno nezavisno u kodu (keyword-heuristika), ne samo prompt-om. *(unit — nacrt ostaje `AI_DRAFT`/`sentBy=null` čak i kad model "misli" da je gotov za slanje)*
-- [x] Konverzija u `Ticket` ispravno popunjava `Ticket.source_email_thread_id`/`EmailThread.converted_to_ticket_id` recipročno, i `requester_client_account_id` na tiketu kad je poznat. *(e2e)*
-- [x] AI agent nikad ne konvertuje nit u tiket niti menja `MailboxAccess` samostalno — samo predlaže, gde je predviđeno. *(statička provera koda — `EmailAiAssistantService` nema zavisnost na `TicketConversionService`/`MailboxAccess` upis)*
-- [x] Prepiska sa dobavljačem (`correspondent_type = SUPPLIER`) koristi isti model pristupa/AI sažimanja kao gost/subagent nit. *(e2e)*
-- [x] `INBOUND` poruka sa `[REF: TT-NNNNNN]` u naslovu koji odgovara postojećem `SupplierManifest`/`SupplierChangeNotice` (M5) ispravno popunjava `related_supplier_manifest_id`/`related_supplier_change_notice_id` kao predlog (poglavlje 3.1a); poruka bez prepoznate reference pada na fuzzy-match predlog. *(unit `reference-matcher.service.spec.ts` + e2e)*
-- [x] Test: M22 sam nikad ne piše u M5 `supplier_confirmed_at`/`by` — provereno da ta promena postoji samo kroz M5 endpoint sa `M5/supplier-confirmation/CONFIRM`, bez obzira na pouzdanost M22 predloga. *(e2e — grep-provera koda kroz `src/modules/m22-email-inbox`, nula pojava `confirmSupplier`/`supplierConfirmedAt`/`supplierConfirmedBy` van komentara)*
+- [x] Zaposleni bez `MailboxAccess` zapisa za dato sanduče ne može ni da vidi ni da odgovori na niti u tom sandučetu, čak i ako ima široku ulogu (Direktor/Vlasnik izuzetak samo ako je eksplicitno tako dodeljen). _(e2e `m22-exit-criteria.e2e-spec.ts`)_
+- [x] Vlasnik `PERSONAL` sandučeta automatski ima `REPLY` pristup sopstvenom sandučetu bez ručne dodele. _(unit + e2e)_
+- [x] `EmailThread.correspondent_type`/`correspondent_client_account_id`/`correspondent_supplier_id` se ispravno određuju tačnim poklapanjem mejl adrese, bez fuzzy-match rizika pogrešnog poklapanja. _(unit `correspondent-matcher.service.spec.ts` — sve četiri putanje: GuestProfile/ClientAccount+Subagent/Supplier/SupplierContact/OTHER)_
+- [x] AI sažetak i nacrt odgovora se automatski generišu za svaku novu `INBOUND` poruku, bez ljudske intervencije (kad je `ANTHROPIC_API_KEY` podešen — graceful degradation bez ključa, isti obrazac kao M21). _(unit `email-ai-assistant.service.spec.ts` + poziv na svaku `receiveInboundMessage`)_
+- [x] Nacrt koji pominje cenu/obavezu/promenu rezervacije se ne može poslati bez `sent_by` popunjenog ljudskim nalogom — sprovedeno nezavisno u kodu (keyword-heuristika), ne samo prompt-om. _(unit — nacrt ostaje `AI_DRAFT`/`sentBy=null` čak i kad model "misli" da je gotov za slanje)_
+- [x] Konverzija u `Ticket` ispravno popunjava `Ticket.source_email_thread_id`/`EmailThread.converted_to_ticket_id` recipročno, i `requester_client_account_id` na tiketu kad je poznat. _(e2e)_
+- [x] AI agent nikad ne konvertuje nit u tiket niti menja `MailboxAccess` samostalno — samo predlaže, gde je predviđeno. _(statička provera koda — `EmailAiAssistantService` nema zavisnost na `TicketConversionService`/`MailboxAccess` upis)_
+- [x] Prepiska sa dobavljačem (`correspondent_type = SUPPLIER`) koristi isti model pristupa/AI sažimanja kao gost/subagent nit. _(e2e)_
+- [x] `INBOUND` poruka sa `[REF: TT-NNNNNN]` u naslovu koji odgovara postojećem `SupplierManifest`/`SupplierChangeNotice` (M5) ispravno popunjava `related_supplier_manifest_id`/`related_supplier_change_notice_id` kao predlog (poglavlje 3.1a); poruka bez prepoznate reference pada na fuzzy-match predlog. _(unit `reference-matcher.service.spec.ts` + e2e)_
+- [x] Test: M22 sam nikad ne piše u M5 `supplier_confirmed_at`/`by` — provereno da ta promena postoji samo kroz M5 endpoint sa `M5/supplier-confirmation/CONFIRM`, bez obzira na pouzdanost M22 predloga. _(e2e — grep-provera koda kroz `src/modules/m22-email-inbox`, nula pojava `confirmSupplier`/`supplierConfirmedAt`/`supplierConfirmedBy` van komentara)_
 - [x] M17 ekran (poglavlje 1) — `apps/panel/src/app/(app)/email/`, implementiran i ručno provereno uživo protiv prave baze (M17 Faza 7, avgust 2026).
 
 ---
@@ -199,6 +203,7 @@ Prefiks: `/api/v1/email`
   - **dovlačenje pristigle pošte** (`fetchNewMessages`) — **nije** rešeno i ostaje otvoreno: SMTP ga po prirodi ne radi, traži IMAP ili API provajdera. SMTP adapter zato vraća prazan niz, isto kao mock, i to eksplicitno loguje.
 
   Izbor pravog provajdera (Gmail API / Microsoft Graph / IMAP) ostaje vlasnikova odluka i preduslov za dvosmernu prepisku sa dobavljačima.
+
 - **Pristup ličnim (van-agencijskim) mejl nalozima zaposlenih**, ako neko koristi ličan Gmail/Outlook nalog umesto agencijskog domena — zahteva IT/pravnu potvrdu pre implementacije (OAuth pristanak, GDPR/Zakon o zaštiti podataka o ličnosti obim), isto obrazloženje kao ostale stavke koje čekaju potvrdu pravnika/IT-ja u ostatku specifikacije (npr. M10 poglavlje 6.3).
 - **Real-time chat sa dobavljačima** (problem #9) ostaje potpuno odvojen otvoren gap — ovaj modul pokriva samo email deo te potrebe (poglavlje 6).
 - Tačan mehanizam podešavanja "auto-send" praga za čisto informativne kategorije (poglavlje 4) — globalno vs. po sandučetu vs. po kategoriji — definiše se kad se dođe do stvarne izrade.

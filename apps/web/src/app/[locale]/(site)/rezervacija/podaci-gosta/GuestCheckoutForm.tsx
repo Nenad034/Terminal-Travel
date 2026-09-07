@@ -9,7 +9,13 @@ import { useRouter } from 'next/navigation';
 export default function GuestCheckoutForm({
   labels,
 }: {
-  labels: { continueAsGuest: string; fullName: string; email: string; phone: string; submit: string };
+  labels: {
+    continueAsGuest: string;
+    fullName: string;
+    email: string;
+    phone: string;
+    submit: string;
+  };
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -54,15 +60,27 @@ export default function GuestCheckoutForm({
   }
 
   return (
-    <form onSubmit={onSubmit} className="mt-2 flex flex-col gap-3 rounded-md border border-border p-4">
+    <form
+      onSubmit={onSubmit}
+      className="mt-2 flex flex-col gap-3 rounded-md border border-border p-4"
+    >
       {error && <p className="rounded-md bg-danger-bg p-3 text-sm text-danger">{error}</p>}
       <label className="text-sm">
         {labels.fullName}
-        <input name="fullName" required className="mt-1 w-full rounded-md border border-border px-3 py-2" />
+        <input
+          name="fullName"
+          required
+          className="mt-1 w-full rounded-md border border-border px-3 py-2"
+        />
       </label>
       <label className="text-sm">
         {labels.email}
-        <input type="email" name="email" required className="mt-1 w-full rounded-md border border-border px-3 py-2" />
+        <input
+          type="email"
+          name="email"
+          required
+          className="mt-1 w-full rounded-md border border-border px-3 py-2"
+        />
       </label>
       <label className="text-sm">
         {labels.phone}

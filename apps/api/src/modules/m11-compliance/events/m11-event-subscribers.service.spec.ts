@@ -5,7 +5,11 @@ describe('M11EventSubscribersService (M11 spec §2.3)', () => {
     const eventListener = { on: jest.fn() };
     const prisma: any = { booking: { findUnique: jest.fn() } };
     const registrations = { createForBooking: jest.fn(), releaseForBooking: jest.fn() };
-    const service = new M11EventSubscribersService(eventListener as any, prisma, registrations as any);
+    const service = new M11EventSubscribersService(
+      eventListener as any,
+      prisma,
+      registrations as any,
+    );
     return { service, eventListener, prisma, registrations };
   }
 
@@ -19,7 +23,10 @@ describe('M11EventSubscribersService (M11 spec §2.3)', () => {
   describe('onBookingConfirmed', () => {
     it('kreira registraciju za ORGANIZATOR rezervaciju', async () => {
       const { service, prisma, registrations } = makeService();
-      prisma.booking.findUnique.mockResolvedValue({ id: 'booking-1', tipNastupanja: 'ORGANIZATOR' });
+      prisma.booking.findUnique.mockResolvedValue({
+        id: 'booking-1',
+        tipNastupanja: 'ORGANIZATOR',
+      });
 
       await service.onBookingConfirmed('booking-1');
 
@@ -39,7 +46,10 @@ describe('M11EventSubscribersService (M11 spec §2.3)', () => {
   describe('onBookingCancelled', () => {
     it('oslobađa registraciju za ORGANIZATOR rezervaciju', async () => {
       const { service, prisma, registrations } = makeService();
-      prisma.booking.findUnique.mockResolvedValue({ id: 'booking-1', tipNastupanja: 'ORGANIZATOR' });
+      prisma.booking.findUnique.mockResolvedValue({
+        id: 'booking-1',
+        tipNastupanja: 'ORGANIZATOR',
+      });
 
       await service.onBookingCancelled('booking-1');
 

@@ -15,7 +15,9 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ key:
     return NextResponse.json(result);
   } catch (err) {
     if (err instanceof ApiError) {
-      return NextResponse.json(err.body ?? { message: 'Čuvanje nije uspelo' }, { status: err.status });
+      return NextResponse.json(err.body ?? { message: 'Čuvanje nije uspelo' }, {
+        status: err.status,
+      });
     }
     throw err;
   }

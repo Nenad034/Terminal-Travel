@@ -3,7 +3,10 @@
 import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Icon, { IconDuo } from './Icon';
-import SearchCriteriaForm, { valuesFromSearchParams, type SearchCriteriaValues } from './SearchCriteriaForm';
+import SearchCriteriaForm, {
+  valuesFromSearchParams,
+  type SearchCriteriaValues,
+} from './SearchCriteriaForm';
 import SearchCriteriaChip from './SearchCriteriaChip';
 import { useSearchState } from './SearchStateContext';
 import { PRODUCT_ICONS, findIconByTypes, type ProductIconDef } from '@/lib/search-product-types';
@@ -21,12 +24,28 @@ import { inheritedStayFrom, isPackageMode } from '@/lib/search-package';
 
 /** Query parametri koji pripadaju JEDNOJ vrsti proizvoda — pamte se i vraćaju pri prelasku (§3.0g.4). */
 const CRITERIA_KEYS = [
-  'destinationCountry', 'destinationCity', 'stayFrom', 'stayTo', 'adults', 'children',
-  'cabinClass', 'minDriverAge', 'durationNights', 'cabinType', 'tripType', 'originCity',
-  'returnDate', 'flightLegs', 'rooms',
+  'destinationCountry',
+  'destinationCity',
+  'stayFrom',
+  'stayTo',
+  'adults',
+  'children',
+  'cabinClass',
+  'minDriverAge',
+  'durationNights',
+  'cabinType',
+  'tripType',
+  'originCity',
+  'returnDate',
+  'flightLegs',
+  'rooms',
   // Filteri iz levog panela — i oni su "ono što je korisnik uneo za ovu vrstu", pa se pamte
   // zajedno sa kriterijumima; §3.0g.1 tačka 3 ionako traži da se filteri menjaju po vrsti.
-  'priceMin', 'priceMax', 'availability', 'boardTypes', 'amenityTags',
+  'priceMin',
+  'priceMax',
+  'availability',
+  'boardTypes',
+  'amenityTags',
 ];
 
 // M5 spec §3.0d.6b (dopuna 5.9.2026) — `hasExpertGuide` ulazi u ključ da "Grupni paketi" i
@@ -88,7 +107,9 @@ export default function SearchPanel({ hasResults }: { hasResults: boolean }) {
   useEffect(() => {
     for (const p of PRODUCT_ICONS) {
       if (p.locked || p.types.length === 0) continue;
-      router.prefetch(urlFor(p.types, criteriaFor(typeKeyOf(p.types, p.hasExpertGuide)) ?? '', p.hasExpertGuide));
+      router.prefetch(
+        urlFor(p.types, criteriaFor(typeKeyOf(p.types, p.hasExpertGuide)) ?? '', p.hasExpertGuide),
+      );
     }
   }, [typeKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -170,7 +191,9 @@ export default function SearchPanel({ hasResults }: { hasResults: boolean }) {
              ("višak je ipak") — razmak sam dovoljno odvaja izbor vrste od forme pod njim. */}
       <div className="mb-4 flex flex-wrap items-start justify-center gap-1">
         {PRODUCT_ICONS.map((p) => {
-          const active = p.packageMode ? packageMode : p.types.length > 0 && typeKeyOf(p.types, p.hasExpertGuide) === typeKey;
+          const active = p.packageMode
+            ? packageMode
+            : p.types.length > 0 && typeKeyOf(p.types, p.hasExpertGuide) === typeKey;
           const disabled = p.packageMode ? false : Boolean(p.locked) || p.types.length === 0;
           return (
             <button
@@ -192,7 +215,11 @@ export default function SearchPanel({ hasResults }: { hasResults: boolean }) {
               }`}
             >
               {/* +20% u odnosu na `text-lg` (18px → 21.6px), 4.9.2026 na zahtev vlasnika. */}
-              {p.iconDuo ? <IconDuo name={p.icon} className="text-[1.35rem]" /> : <Icon name={p.icon} className="text-[1.35rem]" />}
+              {p.iconDuo ? (
+                <IconDuo name={p.icon} className="text-[1.35rem]" />
+              ) : (
+                <Icon name={p.icon} className="text-[1.35rem]" />
+              )}
               <span className="text-center">{p.label}</span>
             </button>
           );
@@ -220,11 +247,18 @@ export default function SearchPanel({ hasResults }: { hasResults: boolean }) {
       )}
 
       {activeIcon && !showForm && (
-        <SearchCriteriaChip onExpand={() => setExpanded(true)} onReset={reset} onRefresh={refresh} refreshing={refreshing} />
+        <SearchCriteriaChip
+          onExpand={() => setExpanded(true)}
+          onReset={reset}
+          onRefresh={refresh}
+          refreshing={refreshing}
+        />
       )}
 
       {!activeIcon && (
-        <p className="text-center text-xs text-ink-faint">Izaberite vrstu proizvoda iznad da biste pokrenuli pretragu.</p>
+        <p className="text-center text-xs text-ink-faint">
+          Izaberite vrstu proizvoda iznad da biste pokrenuli pretragu.
+        </p>
       )}
     </div>
   );

@@ -16,7 +16,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     return NextResponse.json(result);
   } catch (err) {
     if (err instanceof ApiError) {
-      return NextResponse.json(err.body ?? { message: 'Slanje nije uspelo' }, { status: err.status });
+      return NextResponse.json(err.body ?? { message: 'Slanje nije uspelo' }, {
+        status: err.status,
+      });
     }
     throw err;
   }

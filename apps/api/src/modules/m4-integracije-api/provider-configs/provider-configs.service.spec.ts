@@ -3,7 +3,14 @@ import { ProviderConfigsService } from './provider-configs.service';
 
 describe('ProviderConfigsService', () => {
   function makeService() {
-    const prisma = { providerConfig: { findMany: jest.fn(), findUniqueOrThrow: jest.fn(), create: jest.fn(), update: jest.fn() } };
+    const prisma = {
+      providerConfig: {
+        findMany: jest.fn(),
+        findUniqueOrThrow: jest.fn(),
+        create: jest.fn(),
+        update: jest.fn(),
+      },
+    };
     const auditLog = { write: jest.fn() };
     const registry = { invalidate: jest.fn() };
     const service = new ProviderConfigsService(prisma as any, auditLog as any, registry as any);
@@ -59,7 +66,9 @@ describe('ProviderConfigsService', () => {
         authConfigEncrypted: 'x',
       });
 
-      await expect(service.update('travelgate', { status: 'ACTIVE' as any }, 'actor-1')).rejects.toThrow(BadRequestException);
+      await expect(
+        service.update('travelgate', { status: 'ACTIVE' as any }, 'actor-1'),
+      ).rejects.toThrow(BadRequestException);
       expect(prisma.providerConfig.update).not.toHaveBeenCalled();
     });
 
@@ -71,7 +80,11 @@ describe('ProviderConfigsService', () => {
         defaultTipNastupanja: 'ORGANIZATOR',
         authConfigEncrypted: 'x',
       });
-      prisma.providerConfig.update.mockResolvedValue({ providerCode: 'travelgate', status: 'ACTIVE', authConfigEncrypted: 'x' });
+      prisma.providerConfig.update.mockResolvedValue({
+        providerCode: 'travelgate',
+        status: 'ACTIVE',
+        authConfigEncrypted: 'x',
+      });
 
       const result = await service.update('travelgate', { status: 'ACTIVE' as any }, 'actor-1');
       expect(result.status).toBe('ACTIVE');
@@ -85,7 +98,10 @@ describe('ProviderConfigsService', () => {
         defaultTipNastupanja: 'ORGANIZATOR',
         authConfigEncrypted: 'x',
       });
-      prisma.providerConfig.update.mockResolvedValue({ providerCode: 'travelgate', authConfigEncrypted: 'x' });
+      prisma.providerConfig.update.mockResolvedValue({
+        providerCode: 'travelgate',
+        authConfigEncrypted: 'x',
+      });
 
       await service.update('travelgate', { useMock: true }, 'actor-1');
 

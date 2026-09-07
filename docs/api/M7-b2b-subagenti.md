@@ -22,6 +22,7 @@
 Lista. Agencija (Vlasnik/Direktor/Sales Manager) vidi sve; `SUBAGENT_ADMIN` dobija isključivo sopstveni zapis (ownership sprovodi servis, ne dozvola — isti obrazac kao M6 `GOST`).
 
 **Odgovor `200`:**
+
 ```json
 [
   {
@@ -38,6 +39,7 @@ Lista. Agencija (Vlasnik/Direktor/Sales Manager) vidi sve; `SUBAGENT_ADMIN` dobi
   }
 ]
 ```
+
 Dozvola: `M7/subagent/VIEW`.
 
 ### GET /b2b/subagents/:id
@@ -49,9 +51,11 @@ Isti oblik kao stavka liste. Ownership: agencija bilo koji; `SUBAGENT_ADMIN` sam
 Registracija novog Tier 1 kandidata (`parent_subagent_id = null`), status uvek `PENDING_APPROVAL`.
 
 **Zahtev:**
+
 ```json
 { "clientAccountId": "ca-legal-1" }
 ```
+
 `clientAccountId` mora referencirati postojeći `ClientAccount` sa `account_type = LEGAL_ENTITY`, inače `400`. Dozvola: `M7/subagent/CREATE` (Vlasnik/Direktor).
 
 **Odgovor `201`:** `Subagent` zapis, `status: "PENDING_APPROVAL"`, `commissionPercentage`/`creditLimit` `null`.
@@ -61,13 +65,17 @@ Registracija novog Tier 1 kandidata (`parent_subagent_id = null`), status uvek `
 Prelazak `PENDING_APPROVAL` → `ACTIVE`. Postavlja kreditni limit **uvek**; proviziju **samo ako je Tier 1** (`parent_subagent_id = null`) — za sub-subagenta proviziju već postavlja roditelj (kreacija ili `PATCH .../commission`), pa se ovde ne prosleđuje.
 
 **Zahtev (Tier 1):**
+
 ```json
 { "creditLimit": 50000, "creditLimitCurrency": "EUR", "commissionPercentage": 10 }
 ```
+
 **Zahtev (sub-subagent, provizija već postavljena):**
+
 ```json
 { "creditLimit": 20000, "creditLimitCurrency": "EUR" }
 ```
+
 Dozvola: `M7/subagent/APPROVE` (Vlasnik/Direktor). Greška `400` ako subagent nije `PENDING_APPROVAL`, ili ako je Tier 1 bez provizije (ni u telu, ni već postavljene).
 
 ### PATCH /b2b/subagents/:id
@@ -83,6 +91,7 @@ Izmena kreditnog limita/statusa (`ACTIVE`/`SUSPENDED`). Dozvola: `M7/subagent/ED
 Sopstveni direktni sub-subagenti (§6 — ne unuci). GET dostupan agenciji i roditeljskom `SUBAGENT_ADMIN`-u (`M7/subagent/VIEW`). POST kreira sub-subagenta, dozvola `M7/subagent/MANAGE_OWN_NETWORK` (dodeljena i Vlasnik/Direktor pored `SUBAGENT_ADMIN`).
 
 **Zahtev POST (opciono commissionPercentage — mora biti ≤ roditeljeva trenutna provizija, inače `400`):**
+
 ```json
 { "clientAccountId": "ca-legal-2", "commissionPercentage": 8 }
 ```
@@ -94,6 +103,7 @@ Roditelj menja proviziju deteta. Ograda: ne sme preći roditeljevu **trenutnu ef
 ```json
 { "commissionPercentage": 9 }
 ```
+
 `400` ako prelazi plafon. Dozvola: `M7/subagent/MANAGE_OWN_NETWORK`.
 
 ### GET /b2b/subagents/:id/outstanding-balance
@@ -101,6 +111,7 @@ Roditelj menja proviziju deteta. Ograda: ne sme preći roditeljevu **trenutnu ef
 Uživo izračunato stanje duga (§2.1) — zbir `Booking.total_price` u statusu `UNPAID`/`PARTIALLY_PAID`/`INVOICE_PENDING`, umanjeno za primljene (`RECEIVED`) uplate, samo u valuti `credit_limit_currency`.
 
 **Odgovor `200`:**
+
 ```json
 { "amount": 12000, "currency": "EUR" }
 ```
@@ -114,6 +125,7 @@ Uživo izračunato stanje duga (§2.1) — zbir `Booking.total_price` u statusu 
 Pragovi obima ("Ako-Onda"). Isti autoritet kao osnovna provizija (agencija za Tier 1, roditelj za sub-subagenta). Bar jedno od `resultingCommissionPercentage`/`resultingCommissionFixedAmount` mora biti postavljeno.
 
 **Zahtev POST:**
+
 ```json
 {
   "rank": 1,
@@ -124,6 +136,7 @@ Pragovi obima ("Ako-Onda"). Isti autoritet kao osnovna provizija (agencija za Ti
   "retroactive": true
 }
 ```
+
 Dozvola: `M7/subagent/MANAGE_OWN_NETWORK` (POST/PATCH), `M7/subagent/VIEW` (GET).
 
 ### GET /b2b/subagents/:id/volume-status
@@ -131,6 +144,7 @@ Dozvola: `M7/subagent/MANAGE_OWN_NETWORK` (POST/PATCH), `M7/subagent/VIEW` (GET)
 Tekući obim, dostignut prag, i `effectiveCommissionPercentage` — ovo polje koristi M5 pri kreiranju ponude (§5).
 
 **Odgovor `200`:**
+
 ```json
 {
   "subagentId": "sub-1",
@@ -142,6 +156,7 @@ Tekući obim, dostignut prag, i `effectiveCommissionPercentage` — ovo polje ko
   "lastRecalculatedAt": "2027-03-15T08:00:00.000Z"
 }
 ```
+
 Automatski preračunato na svaki M5 `booking.confirmed`/`booking.cancelled` — nema potrebe da klijent poziva preračun ručno.
 
 ---
@@ -153,6 +168,7 @@ Automatski preračunato na svaki M5 `booking.confirmed`/`booking.cancelled` — 
 Lista svih statusa. Dozvola: `M7/commission-rebate/VIEW`.
 
 **Odgovor `200`:**
+
 ```json
 [
   {
@@ -178,6 +194,7 @@ Odmah po prelasku u `APPROVED`, sistem sinhrono priprema M10 `FiscalDocument` na
 **`APPLIED` se postavlja tek kad je taj `FiscalDocument` stvarno poslat** (M10 `POST /finance/fiscal-documents/:id/submit`, ljudski nalog sa `M10/fiscal-document/SUBMIT`) — do tada rabat ostaje `APPROVED`. Ovo je posledica knjiženja, ne nova ljudska odluka na M7 strani.
 
 **Odgovor `200` (odmah po approve, pre submit-a na M10 strani):**
+
 ```json
 {
   "id": "rebate-1",
@@ -194,6 +211,7 @@ Odmah po prelasku u `APPROVED`, sistem sinhrono priprema M10 `FiscalDocument` na
 ```json
 { "reason": "Interni dogovor — ne primenjuje se ovog kvartala" }
 ```
+
 Prevodi `DRAFT` → `REJECTED`, razlog se upisuje u audit log (append-only trag, ne u sam `CommissionRebate` zapis).
 
 ---
@@ -210,12 +228,12 @@ Ovo nisu M7 endpoint-i, ali su direktna posledica M7 pravila i vidljivi su kroz 
 
 ## Dozvole (pregled)
 
-| Dozvola | Ko dobija podrazumevano |
-| :---- | :---- |
-| `M7/subagent/VIEW` | Vlasnik, Direktor, Sales Manager, `SUBAGENT_ADMIN` (samo sopstveno) |
-| `M7/subagent/CREATE` | Vlasnik, Direktor |
-| `M7/subagent/APPROVE` | Vlasnik, Direktor |
-| `M7/subagent/EDIT` | Vlasnik, Direktor |
-| `M7/subagent/MANAGE_OWN_NETWORK` | Vlasnik, Direktor, `SUBAGENT_ADMIN` (samo sopstvena deca) |
-| `M7/commission-rebate/VIEW` | Vlasnik, Direktor, Računovođa, Sales Manager |
-| `M7/commission-rebate/APPROVE` | Vlasnik, Direktor, Računovođa — nikad AI agent |
+| Dozvola                          | Ko dobija podrazumevano                                             |
+| :------------------------------- | :------------------------------------------------------------------ |
+| `M7/subagent/VIEW`               | Vlasnik, Direktor, Sales Manager, `SUBAGENT_ADMIN` (samo sopstveno) |
+| `M7/subagent/CREATE`             | Vlasnik, Direktor                                                   |
+| `M7/subagent/APPROVE`            | Vlasnik, Direktor                                                   |
+| `M7/subagent/EDIT`               | Vlasnik, Direktor                                                   |
+| `M7/subagent/MANAGE_OWN_NETWORK` | Vlasnik, Direktor, `SUBAGENT_ADMIN` (samo sopstvena deca)           |
+| `M7/commission-rebate/VIEW`      | Vlasnik, Direktor, Računovođa, Sales Manager                        |
+| `M7/commission-rebate/APPROVE`   | Vlasnik, Direktor, Računovođa — nikad AI agent                      |

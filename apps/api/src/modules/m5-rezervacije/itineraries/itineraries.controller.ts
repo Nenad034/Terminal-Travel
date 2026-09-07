@@ -18,7 +18,10 @@ export class ItinerariesController {
 
   @Get()
   @RequirePermission('M5', 'itinerary', 'VIEW')
-  findAll(@Query('clientAccountId') clientAccountId: string | undefined, @CurrentUser() actor: { userId: string }) {
+  findAll(
+    @Query('clientAccountId') clientAccountId: string | undefined,
+    @CurrentUser() actor: { userId: string },
+  ) {
     return this.itineraries.findAll(clientAccountId, actor.userId);
   }
 
@@ -36,7 +39,11 @@ export class ItinerariesController {
 
   @Patch(':id')
   @RequirePermission('M5', 'itinerary', 'EDIT')
-  update(@Param('id') id: string, @Body() dto: UpdateItineraryDto, @CurrentUser() actor: { userId: string }) {
+  update(
+    @Param('id') id: string,
+    @Body() dto: UpdateItineraryDto,
+    @CurrentUser() actor: { userId: string },
+  ) {
     return this.itineraries.update(id, dto, actor.userId);
   }
 

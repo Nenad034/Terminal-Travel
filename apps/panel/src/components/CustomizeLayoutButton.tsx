@@ -67,7 +67,9 @@ export default function CustomizeLayoutButton(props: CustomizeLayoutButtonProps)
     // chat" red je uklonjen, isti prekidač otvara/zatvara oboje (AI chat je trajan deo panela).
     { label: 'Desni panel', checked: props.rightPanelOpen, onToggle: props.onToggleRightPanel },
     { label: 'Statusna traka', checked: props.statusBarVisible, onToggle: props.onToggleStatusBar },
-    ...(props.showTerminal ? [{ label: 'Terminal', checked: props.terminalOpen, onToggle: props.onToggleTerminal }] : []),
+    ...(props.showTerminal
+      ? [{ label: 'Terminal', checked: props.terminalOpen, onToggle: props.onToggleTerminal }]
+      : []),
   ];
 
   return (

@@ -6,7 +6,6 @@ import CreateClientForm from './CreateClientForm';
 import { ActivateButton, ApproveReadWriteButton, SuspendButton } from './ClientActionButtons';
 import { Badge } from '@/components/ui/badge';
 
-
 interface McpClient {
   id: string;
   clientName: string;
@@ -53,9 +52,16 @@ export default async function McpClientsPage() {
           {canManage && <CreateClientForm />}
 
           <div className="overflow-hidden rounded-lg border border-border">
-            {clients.length === 0 && <p className="p-4 text-center text-xs text-ink-faint">Nema registrovanih MCP klijenata.</p>}
+            {clients.length === 0 && (
+              <p className="p-4 text-center text-xs text-ink-faint">
+                Nema registrovanih MCP klijenata.
+              </p>
+            )}
             {clients.map((c) => (
-              <div key={c.id} className="flex items-center justify-between gap-3 border-b border-border bg-panel px-4 py-3 text-sm last:border-b-0">
+              <div
+                key={c.id}
+                className="flex items-center justify-between gap-3 border-b border-border bg-panel px-4 py-3 text-sm last:border-b-0"
+              >
                 <div className="min-w-0">
                   <div className="flex items-center gap-2 font-medium text-ink">
                     <Icon name="radio-tower" className="text-accent" />
@@ -71,7 +77,9 @@ export default async function McpClientsPage() {
                   <AccessLevelBadge level={c.accessLevel} />
                   <StatusBadge status={c.status} />
                   {c.status === 'PENDING' && <ActivateButton id={c.id} canManage={canManage} />}
-                  {c.status === 'ACTIVE' && c.accessLevel === 'READ_ONLY' && <ApproveReadWriteButton id={c.id} canApprove={canApprove} />}
+                  {c.status === 'ACTIVE' && c.accessLevel === 'READ_ONLY' && (
+                    <ApproveReadWriteButton id={c.id} canApprove={canApprove} />
+                  )}
                   {c.status !== 'SUSPENDED' && <SuspendButton id={c.id} canManage={canManage} />}
                 </div>
               </div>
@@ -90,11 +98,12 @@ function StatusBadge({ status }: { status: McpClient['status'] }) {
 }
 
 function AccessLevelBadge({ level }: { level: McpClient['accessLevel'] }) {
-  if (level === 'READ_WRITE') return (
-    <Badge variant="secondary" className="bg-accent-soft text-accent-strong">
-      {level}
-    </Badge>
-  );
+  if (level === 'READ_WRITE')
+    return (
+      <Badge variant="secondary" className="bg-accent-soft text-accent-strong">
+        {level}
+      </Badge>
+    );
   return (
     <Badge variant="secondary" className="text-ink-faint">
       {level}

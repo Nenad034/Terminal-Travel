@@ -21,12 +21,20 @@ function StatusBadge({ label }: { label: string }) {
 }
 
 function PaymentBadge({ label }: { label: string }) {
-  const tone = label === 'PAID' ? 'text-ok bg-ok-bg' : label === 'UNPAID' ? 'text-danger bg-danger-bg' : 'text-ink-faint bg-panel2';
+  const tone =
+    label === 'PAID'
+      ? 'text-ok bg-ok-bg'
+      : label === 'UNPAID'
+        ? 'text-danger bg-danger-bg'
+        : 'text-ink-faint bg-panel2';
   return <span className={`rounded px-2 py-0.5 text-[11px] font-medium ${tone}`}>{label}</span>;
 }
 
 function formatAmount(amount: number): string {
-  return (amount / 100).toLocaleString('sr-RS', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return (amount / 100).toLocaleString('sr-RS', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
 }
 
 function formatDate(iso: string): string {
@@ -95,7 +103,15 @@ function matchesDateRange(iso: string, filterText: string): boolean {
   const to = toPart !== undefined ? parseDDMMYYYY(toPart) : from;
   const target = to ?? from;
   const rangeStart = new Date(from.getFullYear(), from.getMonth(), from.getDate(), 0, 0, 0);
-  const rangeEnd = new Date(target.getFullYear(), target.getMonth(), target.getDate(), 23, 59, 59, 999);
+  const rangeEnd = new Date(
+    target.getFullYear(),
+    target.getMonth(),
+    target.getDate(),
+    23,
+    59,
+    59,
+    999,
+  );
   const value = new Date(iso);
   return value >= rangeStart && value <= rangeEnd;
 }
@@ -106,7 +122,12 @@ function matchesDateRange(iso: string, filterText: string): boolean {
 // (`page.tsx`), koja ostaje čist wrapper. Tekstualne kolone: "sadrži" (case-insensitive).
 // Datumske kolone (Dolazak/Odlazak/Kreirano, isti dan, dopuna): opseg DD/MM/GGGG...DD/MM/GGGG.
 // Sve aktivne kolone se AND-uju.
-const EMPTY_EXTRA_FILTERS: ExtraFilters = { branch: '', assignedUser: '', supplierName: '', partnerName: '' };
+const EMPTY_EXTRA_FILTERS: ExtraFilters = {
+  branch: '',
+  assignedUser: '',
+  supplierName: '',
+  partnerName: '',
+};
 
 // Stoji IZVAN komponente (6.9.2026, ESLint `react-hooks/static-components`, dok. 41 A2) —
 // unutar nje bi je React pri svakom renderu video kao novu komponentu i iscrtavao ispočetka.
@@ -132,7 +153,9 @@ function SortLabel({
       className={`flex items-center gap-1 hover:text-ink ${active ? 'text-ink' : ''}`}
     >
       {children}
-      <span className="w-[10px]">{active && <Icon name={sortDir === 'asc' ? 'triangle-up' : 'triangle-down'} />}</span>
+      <span className="w-[10px]">
+        {active && <Icon name={sortDir === 'asc' ? 'triangle-up' : 'triangle-down'} />}
+      </span>
     </button>
   );
 }
@@ -194,23 +217,44 @@ export default function BookingsTable({ bookings }: { bookings: MockBookingRow[]
     return bookings.filter((b) => {
       if (urgentOnly && !b.urgent) return false;
       if (productTypeFilter && b.productType !== productTypeFilter) return false;
-      if (extraFilters.branch.trim() && !b.branch.toLowerCase().includes(extraFilters.branch.trim().toLowerCase())) return false;
-      if (extraFilters.assignedUser.trim() && !b.assignedUser.toLowerCase().includes(extraFilters.assignedUser.trim().toLowerCase())) return false;
-      if (extraFilters.supplierName.trim() && !b.supplierName.toLowerCase().includes(extraFilters.supplierName.trim().toLowerCase())) return false;
-      if (extraFilters.partnerName.trim() && !(b.partnerName ?? '').toLowerCase().includes(extraFilters.partnerName.trim().toLowerCase())) return false;
+      if (
+        extraFilters.branch.trim() &&
+        !b.branch.toLowerCase().includes(extraFilters.branch.trim().toLowerCase())
+      )
+        return false;
+      if (
+        extraFilters.assignedUser.trim() &&
+        !b.assignedUser.toLowerCase().includes(extraFilters.assignedUser.trim().toLowerCase())
+      )
+        return false;
+      if (
+        extraFilters.supplierName.trim() &&
+        !b.supplierName.toLowerCase().includes(extraFilters.supplierName.trim().toLowerCase())
+      )
+        return false;
+      if (
+        extraFilters.partnerName.trim() &&
+        !(b.partnerName ?? '').toLowerCase().includes(extraFilters.partnerName.trim().toLowerCase())
+      )
+        return false;
       return (Object.keys(filters) as ColumnKey[]).every((key) => {
         const value = filters[key];
         if (!value.trim()) return true;
-        if ((DATE_COLUMNS as string[]).includes(key)) return matchesDateRange(b[key as DateColumnKey], value);
+        if ((DATE_COLUMNS as string[]).includes(key))
+          return matchesDateRange(b[key as DateColumnKey], value);
         const needle = value.trim().toLowerCase();
         // "Nosilac rezervacije" pretraga sad TAKOĐE pokriva državu/destinaciju/hotel (23.8.2026,
         // na zahtev vlasnika: "Omogucite u pretrazi po kolonama da se i po ovim pojmovima
         // pretrazuje") — prikazani su kao pod-red ispod naziva nosioca, ne kao sopstvena kolona,
         // pa isti filter obuhvata sve što se tu vidi umesto da se doda još jedno polje.
         if (key === 'buyerName') {
-          return [b.buyerName, b.country, b.destinationCity, b.hotelName].some((v) => v.toLowerCase().includes(needle));
+          return [b.buyerName, b.country, b.destinationCity, b.hotelName].some((v) =>
+            v.toLowerCase().includes(needle),
+          );
         }
-        return String(b[key as TextColumnKey]).toLowerCase().includes(needle);
+        return String(b[key as TextColumnKey])
+          .toLowerCase()
+          .includes(needle);
       });
     });
   }, [bookings, filters, urgentOnly, productTypeFilter, extraFilters]);
@@ -248,7 +292,6 @@ export default function BookingsTable({ bookings }: { bookings: MockBookingRow[]
     });
   }
 
-
   const filterInputClass =
     'w-full rounded border border-ink-faint bg-panel px-1.5 py-0.5 text-[11px] font-normal text-ink outline-none placeholder:text-ink-faint focus:border-accent';
 
@@ -264,10 +307,14 @@ export default function BookingsTable({ bookings }: { bookings: MockBookingRow[]
           return (
             <button
               key={p.label}
-              onClick={() => setProductTypeFilter((cur) => (cur && p.types.includes(cur) ? null : p.types[0]))}
+              onClick={() =>
+                setProductTypeFilter((cur) => (cur && p.types.includes(cur) ? null : p.types[0]))
+              }
               title={`Filtriraj: ${p.label}`}
               className={`flex h-[26px] w-[26px] items-center justify-center rounded ${
-                active ? 'bg-accent-soft text-accent-strong' : 'text-ink-faint hover:bg-panel2 hover:text-ink'
+                active
+                  ? 'bg-accent-soft text-accent-strong'
+                  : 'text-ink-faint hover:bg-panel2 hover:text-ink'
               }`}
             >
               <Icon name={p.icon} />
@@ -318,17 +365,48 @@ export default function BookingsTable({ bookings }: { bookings: MockBookingRow[]
             <tr className="border-b border-border bg-panel2 text-ink-faint">
               <th className="w-[64px] px-3 py-2 font-medium" />
               <th className="px-3 py-2 font-medium">
-                <SortLabel sortKeyValue="bookingNumber" sortKey={sortKey} sortDir={sortDir} onToggle={toggleSort}>Broj</SortLabel>
-                <input value={filters.bookingNumber} onChange={(e) => setFilter('bookingNumber', e.target.value)} placeholder="pretraži..." className={`mt-1 ${filterInputClass}`} />
+                <SortLabel
+                  sortKeyValue="bookingNumber"
+                  sortKey={sortKey}
+                  sortDir={sortDir}
+                  onToggle={toggleSort}
+                >
+                  Broj
+                </SortLabel>
+                <input
+                  value={filters.bookingNumber}
+                  onChange={(e) => setFilter('bookingNumber', e.target.value)}
+                  placeholder="pretraži..."
+                  className={`mt-1 ${filterInputClass}`}
+                />
               </th>
               {/* "Kreirano" premešteno između "Broj" i "Nosilac rezervacije" (23.8.2026, na
                   zahtev vlasnika) — poništava raniji redosled (bilo je poslednja kolona). */}
               <th className="px-3 py-2 font-medium">
-                <SortLabel sortKeyValue="createdAt" sortKey={sortKey} sortDir={sortDir} onToggle={toggleSort}>Kreirano</SortLabel>
-                <input value={filters.createdAt} onChange={(e) => setFilter('createdAt', e.target.value)} placeholder="dd/mm/gggg...dd/mm/gggg" className={`mt-1 ${filterInputClass}`} />
+                <SortLabel
+                  sortKeyValue="createdAt"
+                  sortKey={sortKey}
+                  sortDir={sortDir}
+                  onToggle={toggleSort}
+                >
+                  Kreirano
+                </SortLabel>
+                <input
+                  value={filters.createdAt}
+                  onChange={(e) => setFilter('createdAt', e.target.value)}
+                  placeholder="dd/mm/gggg...dd/mm/gggg"
+                  className={`mt-1 ${filterInputClass}`}
+                />
               </th>
               <th className="px-3 py-2 font-medium">
-                <SortLabel sortKeyValue="buyerName" sortKey={sortKey} sortDir={sortDir} onToggle={toggleSort}>Nosilac rezervacije</SortLabel>
+                <SortLabel
+                  sortKeyValue="buyerName"
+                  sortKey={sortKey}
+                  sortDir={sortDir}
+                  onToggle={toggleSort}
+                >
+                  Nosilac rezervacije
+                </SortLabel>
                 <input
                   value={filters.buyerName}
                   onChange={(e) => setFilter('buyerName', e.target.value)}
@@ -337,28 +415,95 @@ export default function BookingsTable({ bookings }: { bookings: MockBookingRow[]
                 />
               </th>
               <th className="px-3 py-2 font-medium">
-                <SortLabel sortKeyValue="channel" sortKey={sortKey} sortDir={sortDir} onToggle={toggleSort}>Kanal</SortLabel>
-                <input value={filters.channel} onChange={(e) => setFilter('channel', e.target.value)} placeholder="pretraži..." className={`mt-1 ${filterInputClass}`} />
+                <SortLabel
+                  sortKeyValue="channel"
+                  sortKey={sortKey}
+                  sortDir={sortDir}
+                  onToggle={toggleSort}
+                >
+                  Kanal
+                </SortLabel>
+                <input
+                  value={filters.channel}
+                  onChange={(e) => setFilter('channel', e.target.value)}
+                  placeholder="pretraži..."
+                  className={`mt-1 ${filterInputClass}`}
+                />
               </th>
               <th className="px-3 py-2 font-medium">
-                <SortLabel sortKeyValue="status" sortKey={sortKey} sortDir={sortDir} onToggle={toggleSort}>Status</SortLabel>
-                <input value={filters.status} onChange={(e) => setFilter('status', e.target.value)} placeholder="pretraži..." className={`mt-1 ${filterInputClass}`} />
+                <SortLabel
+                  sortKeyValue="status"
+                  sortKey={sortKey}
+                  sortDir={sortDir}
+                  onToggle={toggleSort}
+                >
+                  Status
+                </SortLabel>
+                <input
+                  value={filters.status}
+                  onChange={(e) => setFilter('status', e.target.value)}
+                  placeholder="pretraži..."
+                  className={`mt-1 ${filterInputClass}`}
+                />
               </th>
               <th className="px-3 py-2 font-medium">
-                <SortLabel sortKeyValue="paymentStatus" sortKey={sortKey} sortDir={sortDir} onToggle={toggleSort}>Uplata</SortLabel>
-                <input value={filters.paymentStatus} onChange={(e) => setFilter('paymentStatus', e.target.value)} placeholder="pretraži..." className={`mt-1 ${filterInputClass}`} />
+                <SortLabel
+                  sortKeyValue="paymentStatus"
+                  sortKey={sortKey}
+                  sortDir={sortDir}
+                  onToggle={toggleSort}
+                >
+                  Uplata
+                </SortLabel>
+                <input
+                  value={filters.paymentStatus}
+                  onChange={(e) => setFilter('paymentStatus', e.target.value)}
+                  placeholder="pretraži..."
+                  className={`mt-1 ${filterInputClass}`}
+                />
               </th>
               <th className="px-3 py-2 font-medium">
-                <SortLabel sortKeyValue="stayFrom" sortKey={sortKey} sortDir={sortDir} onToggle={toggleSort}>Dolazak</SortLabel>
-                <input value={filters.stayFrom} onChange={(e) => setFilter('stayFrom', e.target.value)} placeholder="dd/mm/gggg...dd/mm/gggg" className={`mt-1 ${filterInputClass}`} />
+                <SortLabel
+                  sortKeyValue="stayFrom"
+                  sortKey={sortKey}
+                  sortDir={sortDir}
+                  onToggle={toggleSort}
+                >
+                  Dolazak
+                </SortLabel>
+                <input
+                  value={filters.stayFrom}
+                  onChange={(e) => setFilter('stayFrom', e.target.value)}
+                  placeholder="dd/mm/gggg...dd/mm/gggg"
+                  className={`mt-1 ${filterInputClass}`}
+                />
               </th>
               <th className="px-3 py-2 font-medium">
-                <SortLabel sortKeyValue="stayTo" sortKey={sortKey} sortDir={sortDir} onToggle={toggleSort}>Odlazak</SortLabel>
-                <input value={filters.stayTo} onChange={(e) => setFilter('stayTo', e.target.value)} placeholder="dd/mm/gggg...dd/mm/gggg" className={`mt-1 ${filterInputClass}`} />
+                <SortLabel
+                  sortKeyValue="stayTo"
+                  sortKey={sortKey}
+                  sortDir={sortDir}
+                  onToggle={toggleSort}
+                >
+                  Odlazak
+                </SortLabel>
+                <input
+                  value={filters.stayTo}
+                  onChange={(e) => setFilter('stayTo', e.target.value)}
+                  placeholder="dd/mm/gggg...dd/mm/gggg"
+                  className={`mt-1 ${filterInputClass}`}
+                />
               </th>
               <th className="px-3 py-2 text-right font-medium">
                 <div className="flex justify-end">
-                  <SortLabel sortKeyValue="totalPrice" sortKey={sortKey} sortDir={sortDir} onToggle={toggleSort}>Iznos</SortLabel>
+                  <SortLabel
+                    sortKeyValue="totalPrice"
+                    sortKey={sortKey}
+                    sortDir={sortDir}
+                    onToggle={toggleSort}
+                  >
+                    Iznos
+                  </SortLabel>
                 </div>
               </th>
             </tr>
@@ -380,8 +525,19 @@ export default function BookingsTable({ bookings }: { bookings: MockBookingRow[]
                     {/* Prva ikona = vrsta aranžmana (23.8.2026, na zahtev vlasnika) — isti
                         katalog kao traka iznad liste, samo prikaz (ne klikabilna po redu, klik
                         za filter ide preko trake iznad). */}
-                    <span title={PRODUCT_ICONS.find((p) => p.types.includes(b.productType))?.label ?? b.productType} className="flex h-[22px] w-[22px] items-center justify-center text-ink-faint">
-                      <Icon name={PRODUCT_ICONS.find((p) => p.types.includes(b.productType))?.icon ?? 'question'} />
+                    <span
+                      title={
+                        PRODUCT_ICONS.find((p) => p.types.includes(b.productType))?.label ??
+                        b.productType
+                      }
+                      className="flex h-[22px] w-[22px] items-center justify-center text-ink-faint"
+                    >
+                      <Icon
+                        name={
+                          PRODUCT_ICONS.find((p) => p.types.includes(b.productType))?.icon ??
+                          'question'
+                        }
+                      />
                     </span>
                     {b.urgent && (
                       <button
@@ -408,7 +564,11 @@ export default function BookingsTable({ bookings }: { bookings: MockBookingRow[]
                   </div>
                 </td>
                 <td className="px-3 py-2 font-mono">
-                  <button onClick={(e) => openFullRecord(e, b)} title="Otvori pun zapis rezervacije" className="text-ink hover:text-accent hover:underline">
+                  <button
+                    onClick={(e) => openFullRecord(e, b)}
+                    title="Otvori pun zapis rezervacije"
+                    className="text-ink hover:text-accent hover:underline"
+                  >
                     {b.bookingNumber}
                   </button>
                 </td>
@@ -451,7 +611,12 @@ export default function BookingsTable({ bookings }: { bookings: MockBookingRow[]
       <p className="mt-2 text-[11px] text-ink-faint">
         {sorted.length} / {bookings.length} rezervacija (mock)
       </p>
-      {timelineFor && <BookingTimelineModal mockEntries={buildMockTimeline(timelineFor)} onClose={() => setTimelineFor(null)} />}
+      {timelineFor && (
+        <BookingTimelineModal
+          mockEntries={buildMockTimeline(timelineFor)}
+          onClose={() => setTimelineFor(null)}
+        />
+      )}
       {urgentFor?.urgent && (
         <UrgentModal
           bookingNumber={urgentFor.bookingNumber}

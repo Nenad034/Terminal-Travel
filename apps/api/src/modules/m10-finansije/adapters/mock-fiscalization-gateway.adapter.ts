@@ -12,8 +12,17 @@ import type {
 @Injectable()
 export class MockFiscalizationGatewayAdapter implements FiscalizationGatewayAdapter {
   async submitDocument(request: FiscalizationSubmitRequest): Promise<FiscalizationSubmitResult> {
-    const prefix = request.documentType === 'SEF_EFAKTURA' ? 'SEF' : request.documentType === 'ESIR_RACUN' ? 'ESIR' : 'KO';
+    const prefix =
+      request.documentType === 'SEF_EFAKTURA'
+        ? 'SEF'
+        : request.documentType === 'ESIR_RACUN'
+          ? 'ESIR'
+          : 'KO';
     const externalReference = `MOCK-${prefix}-${randomUUID()}`;
-    return { externalReference, xmlUrl: `mock://fiscal/${externalReference}.xml`, pdfUrl: `mock://fiscal/${externalReference}.pdf` };
+    return {
+      externalReference,
+      xmlUrl: `mock://fiscal/${externalReference}.xml`,
+      pdfUrl: `mock://fiscal/${externalReference}.pdf`,
+    };
   }
 }

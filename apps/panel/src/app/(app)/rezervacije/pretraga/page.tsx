@@ -15,7 +15,6 @@ import RealResults from './RealResults';
 import ActivitySearchEntry from './ActivitySearchEntry';
 import type { SearchResult } from './types';
 
-
 function first(v: string | string[] | undefined): string | undefined {
   return Array.isArray(v) ? v[0] : v;
 }
@@ -26,9 +25,9 @@ function normalizeTypes(v: string | string[] | undefined): string[] {
 }
 
 // M17 spec §4 (Faza 1) — "Pretraga i rezervacije", M5 §11 GET /search + §3.1 POST /quotes.
-export default async function SearchPage(
-  props: { searchParams: Promise<Record<string, string | string[] | undefined>> }
-) {
+export default async function SearchPage(props: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const searchParams = await props.searchParams;
   const types = normalizeTypes(searchParams.type);
   // M5 spec §3.0g.8 — redosled prikaza. Mora stajati OVDE, uz `types`, jer se koristi već pri
@@ -60,7 +59,8 @@ export default async function SearchPage(
     // do" ikonica u levom panelu (EXCURSION+EVENT+TICKET spojeno u jedan poziv, dizajn dok.
     // §5b tabela) — bez ovoga bi trebalo tri odvojena poziva ili post-filter na klijentu.
     for (const t of types) params.append('type', t);
-    if (searchParams.destinationCountry) params.set('destinationCountry', String(searchParams.destinationCountry));
+    if (searchParams.destinationCountry)
+      params.set('destinationCountry', String(searchParams.destinationCountry));
     // M5 spec §3.0h.8 — okvir mape kao filter, kad je "pretraži dok pomeram mapu" uključeno.
     const bbox = first(searchParams.bbox);
     if (bbox) params.set('bbox', bbox);
@@ -91,7 +91,10 @@ export default async function SearchPage(
     try {
       results = await apiFetch<SearchResult[]>(`/sales/search?${params.toString()}`);
     } catch (err) {
-      error = err instanceof ApiError ? `Greška pretrage (${err.status}).` : 'Pretraga trenutno nije dostupna.';
+      error =
+        err instanceof ApiError
+          ? `Greška pretrage (${err.status}).`
+          : 'Pretraga trenutno nije dostupna.';
     }
   }
 
@@ -107,11 +110,13 @@ export default async function SearchPage(
     children: Number(first(searchParams.children) ?? '0'),
   };
 
-  const isThingsToDo = types.length === 3 && ['EXCURSION', 'EVENT', 'TICKET'].every((t) => types.includes(t));
+  const isThingsToDo =
+    types.length === 3 && ['EXCURSION', 'EVENT', 'TICKET'].every((t) => types.includes(t));
   const singleType = types.length === 1 ? types[0] : null;
   // Četiri kombinacije danas idu kroz hardkodovan mock prikaz (vidi napomenu niže), ostalo kroz
   // pravi `GET /search`. Za skupljanje forme (§3.0g.2) oba se broje kao "ima rezultata".
-  const usesMock = ['ACCOMMODATION', 'FLIGHT', 'TRANSFER'].includes(singleType ?? '') || isThingsToDo;
+  const usesMock =
+    ['ACCOMMODATION', 'FLIGHT', 'TRANSFER'].includes(singleType ?? '') || isThingsToDo;
   const showsResults = hasQuery && !error && (usesMock || results.length > 0);
 
   const activeIcon = findIconByTypes(types, first(searchParams.hasExpertGuide) === 'true');
@@ -124,7 +129,9 @@ export default async function SearchPage(
   // Mapa se nudi samo gde ima šta da prikaže: smeštaj (mock ima koordinate gradova) i pravi
   // rezultati sa koordinatama. Sam spisak tačaka gradi `RealResults.tsx`, POSLE filtriranja —
   // mapa i lista moraju pokazivati isto (do 3.9.2026 su tačke građene ovde, pre filtera).
-  const mapAvailable = singleType === 'ACCOMMODATION' || (!usesMock && results.some((r) => r.geoLat != null && r.geoLng != null));
+  const mapAvailable =
+    singleType === 'ACCOMMODATION' ||
+    (!usesMock && results.some((r) => r.geoLat != null && r.geoLng != null));
 
   // M5 spec §3.0c.3a/§3.0c.3c — brzi filteri iznad rezultata (vlasnikova odluka 3.9.2026).
   // Isto pravilo kao kod sortiranja (§3.0g.8) i mape iznad: prekidač se nudi samo tamo gde
@@ -133,7 +140,8 @@ export default async function SearchPage(
   const refundableAvailable = usesMock
     ? singleType === 'ACCOMMODATION'
     : results.some((r) => r.offers.some((o) => o.isRefundable !== undefined));
-  const starsAvailable = singleType === 'ACCOMMODATION' || (!usesMock && results.some((r) => r.stars != null));
+  const starsAvailable =
+    singleType === 'ACCOMMODATION' || (!usesMock && results.some((r) => r.stars != null));
 
   // M5 spec §3.0g.3 — snimak ponuda koji "Osveži podatke" poredi sa prethodnim. Gradi se samo iz
   // PRAVIH `GET /search` rezultata; mock prikazi imaju hardkodovane cene koje se između dva
@@ -144,7 +152,7 @@ export default async function SearchPage(
       label: `${r.name}${o.roomTypeName ? ` · ${o.roomTypeName}` : ''}${o.boardType ? ` · ${o.boardType}` : ''}`,
       price: o.finalPrice,
       currency: o.finalPriceCurrency,
-    }))
+    })),
   );
 
   return (
@@ -196,67 +204,72 @@ export default async function SearchPage(
           idu kroz pravi `GET /search` prikaz ispod, bez mock-a. */}
       {/* Omotač raste do dna panela SAMO u prikazu mape (dopuna 3.9.2026) — u prikazu liste bi
           `flex-1` samo razvukao prazan prostor ispod poslednje kartice bez ikakve koristi. */}
-      <div className={resultsView === 'mapa' && showsResults ? 'flex min-h-0 flex-1 flex-col' : undefined}>
-      {(() => {
-        if (!hasQuery || error) return null;
+      <div
+        className={
+          resultsView === 'mapa' && showsResults ? 'flex min-h-0 flex-1 flex-col' : undefined
+        }
+      >
+        {(() => {
+          if (!hasQuery || error) return null;
 
-        if (singleType === 'ACCOMMODATION') {
+          if (singleType === 'ACCOMMODATION') {
+            return (
+              <AccommodationResultsMock
+                stayFrom={quoteDefaults.stayFrom}
+                stayTo={quoteDefaults.stayTo}
+                sort={sort}
+                resultsView={resultsView}
+                bbox={first(searchParams.bbox) ?? null}
+              />
+            );
+          }
+          if (singleType === 'FLIGHT') {
+            const tripType = first(searchParams.tripType) || 'ROUND_TRIP';
+            const originCity = first(searchParams.originCity) || null;
+            const returnDate = first(searchParams.returnDate) || null;
+            const destinationCity = first(searchParams.destinationCity) || null;
+            const flightLegsRaw = first(searchParams.flightLegs);
+            let flightLegs:
+              { originCity: string; destinationCity: string; date: string }[] | undefined;
+            if (flightLegsRaw) {
+              try {
+                const parsed = JSON.parse(flightLegsRaw);
+                if (Array.isArray(parsed)) flightLegs = parsed;
+              } catch {
+                flightLegs = undefined;
+              }
+            }
+            return (
+              <FlightResultsMock
+                stayFrom={quoteDefaults.stayFrom}
+                returnDate={returnDate}
+                tripType={tripType}
+                originCity={originCity}
+                destinationCity={destinationCity}
+                flightLegs={flightLegs}
+                cabinClass={cabinClass}
+                sort={sort}
+              />
+            );
+          }
+          if (singleType === 'TRANSFER') {
+            return <TransferResultsMock stayFrom={quoteDefaults.stayFrom} sort={sort} />;
+          }
+          if (isThingsToDo) {
+            return <ExcursionResultsMock stayFrom={quoteDefaults.stayFrom} sort={sort} />;
+          }
+          // Pravi rezultati: filtriranje, sortiranje, kartice/redovi i mapa su u `RealResults.tsx`
+          // (klijentska komponenta) — filter mora da deluje odmah, a ovo je server komponenta.
           return (
-            <AccommodationResultsMock
-              stayFrom={quoteDefaults.stayFrom}
-              stayTo={quoteDefaults.stayTo}
+            <RealResults
+              results={results}
+              quoteDefaults={quoteDefaults}
               sort={sort}
               resultsView={resultsView}
-              bbox={first(searchParams.bbox) ?? null}
+              emptyMessage={activeIcon?.emptyMessage ?? 'Nema rezultata za zadate kriterijume.'}
             />
           );
-        }
-        if (singleType === 'FLIGHT') {
-          const tripType = first(searchParams.tripType) || 'ROUND_TRIP';
-          const originCity = first(searchParams.originCity) || null;
-          const returnDate = first(searchParams.returnDate) || null;
-          const destinationCity = first(searchParams.destinationCity) || null;
-          const flightLegsRaw = first(searchParams.flightLegs);
-          let flightLegs: { originCity: string; destinationCity: string; date: string }[] | undefined;
-          if (flightLegsRaw) {
-            try {
-              const parsed = JSON.parse(flightLegsRaw);
-              if (Array.isArray(parsed)) flightLegs = parsed;
-            } catch {
-              flightLegs = undefined;
-            }
-          }
-          return (
-            <FlightResultsMock
-              stayFrom={quoteDefaults.stayFrom}
-              returnDate={returnDate}
-              tripType={tripType}
-              originCity={originCity}
-              destinationCity={destinationCity}
-              flightLegs={flightLegs}
-              cabinClass={cabinClass}
-              sort={sort}
-            />
-          );
-        }
-        if (singleType === 'TRANSFER') {
-          return <TransferResultsMock stayFrom={quoteDefaults.stayFrom} sort={sort} />;
-        }
-        if (isThingsToDo) {
-          return <ExcursionResultsMock stayFrom={quoteDefaults.stayFrom} sort={sort} />;
-        }
-        // Pravi rezultati: filtriranje, sortiranje, kartice/redovi i mapa su u `RealResults.tsx`
-        // (klijentska komponenta) — filter mora da deluje odmah, a ovo je server komponenta.
-        return (
-          <RealResults
-            results={results}
-            quoteDefaults={quoteDefaults}
-            sort={sort}
-            resultsView={resultsView}
-            emptyMessage={activeIcon?.emptyMessage ?? 'Nema rezultata za zadate kriterijume.'}
-          />
-        );
-      })()}
+        })()}
       </div>
     </div>
   );

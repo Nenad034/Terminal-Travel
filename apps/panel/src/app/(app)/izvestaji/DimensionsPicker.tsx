@@ -24,7 +24,12 @@ const DIMENSION_LABELS: Record<string, string> = {
 };
 
 export default function DimensionsPicker({ initial }: { initial: string }) {
-  const [dims, setDims] = useState<string[]>(() => initial.split(',').map((s) => s.trim()).filter(Boolean));
+  const [dims, setDims] = useState<string[]>(() =>
+    initial
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean),
+  );
 
   function toggle(dim: string, form: HTMLFormElement | null) {
     setDims((prev) => {
@@ -49,7 +54,9 @@ export default function DimensionsPicker({ initial }: { initial: string }) {
             onClick={(e) => toggle(d, e.currentTarget.form)}
             title={active ? `${position + 1}. nivo` : 'Dodaj kao sledeći nivo'}
             className={`flex items-center gap-1 rounded-full border px-2.5 py-1.5 text-[11px] font-medium ${
-              active ? 'border-accent bg-accent-soft text-accent-strong' : 'border-border text-ink-dim hover:text-ink'
+              active
+                ? 'border-accent bg-accent-soft text-accent-strong'
+                : 'border-border text-ink-dim hover:text-ink'
             }`}
           >
             {active && <span className="font-mono">{position + 1}.</span>}

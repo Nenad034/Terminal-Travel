@@ -25,7 +25,9 @@ export default function SuspendUserButton({ id }: { id: string }) {
 
   return (
     <form action={formAction} className="flex flex-col items-start gap-2">
-      <p className="text-[11px] text-danger">Ovo odmah opoziva sve aktivne sesije korisnika. Potvrdite:</p>
+      <p className="text-[11px] text-danger">
+        Ovo odmah opoziva sve aktivne sesije korisnika. Potvrdite:
+      </p>
       <div className="flex gap-2">
         <SubmitButton />
         <Button type="button" onClick={() => setConfirming(false)} variant="ghost" size="sm">

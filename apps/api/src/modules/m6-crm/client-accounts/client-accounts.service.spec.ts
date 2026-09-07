@@ -86,13 +86,18 @@ describe('ClientAccountsService', () => {
       const { service, prisma, permissions } = makeService();
       prisma.user.findUnique.mockResolvedValue({ accountType: 'STAFF', linkedProfileId: null });
       permissions.hasPermission.mockResolvedValue(false);
-      prisma.booking.findMany.mockResolvedValue([{ clientAccountId: 'a1' }, { clientAccountId: 'a2' }]);
+      prisma.booking.findMany.mockResolvedValue([
+        { clientAccountId: 'a1' },
+        { clientAccountId: 'a2' },
+      ]);
       prisma.clientAccount.findMany.mockResolvedValue([{ id: 'a1' }, { id: 'a2' }]);
 
       await service.findMany({}, 'staff-1');
 
       expect(prisma.booking.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({ where: { OR: [{ ownerId: 'staff-1' }, { assignedToId: 'staff-1' }] } }),
+        expect.objectContaining({
+          where: { OR: [{ ownerId: 'staff-1' }, { assignedToId: 'staff-1' }] },
+        }),
       );
       expect(prisma.clientAccount.findMany).toHaveBeenCalledWith(
         expect.objectContaining({ where: expect.objectContaining({ id: { in: ['a1', 'a2'] } }) }),

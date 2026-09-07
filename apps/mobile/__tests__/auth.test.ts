@@ -28,7 +28,12 @@ describe('login', () => {
 
     expect(result).toEqual({ requiresMfa: false });
     const session = await getSession();
-    expect(session).toEqual({ accessToken: 'access-1', refreshToken: 'refresh-1', userId: 'user-1', role: 'GOST' });
+    expect(session).toEqual({
+      accessToken: 'access-1',
+      refreshToken: 'refresh-1',
+      userId: 'user-1',
+      role: 'GOST',
+    });
   });
 });
 

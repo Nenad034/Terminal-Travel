@@ -25,11 +25,22 @@ export default function EditSubagentForm({ subagent }: { subagent: Subagent }) {
     <form action={formAction} className="flex flex-wrap items-end gap-3">
       <label className="text-xs text-ink-faint">
         kreditni limit
-        <input name="creditLimit" type="number" min={0} step="0.01" defaultValue={subagent.creditLimit ?? ''} className="input mt-1" />
+        <input
+          name="creditLimit"
+          type="number"
+          min={0}
+          step="0.01"
+          defaultValue={subagent.creditLimit ?? ''}
+          className="input mt-1"
+        />
       </label>
       <label className="text-xs text-ink-faint">
         valuta
-        <input name="creditLimitCurrency" defaultValue={subagent.creditLimitCurrency ?? ''} className="input mt-1 w-20" />
+        <input
+          name="creditLimitCurrency"
+          defaultValue={subagent.creditLimitCurrency ?? ''}
+          className="input mt-1 w-20"
+        />
       </label>
       {subagent.status !== 'PENDING_APPROVAL' && (
         <label className="text-xs text-ink-faint">

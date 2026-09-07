@@ -15,7 +15,10 @@ import { CONTRACT_DOCUMENT_GENERATOR_ADAPTER } from '../adapters/contract-docume
     ClientContractsService,
     AgencyStaticConfigService,
     MockContractDocumentGeneratorAdapter,
-    { provide: CONTRACT_DOCUMENT_GENERATOR_ADAPTER, useExisting: MockContractDocumentGeneratorAdapter },
+    {
+      provide: CONTRACT_DOCUMENT_GENERATOR_ADAPTER,
+      useExisting: MockContractDocumentGeneratorAdapter,
+    },
   ],
   exports: [ClientContractsService],
 })

@@ -48,7 +48,9 @@ describe('AgentActionGuard (M15 spec §5 — sprovedba na nivou koda)', () => {
     };
     const guard = new AgentActionGuard(reflector, prisma as any);
 
-    await expect(guard.canActivate(makeContext({ user: { userId: 'agent-1' } }))).rejects.toThrow(ForbiddenException);
+    await expect(guard.canActivate(makeContext({ user: { userId: 'agent-1' } }))).rejects.toThrow(
+      ForbiddenException,
+    );
   });
 
   it('odbija AI_AGENT aktera za PROPOSE_THEN_APPROVE akciju (ne sme sam da izvrši)', async () => {
@@ -61,7 +63,9 @@ describe('AgentActionGuard (M15 spec §5 — sprovedba na nivou koda)', () => {
     };
     const guard = new AgentActionGuard(reflector, prisma as any);
 
-    await expect(guard.canActivate(makeContext({ user: { userId: 'agent-1' } }))).rejects.toThrow(ForbiddenException);
+    await expect(guard.canActivate(makeContext({ user: { userId: 'agent-1' } }))).rejects.toThrow(
+      ForbiddenException,
+    );
   });
 
   it('odbija AI_AGENT aktera kad akcija uopšte nije registrovana (bezbedan podrazumevani ishod)', async () => {
@@ -74,7 +78,9 @@ describe('AgentActionGuard (M15 spec §5 — sprovedba na nivou koda)', () => {
     };
     const guard = new AgentActionGuard(reflector, prisma as any);
 
-    await expect(guard.canActivate(makeContext({ user: { userId: 'agent-1' } }))).rejects.toThrow(ForbiddenException);
+    await expect(guard.canActivate(makeContext({ user: { userId: 'agent-1' } }))).rejects.toThrow(
+      ForbiddenException,
+    );
   });
 
   it('propušta AI_AGENT aktera za AUTONOMOUS akciju', async () => {
@@ -90,6 +96,8 @@ describe('AgentActionGuard (M15 spec §5 — sprovedba na nivou koda)', () => {
     const result = await guard.canActivate(makeContext({ user: { userId: 'agent-1' } }));
 
     expect(result).toBe(true);
-    expect(prisma.agentActionType.findFirst).toHaveBeenCalledWith({ where: { moduleCode: null, actionCode: 'omnisearch.query' } });
+    expect(prisma.agentActionType.findFirst).toHaveBeenCalledWith({
+      where: { moduleCode: null, actionCode: 'omnisearch.query' },
+    });
   });
 });

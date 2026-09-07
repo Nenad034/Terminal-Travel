@@ -4,7 +4,13 @@ import { SupplierObligationsService } from './supplier-obligations.service';
 describe('SupplierObligationsService (M10 spec §8)', () => {
   function makeService() {
     const prisma: any = {
-      supplierObligation: { findFirst: jest.fn(), create: jest.fn(), findUnique: jest.fn(), update: jest.fn(), findMany: jest.fn() },
+      supplierObligation: {
+        findFirst: jest.fn(),
+        create: jest.fn(),
+        findUnique: jest.fn(),
+        update: jest.fn(),
+        findMany: jest.fn(),
+      },
       bookingItem: { findUnique: jest.fn() },
       product: { findUnique: jest.fn() },
       contract: { findUnique: jest.fn() },
@@ -28,8 +34,13 @@ describe('SupplierObligationsService (M10 spec §8)', () => {
         baseCostCurrency: 'EUR',
       });
       prisma.product.findUnique.mockResolvedValue({ sourceContractId: 'contract-1' });
-      prisma.contract.findUnique.mockResolvedValue({ supplierId: 'supplier-1', paymentTermsDays: 15 });
-      prisma.supplierObligation.create.mockImplementation(({ data }: any) => Promise.resolve({ id: 'so-1', ...data }));
+      prisma.contract.findUnique.mockResolvedValue({
+        supplierId: 'supplier-1',
+        paymentTermsDays: 15,
+      });
+      prisma.supplierObligation.create.mockImplementation(({ data }: any) =>
+        Promise.resolve({ id: 'so-1', ...data }),
+      );
 
       const obligation: any = await service.createFromBookingItem('bi-1');
 
@@ -65,9 +76,15 @@ describe('SupplierObligationsService (M10 spec §8)', () => {
   describe('approve (§8.3)', () => {
     it('odbija prelazak u APPROVED bez popunjenog bookingItemId', async () => {
       const { service, prisma } = makeService();
-      prisma.supplierObligation.findUnique.mockResolvedValue({ id: 'so-1', bookingItemId: null, status: 'PENDING' });
+      prisma.supplierObligation.findUnique.mockResolvedValue({
+        id: 'so-1',
+        bookingItemId: null,
+        status: 'PENDING',
+      });
 
-      await expect(service.approve('so-1', { userId: 'actor-1' })).rejects.toThrow(BadRequestException);
+      await expect(service.approve('so-1', { userId: 'actor-1' })).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('odobrava kad je bookingItemId popunjen i status PENDING', async () => {
@@ -93,9 +110,14 @@ describe('SupplierObligationsService (M10 spec §8)', () => {
         exchangeRateSnapshotIdAtInvoice: 'ex-invoice',
       };
       prisma.supplierObligation.findUnique.mockResolvedValue(obligation);
-      exchangeRates.findForCurrencyOnOrBefore.mockResolvedValue({ id: 'ex-payment', nbsMiddleRate: 118 });
+      exchangeRates.findForCurrencyOnOrBefore.mockResolvedValue({
+        id: 'ex-payment',
+        nbsMiddleRate: 118,
+      });
       prisma.exchangeRateSnapshot.findUniqueOrThrow.mockResolvedValue({ nbsMiddleRate: 117 });
-      prisma.supplierObligation.update.mockImplementation(({ data }: any) => Promise.resolve({ ...obligation, ...data }));
+      prisma.supplierObligation.update.mockImplementation(({ data }: any) =>
+        Promise.resolve({ ...obligation, ...data }),
+      );
 
       const result = await service.pay('so-1', {}, { userId: 'actor-1' });
 
@@ -109,7 +131,9 @@ describe('SupplierObligationsService (M10 spec §8)', () => {
       const { service, prisma } = makeService();
       prisma.supplierObligation.findUnique.mockResolvedValue({ id: 'so-1', status: 'PENDING' });
 
-      await expect(service.pay('so-1', {}, { userId: 'actor-1' })).rejects.toThrow(BadRequestException);
+      await expect(service.pay('so-1', {}, { userId: 'actor-1' })).rejects.toThrow(
+        BadRequestException,
+      );
     });
   });
 });

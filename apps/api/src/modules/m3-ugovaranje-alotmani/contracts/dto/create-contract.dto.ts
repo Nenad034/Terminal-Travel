@@ -1,4 +1,12 @@
-import { IsDateString, IsEnum, IsNumber, IsOptional, IsString, IsUUID, ValidateIf } from 'class-validator';
+import {
+  IsDateString,
+  IsEnum,
+  IsNumber,
+  IsOptional,
+  IsString,
+  IsUUID,
+  ValidateIf,
+} from 'class-validator';
 import { CommissionModel, ContractCurrency, TipNastupanja } from '@prisma/client';
 
 // M3 spec §2.2

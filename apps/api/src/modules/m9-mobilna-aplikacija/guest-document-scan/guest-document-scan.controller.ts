@@ -1,4 +1,11 @@
-import { BadRequestException, Controller, Post, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
+import {
+  BadRequestException,
+  Controller,
+  Post,
+  UploadedFile,
+  UseGuards,
+  UseInterceptors,
+} from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
@@ -22,8 +29,13 @@ export class GuestDocumentScanController {
   constructor(private readonly scan: GuestDocumentScanService) {}
 
   @Post('scan-document')
-  @UseInterceptors(FileInterceptor('image', { storage: memoryStorage(), limits: { fileSize: MAX_IMAGE_BYTES } }))
-  scanDocument(@UploadedFile() file: Express.Multer.File | undefined, @CurrentUser() actor: { userId: string }) {
+  @UseInterceptors(
+    FileInterceptor('image', { storage: memoryStorage(), limits: { fileSize: MAX_IMAGE_BYTES } }),
+  )
+  scanDocument(
+    @UploadedFile() file: Express.Multer.File | undefined,
+    @CurrentUser() actor: { userId: string },
+  ) {
     if (!file) throw new BadRequestException('Nedostaje slika.');
     return this.scan.scan(file, actor.userId);
   }

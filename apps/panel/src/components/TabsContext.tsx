@@ -55,7 +55,9 @@ interface TabsContextValue {
 }
 
 function newTabId(): string {
-  return typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `t${Date.now()}${Math.random()}`;
+  return typeof crypto !== 'undefined' && crypto.randomUUID
+    ? crypto.randomUUID()
+    : `t${Date.now()}${Math.random()}`;
 }
 
 const TabsCtx = createContext<TabsContextValue | null>(null);
@@ -70,7 +72,13 @@ const PINNED_STORAGE_KEY = 'tt-panel-pinned-tabs';
 // same aplikacije. "Otvoreni tabovi se pamte preko osvežavanja stranice (lokalno, po
 // sesiji)" -> sessionStorage, ne localStorage (namerno — ne treba da preživi zatvaranje
 // browsera, samo refresh/pad konekcije u toku smene). Izuzetak: ZAKAČENI tabovi (v. dole).
-export function TabsProvider({ children, homeLabel }: { children: React.ReactNode; homeLabel: string }) {
+export function TabsProvider({
+  children,
+  homeLabel,
+}: {
+  children: React.ReactNode;
+  homeLabel: string;
+}) {
   const pathname = usePathname();
   const router = useRouter();
   const [tabs, setTabs] = useState<OpenTab[]>([{ id: 'home', path: '/', label: homeLabel }]);
@@ -99,12 +107,19 @@ export function TabsProvider({ children, homeLabel }: { children: React.ReactNod
       if (raw) {
         // Migracija (23.8.2026) — stariji sačuvan zapis nema `id` (dodato uz forceNew/duplikate
         // dopunu), dodeli ga ovde umesto da se osloni na to da je uvek prisutan.
-        restored = JSON.parse(raw).map((t: Partial<OpenTab>) => ({ id: t.id ?? newTabId(), path: t.path!, label: t.label!, dirty: t.dirty, pinned: t.pinned }));
+        restored = JSON.parse(raw).map((t: Partial<OpenTab>) => ({
+          id: t.id ?? newTabId(),
+          path: t.path!,
+          label: t.label!,
+          dirty: t.dirty,
+          pinned: t.pinned,
+        }));
       }
     } catch {
       // ignoriši oštećen zapis
     }
-    let base = restored && restored.length > 0 ? restored : [{ id: 'home', path: '/', label: homeLabel }];
+    let base =
+      restored && restored.length > 0 ? restored : [{ id: 'home', path: '/', label: homeLabel }];
     // Zakačeni tabovi (5.9.2026) — `sessionStorage` se briše kad se aplikacija (browser)
     // ugasi i ponovo pokrene, pa `restored` iznad tada NE postoji; zakačeni tabovi se zato
     // dodatno čitaju iz `localStorage` i UVEK se vrate, spojeni sa onim što je sesija zatekla
@@ -112,10 +127,17 @@ export function TabsProvider({ children, homeLabel }: { children: React.ReactNod
     try {
       const rawPinned = localStorage.getItem(PINNED_STORAGE_KEY);
       if (rawPinned) {
-        const pinned: OpenTab[] = JSON.parse(rawPinned).map((t: Partial<OpenTab>) => ({ id: t.id ?? newTabId(), path: t.path!, label: t.label!, pinned: true }));
+        const pinned: OpenTab[] = JSON.parse(rawPinned).map((t: Partial<OpenTab>) => ({
+          id: t.id ?? newTabId(),
+          path: t.path!,
+          label: t.label!,
+          pinned: true,
+        }));
         for (const p of pinned) {
           const existing = base.find((t) => t.path === p.path);
-          base = existing ? base.map((t) => (t.path === p.path ? { ...t, pinned: true } : t)) : [...base, p];
+          base = existing
+            ? base.map((t) => (t.path === p.path ? { ...t, pinned: true } : t))
+            : [...base, p];
         }
       }
     } catch {
@@ -132,7 +154,9 @@ export function TabsProvider({ children, homeLabel }: { children: React.ReactNod
     if (!hydrated) return;
     sessionStorage.setItem(STORAGE_KEY, JSON.stringify(tabs));
     try {
-      const pinned = tabs.filter((t) => t.pinned).map(({ id, path, label }) => ({ id, path, label }));
+      const pinned = tabs
+        .filter((t) => t.pinned)
+        .map(({ id, path, label }) => ({ id, path, label }));
       localStorage.setItem(PINNED_STORAGE_KEY, JSON.stringify(pinned));
     } catch {
       // localStorage nedostupan — kačenje i dalje radi za ovu sesiju, samo se ne pamti trajno
@@ -239,7 +263,11 @@ export function TabsProvider({ children, homeLabel }: { children: React.ReactNod
     // već zakačena, ne pravi se DRUGA (duplirana) Početna pored nje.
     const prev = tabsRef.current;
     const pinned = prev.filter((t) => t.pinned);
-    const homeTab = pinned.find((t) => t.path === '/') ?? { id: newTabId(), path: '/', label: homeLabel };
+    const homeTab = pinned.find((t) => t.path === '/') ?? {
+      id: newTabId(),
+      path: '/',
+      label: homeLabel,
+    };
     const next = pinned.some((t) => t.path === '/') ? pinned : [homeTab, ...pinned];
     commitTabs(next);
     setActiveTabId(homeTab.id);
@@ -252,7 +280,19 @@ export function TabsProvider({ children, homeLabel }: { children: React.ReactNod
 
   return (
     <TabsCtx.Provider
-      value={{ tabs, activePath: pathname, activeTabId, openTab, navigateInTab, setActiveTab, closeTab, closeAllTabs, togglePin, markDirty, reorderTabs }}
+      value={{
+        tabs,
+        activePath: pathname,
+        activeTabId,
+        openTab,
+        navigateInTab,
+        setActiveTab,
+        closeTab,
+        closeAllTabs,
+        togglePin,
+        markDirty,
+        reorderTabs,
+      }}
     >
       {children}
     </TabsCtx.Provider>

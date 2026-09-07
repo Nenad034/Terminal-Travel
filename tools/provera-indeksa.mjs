@@ -54,7 +54,9 @@ try {
     process.exit(0);
   }
 
-  console.error(`Provera indeksa na stranim ključevima — ${bez.length} od ${ukupno} BEZ indeksa:\n`);
+  console.error(
+    `Provera indeksa na stranim ključevima — ${bez.length} od ${ukupno} BEZ indeksa:\n`,
+  );
   for (const r of bez) console.error(`  ${r.tbl} (${r.cols})`);
   console.error('\nPostgres ne pravi ove indekse sam. Bez njih svaki JOIN po tom ključu i svaka');
   console.error('provera pri brisanju roditelja čitaju celu tabelu (dok. 39 nalaz 2.1).');

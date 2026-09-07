@@ -46,7 +46,11 @@ export default function ProcessMapNodeSummaryCard({ summary }: { summary: Proces
     setError(null);
     // Straničenje audit loga (6.9.2026) — traži se tačno onoliko redova koliko se prikazuje,
     // umesto cele stranice od kojih se koristi prvih nekoliko.
-    const qs = new URLSearchParams({ module: summary.module, action: akcijeKljuc, limit: String(RECENT_LIMIT) });
+    const qs = new URLSearchParams({
+      module: summary.module,
+      action: akcijeKljuc,
+      limit: String(RECENT_LIMIT),
+    });
     fetch(`/api/iam/audit-log?${qs.toString()}`, { cache: 'no-store' })
       .then((res) => {
         if (!res.ok) throw new Error('Greška pri učitavanju');
@@ -75,14 +79,20 @@ export default function ProcessMapNodeSummaryCard({ summary }: { summary: Proces
 
   return (
     <div className="flex-1 overflow-y-auto p-3 text-xs">
-      <div className="mb-1 text-[11px] uppercase tracking-wide text-ink-faint">{summary.mapLabel}</div>
+      <div className="mb-1 text-[11px] uppercase tracking-wide text-ink-faint">
+        {summary.mapLabel}
+      </div>
       <div className="mb-3 font-mono font-semibold text-ink">{summary.nodeLabel}</div>
 
       <div className="mb-3 flex flex-col gap-0.5 rounded-lg border border-border bg-panel p-2">
         <SummaryRow label="Broj (poslednjih 24h)" value={String(summary.count)} strong />
         <SummaryRow
           label="Poslednji u tom prozoru"
-          value={summary.lastAt ? new Date(summary.lastAt).toLocaleString('sr-RS') : 'nema u poslednjih 24h'}
+          value={
+            summary.lastAt
+              ? new Date(summary.lastAt).toLocaleString('sr-RS')
+              : 'nema u poslednjih 24h'
+          }
         />
         <SummaryRow label="Prati akcije" value={summary.matchActions.join(', ')} />
       </div>
@@ -98,19 +108,30 @@ export default function ProcessMapNodeSummaryCard({ summary }: { summary: Proces
           kao mapa) — svrha ove liste je "šta se poslednje desilo", ne "šta se desilo u
           poslednja 24h"; kad prozor iznad pokaže 0 a lista ipak ima zapise, to je očekivano
           (poslednji zapis je stariji od 24h), ne greška. */}
-      <div className="mb-1 text-ink-faint">Poslednjih {RECENT_LIMIT} zapisa (bez obzira na prozor iznad)</div>
+      <div className="mb-1 text-ink-faint">
+        Poslednjih {RECENT_LIMIT} zapisa (bez obzira na prozor iznad)
+      </div>
       {error && <p className="text-danger">{error}</p>}
       {!error && entries === null && <p className="text-ink-faint">Učitavanje…</p>}
-      {!error && entries?.length === 0 && <p className="text-ink-faint">Nema zapisa u ovom prozoru.</p>}
+      {!error && entries?.length === 0 && (
+        <p className="text-ink-faint">Nema zapisa u ovom prozoru.</p>
+      )}
       {!error && entries && entries.length > 0 && (
         <ul className="flex flex-col gap-1.5">
           {entries.map((e) => (
-            <li key={e.id} className="rounded border border-border bg-panel p-2 font-mono text-[11px]">
+            <li
+              key={e.id}
+              className="rounded border border-border bg-panel p-2 font-mono text-[11px]"
+            >
               <div className="text-ink-faint">{new Date(e.timestamp).toLocaleString('sr-RS')}</div>
               <div className="text-ink">
                 {e.resourceType}#{e.resourceId?.slice(0, 8)}
               </div>
-              <ActorLabel origin={e.actorType} name={actorWord(e.actorType)} className="text-ink-faint" />
+              <ActorLabel
+                origin={e.actorType}
+                name={actorWord(e.actorType)}
+                className="text-ink-faint"
+              />
             </li>
           ))}
         </ul>
@@ -123,7 +144,9 @@ function SummaryRow({ label, value, strong }: { label: string; value: string; st
   return (
     <div className="flex items-center justify-between gap-2 py-0.5">
       <span className="text-ink-faint">{label}</span>
-      <span className={`text-right ${strong ? 'font-semibold text-ink' : 'text-ink-dim'}`}>{value}</span>
+      <span className={`text-right ${strong ? 'font-semibold text-ink' : 'text-ink-dim'}`}>
+        {value}
+      </span>
     </div>
   );
 }

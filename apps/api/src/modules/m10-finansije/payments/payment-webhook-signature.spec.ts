@@ -1,4 +1,7 @@
-import { signPaymentWebhookPayload, verifyPaymentWebhookSignature } from './payment-webhook-signature';
+import {
+  signPaymentWebhookPayload,
+  verifyPaymentWebhookSignature,
+} from './payment-webhook-signature';
 
 // M10 spec §7.2 — bezbednosni nalaz 28.8.2026: webhook mora odbiti poziv bez ispravnog potpisa,
 // inače bilo ko ko sazna/izračuna gatewayTransactionId može lažno potvrditi rezervaciju kao plaćenu.

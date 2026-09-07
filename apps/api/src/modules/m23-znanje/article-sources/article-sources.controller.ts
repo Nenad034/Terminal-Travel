@@ -23,19 +23,31 @@ export class ArticleSourcesController {
 
   @Post()
   @RequirePermission('M23', 'article', 'EDIT')
-  propose(@Param('articleId') articleId: string, @Body() dto: ProposeSourceDto, @CurrentUser() actor: { userId: string }) {
+  propose(
+    @Param('articleId') articleId: string,
+    @Body() dto: ProposeSourceDto,
+    @CurrentUser() actor: { userId: string },
+  ) {
     return this.sources.propose(articleId, dto, actor.userId);
   }
 
   @Post(':sourceId/approve')
   @RequirePermission('M23', 'article-source', 'APPROVE')
-  approve(@Param('articleId') articleId: string, @Param('sourceId') sourceId: string, @CurrentUser() actor: { userId: string }) {
+  approve(
+    @Param('articleId') articleId: string,
+    @Param('sourceId') sourceId: string,
+    @CurrentUser() actor: { userId: string },
+  ) {
     return this.sources.approve(articleId, sourceId, actor.userId);
   }
 
   @Post(':sourceId/reject')
   @RequirePermission('M23', 'article-source', 'APPROVE')
-  reject(@Param('articleId') articleId: string, @Param('sourceId') sourceId: string, @CurrentUser() actor: { userId: string }) {
+  reject(
+    @Param('articleId') articleId: string,
+    @Param('sourceId') sourceId: string,
+    @CurrentUser() actor: { userId: string },
+  ) {
     return this.sources.reject(articleId, sourceId, actor.userId);
   }
 }

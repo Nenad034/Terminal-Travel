@@ -9,13 +9,18 @@ import { apiFetch, ApiError } from '@/lib/api-client';
 // dobavljača nemaju šta da odu u browser zbog jednog padajućeg spiska.
 export async function GET() {
   try {
-    const suppliers = await apiFetch<{ id: string; name: string; status: string }[]>('/contracting/suppliers', { requireAuth: true });
+    const suppliers = await apiFetch<{ id: string; name: string; status: string }[]>(
+      '/contracting/suppliers',
+      { requireAuth: true },
+    );
     return NextResponse.json(
       suppliers.filter((s) => s.status === 'ACTIVE').map((s) => ({ id: s.id, name: s.name })),
     );
   } catch (err) {
     if (err instanceof ApiError) {
-      return NextResponse.json(err.body ?? { message: 'Spisak dobavljača nije dostupan' }, { status: err.status });
+      return NextResponse.json(err.body ?? { message: 'Spisak dobavljača nije dostupan' }, {
+        status: err.status,
+      });
     }
     throw err;
   }

@@ -1,6 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { randomUUID } from 'crypto';
-import type { CisGatewayAdapter, CisRegisterRequest, CisRegisterResult, CisReleaseRequest } from './cis-gateway-adapter.interface';
+import type {
+  CisGatewayAdapter,
+  CisRegisterRequest,
+  CisRegisterResult,
+  CisReleaseRequest,
+} from './cis-gateway-adapter.interface';
 
 // Mock dok tehnički ugovor sa CIS/YUTA ne bude potvrđen (§2.3, §7) — vraća sintetički broj
 // registracije tako da ostatak toka (statusi, alarmi, audit log) može biti izgrađen i testiran

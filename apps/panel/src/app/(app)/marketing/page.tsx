@@ -7,7 +7,6 @@ import TabLink from '@/components/TabLink';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 
-
 interface ContentPiece {
   id: string;
   type: string;
@@ -25,7 +24,9 @@ const STATUSES = ['DRAFT', 'PENDING_APPROVAL', 'APPROVED', 'PUBLISHED'];
 
 // M17 spec §4/§7 (Faza 6) — "Marketing sadržaj", M12 §7 GET /content ("kalendar = sortirano po
 // scheduled_publish_at" — servis već sortira tako, ova lista je taj kalendar).
-export default async function MarketingPage(props: { searchParams: Promise<{ type?: string; status?: string }> }) {
+export default async function MarketingPage(props: {
+  searchParams: Promise<{ type?: string; status?: string }>;
+}) {
   const searchParams = await props.searchParams;
   const me = await getMe();
   const canCreate = hasPermission(me, 'M12', 'content', 'CREATE_DRAFT');
@@ -101,9 +102,15 @@ export default async function MarketingPage(props: { searchParams: Promise<{ typ
 
       {!error && (
         <div className="overflow-hidden rounded-lg border border-border">
-          {content.length === 0 && <p className="p-4 text-center text-xs text-ink-faint">Nema sadržaja.</p>}
+          {content.length === 0 && (
+            <p className="p-4 text-center text-xs text-ink-faint">Nema sadržaja.</p>
+          )}
           {content.map((c) => {
-            const title = c.translations.find((t) => t.languageCode === 'sr')?.title ?? c.translations[0]?.title ?? c.slug ?? '(bez naslova)';
+            const title =
+              c.translations.find((t) => t.languageCode === 'sr')?.title ??
+              c.translations[0]?.title ??
+              c.slug ??
+              '(bez naslova)';
             return (
               <TabLink
                 key={c.id}
@@ -127,7 +134,8 @@ export default async function MarketingPage(props: { searchParams: Promise<{ typ
                   </div>
                   <div className="text-xs text-ink-faint">
                     {c.type} · {c.targetChannels.join(', ') || '(bez kanala)'}
-                    {c.scheduledPublishAt && ` · zakazano ${new Date(c.scheduledPublishAt).toLocaleString('sr-RS')}`}
+                    {c.scheduledPublishAt &&
+                      ` · zakazano ${new Date(c.scheduledPublishAt).toLocaleString('sr-RS')}`}
                   </div>
                 </div>
                 <StatusBadge status={c.status} />
@@ -142,10 +150,11 @@ export default async function MarketingPage(props: { searchParams: Promise<{ typ
 
 function StatusBadge({ status }: { status: string }) {
   if (status === 'PUBLISHED') return <Badge variant="ok">{status}</Badge>;
-  if (status === 'APPROVED') return (
-    <Badge variant="secondary" className="bg-accent-soft text-accent-strong">
-      {status}
-    </Badge>
-  );
+  if (status === 'APPROVED')
+    return (
+      <Badge variant="secondary" className="bg-accent-soft text-accent-strong">
+        {status}
+      </Badge>
+    );
   return <Badge variant="warn">{status}</Badge>;
 }

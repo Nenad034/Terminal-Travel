@@ -23,12 +23,17 @@ export interface FormState {
  * po zapisu se posle vidi šta je došlo iz NBS-a, a šta je čovek uneo.
  */
 export async function createExchangeRate(_prev: FormState, formData: FormData): Promise<FormState> {
-  const currency = String(formData.get('currency') ?? '').trim().toUpperCase();
+  const currency = String(formData.get('currency') ?? '')
+    .trim()
+    .toUpperCase();
   const rateDate = String(formData.get('rateDate') ?? '').trim();
-  const rawRate = String(formData.get('nbsMiddleRate') ?? '').trim().replace(',', '.');
+  const rawRate = String(formData.get('nbsMiddleRate') ?? '')
+    .trim()
+    .replace(',', '.');
 
   if (!currency) return { error: 'Izaberite valutu.', ok: false };
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(rateDate)) return { error: 'Datum mora biti u obliku GGGG-MM-DD.', ok: false };
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(rateDate))
+    return { error: 'Datum mora biti u obliku GGGG-MM-DD.', ok: false };
   const nbsMiddleRate = Number(rawRate);
   if (!Number.isFinite(nbsMiddleRate) || nbsMiddleRate <= 0) {
     return { error: 'Kurs mora biti broj veći od nule (npr. 117,3707).', ok: false };
@@ -44,7 +49,10 @@ export async function createExchangeRate(_prev: FormState, formData: FormData): 
       // Jedinstveni indeks (currency, rate_date) — dan koji već ima kurs se ne prepisuje.
       // Poruka mora reći ŠTA da se uradi, ne samo da nije uspelo.
       if (err.status === 409) {
-        return { error: `Kurs za ${currency} na dan ${rateDate} već postoji — postojeći se ne prepisuje.`, ok: false };
+        return {
+          error: `Kurs za ${currency} na dan ${rateDate} već postoji — postojeći se ne prepisuje.`,
+          ok: false,
+        };
       }
       return { error: extractMessage(err), ok: false };
     }

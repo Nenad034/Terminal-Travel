@@ -7,7 +7,11 @@ import { createArticle, FormState } from '../actions';
 import { Button } from '@/components/ui/button';
 
 const initialState: FormState = { error: null };
-const SOURCE_TYPES = ['HOTEL_OFFICIAL_WEBSITE', 'HOTEL_SOCIAL_MEDIA', 'GOVERNMENT_OR_TOURISM_BOARD'];
+const SOURCE_TYPES = [
+  'HOTEL_OFFICIAL_WEBSITE',
+  'HOTEL_SOCIAL_MEDIA',
+  'GOVERNMENT_OR_TOURISM_BOARD',
+];
 const LANGUAGES = ['sr', 'en', 'hr', 'sl', 'es', 'de', 'ru', 'fr'];
 
 type SubjectType = 'PRODUCT' | 'DESTINATION' | 'COUNTRY';
@@ -24,11 +28,19 @@ export default function NewArticleForm() {
   const [mode, setMode] = useState<Mode>('research');
 
   return (
-    <form action={formAction} className="flex flex-col gap-3 rounded-lg border border-border bg-panel p-5">
+    <form
+      action={formAction}
+      className="flex flex-col gap-3 rounded-lg border border-border bg-panel p-5"
+    >
       {state.error && <p className="rounded bg-danger-bg p-3 text-sm text-danger">{state.error}</p>}
 
       <Field label="predmet članka (subject_type)">
-        <select name="subjectType" value={subjectType} onChange={(e) => setSubjectType(e.target.value as SubjectType)} className="input">
+        <select
+          name="subjectType"
+          value={subjectType}
+          onChange={(e) => setSubjectType(e.target.value as SubjectType)}
+          className="input"
+        >
           <option value="PRODUCT">PRODUCT — konkretan proizvod iz M2 kataloga</option>
           <option value="DESTINATION">DESTINATION — grad/mesto</option>
           <option value="COUNTRY">COUNTRY — zemlja</option>
@@ -55,13 +67,34 @@ export default function NewArticleForm() {
       <Field label="sadržaj — kako se popunjava (opciono, može ostati prazan DRAFT)">
         <div className="flex gap-3 text-xs text-ink-dim">
           <label className="flex items-center gap-1.5">
-            <input type="radio" name="mode" value="empty" checked={mode === 'empty'} onChange={() => setMode('empty')} /> prazan (popuni kasnije)
+            <input
+              type="radio"
+              name="mode"
+              value="empty"
+              checked={mode === 'empty'}
+              onChange={() => setMode('empty')}
+            />{' '}
+            prazan (popuni kasnije)
           </label>
           <label className="flex items-center gap-1.5">
-            <input type="radio" name="mode" value="manual" checked={mode === 'manual'} onChange={() => setMode('manual')} /> ručan unos
+            <input
+              type="radio"
+              name="mode"
+              value="manual"
+              checked={mode === 'manual'}
+              onChange={() => setMode('manual')}
+            />{' '}
+            ručan unos
           </label>
           <label className="flex items-center gap-1.5">
-            <input type="radio" name="mode" value="research" checked={mode === 'research'} onChange={() => setMode('research')} /> AI istraživanje
+            <input
+              type="radio"
+              name="mode"
+              value="research"
+              checked={mode === 'research'}
+              onChange={() => setMode('research')}
+            />{' '}
+            AI istraživanje
           </label>
         </div>
       </Field>
@@ -76,25 +109,50 @@ export default function NewArticleForm() {
             ))}
           </select>
           <input name="title" required={mode === 'manual'} className="input" placeholder="naslov" />
-          <textarea name="body" required={mode === 'manual'} rows={6} className="input" placeholder="tekst (markdown)" />
+          <textarea
+            name="body"
+            required={mode === 'manual'}
+            rows={6}
+            className="input"
+            placeholder="tekst (markdown)"
+          />
         </div>
       )}
 
       {mode === 'research' && (
         <div className="flex flex-col gap-2 rounded border border-border bg-panel2 p-3">
           <p className="text-[11px] text-ink-faint">
-            AI istraživanje (M23 spec §4) radi ISKLJUČIVO nad tekstom koji ovde nalepite — nema žive web pretrage/scraping-a u v1. Nalepite tekst koji ste
-            ručno kopirali sa zvaničnog izvora, agent ga strukturira u nacrt ({'ArticleRevision, PENDING_REVIEW'}) koji čeka odobrenje.
+            AI istraživanje (M23 spec §4) radi ISKLJUČIVO nad tekstom koji ovde nalepite — nema žive
+            web pretrage/scraping-a u v1. Nalepite tekst koji ste ručno kopirali sa zvaničnog
+            izvora, agent ga strukturira u nacrt ({'ArticleRevision, PENDING_REVIEW'}) koji čeka
+            odobrenje.
           </p>
-          <input name="sourceUrl" required={mode === 'research'} className="input" placeholder="izvorni URL (zvaničan sajt/nalog)" />
-          <select name="sourceType" defaultValue={subjectType === 'PRODUCT' ? 'HOTEL_OFFICIAL_WEBSITE' : 'GOVERNMENT_OR_TOURISM_BOARD'} className="input">
+          <input
+            name="sourceUrl"
+            required={mode === 'research'}
+            className="input"
+            placeholder="izvorni URL (zvaničan sajt/nalog)"
+          />
+          <select
+            name="sourceType"
+            defaultValue={
+              subjectType === 'PRODUCT' ? 'HOTEL_OFFICIAL_WEBSITE' : 'GOVERNMENT_OR_TOURISM_BOARD'
+            }
+            className="input"
+          >
             {SOURCE_TYPES.map((s) => (
               <option key={s} value={s}>
                 {s}
               </option>
             ))}
           </select>
-          <textarea name="rawText" required={mode === 'research'} rows={8} className="input" placeholder="nalepljen tekst sa izvora (§4a — samo zvaničan izvor)" />
+          <textarea
+            name="rawText"
+            required={mode === 'research'}
+            rows={8}
+            className="input"
+            placeholder="nalepljen tekst sa izvora (§4a — samo zvaničan izvor)"
+          />
         </div>
       )}
 

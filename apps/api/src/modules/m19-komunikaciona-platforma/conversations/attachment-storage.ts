@@ -10,7 +10,19 @@ export const MAX_ATTACHMENT_BYTES = 20 * 1024 * 1024; // 20 MB — razuman podra
 
 // Osnovna bezbednosna higijena — blokira izvršne/skript ekstenzije, ne pokušava potpunu listu
 // dozvoljenih tipova (chat prima raznovrsne dokumente/slike, bela lista bi bila prestroga).
-export const BLOCKED_ATTACHMENT_EXTENSIONS = ['.exe', '.msi', '.bat', '.cmd', '.com', '.scr', '.ps1', '.vbs', '.js', '.jar', '.sh'];
+export const BLOCKED_ATTACHMENT_EXTENSIONS = [
+  '.exe',
+  '.msi',
+  '.bat',
+  '.cmd',
+  '.com',
+  '.scr',
+  '.ps1',
+  '.vbs',
+  '.js',
+  '.jar',
+  '.sh',
+];
 
 export function ensureConversationUploadDir(conversationId: string): string {
   const dir = join(ATTACHMENT_UPLOAD_ROOT, conversationId);

@@ -9,7 +9,12 @@ describe('TicketConversionService (M22 spec §8)', () => {
     const auditLog = { write: jest.fn() };
     const mailboxes = { findAccess: jest.fn() };
     const tickets = { create: jest.fn() };
-    const service = new TicketConversionService(prisma as any, auditLog as any, mailboxes as any, tickets as any);
+    const service = new TicketConversionService(
+      prisma as any,
+      auditLog as any,
+      mailboxes as any,
+      tickets as any,
+    );
     return { service, prisma, auditLog, mailboxes, tickets };
   }
 
@@ -17,7 +22,9 @@ describe('TicketConversionService (M22 spec §8)', () => {
     const { service, prisma } = makeService();
     prisma.emailThread.findUnique.mockResolvedValue(null);
 
-    await expect(service.convertToTicket('nepostojeca', 'user-1')).rejects.toThrow(NotFoundException);
+    await expect(service.convertToTicket('nepostojeca', 'user-1')).rejects.toThrow(
+      NotFoundException,
+    );
   });
 
   it('zahteva REPLY MailboxAccess (isti krug kao odgovaranje)', async () => {
@@ -53,7 +60,10 @@ describe('TicketConversionService (M22 spec §8)', () => {
       }),
       'user-1',
     );
-    expect(prisma.emailThread.update).toHaveBeenCalledWith({ where: { id: 't1' }, data: { convertedToTicketId: 'ticket-1' } });
+    expect(prisma.emailThread.update).toHaveBeenCalledWith({
+      where: { id: 't1' },
+      data: { convertedToTicketId: 'ticket-1' },
+    });
     expect(result.ticket.id).toBe('ticket-1');
   });
 });

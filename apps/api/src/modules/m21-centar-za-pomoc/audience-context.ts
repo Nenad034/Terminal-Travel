@@ -15,7 +15,10 @@ import { PrismaService } from '../../prisma/prisma.service';
  * `null` povratna vrednost i dalje postoji za naloge koji ovde nemaju smisla (npr. AI_AGENT/
  * SUPPLIER_CONTACT) — ti nemaju pristup Centru za pomoć ni kao PUBLIC_GUEST.
  */
-export async function resolveHelpAudience(prisma: PrismaService, userId: string | null): Promise<HelpAudience | null> {
+export async function resolveHelpAudience(
+  prisma: PrismaService,
+  userId: string | null,
+): Promise<HelpAudience | null> {
   if (userId === null) return 'PUBLIC_GUEST';
 
   const user = await prisma.user.findUnique({ where: { id: userId } });
@@ -26,7 +29,9 @@ export async function resolveHelpAudience(prisma: PrismaService, userId: string 
 
   if (user.accountType === 'GUEST') {
     if (!user.linkedProfileId) return 'PUBLIC_GUEST'; // bez povezanog ClientAccount — tretira se kao pojedinačni gost
-    const clientAccount = await prisma.clientAccount.findUnique({ where: { id: user.linkedProfileId } });
+    const clientAccount = await prisma.clientAccount.findUnique({
+      where: { id: user.linkedProfileId },
+    });
     if (clientAccount?.accountType === 'LEGAL_ENTITY') return 'BUSINESS_CLIENT';
     return 'PUBLIC_GUEST'; // INDIVIDUAL (avgust 2026) — sopstvena, uža publika umesto potpunog isključenja
   }
@@ -35,7 +40,9 @@ export async function resolveHelpAudience(prisma: PrismaService, userId: string 
 }
 
 /** Mapira HelpAudience na segment korišćen u permission resource ključu `article:<segment>`. */
-export function audienceToPermissionSegment(audience: HelpAudience): 'staff' | 'subagent' | 'business' | 'public' {
+export function audienceToPermissionSegment(
+  audience: HelpAudience,
+): 'staff' | 'subagent' | 'business' | 'public' {
   if (audience === 'STAFF') return 'staff';
   if (audience === 'SUBAGENT') return 'subagent';
   if (audience === 'BUSINESS_CLIENT') return 'business';

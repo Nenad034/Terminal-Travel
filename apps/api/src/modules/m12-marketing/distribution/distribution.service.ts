@@ -78,7 +78,9 @@ export class DistributionService {
   // ... ako je target_tags popunjeno, skup primalaca se dodatno filtrira ... čisto sužavanje,
   // nikad proširenje". findMarketingRecipients (M6 ClientAccountsService) sprovodi tačno to.
   private async publishEmail(content: PublishableContent): Promise<void> {
-    const targetTags = Array.isArray(content.targetTags) ? (content.targetTags as unknown[]).map(String) : null;
+    const targetTags = Array.isArray(content.targetTags)
+      ? (content.targetTags as unknown[]).map(String)
+      : null;
     const recipients = await this.clientAccounts.findMarketingRecipients(targetTags);
     this.emailAdapter.recipients = recipients
       .filter((r) => !!r.email)

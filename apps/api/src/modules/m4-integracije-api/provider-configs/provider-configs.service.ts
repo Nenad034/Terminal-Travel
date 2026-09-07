@@ -7,7 +7,9 @@ import { UpdateProviderConfigDto } from './dto/update-provider-config.dto';
 import { ProviderRegistryService } from '../provider-registry.service';
 
 // Nikad vraćati auth_config_encrypted u odgovoru API-ja (M4 spec §9 — kredencijali nikad u logu/odgovoru).
-function omitSecret<T extends { authConfigEncrypted: string }>(config: T): Omit<T, 'authConfigEncrypted'> {
+function omitSecret<T extends { authConfigEncrypted: string }>(
+  config: T,
+): Omit<T, 'authConfigEncrypted'> {
   const { authConfigEncrypted, ...rest } = config;
   void authConfigEncrypted;
   return rest;
@@ -78,7 +80,9 @@ export class ProviderConfigsService {
     const after = await this.prisma.providerConfig.update({
       where: { providerCode },
       data: {
-        authConfigEncrypted: dto.authConfig ? encryptSecret(JSON.stringify(dto.authConfig)) : undefined,
+        authConfigEncrypted: dto.authConfig
+          ? encryptSecret(JSON.stringify(dto.authConfig))
+          : undefined,
         capabilitiesProfile: dto.capabilitiesProfile as any,
         status: dto.status,
         defaultTipNastupanja: dto.defaultTipNastupanja,

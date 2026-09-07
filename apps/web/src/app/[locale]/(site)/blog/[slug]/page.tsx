@@ -3,7 +3,6 @@ import type { Metadata } from 'next';
 import { apiFetch, ApiError } from '@/lib/api-client';
 import type { PublicContent } from '@/lib/types';
 
-
 // M8 spec poglavlje 2/6 — blog članak, čita objavljen sadržaj iz M12 preko javnog,
 // negardovanog endpoint-a (M12 spec §7, PublicContentController).
 async function fetchContent(locale: string, slug: string): Promise<PublicContent | null> {
@@ -54,7 +53,10 @@ export default async function BlogPostPage({
 
   return (
     <article className="mx-auto max-w-2xl">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <h1 className="mb-6 text-2xl font-semibold text-ink">{content.translation.title}</h1>
       <p className="whitespace-pre-line text-ink-dim">{content.translation.body}</p>
     </article>

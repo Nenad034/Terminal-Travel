@@ -8,7 +8,6 @@ import LoyaltyOverrideForm from './LoyaltyOverrideForm';
 import CommunicationLogPanel from '../CommunicationLogPanel';
 import { Badge } from '@/components/ui/badge';
 
-
 interface ClientAccount {
   id: string;
   accountType: 'INDIVIDUAL' | 'LEGAL_ENTITY';
@@ -88,20 +87,47 @@ export default async function ClientAccountDetailPage(props: { params: Promise<{
   try {
     account = await apiFetch<ClientAccount>(`/crm/client-accounts/${params.id}`);
   } catch (err) {
-    error = err instanceof ApiError && err.status === 404 ? 'Nalogodavac nije pronađen.' : 'Nalogodavac trenutno nije dostupan.';
+    error =
+      err instanceof ApiError && err.status === 404
+        ? 'Nalogodavac nije pronađen.'
+        : 'Nalogodavac trenutno nije dostupan.';
   }
 
   const [guests, loyalty, tiers, history, log] = await Promise.all([
-    account && canViewGuests ? apiFetch<GuestProfile[]>(`/crm/guest-profiles?linkedClientAccountId=${account.id}`).catch(() => []) : Promise.resolve([]),
-    account && canViewLoyalty ? apiFetch<LoyaltyStatus>(`/crm/loyalty-status/${account.id}`).catch(() => null) : Promise.resolve(null),
-    account && canOverride ? apiFetch<LoyaltyTier[]>('/crm/loyalty-tiers').catch(() => []) : Promise.resolve([]),
-    account ? apiFetch<TravelHistoryBooking[]>(`/crm/client-accounts/${account.id}/travel-history`).catch(() => []) : Promise.resolve([]),
-    account && canViewLog ? apiFetch<CommunicationLog[]>(`/crm/communication-log?clientAccountId=${account.id}`).catch(() => []) : Promise.resolve([]),
+    account && canViewGuests
+      ? apiFetch<GuestProfile[]>(`/crm/guest-profiles?linkedClientAccountId=${account.id}`).catch(
+          () => [],
+        )
+      : Promise.resolve([]),
+    account && canViewLoyalty
+      ? apiFetch<LoyaltyStatus>(`/crm/loyalty-status/${account.id}`).catch(() => null)
+      : Promise.resolve(null),
+    account && canOverride
+      ? apiFetch<LoyaltyTier[]>('/crm/loyalty-tiers').catch(() => [])
+      : Promise.resolve([]),
+    account
+      ? apiFetch<TravelHistoryBooking[]>(`/crm/client-accounts/${account.id}/travel-history`).catch(
+          () => [],
+        )
+      : Promise.resolve([]),
+    account && canViewLog
+      ? apiFetch<CommunicationLog[]>(`/crm/communication-log?clientAccountId=${account.id}`).catch(
+          () => [],
+        )
+      : Promise.resolve([]),
   ]);
 
   return (
     <div className="p-6">
-      <RegisterTab label={account ? (account.accountType === 'LEGAL_ENTITY' ? account.companyName ?? '' : account.fullName ?? '') : params.id.slice(0, 8)} />
+      <RegisterTab
+        label={
+          account
+            ? account.accountType === 'LEGAL_ENTITY'
+              ? (account.companyName ?? '')
+              : (account.fullName ?? '')
+            : params.id.slice(0, 8)
+        }
+      />
       {error && <p className="rounded bg-danger-bg p-3 text-sm text-danger">{error}</p>}
 
       {account && (
@@ -119,18 +145,28 @@ export default async function ClientAccountDetailPage(props: { params: Promise<{
             <div className="rounded-lg border border-border bg-panel p-4 text-xs text-ink-dim">
               <p>Email: {account.email ?? '—'}</p>
               <p className="mt-1">Telefon: {account.phone ?? '—'}</p>
-              <p className="mt-1">Adresa: {account.address ?? '—'}{account.country ? `, ${account.country}` : ''}</p>
+              <p className="mt-1">
+                Adresa: {account.address ?? '—'}
+                {account.country ? `, ${account.country}` : ''}
+              </p>
               {account.taxId && <p className="mt-1">PIB: {account.taxId}</p>}
               <p className="mt-1">Jezik komunikacije: {account.preferredLanguage ?? '—'}</p>
               <p className="mt-1">
                 Marketinška saglasnost:{' '}
-                <span className={account.marketingConsent ? 'text-ok' : 'text-danger'}>{account.marketingConsent ? 'da' : 'ne'}</span>
-                {account.marketingConsentDate ? ` (${new Date(account.marketingConsentDate).toLocaleDateString('sr-RS')})` : ''}
+                <span className={account.marketingConsent ? 'text-ok' : 'text-danger'}>
+                  {account.marketingConsent ? 'da' : 'ne'}
+                </span>
+                {account.marketingConsentDate
+                  ? ` (${new Date(account.marketingConsentDate).toLocaleDateString('sr-RS')})`
+                  : ''}
               </p>
               {account.tags && account.tags.length > 0 && (
                 <div className="mt-2 flex flex-wrap gap-1">
                   {account.tags.map((t) => (
-                    <span key={t} className="rounded bg-panel2 px-1.5 py-0.5 text-[11px] text-ink-faint">
+                    <span
+                      key={t}
+                      className="rounded bg-panel2 px-1.5 py-0.5 text-[11px] text-ink-faint"
+                    >
                       {t}
                     </span>
                   ))}
@@ -148,12 +184,18 @@ export default async function ClientAccountDetailPage(props: { params: Promise<{
                   <strong className="text-ink">
                     {loyalty.manualOverrideTier?.name ?? loyalty.currentTier?.name ?? 'bez nivoa'}
                   </strong>
-                  {loyalty.manualOverrideTierId && <span className="ml-1 text-[11px] text-warn">(ručno dodeljeno)</span>}
+                  {loyalty.manualOverrideTierId && (
+                    <span className="ml-1 text-[11px] text-warn">(ručno dodeljeno)</span>
+                  )}
                 </p>
                 <p className="mt-1">Popust: {loyalty.discountPercentage}%</p>
                 <p className="mt-1">Izračunata metrika: {loyalty.calculatedMetricValue}</p>
-                {loyalty.manualOverrideReason && <p className="mt-1">Razlog override-a: {loyalty.manualOverrideReason}</p>}
-                {canOverride && tiers.length > 0 && <LoyaltyOverrideForm clientAccountId={account.id} tiers={tiers} />}
+                {loyalty.manualOverrideReason && (
+                  <p className="mt-1">Razlog override-a: {loyalty.manualOverrideReason}</p>
+                )}
+                {canOverride && tiers.length > 0 && (
+                  <LoyaltyOverrideForm clientAccountId={account.id} tiers={tiers} />
+                )}
               </div>
             )}
           </div>
@@ -173,7 +215,10 @@ export default async function ClientAccountDetailPage(props: { params: Promise<{
                 <div className="flex items-center gap-1.5 text-sm font-semibold text-ink">
                   <Icon name="organization" className="text-accent" /> Povezani gosti
                 </div>
-                <Link href={`/crm/gosti/novi?linkedClientAccountId=${account.id}`} className="text-xs text-accent hover:underline">
+                <Link
+                  href={`/crm/gosti/novi?linkedClientAccountId=${account.id}`}
+                  className="text-xs text-accent hover:underline"
+                >
                   + novi gost
                 </Link>
               </div>
@@ -182,7 +227,11 @@ export default async function ClientAccountDetailPage(props: { params: Promise<{
               ) : (
                 <div className="flex flex-col gap-1">
                   {guests.map((g) => (
-                    <Link key={g.id} href={`/crm/gosti/${g.id}`} className="flex justify-between rounded px-2 py-1.5 text-xs text-ink hover:bg-panel2">
+                    <Link
+                      key={g.id}
+                      href={`/crm/gosti/${g.id}`}
+                      className="flex justify-between rounded px-2 py-1.5 text-xs text-ink hover:bg-panel2"
+                    >
                       <span>{g.fullName}</span>
                       <span className="text-ink-faint">
                         {g.documentType} {g.documentNumber}
@@ -203,7 +252,11 @@ export default async function ClientAccountDetailPage(props: { params: Promise<{
             ) : (
               <div className="flex flex-col gap-1">
                 {history.map((b) => (
-                  <Link key={b.id} href={`/rezervacije/${b.id}`} className="flex items-center justify-between rounded px-2 py-1.5 text-xs text-ink hover:bg-panel2">
+                  <Link
+                    key={b.id}
+                    href={`/rezervacije/${b.id}`}
+                    className="flex items-center justify-between rounded px-2 py-1.5 text-xs text-ink hover:bg-panel2"
+                  >
                     <span>{b.bookingNumber}</span>
                     <span className="text-ink-faint">
                       {b.items.length} stavki · {new Date(b.createdAt).toLocaleDateString('sr-RS')}
@@ -216,7 +269,11 @@ export default async function ClientAccountDetailPage(props: { params: Promise<{
           </div>
 
           {canViewLog && (
-            <CommunicationLogPanel target={{ clientAccountId: account.id }} entries={log} canCreate={canCreateLog} />
+            <CommunicationLogPanel
+              target={{ clientAccountId: account.id }}
+              entries={log}
+              canCreate={canCreateLog}
+            />
           )}
         </>
       )}

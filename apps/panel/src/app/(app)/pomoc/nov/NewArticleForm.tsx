@@ -20,18 +20,33 @@ export default function NewArticleForm({ allowedAudience }: { allowedAudience: s
   const [state, formAction] = useActionState(createArticle, initialState);
 
   return (
-    <form action={formAction} className="flex flex-col gap-3 rounded-lg border border-border bg-panel p-5">
+    <form
+      action={formAction}
+      className="flex flex-col gap-3 rounded-lg border border-border bg-panel p-5"
+    >
       {state.error && <p className="rounded bg-danger-bg p-3 text-sm text-danger">{state.error}</p>}
 
       <Field label="slug (mala slova, brojevi, crtica)">
-        <input name="slug" required pattern="[a-z0-9-]+" className="input" placeholder="kako-obraditi-otkazivanje" />
+        <input
+          name="slug"
+          required
+          pattern="[a-z0-9-]+"
+          className="input"
+          placeholder="kako-obraditi-otkazivanje"
+        />
       </Field>
 
       <Field label="publika (audience) — bira se od segmenata za koje imate EDIT dozvolu">
         <div className="flex flex-col gap-1.5">
           {allowedAudience.map((a) => (
             <label key={a} className="flex items-center gap-2 text-xs text-ink-dim">
-              <input type="checkbox" name="audience" value={a} defaultChecked={allowedAudience.length === 1} className="h-3.5 w-3.5" />
+              <input
+                type="checkbox"
+                name="audience"
+                value={a}
+                defaultChecked={allowedAudience.length === 1}
+                className="h-3.5 w-3.5"
+              />
               {AUDIENCE_LABELS[a] ?? a}
             </label>
           ))}

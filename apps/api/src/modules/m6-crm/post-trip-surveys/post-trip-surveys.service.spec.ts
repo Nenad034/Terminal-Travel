@@ -46,7 +46,9 @@ describe('PostTripSurveysService — findMany VIEW_ALL (§9 dopuna, 31.8.2026)',
 
     expect(prisma.postTripSurvey.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: expect.objectContaining({ booking: { OR: [{ ownerId: 'staff-1' }, { assignedToId: 'staff-1' }] } }),
+        where: expect.objectContaining({
+          booking: { OR: [{ ownerId: 'staff-1' }, { assignedToId: 'staff-1' }] },
+        }),
       }),
     );
   });

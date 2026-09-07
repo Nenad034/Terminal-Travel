@@ -36,7 +36,8 @@ export class PublicVoucherController {
   @Get(':id/voucher/:groupIndex')
   getVoucherGroup(@Param('id') id: string, @Param('groupIndex') groupIndex: string) {
     const index = Number(groupIndex);
-    if (!Number.isInteger(index) || index < 1) throw new BadRequestException('Redni broj vaučera mora biti ceo broj veći od nule.');
+    if (!Number.isInteger(index) || index < 1)
+      throw new BadRequestException('Redni broj vaučera mora biti ceo broj veći od nule.');
     return this.bookings.getVoucherContent(id, { groupIndex: index });
   }
 }

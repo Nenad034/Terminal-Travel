@@ -1,5 +1,16 @@
-import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
-import { HelpArticleStatus, HelpArticleTranslation, HelpAudience, LanguageCode } from '@prisma/client';
+import {
+  BadRequestException,
+  ConflictException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import {
+  HelpArticleStatus,
+  HelpArticleTranslation,
+  HelpAudience,
+  LanguageCode,
+} from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { AuditLogService } from '../../m1-core-identitet/audit-log/audit-log.service';
 import { PermissionsService } from '../../m1-core-identitet/permissions/permissions.service';
@@ -41,7 +52,8 @@ export class HelpArticlesService {
   ): Promise<void> {
     for (const a of audience) {
       const segment = audienceToPermissionSegment(a);
-      if (await this.permissions.hasPermission(actorId, 'M21', `article:${segment}`, action)) return;
+      if (await this.permissions.hasPermission(actorId, 'M21', `article:${segment}`, action))
+        return;
     }
     throw new ForbiddenException(
       `Nema ${action} dozvolu ni za jedan od audience segmenata [${audience.join(', ')}] (M21 spec poglavlje 3).`,
@@ -57,7 +69,9 @@ export class HelpArticlesService {
     for (const a of audience) {
       const segment = audienceToPermissionSegment(a);
       if (!(await this.permissions.hasPermission(actorId, 'M21', `article:${segment}`, action))) {
-        throw new ForbiddenException(`Nema ${action} dozvolu za audience segment ${a} (M21 spec poglavlje 3).`);
+        throw new ForbiddenException(
+          `Nema ${action} dozvolu za audience segment ${a} (M21 spec poglavlje 3).`,
+        );
       }
     }
   }
@@ -109,12 +123,24 @@ export class HelpArticlesService {
   // koji ovaj parametar nikad ne šalje.
   async findVisibleToCaller(
     actorId: string,
-    filters: { relatedModule?: string; isCriticalExample?: boolean; lang?: LanguageCode; status?: HelpArticleStatus },
+    filters: {
+      relatedModule?: string;
+      isCriticalExample?: boolean;
+      lang?: LanguageCode;
+      status?: HelpArticleStatus;
+    },
   ) {
     if (filters.status && filters.status !== 'PUBLISHED') {
       const editableAudiences: HelpAudience[] = [];
       for (const a of ['STAFF', 'SUBAGENT', 'BUSINESS_CLIENT', 'PUBLIC_GUEST'] as HelpAudience[]) {
-        if (await this.permissions.hasPermission(actorId, 'M21', `article:${audienceToPermissionSegment(a)}`, 'EDIT')) {
+        if (
+          await this.permissions.hasPermission(
+            actorId,
+            'M21',
+            `article:${audienceToPermissionSegment(a)}`,
+            'EDIT',
+          )
+        ) {
           editableAudiences.push(a);
         }
       }
@@ -139,7 +165,14 @@ export class HelpArticlesService {
     // §3 — filtriranje ide kroz M1 Permission zapise, ne samo kroz izvedenu publiku: nalog čija
     // je uloga izgubila M21/article:<segment>/VIEW (npr. UserPermissionOverride DENY) ne vidi
     // ništa, uprkos tome što mu account_type i dalje rešava audience_context.
-    if (!(await this.permissions.hasPermission(actorId, 'M21', `article:${audienceToPermissionSegment(audience)}`, 'VIEW'))) {
+    if (
+      !(await this.permissions.hasPermission(
+        actorId,
+        'M21',
+        `article:${audienceToPermissionSegment(audience)}`,
+        'VIEW',
+      ))
+    ) {
       return [];
     }
 
@@ -174,24 +207,43 @@ export class HelpArticlesService {
   // ArticleTranslation redova za ovaj članak, ista autorizacija kao pre (panel detalj više ne mora
   // da upućuje poziv po jeziku da rekonstruiše listu).
   async findOne(id: string, actorId: string, lang?: LanguageCode) {
-    const article = await this.prisma.helpArticle.findUnique({ where: { id }, include: { translations: true } });
+    const article = await this.prisma.helpArticle.findUnique({
+      where: { id },
+      include: { translations: true },
+    });
     if (!article) throw new NotFoundException(`HelpArticle ${id} nije pronađen.`);
 
     let canSeeAsEditor = false;
     for (const a of article.audience) {
-      if (await this.permissions.hasPermission(actorId, 'M21', `article:${audienceToPermissionSegment(a)}`, 'EDIT')) {
+      if (
+        await this.permissions.hasPermission(
+          actorId,
+          'M21',
+          `article:${audienceToPermissionSegment(a)}`,
+          'EDIT',
+        )
+      ) {
         canSeeAsEditor = true;
         break;
       }
     }
-    if (canSeeAsEditor) return { ...this.withResolvedTranslation(article, lang), translations: article.translations };
+    if (canSeeAsEditor)
+      return { ...this.withResolvedTranslation(article, lang), translations: article.translations };
 
-    if (article.status !== 'PUBLISHED') throw new NotFoundException(`HelpArticle ${id} nije pronađen.`);
+    if (article.status !== 'PUBLISHED')
+      throw new NotFoundException(`HelpArticle ${id} nije pronađen.`);
     const audience = await resolveHelpAudience(this.prisma, actorId);
     if (!audience || !article.audience.includes(audience)) {
       throw new NotFoundException(`HelpArticle ${id} nije pronađen.`);
     }
-    if (!(await this.permissions.hasPermission(actorId, 'M21', `article:${audienceToPermissionSegment(audience)}`, 'VIEW'))) {
+    if (
+      !(await this.permissions.hasPermission(
+        actorId,
+        'M21',
+        `article:${audienceToPermissionSegment(audience)}`,
+        'VIEW',
+      ))
+    ) {
       throw new NotFoundException(`HelpArticle ${id} nije pronađen.`);
     }
     return { ...this.withResolvedTranslation(article, lang), translations: article.translations };
@@ -215,7 +267,10 @@ export class HelpArticlesService {
       if (dto.status === 'PUBLISHED') {
         // §2.1 — prelazak u PUBLISHED zahteva PUBLISH dozvolu i popunjen approved_by, nikad AI.
         await this.assertHasAnySegmentPermission(actorId, effectiveAudience, 'PUBLISH');
-        const withTranslations = await this.prisma.helpArticle.findUnique({ where: { id }, include: { translations: true } });
+        const withTranslations = await this.prisma.helpArticle.findUnique({
+          where: { id },
+          include: { translations: true },
+        });
         if (!withTranslations || withTranslations.translations.length === 0) {
           throw new BadRequestException('Članak nema nijedan prevod — nema šta da se objavi.');
         }
@@ -250,14 +305,28 @@ export class HelpArticlesService {
   // ==========================================================================
   // Prevodi — PUT /help/articles/:id/translations (isti obrazac kao M12 ContentService)
   // ==========================================================================
-  async upsertTranslation(articleId: string, dto: UpsertHelpArticleTranslationDto, actorId: string) {
+  async upsertTranslation(
+    articleId: string,
+    dto: UpsertHelpArticleTranslationDto,
+    actorId: string,
+  ) {
     const article = await this.prisma.helpArticle.findUnique({ where: { id: articleId } });
     if (!article) throw new NotFoundException(`HelpArticle ${articleId} nije pronađen.`);
     await this.assertHasEverySegmentPermission(actorId, article.audience, 'EDIT');
 
     const translation = await this.prisma.helpArticleTranslation.upsert({
-      where: { helpArticleId_languageCode: { helpArticleId: articleId, languageCode: dto.languageCode as LanguageCode } },
-      create: { helpArticleId: articleId, languageCode: dto.languageCode as LanguageCode, title: dto.title, body: dto.body },
+      where: {
+        helpArticleId_languageCode: {
+          helpArticleId: articleId,
+          languageCode: dto.languageCode as LanguageCode,
+        },
+      },
+      create: {
+        helpArticleId: articleId,
+        languageCode: dto.languageCode as LanguageCode,
+        title: dto.title,
+        body: dto.body,
+      },
       update: { title: dto.title, body: dto.body },
     });
     await this.auditLog.write({

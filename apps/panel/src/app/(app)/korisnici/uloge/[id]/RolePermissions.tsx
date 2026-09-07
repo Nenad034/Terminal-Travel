@@ -101,7 +101,9 @@ export default function RolePermissions({
       </div>
 
       {error && <p className="rounded bg-danger-bg p-3 text-sm text-danger">{error}</p>}
-      {saved && !dirty && <p className="rounded bg-ok-bg p-3 text-sm text-ok">Dozvole su sačuvane i važe odmah.</p>}
+      {saved && !dirty && (
+        <p className="rounded bg-ok-bg p-3 text-sm text-ok">Dozvole su sačuvane i važe odmah.</p>
+      )}
 
       <div className="flex flex-col gap-3">
         {byModule.map(([module, perms]) => {
@@ -139,7 +141,9 @@ export default function RolePermissions({
             </div>
           );
         })}
-        {byModule.length === 0 && <p className="text-xs text-ink-faint">Nijedna dozvola ne odgovara filteru.</p>}
+        {byModule.length === 0 && (
+          <p className="text-xs text-ink-faint">Nijedna dozvola ne odgovara filteru.</p>
+        )}
       </div>
 
       {canEdit && (

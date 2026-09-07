@@ -42,4 +42,4 @@ Kad inspektor zatraži uvid, sistem zna da za zadati period skupi sve relevantno
 
 ---
 
-*Za tehničke detalje (tačna imena polja, redosled provera, API pozivi) vidi `08-SPECIFIKACIJA-M11-COMPLIANCE.md` u istom folderu — ovaj dokument je namerno pojednostavljen, ne zamenjuje ga.*
+_Za tehničke detalje (tačna imena polja, redosled provera, API pozivi) vidi `08-SPECIFIKACIJA-M11-COMPLIANCE.md` u istom folderu — ovaj dokument je namerno pojednostavljen, ne zamenjuje ga._

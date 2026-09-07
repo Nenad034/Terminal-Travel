@@ -301,18 +301,60 @@ export const NAV_GROUPS: NavGroup[] = [
   { id: 'pocetna', label: 'Početna', icon: 'home', itemIds: ['pocetna'] },
   // `icon: 'euro'` (5.9.2026, vlasnikov zahtev: "umesto ikone lupe... stavite ikonu za EUR") —
   // rezervisano ime bez sopstvenog Codicon glifa, `Icon.tsx` ga posebno tretira (prikazuje "€").
-  { id: 'prodaja', label: 'Prodaja', icon: 'euro', itemIds: ['pretraga', 'kalendar', 'rezervacije-lista', 'rezervacije-najave'] },
-  { id: 'katalog-nabavka', label: 'Katalog i nabavka', icon: 'package', itemIds: ['katalog', 'destinacije', 'dobavljaci'] },
-  { id: 'klijenti-partneri', label: 'Klijenti i partneri', icon: 'organization', itemIds: ['crm', 'b2b'] },
-  { id: 'finansije-pravno', label: 'Finansije i pravno', icon: 'law', itemIds: ['finansije', 'kursna-lista', 'compliance', 'ugovori-klijenti'] },
-  { id: 'komunikacija-podrska', label: 'Komunikacija i podrška', icon: 'comment-discussion', itemIds: ['podrska', 'chat', 'pomoc', 'email'] },
-  { id: 'sadrzaj-znanje', label: 'Sadržaj i znanje', icon: 'book', itemIds: ['marketing', 'znanje'] },
-  { id: 'analitika-nadzor', label: 'Analitika i nadzor', icon: 'graph-line', itemIds: ['izvestaji', 'nadzor'] },
-  { id: 'administracija', label: 'Administracija', icon: 'settings-gear', itemIds: ['korisnici', 'poslovnice', 'audit-log', 'mcp', 'integracije'] },
+  {
+    id: 'prodaja',
+    label: 'Prodaja',
+    icon: 'euro',
+    itemIds: ['pretraga', 'kalendar', 'rezervacije-lista', 'rezervacije-najave'],
+  },
+  {
+    id: 'katalog-nabavka',
+    label: 'Katalog i nabavka',
+    icon: 'package',
+    itemIds: ['katalog', 'destinacije', 'dobavljaci'],
+  },
+  {
+    id: 'klijenti-partneri',
+    label: 'Klijenti i partneri',
+    icon: 'organization',
+    itemIds: ['crm', 'b2b'],
+  },
+  {
+    id: 'finansije-pravno',
+    label: 'Finansije i pravno',
+    icon: 'law',
+    itemIds: ['finansije', 'kursna-lista', 'compliance', 'ugovori-klijenti'],
+  },
+  {
+    id: 'komunikacija-podrska',
+    label: 'Komunikacija i podrška',
+    icon: 'comment-discussion',
+    itemIds: ['podrska', 'chat', 'pomoc', 'email'],
+  },
+  {
+    id: 'sadrzaj-znanje',
+    label: 'Sadržaj i znanje',
+    icon: 'book',
+    itemIds: ['marketing', 'znanje'],
+  },
+  {
+    id: 'analitika-nadzor',
+    label: 'Analitika i nadzor',
+    icon: 'graph-line',
+    itemIds: ['izvestaji', 'nadzor'],
+  },
+  {
+    id: 'administracija',
+    label: 'Administracija',
+    icon: 'settings-gear',
+    itemIds: ['korisnici', 'poslovnice', 'audit-log', 'mcp', 'integracije'],
+  },
 ];
 
 function itemForHref(href: string): NavItem | null {
-  return NAV_ITEMS.find((i) => i.href === href || (i.href !== '/' && href.startsWith(i.href))) ?? null;
+  return (
+    NAV_ITEMS.find((i) => i.href === href || (i.href !== '/' && href.startsWith(i.href))) ?? null
+  );
 }
 
 /** Grupa kojoj pripada data ruta — koristi se za podrazumevanu aktivnu grupu pri učitavanju. */

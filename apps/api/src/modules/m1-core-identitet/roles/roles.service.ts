@@ -17,7 +17,9 @@ export class RolesService {
   }
 
   async create(name: string, description: string, actorId: string) {
-    const role = await this.prisma.role.create({ data: { name, description, isSystemRole: false } });
+    const role = await this.prisma.role.create({
+      data: { name, description, isSystemRole: false },
+    });
     await this.auditLog.write({
       actorType: 'HUMAN',
       actorId,
@@ -98,8 +100,14 @@ export class RolesService {
       action: 'role.permissions_changed',
       resourceType: 'Role',
       resourceId: roleId,
-      beforeState: { roleName: role.name, permissions: before.map((p) => `${p.module}/${p.resource}/${p.action}`) },
-      afterState: { roleName: role.name, permissions: after.map((p) => `${p.module}/${p.resource}/${p.action}`) },
+      beforeState: {
+        roleName: role.name,
+        permissions: before.map((p) => `${p.module}/${p.resource}/${p.action}`),
+      },
+      afterState: {
+        roleName: role.name,
+        permissions: after.map((p) => `${p.module}/${p.resource}/${p.action}`),
+      },
       context: { added: permissionIds },
     });
     return after;
@@ -119,8 +127,14 @@ export class RolesService {
       action: 'role.permissions_changed',
       resourceType: 'Role',
       resourceId: roleId,
-      beforeState: { roleName: role.name, permissions: before.map((p) => `${p.module}/${p.resource}/${p.action}`) },
-      afterState: { roleName: role.name, permissions: after.map((p) => `${p.module}/${p.resource}/${p.action}`) },
+      beforeState: {
+        roleName: role.name,
+        permissions: before.map((p) => `${p.module}/${p.resource}/${p.action}`),
+      },
+      afterState: {
+        roleName: role.name,
+        permissions: after.map((p) => `${p.module}/${p.resource}/${p.action}`),
+      },
       context: { removed: permissionId },
     });
     return after;

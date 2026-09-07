@@ -10,7 +10,12 @@ describe('TravelGuaranteeService (M11 spec §2)', () => {
     const auditLog = { write: jest.fn() };
     const eventBus = { emit: jest.fn() };
     const exchangeRates = { findForCurrencyOnOrBefore: jest.fn() };
-    const service = new TravelGuaranteeService(prisma, auditLog as any, eventBus as any, exchangeRates as any);
+    const service = new TravelGuaranteeService(
+      prisma,
+      auditLog as any,
+      eventBus as any,
+      exchangeRates as any,
+    );
     return { service, prisma, auditLog, eventBus, exchangeRates };
   }
 
@@ -39,7 +44,10 @@ describe('TravelGuaranteeService (M11 spec §2)', () => {
 
     it('blokira kad bi potvrda prevazišla coverage_amount', async () => {
       const { service, prisma } = makeService();
-      prisma.travelGuarantee.findFirst.mockResolvedValue({ ...activeGuarantee, coverageAmount: 100_00 });
+      prisma.travelGuarantee.findFirst.mockResolvedValue({
+        ...activeGuarantee,
+        coverageAmount: 100_00,
+      });
       prisma.booking.findMany.mockResolvedValue([{ totalPrice: 90_00, currency: 'RSD' }]);
 
       const result = await service.assessForBooking({ bookingTotalPrice: 50_00, currency: 'RSD' });
@@ -50,18 +58,29 @@ describe('TravelGuaranteeService (M11 spec §2)', () => {
 
     it('emituje upozorenje kad projektovana iskorišćenost dostigne 80%', async () => {
       const { service, prisma, eventBus } = makeService();
-      prisma.travelGuarantee.findFirst.mockResolvedValue({ ...activeGuarantee, coverageAmount: 100_00 });
+      prisma.travelGuarantee.findFirst.mockResolvedValue({
+        ...activeGuarantee,
+        coverageAmount: 100_00,
+      });
       prisma.booking.findMany.mockResolvedValue([{ totalPrice: 70_00, currency: 'RSD' }]);
 
       const result = await service.assessForBooking({ bookingTotalPrice: 15_00, currency: 'RSD' });
 
       expect(result.allowed).toBe(true);
-      expect(eventBus.emit).toHaveBeenCalledWith('M11', 'travel_guarantee_utilization_warning', expect.any(Object));
+      expect(eventBus.emit).toHaveBeenCalledWith(
+        'M11',
+        'travel_guarantee_utilization_warning',
+        expect.any(Object),
+      );
     });
 
     it('konvertuje iznos u valutu garancije preko kursa pre poređenja', async () => {
       const { service, prisma, exchangeRates } = makeService();
-      prisma.travelGuarantee.findFirst.mockResolvedValue({ ...activeGuarantee, coverageAmount: 1_000_00, currency: 'RSD' });
+      prisma.travelGuarantee.findFirst.mockResolvedValue({
+        ...activeGuarantee,
+        coverageAmount: 1_000_00,
+        currency: 'RSD',
+      });
       prisma.booking.findMany.mockResolvedValue([]);
       exchangeRates.findForCurrencyOnOrBefore.mockResolvedValue({ nbsMiddleRate: 117 });
 
@@ -73,9 +92,15 @@ describe('TravelGuaranteeService (M11 spec §2)', () => {
 
     it('blokira potvrdu (ne baca grešku) kad kurs za valutu rezervacije nedostaje (§7, avgust 2026)', async () => {
       const { service, prisma, exchangeRates } = makeService();
-      prisma.travelGuarantee.findFirst.mockResolvedValue({ ...activeGuarantee, coverageAmount: 1_000_00, currency: 'RSD' });
+      prisma.travelGuarantee.findFirst.mockResolvedValue({
+        ...activeGuarantee,
+        coverageAmount: 1_000_00,
+        currency: 'RSD',
+      });
       prisma.booking.findMany.mockResolvedValue([]);
-      exchangeRates.findForCurrencyOnOrBefore.mockRejectedValue(new NotFoundException('nema kursa'));
+      exchangeRates.findForCurrencyOnOrBefore.mockRejectedValue(
+        new NotFoundException('nema kursa'),
+      );
 
       const result = await service.assessForBooking({ bookingTotalPrice: 5_00, currency: 'EUR' });
 
@@ -93,18 +118,30 @@ describe('TravelGuaranteeService (M11 spec §2)', () => {
   describe('assessForBooking — hibridni grace period bez važeće garancije (§2.2 dopuna, avgust 2026)', () => {
     it('dozvoljava i šalje hitan alarm kad je garancija istekla unutar grace perioda (15 dana)', async () => {
       const { service, prisma, eventBus } = makeService();
-      const expired = { ...activeGuarantee, status: 'EXPIRED', validTo: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000) };
+      const expired = {
+        ...activeGuarantee,
+        status: 'EXPIRED',
+        validTo: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
+      };
       prisma.travelGuarantee.findFirst.mockResolvedValue(expired);
 
       const result = await service.assessForBooking({ bookingTotalPrice: 100_00, currency: 'RSD' });
 
       expect(result.allowed).toBe(true);
-      expect(eventBus.emit).toHaveBeenCalledWith('M11', 'travel_guarantee_gap_urgent', expect.any(Object));
+      expect(eventBus.emit).toHaveBeenCalledWith(
+        'M11',
+        'travel_guarantee_gap_urgent',
+        expect.any(Object),
+      );
     });
 
     it('blokira kad je grace period (15 dana) prekoračen', async () => {
       const { service, prisma } = makeService();
-      const longExpired = { ...activeGuarantee, status: 'EXPIRED', validTo: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000) };
+      const longExpired = {
+        ...activeGuarantee,
+        status: 'EXPIRED',
+        validTo: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000),
+      };
       prisma.travelGuarantee.findFirst.mockResolvedValue(longExpired);
 
       const result = await service.assessForBooking({ bookingTotalPrice: 100_00, currency: 'RSD' });
@@ -120,7 +157,11 @@ describe('TravelGuaranteeService (M11 spec §2)', () => {
       const result = await service.assessForBooking({ bookingTotalPrice: 100_00, currency: 'RSD' });
 
       expect(result).toEqual({ allowed: true });
-      expect(eventBus.emit).toHaveBeenCalledWith('M11', 'travel_guarantee_missing_urgent', expect.any(Object));
+      expect(eventBus.emit).toHaveBeenCalledWith(
+        'M11',
+        'travel_guarantee_missing_urgent',
+        expect.any(Object),
+      );
     });
   });
 
@@ -143,7 +184,13 @@ describe('TravelGuaranteeService (M11 spec §2)', () => {
       );
 
       expect(result).toEqual(activeGuarantee);
-      expect(auditLog.write).toHaveBeenCalledWith(expect.objectContaining({ actorType: 'HUMAN', actorId: 'actor-1', action: 'travel_guarantee.created' }));
+      expect(auditLog.write).toHaveBeenCalledWith(
+        expect.objectContaining({
+          actorType: 'HUMAN',
+          actorId: 'actor-1',
+          action: 'travel_guarantee.created',
+        }),
+      );
     });
 
     it('odbija kreiranje nove garancije bez obaveznih polja', async () => {
@@ -156,13 +203,18 @@ describe('TravelGuaranteeService (M11 spec §2)', () => {
     it('menja postojeću garanciju kad već postoji (bez createNew)', async () => {
       const { service, prisma, auditLog } = makeService();
       prisma.travelGuarantee.findFirst.mockResolvedValue(activeGuarantee);
-      prisma.travelGuarantee.update.mockResolvedValue({ ...activeGuarantee, coverageAmount: 2_000_000_00 });
+      prisma.travelGuarantee.update.mockResolvedValue({
+        ...activeGuarantee,
+        coverageAmount: 2_000_000_00,
+      });
 
       const result = await service.update({ coverageAmount: 2_000_000_00 }, { userId: 'actor-1' });
 
       expect(prisma.travelGuarantee.create).not.toHaveBeenCalled();
       expect(result.coverageAmount).toBe(2_000_000_00);
-      expect(auditLog.write).toHaveBeenCalledWith(expect.objectContaining({ action: 'travel_guarantee.updated' }));
+      expect(auditLog.write).toHaveBeenCalledWith(
+        expect.objectContaining({ action: 'travel_guarantee.updated' }),
+      );
     });
   });
 
@@ -187,7 +239,10 @@ describe('TravelGuaranteeService (M11 spec §2)', () => {
 
     it('računa procenat iskorišćenosti nad aktivnom garancijom', async () => {
       const { service, prisma } = makeService();
-      prisma.travelGuarantee.findFirst.mockResolvedValue({ ...activeGuarantee, coverageAmount: 100_00 });
+      prisma.travelGuarantee.findFirst.mockResolvedValue({
+        ...activeGuarantee,
+        coverageAmount: 100_00,
+      });
       prisma.booking.findMany.mockResolvedValue([{ totalPrice: 80_00, currency: 'RSD' }]);
 
       const snapshot = await service.getUtilizationSnapshot();

@@ -3,7 +3,6 @@ import { getTranslations } from 'next-intl/server';
 import { apiFetch } from '@/lib/api-client';
 import type { PublicProduct } from '@/lib/types';
 
-
 // M8 spec poglavlje 3, korak 2 — pregled ponude PRE kreiranja M5 Quote zapisa (vidi
 // napomenu u rezervacija/actions.ts o tome zašto se Quote kreira tek u koraku 4).
 export default async function OfferPreviewPage({
@@ -39,7 +38,9 @@ export default async function OfferPreviewPage({
         <dl className="mt-3 grid grid-cols-2 gap-2 text-sm text-ink-dim">
           <dt>{sp.stayFrom}</dt>
           <dd>→ {sp.stayTo}</dd>
-          <dt>{sp.adults} + {sp.children}</dt>
+          <dt>
+            {sp.adults} + {sp.children}
+          </dt>
         </dl>
       </div>
       <Link

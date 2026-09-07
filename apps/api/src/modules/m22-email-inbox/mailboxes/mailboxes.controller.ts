@@ -37,7 +37,11 @@ export class MailboxesController {
 
   @Post(':id/access')
   @RequirePermission('M22', 'mailbox-access', 'GRANT')
-  grantAccess(@Param('id') id: string, @Body() dto: GrantMailboxAccessDto, @CurrentUser() user: { userId: string }) {
+  grantAccess(
+    @Param('id') id: string,
+    @Body() dto: GrantMailboxAccessDto,
+    @CurrentUser() user: { userId: string },
+  ) {
     return this.mailboxes.grantAccess(id, dto, user.userId);
   }
 }

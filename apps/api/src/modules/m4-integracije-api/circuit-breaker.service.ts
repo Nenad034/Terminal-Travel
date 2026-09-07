@@ -17,7 +17,9 @@ export class CircuitBreakerService {
   ) {}
 
   /** Da li je trenutno dozvoljeno zvati provajdera — i po potrebi prevodi OPEN → HALF_OPEN kad cooldown istekne. */
-  async canCall(config: ProviderConfig): Promise<{ allowed: boolean; effectiveState: CircuitState }> {
+  async canCall(
+    config: ProviderConfig,
+  ): Promise<{ allowed: boolean; effectiveState: CircuitState }> {
     if (config.circuitState === 'CLOSED') return { allowed: true, effectiveState: 'CLOSED' };
 
     if (config.circuitState === 'OPEN') {

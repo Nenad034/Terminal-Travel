@@ -68,7 +68,9 @@ function flavorNameForTheme(): FlavorName {
 
 /** Boje natpisa nad mapom — indigo na svetloj podlozi, belo na tamnoj. */
 function labelColors(flavor: FlavorName): { text: string; halo: string } {
-  return flavor === 'light' ? { text: '#4f46e5', halo: '#ffffff' } : { text: '#ffffff', halo: '#1f2124' };
+  return flavor === 'light'
+    ? { text: '#4f46e5', halo: '#ffffff' }
+    : { text: '#ffffff', halo: '#1f2124' };
 }
 
 function buildStyle(flavor: FlavorName) {
@@ -82,7 +84,8 @@ function buildStyle(flavor: FlavorName) {
       protomaps: {
         type: 'vector' as const,
         url: 'pmtiles:///maps/balkan.pmtiles',
-        attribution: '<a href="https://openstreetmap.org">OpenStreetMap</a> · <a href="https://protomaps.com">Protomaps</a>',
+        attribution:
+          '<a href="https://openstreetmap.org">OpenStreetMap</a> · <a href="https://protomaps.com">Protomaps</a>',
       },
     },
     layers: layers('protomaps', namedFlavor(flavor), { lang: 'sr' }),
@@ -91,7 +94,10 @@ function buildStyle(flavor: FlavorName) {
 
 /** Naziv hotela dolazi iz podataka, ne iz koda — mora se štitovati pre ubacivanja u HTML. */
 function esc(v: string): string {
-  return v.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c] as string);
+  return v.replace(
+    /[&<>"']/g,
+    (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c] as string,
+  );
 }
 
 function money(cents: number, currency: string): string {
@@ -132,7 +138,11 @@ function addResultLayers(map: MapLibreMap, flavor: FlavorName) {
     type: 'symbol',
     source: 'rezultati',
     filter: ['has', 'point_count'],
-    layout: { 'text-field': ['get', 'point_count_abbreviated'], 'text-font': ['Noto Sans Medium'], 'text-size': 12 },
+    layout: {
+      'text-field': ['get', 'point_count_abbreviated'],
+      'text-font': ['Noto Sans Medium'],
+      'text-size': 12,
+    },
     paint: { 'text-color': '#ffffff' },
   });
 
@@ -209,7 +219,9 @@ function applyPoints(map: MapLibreMap, points: MapPoint[], fit: boolean) {
 function bannerHtml(p: MapPoint, addLabel: string): string {
   const place = [p.city, p.country].filter(Boolean).join(', ');
   const stars = p.stars ? `<span class="tt-map-stars">${'★'.repeat(p.stars)}</span>` : '';
-  const image = p.image ? `<div class="tt-map-img" style="background-image:url('${esc(p.image)}')"></div>` : '';
+  const image = p.image
+    ? `<div class="tt-map-img" style="background-image:url('${esc(p.image)}')"></div>`
+    : '';
   // "Sve informacije kao na banerima u rezultatima pretrage" (5.9.2026, vlasnikov zahtev) —
   // isti podaci koje `ResultCard`/`ResultRowGroup` (`RealResults.tsx`) prikazuju: tip proizvoda
   // ispod destinacije, i do tri ponude (soba/usluga + cena) umesto samo najniže cene. Kad
@@ -237,7 +249,13 @@ function bannerHtml(p: MapPoint, addLabel: string): string {
     </div>`;
 }
 
-export default function SearchResultsMap({ points, onSelect }: { points: MapPoint[]; onSelect?: (id: string) => void }) {
+export default function SearchResultsMap({
+  points,
+  onSelect,
+}: {
+  points: MapPoint[];
+  onSelect?: (id: string) => void;
+}) {
   const router = useRouter();
   const sp = useSearchParams();
   // M5 spec §3.0h.8 — "pretraži dok pomeram mapu". Stanje prekidača i sam okvir žive u adresi,
@@ -301,7 +319,9 @@ export default function SearchResultsMap({ points, onSelect }: { points: MapPoin
     map.on('error', (e) => {
       const msg = (e as unknown as { error?: { message?: string } }).error?.message ?? '';
       if (msg.includes('pmtiles') || msg.includes('404')) {
-        setFailed('Podaci mape nisu pronađeni na ovom računaru — treba jednom napraviti lokalni fajl (M5 §3.0h.4).');
+        setFailed(
+          'Podaci mape nisu pronađeni na ovom računaru — treba jednom napraviti lokalni fajl (M5 §3.0h.4).',
+        );
       }
     });
 
@@ -315,7 +335,10 @@ export default function SearchResultsMap({ points, onSelect }: { points: MapPoin
         if (clusterId == null) return;
         const source = map.getSource('rezultati') as maplibregl.GeoJSONSource;
         const zoom = await source.getClusterExpansionZoom(clusterId);
-        map.easeTo({ center: (feature.geometry as GeoJSON.Point).coordinates as [number, number], zoom });
+        map.easeTo({
+          center: (feature.geometry as GeoJSON.Point).coordinates as [number, number],
+          zoom,
+        });
       });
 
       // Klik na tačku otvara baner tog hotela.
@@ -326,7 +349,12 @@ export default function SearchResultsMap({ points, onSelect }: { points: MapPoin
         if (!point) return;
 
         popupRef.current?.remove();
-        const popup = new maplibregl.Popup({ offset: 14, closeButton: true, maxWidth: '280px', className: 'tt-map-popup' })
+        const popup = new maplibregl.Popup({
+          offset: 14,
+          closeButton: true,
+          maxWidth: '280px',
+          className: 'tt-map-popup',
+        })
           .setLngLat([point.lng, point.lat])
           .setHTML(bannerHtml(point, onSelectRef.current ? 'dodaj u izbor' : 'otvori'))
           .addTo(map);
@@ -334,10 +362,13 @@ export default function SearchResultsMap({ points, onSelect }: { points: MapPoin
 
         // Dugme u baneru je običan DOM čvor (nije React), pa se slušalac kači ručno posle
         // otvaranja. `Popup` sam briše čvor pri zatvaranju, pa nema šta da se otkači.
-        popup.getElement()?.querySelector('.tt-map-add')?.addEventListener('click', () => {
-          onSelectRef.current?.(id);
-          popup.remove();
-        });
+        popup
+          .getElement()
+          ?.querySelector('.tt-map-add')
+          ?.addEventListener('click', () => {
+            onSelectRef.current?.(id);
+            popup.remove();
+          });
       });
 
       for (const layer of ['grupe', 'tacke']) {
@@ -354,7 +385,9 @@ export default function SearchResultsMap({ points, onSelect }: { points: MapPoin
       map.on('moveend', () => {
         if (!followRef.current) return;
         const b = map.getBounds();
-        const bbox = [b.getWest(), b.getSouth(), b.getEast(), b.getNorth()].map((n) => n.toFixed(4)).join(',');
+        const bbox = [b.getWest(), b.getSouth(), b.getEast(), b.getNorth()]
+          .map((n) => n.toFixed(4))
+          .join(',');
         const next = new URLSearchParams(window.location.search);
         if (next.get('bbox') === bbox) return;
         next.set('bbox', bbox);
@@ -375,7 +408,10 @@ export default function SearchResultsMap({ points, onSelect }: { points: MapPoin
         applyPoints(map, pointsRef.current, false);
       });
     });
-    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['data-theme'],
+    });
 
     // ISPRAVKA (5.9.2026, vlasnikov nalaz uživo, uz snimak ekrana — prazan beo prostor desno od
     // mape). MapLibre meri svoj kontejner SAMO pri pravljenju — ako se širina te kolone posle
@@ -430,7 +466,10 @@ export default function SearchResultsMap({ points, onSelect }: { points: MapPoin
     // dospe u roditelja koji nije flex kolona — MapLibre kontejner bez visine se ne iscrtava
     // uopšte, tiho, bez ijedne greške u konzoli.
     <div className="relative flex min-h-[320px] flex-1 flex-col">
-      <div ref={containerRef} className="w-full flex-1 overflow-hidden rounded-lg border border-border" />
+      <div
+        ref={containerRef}
+        className="w-full flex-1 overflow-hidden rounded-lg border border-border"
+      />
 
       {/* §3.0h.8 — prekidač stoji NA mapi, ne u traci iznad: odluka se donosi dok se gleda
           mapa, a ne pre nego što se do nje dođe. */}

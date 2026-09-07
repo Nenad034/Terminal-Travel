@@ -23,7 +23,9 @@ describe('ArticleRevisionsService (M23 spec §2.4/§4c/§9)', () => {
     const { service, prisma } = makeService();
     prisma.aIAgent.findUnique.mockResolvedValue({ id: 'agent-1', userId: 'ai-user-1' });
 
-    await expect(service.approve('a1', 'r1', 'ai-user-1')).rejects.toBeInstanceOf(ForbiddenException);
+    await expect(service.approve('a1', 'r1', 'ai-user-1')).rejects.toBeInstanceOf(
+      ForbiddenException,
+    );
   });
 
   it('approve odbija ako bilo koji referenciran ArticleSource nije APPROVED', async () => {
@@ -41,14 +43,18 @@ describe('ArticleRevisionsService (M23 spec §2.4/§4c/§9)', () => {
       { id: 's2', status: 'CANDIDATE' }, // nije odobren
     ]);
 
-    await expect(service.approve('a1', 'r1', 'human-1')).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.approve('a1', 'r1', 'human-1')).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
     expect(prisma.$transaction).not.toHaveBeenCalled();
   });
 
   it('approve upisuje proposed_translations kao ArticleTranslation i pomera next_refresh_due_at kad su svi izvori APPROVED', async () => {
     const { service, prisma } = makeService();
     prisma.aIAgent.findUnique.mockResolvedValue(null);
-    const proposedTranslations = [{ languageCode: 'en', title: 'Hotel X', body: 'Opis...', translationSource: 'AI_GENERATED' }];
+    const proposedTranslations = [
+      { languageCode: 'en', title: 'Hotel X', body: 'Opis...', translationSource: 'AI_GENERATED' },
+    ];
     prisma.articleRevision.findUnique.mockResolvedValue({
       id: 'r1',
       articleId: 'a1',
@@ -76,7 +82,11 @@ describe('ArticleRevisionsService (M23 spec §2.4/§4c/§9)', () => {
   it('reject NE menja Article — samo revision.status/reviewedBy/reviewedAt', async () => {
     const { service, prisma } = makeService();
     prisma.aIAgent.findUnique.mockResolvedValue(null);
-    prisma.articleRevision.findUnique.mockResolvedValue({ id: 'r1', articleId: 'a1', status: 'PENDING_REVIEW' });
+    prisma.articleRevision.findUnique.mockResolvedValue({
+      id: 'r1',
+      articleId: 'a1',
+      status: 'PENDING_REVIEW',
+    });
     prisma.articleRevision.update.mockImplementation(({ data }: any) => ({ id: 'r1', ...data }));
 
     const result = await service.reject('a1', 'r1', 'human-1');
@@ -89,8 +99,14 @@ describe('ArticleRevisionsService (M23 spec §2.4/§4c/§9)', () => {
   it('approve baca BadRequestException ako je revizija već odlučena', async () => {
     const { service, prisma } = makeService();
     prisma.aIAgent.findUnique.mockResolvedValue(null);
-    prisma.articleRevision.findUnique.mockResolvedValue({ id: 'r1', articleId: 'a1', status: 'APPROVED' });
+    prisma.articleRevision.findUnique.mockResolvedValue({
+      id: 'r1',
+      articleId: 'a1',
+      status: 'APPROVED',
+    });
 
-    await expect(service.approve('a1', 'r1', 'human-1')).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.approve('a1', 'r1', 'human-1')).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
   });
 });

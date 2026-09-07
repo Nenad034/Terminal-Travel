@@ -11,7 +11,9 @@ import { resolveCallerIdentity } from '../../../common/auth/resolve-caller-ident
 export class GuestProfilesService {
   constructor(private readonly prisma: PrismaService) {}
 
-  private async ownAccountIdIfGuest(actorUserId: string | undefined): Promise<{ isGuest: boolean; ownAccountId: string | null }> {
+  private async ownAccountIdIfGuest(
+    actorUserId: string | undefined,
+  ): Promise<{ isGuest: boolean; ownAccountId: string | null }> {
     if (!actorUserId) return { isGuest: false, ownAccountId: null };
     const identity = await resolveCallerIdentity(this.prisma, actorUserId);
     return { isGuest: identity.accountType === 'GUEST', ownAccountId: identity.ownProfileId };
@@ -20,7 +22,9 @@ export class GuestProfilesService {
   async findMany(filter: { linkedClientAccountId?: string }, actorUserId?: string) {
     const { isGuest, ownAccountId } = await this.ownAccountIdIfGuest(actorUserId);
     return this.prisma.guestProfile.findMany({
-      where: { linkedClientAccountId: isGuest ? (ownAccountId ?? undefined) : filter.linkedClientAccountId },
+      where: {
+        linkedClientAccountId: isGuest ? (ownAccountId ?? undefined) : filter.linkedClientAccountId,
+      },
       orderBy: { createdAt: 'desc' },
     });
   }
@@ -52,7 +56,9 @@ export class GuestProfilesService {
         email: dto.email ?? null,
         phone: dto.phone ?? null,
         preferences: (dto.preferences as any) ?? undefined,
-        linkedClientAccountId: isGuest ? (dto.linkedClientAccountId ?? ownAccountId) : (dto.linkedClientAccountId ?? null),
+        linkedClientAccountId: isGuest
+          ? (dto.linkedClientAccountId ?? ownAccountId)
+          : (dto.linkedClientAccountId ?? null),
       },
     });
   }

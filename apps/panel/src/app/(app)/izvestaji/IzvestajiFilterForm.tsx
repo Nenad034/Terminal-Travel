@@ -38,15 +38,25 @@ const TEXT_DEBOUNCE_MS = 600;
 // eksplicitno da nosi iste tokene kao ostatak panela.
 const optionClassName = 'bg-panel text-ink';
 const selectClassName = 'w-full min-w-0 bg-transparent text-xs text-ink outline-none';
-const inputClassName = 'w-full min-w-0 bg-transparent text-xs text-ink outline-none placeholder:text-ink-faint';
+const inputClassName =
+  'w-full min-w-0 bg-transparent text-xs text-ink outline-none placeholder:text-ink-faint';
 
-export default function IzvestajiFilterForm({ tab, searchParams, view }: { tab: TabKey; searchParams: SearchParams; view: 'tabela' | 'grafik' }) {
+export default function IzvestajiFilterForm({
+  tab,
+  searchParams,
+  view,
+}: {
+  tab: TabKey;
+  searchParams: SearchParams;
+  view: 'tabela' | 'grafik';
+}) {
   const formRef = useRef<HTMLFormElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   function handleFormChange(e: React.ChangeEvent<HTMLFormElement>) {
     const target = e.target as unknown as HTMLInputElement;
-    const isTypedText = target.tagName === 'INPUT' && (target.type === 'text' || target.type === '');
+    const isTypedText =
+      target.tagName === 'INPUT' && (target.type === 'text' || target.type === '');
     if (debounceRef.current) clearTimeout(debounceRef.current);
     if (isTypedText) {
       debounceRef.current = setTimeout(() => formRef.current?.requestSubmit(), TEXT_DEBOUNCE_MS);
@@ -62,7 +72,8 @@ export default function IzvestajiFilterForm({ tab, searchParams, view }: { tab: 
     if (searchParams?.to) v.set('to', searchParams.to);
     if (searchParams?.dateField) v.set('dateField', searchParams.dateField);
     if (searchParams?.segment) v.set('segment', searchParams.segment);
-    if (searchParams?.destinationCountry) v.set('destinationCountry', searchParams.destinationCountry);
+    if (searchParams?.destinationCountry)
+      v.set('destinationCountry', searchParams.destinationCountry);
     if (searchParams?.destinationCity) v.set('destinationCity', searchParams.destinationCity);
     if (searchParams?.supplierId) v.set('supplierId', searchParams.supplierId);
     if (searchParams?.providerCode) v.set('providerCode', searchParams.providerCode);
@@ -82,7 +93,10 @@ export default function IzvestajiFilterForm({ tab, searchParams, view }: { tab: 
     return `/izvestaji?${v.toString()}`;
   }
 
-  const currentDateField = searchParams?.dateField && searchParams.dateField in DATE_FIELD_LABELS ? searchParams.dateField : 'stay_from';
+  const currentDateField =
+    searchParams?.dateField && searchParams.dateField in DATE_FIELD_LABELS
+      ? searchParams.dateField
+      : 'stay_from';
   const currentDims = searchParams?.groupBy || 'destination_country,destination_city';
 
   // Dugme akcije — zatvorena, ravnokraka strelica (▶) umesto teksta (5.9.2026, vlasnikov
@@ -103,7 +117,12 @@ export default function IzvestajiFilterForm({ tab, searchParams, view }: { tab: 
   );
 
   return (
-    <form ref={formRef} onChange={handleFormChange} className="mb-4 flex flex-wrap items-center gap-2 text-xs" action="/izvestaji">
+    <form
+      ref={formRef}
+      onChange={handleFormChange}
+      className="mb-4 flex flex-wrap items-center gap-2 text-xs"
+      action="/izvestaji"
+    >
       <input type="hidden" name="tab" value={tab} />
       {/* Period + "odnosi se na" + "segment" u JEDNOM redu, iste širine (5.9.2026, vlasnikov
           zahtev: "polje za datum i dva ispod tog polja treba da budu u istom redu, istih
@@ -111,7 +130,10 @@ export default function IzvestajiFilterForm({ tab, searchParams, view }: { tab: 
           ekrana i broja ostalih polja) garantuje ova tri UVEK zajedno, ravnomerno. */}
       <div className="flex w-full gap-2">
         <div className="min-w-0 flex-1">
-          <PeriodRangeField initialFrom={searchParams?.from ?? ''} initialTo={searchParams?.to ?? ''} />
+          <PeriodRangeField
+            initialFrom={searchParams?.from ?? ''}
+            initialTo={searchParams?.to ?? ''}
+          />
         </div>
         <div className="min-w-0 flex-1">
           <FieldInline label="odnosi se na">
@@ -126,7 +148,11 @@ export default function IzvestajiFilterForm({ tab, searchParams, view }: { tab: 
         </div>
         <div className="min-w-0 flex-1">
           <FieldInline label="segment">
-            <select name="segment" defaultValue={searchParams?.segment ?? ''} className={selectClassName}>
+            <select
+              name="segment"
+              defaultValue={searchParams?.segment ?? ''}
+              className={selectClassName}
+            >
               <option value="" className={optionClassName}>
                 svi
               </option>
@@ -146,17 +172,29 @@ export default function IzvestajiFilterForm({ tab, searchParams, view }: { tab: 
             initialCity={searchParams?.destinationCity ?? ''}
           />
           <FieldInline label="dobavljač (ID)">
-            <input name="supplierId" defaultValue={searchParams?.supplierId ?? ''} className={inputClassName} />
+            <input
+              name="supplierId"
+              defaultValue={searchParams?.supplierId ?? ''}
+              className={inputClassName}
+            />
           </FieldInline>
         </>
       )}
       {tab === 'profitabilnost' && (
         <>
           <FieldInline label="provajder (M4)">
-            <input name="providerCode" defaultValue={searchParams?.providerCode ?? ''} className={inputClassName} />
+            <input
+              name="providerCode"
+              defaultValue={searchParams?.providerCode ?? ''}
+              className={inputClassName}
+            />
           </FieldInline>
           <FieldInline label="kanal">
-            <select name="channel" defaultValue={searchParams?.channel ?? ''} className={selectClassName}>
+            <select
+              name="channel"
+              defaultValue={searchParams?.channel ?? ''}
+              className={selectClassName}
+            >
               <option value="" className={optionClassName}>
                 svi
               </option>
@@ -172,7 +210,11 @@ export default function IzvestajiFilterForm({ tab, searchParams, view }: { tab: 
       {tab === 'prodaja' && (
         <>
           <FieldInline label="kanal">
-            <select name="channel" defaultValue={searchParams?.channel ?? ''} className={selectClassName}>
+            <select
+              name="channel"
+              defaultValue={searchParams?.channel ?? ''}
+              className={selectClassName}
+            >
               <option value="" className={optionClassName}>
                 svi
               </option>
@@ -184,7 +226,11 @@ export default function IzvestajiFilterForm({ tab, searchParams, view }: { tab: 
             </select>
           </FieldInline>
           <FieldInline label="tip proizvoda">
-            <select name="productType" defaultValue={searchParams?.productType ?? ''} className={selectClassName}>
+            <select
+              name="productType"
+              defaultValue={searchParams?.productType ?? ''}
+              className={selectClassName}
+            >
               <option value="" className={optionClassName}>
                 svi
               </option>
@@ -199,7 +245,11 @@ export default function IzvestajiFilterForm({ tab, searchParams, view }: { tab: 
       )}
       {tab === 'smestaj' && (
         <FieldInline label="razvrstaj po">
-          <select name="groupBy" defaultValue={searchParams?.groupBy ?? ''} className={selectClassName}>
+          <select
+            name="groupBy"
+            defaultValue={searchParams?.groupBy ?? ''}
+            className={selectClassName}
+          >
             <option value="" className={optionClassName}>
               bez razvrstavanja
             </option>
@@ -221,14 +271,18 @@ export default function IzvestajiFilterForm({ tab, searchParams, view }: { tab: 
         <div className="flex w-full flex-wrap items-center gap-1">
           {DYNAMIC_PRODUCT_ICONS.map((p) => {
             const typeParam = p.types.join(',');
-            const active = currentDims === DYNAMIC_DRILLDOWN_DIMS && (searchParams?.productType ?? '') === typeParam;
+            const active =
+              currentDims === DYNAMIC_DRILLDOWN_DIMS &&
+              (searchParams?.productType ?? '') === typeParam;
             return (
               <Link
                 key={p.label}
                 href={dimensionsHref(DYNAMIC_DRILLDOWN_DIMS, typeParam)}
                 title={p.label}
                 className={`flex items-center justify-center rounded-full border p-1.5 ${
-                  active ? 'border-accent bg-accent-soft text-accent-strong' : 'border-border text-ink-dim hover:text-ink'
+                  active
+                    ? 'border-accent bg-accent-soft text-accent-strong'
+                    : 'border-border text-ink-dim hover:text-ink'
                 }`}
               >
                 {p.iconDuo ? <IconDuo name={p.icon} /> : <Icon name={p.icon} />}

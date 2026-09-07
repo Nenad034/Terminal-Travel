@@ -5,10 +5,26 @@ import { MarkupRulesService } from '../markup-rules/markup-rules.service';
 import { IntegrationsService } from '../../m4-integracije-api/integrations.service';
 import { resolveTranslation } from '../../m2-katalog-proizvoda/products/language-fallback';
 import { applyMarkup } from '../common/markup-formula';
-import { assertRoomConfigMatchesTotals, computeRoomBaseCost, OccupancyInput, RoomTypeDefinition } from '../common/occupancy';
+import {
+  assertRoomConfigMatchesTotals,
+  computeRoomBaseCost,
+  OccupancyInput,
+  RoomTypeDefinition,
+} from '../common/occupancy';
 import { TOLERANCE_MS } from '../common/date-mismatch';
-import { isRefundableForPackage, isRefundableFromCancellationRules, isRefundableFromQuoteCancellationPolicy } from '../common/refundability';
-import { ActivityDestinationResult, CountrySuggestion, DailyProgramDay, DestinationSuggestion, SearchResultOffer, SearchResultProduct } from './search-result.types';
+import {
+  isRefundableForPackage,
+  isRefundableFromCancellationRules,
+  isRefundableFromQuoteCancellationPolicy,
+} from '../common/refundability';
+import {
+  ActivityDestinationResult,
+  CountrySuggestion,
+  DailyProgramDay,
+  DestinationSuggestion,
+  SearchResultOffer,
+  SearchResultProduct,
+} from './search-result.types';
 import { SearchChannel } from './dto/search-query.dto';
 
 export interface SearchParamsInput {
@@ -67,7 +83,10 @@ export class SearchService {
    * filtrira po tačnoj vrednosti, pa bi prevođenje ovde vratilo predlog koji ništa ne nalazi.
    * Sređivanje samih podataka je zaseban zadatak (backlog).
    */
-  async suggestCountries(q: string | undefined, channel: SearchChannel): Promise<CountrySuggestion[]> {
+  async suggestCountries(
+    q: string | undefined,
+    channel: SearchChannel,
+  ): Promise<CountrySuggestion[]> {
     const grouped = await this.prisma.product.groupBy({
       by: ['destinationCountry'],
       where: {
@@ -114,7 +133,12 @@ export class SearchService {
 
     const suggestions: DestinationSuggestion[] = cities
       .filter((c) => Boolean(c.destinationCity))
-      .map((c) => ({ type: 'DESTINATION' as const, city: c.destinationCity, country, count: c._count._all }));
+      .map((c) => ({
+        type: 'DESTINATION' as const,
+        city: c.destinationCity,
+        country,
+        count: c._count._all,
+      }));
 
     // Prečica na naziv objekta — traži se samo kad korisnik nešto kuca, inače bi lista svake
     // države počela spiskom svih njenih hotela.
@@ -130,7 +154,10 @@ export class SearchService {
         take: 10,
       });
       for (const p of products) {
-        const translation = resolveTranslation(p.translations, (lang as LanguageCode) ?? DEFAULT_LANGUAGE);
+        const translation = resolveTranslation(
+          p.translations,
+          (lang as LanguageCode) ?? DEFAULT_LANGUAGE,
+        );
         suggestions.push({
           type: 'PRODUCT',
           city: p.destinationCity,
@@ -151,7 +178,10 @@ export class SearchService {
    * proizvoda tog `activity_type` u toj destinaciji (§2.1c napomena o tri nivoa — namerno druga
    * kolekcija/polje od `DestinationProfile.activities[]`, ne meša nivoe).
    */
-  async suggestDestinationsByActivity(activity: string, channel: SearchChannel): Promise<ActivityDestinationResult[]> {
+  async suggestDestinationsByActivity(
+    activity: string,
+    channel: SearchChannel,
+  ): Promise<ActivityDestinationResult[]> {
     const profiles = await this.prisma.destinationProfile.findMany({
       where: { activities: { has: activity as any } },
       orderBy: [{ destinationCountry: 'asc' }, { destinationCity: 'asc' }],
@@ -172,7 +202,9 @@ export class SearchService {
         },
         select: { attributes: true },
       });
-      const excursionCount = excursions.filter((e) => (e.attributes as any)?.activity_type === activity).length;
+      const excursionCount = excursions.filter(
+        (e) => (e.attributes as any)?.activity_type === activity,
+      ).length;
       results.push({
         destinationCountry: profile.destinationCountry,
         destinationCity: profile.destinationCity,
@@ -234,12 +266,16 @@ export class SearchService {
       });
     }
     if (params.durationNights) {
-      products = products.filter((p) => (p.attributes as any)?.duration_nights === params.durationNights);
+      products = products.filter(
+        (p) => (p.attributes as any)?.duration_nights === params.durationNights,
+      );
     }
     if (params.cabinType) {
       products = products.filter((p) => {
         const cabinTypes = (p.attributes as any)?.cabin_types;
-        return Array.isArray(cabinTypes) && cabinTypes.some((c: any) => c?.category === params.cabinType);
+        return (
+          Array.isArray(cabinTypes) && cabinTypes.some((c: any) => c?.category === params.cabinType)
+        );
       });
     }
     // M5 spec §3.0c.3 (dopuna 26.8.2026, na zahtev vlasnika — filteri za vođenu pretragu
@@ -248,7 +284,9 @@ export class SearchService {
     if (params.amenityTags && params.amenityTags.length > 0) {
       products = products.filter((p) => {
         const amenities = (p.attributes as any)?.amenities;
-        return Array.isArray(amenities) && params.amenityTags!.every((tag) => amenities.includes(tag));
+        return (
+          Array.isArray(amenities) && params.amenityTags!.every((tag) => amenities.includes(tag))
+        );
       });
     }
     // M2 spec §2.3f / M5 spec §3.0d.6b (dopuna 5.9.2026) — samo PACKAGE, razdvaja "Putovanja" od
@@ -261,14 +299,22 @@ export class SearchService {
     // po (destinationCountry, destinationCity) proizvoda. Jedan upit za sve destinacije prisutne u
     // rezultatu, ne po proizvodu (desetine hotela dele istu destinaciju).
     const destinationPairs = Array.from(
-      new Map(products.map((p) => [`${p.destinationCountry} ${p.destinationCity}`, { destinationCountry: p.destinationCountry, destinationCity: p.destinationCity }])).values(),
+      new Map(
+        products.map((p) => [
+          `${p.destinationCountry} ${p.destinationCity}`,
+          { destinationCountry: p.destinationCountry, destinationCity: p.destinationCity },
+        ]),
+      ).values(),
     );
     const destinationProfiles =
       destinationPairs.length > 0
         ? await this.prisma.destinationProfile.findMany({ where: { OR: destinationPairs } })
         : [];
     const destinationTypeByKey = new Map(
-      destinationProfiles.map((d) => [`${d.destinationCountry} ${d.destinationCity}`, d.destinationType as string]),
+      destinationProfiles.map((d) => [
+        `${d.destinationCountry} ${d.destinationCity}`,
+        d.destinationType as string,
+      ]),
     );
 
     const results: SearchResultProduct[] = [];
@@ -285,7 +331,8 @@ export class SearchService {
       if (offers.length === 0) continue; // §3.0b.2 — SOLD_OUT/nedostupne ponude se ne vraćaju
 
       const translation = resolveTranslation(product.translations, params.lang ?? DEFAULT_LANGUAGE);
-      const media = (product.media as unknown as { url: string; category: string; order: number }[]) ?? [];
+      const media =
+        (product.media as unknown as { url: string; category: string; order: number }[]) ?? [];
       const thumbnail = this.pickThumbnail(media);
 
       results.push({
@@ -301,25 +348,39 @@ export class SearchService {
         // novog poziva (M5 §3.0c.3, dopuna 3.9.2026). Čita se defanzivno: `attributes` je JSONB
         // i stariji zapisi ga nemaju, a niz stranog oblika bi srušio filter na klijentu.
         amenities: Array.isArray((product.attributes as any)?.amenities)
-          ? ((product.attributes as any).amenities as unknown[]).filter((t): t is string => typeof t === 'string')
+          ? ((product.attributes as any).amenities as unknown[]).filter(
+              (t): t is string => typeof t === 'string',
+            )
           : null,
         // M2 §2.3 `attributes.stars` — kategorija ide uz rezultat iz istog razloga kao
         // `amenities` iznad: bez nje panel ne može ni da filtrira ni da sortira po kategoriji
         // bez novog poziva (M5 §3.0g.9 tačka (b), dopuna 3.9.2026). Isto defanzivno čitanje —
         // `attributes` je JSONB, stariji zapisi polje nemaju, a string („4") bi na klijentu
         // tiho ispao iz poređenja sa brojem.
-        stars: typeof (product.attributes as any)?.stars === 'number' ? ((product.attributes as any).stars as number) : null,
-        destinationType: destinationTypeByKey.get(`${product.destinationCountry} ${product.destinationCity}`) ?? null,
+        stars:
+          typeof (product.attributes as any)?.stars === 'number'
+            ? ((product.attributes as any).stars as number)
+            : null,
+        destinationType:
+          destinationTypeByKey.get(`${product.destinationCountry} ${product.destinationCity}`) ??
+          null,
         thumbnail,
         shortDescription: translation?.description?.slice(0, 240) ?? null,
         // M2 §2.3f / M5 §3.0d.6b — samo PACKAGE nosi ova polja; ostali tipovi uvek dobijaju `null`
         // (isto defanzivno čitanje kao `amenities`/`stars` iznad, `attributes` je JSONB).
         hasExpertGuide:
-          typeof (product.attributes as any)?.has_expert_guide === 'boolean' ? ((product.attributes as any).has_expert_guide as boolean) : null,
-        guideLanguage: typeof (product.attributes as any)?.guide_language === 'string' ? ((product.attributes as any).guide_language as string) : null,
+          typeof (product.attributes as any)?.has_expert_guide === 'boolean'
+            ? ((product.attributes as any).has_expert_guide as boolean)
+            : null,
+        guideLanguage:
+          typeof (product.attributes as any)?.guide_language === 'string'
+            ? ((product.attributes as any).guide_language as string)
+            : null,
         dailyProgram: this.mapDailyProgram((product.attributes as any)?.daily_program),
         optionalProductIds: Array.isArray((product.attributes as any)?.optional_products)
-          ? ((product.attributes as any).optional_products as unknown[]).filter((id): id is string => typeof id === 'string')
+          ? ((product.attributes as any).optional_products as unknown[]).filter(
+              (id): id is string => typeof id === 'string',
+            )
           : null,
         offers,
       });
@@ -338,19 +399,29 @@ export class SearchService {
     const days: DailyProgramDay[] = [];
     for (const entry of raw) {
       const e = entry as any;
-      if (typeof e?.day_number !== 'number' || typeof e?.title !== 'string' || typeof e?.description !== 'string') continue;
+      if (
+        typeof e?.day_number !== 'number' ||
+        typeof e?.title !== 'string' ||
+        typeof e?.description !== 'string'
+      )
+        continue;
       days.push({
         dayNumber: e.day_number,
         title: e.title,
         description: e.description,
-        meals: Array.isArray(e.meals) ? (e.meals.filter((m: unknown) => typeof m === 'string') as DailyProgramDay['meals']) : null,
-        overnightProductId: typeof e.overnight_product_id === 'string' ? e.overnight_product_id : null,
+        meals: Array.isArray(e.meals)
+          ? (e.meals.filter((m: unknown) => typeof m === 'string') as DailyProgramDay['meals'])
+          : null,
+        overnightProductId:
+          typeof e.overnight_product_id === 'string' ? e.overnight_product_id : null,
       });
     }
     return days.length > 0 ? days : null;
   }
 
-  private pickThumbnail(media: { url: string; category: string; order: number }[]): { url: string; category: string } | null {
+  private pickThumbnail(
+    media: { url: string; category: string; order: number }[],
+  ): { url: string; category: string } | null {
     if (media.length === 0) return null;
     const sorted = [...media].sort((a, b) => a.order - b.order);
     const exterior = sorted.find((m) => m.category === 'EXTERIOR');
@@ -369,14 +440,19 @@ export class SearchService {
       where: {
         contractId: product.sourceContractId,
         ...(params.stayFrom && params.stayTo
-          ? { stayFrom: { lte: new Date(params.stayFrom) }, stayTo: { gte: new Date(params.stayTo) } }
+          ? {
+              stayFrom: { lte: new Date(params.stayFrom) },
+              stayTo: { gte: new Date(params.stayTo) },
+            }
           : {}),
       },
       include: { rateLines: { include: { agePricing: true } }, cancellationRules: true },
     });
 
     const roomsRequested = params.occupancy?.roomConfig?.length ?? 1;
-    const roomTypes = ((product.attributes as any)?.roomTypes ?? (product.attributes as any)?.room_types ?? []) as RoomTypeDefinition[];
+    const roomTypes = ((product.attributes as any)?.roomTypes ??
+      (product.attributes as any)?.room_types ??
+      []) as RoomTypeDefinition[];
     const offers: SearchResultOffer[] = [];
 
     for (const period of periods) {
@@ -407,14 +483,22 @@ export class SearchService {
             capacityAdults: 99,
             capacityChildren: 99,
           };
-          const nights = Math.round((new Date(params.stayTo!).getTime() - new Date(params.stayFrom!).getTime()) / 86_400_000);
+          const nights = Math.round(
+            (new Date(params.stayTo!).getTime() - new Date(params.stayFrom!).getTime()) /
+              86_400_000,
+          );
           baseCost = roomConfig.reduce(
             (sum, room) =>
               sum +
               computeRoomBaseCost({
                 room,
                 roomType,
-                rateLine: { price: rateLine.price, priceBasis: rateLine.priceBasis, occupancy: rateLine.occupancy, cribFeePerNight: rateLine.cribFeePerNight },
+                rateLine: {
+                  price: rateLine.price,
+                  priceBasis: rateLine.priceBasis,
+                  occupancy: rateLine.occupancy,
+                  cribFeePerNight: rateLine.cribFeePerNight,
+                },
                 agePricingCandidates: rateLine.agePricing,
                 nights: nights || 1,
               }),
@@ -503,7 +587,9 @@ export class SearchService {
     if (components.length === 0) return [];
 
     const contractedComponents = components.filter((c) => c.sourceType === 'CONTRACTED');
-    const dynamicComponents = components.filter((c) => c.sourceType === 'API' && c.sourceProvider && c.sourceExternalId);
+    const dynamicComponents = components.filter(
+      (c) => c.sourceType === 'API' && c.sourceProvider && c.sourceExternalId,
+    );
     if (contractedComponents.length === 0 && dynamicComponents.length === 0) return [];
 
     const roomsRequested = params.occupancy?.roomConfig?.length ?? 1;
@@ -536,13 +622,23 @@ export class SearchService {
             contractId: component.sourceContractId,
             allotmentMode: { in: CAPACITY_BEARING_MODES },
             ...(isRoomBased
-              ? { stayFrom: { lte: new Date(windowFrom.getTime() + TOLERANCE_MS) }, stayTo: { gte: new Date(windowTo.getTime() - TOLERANCE_MS) } }
-              : { stayFrom: { gte: new Date(windowFrom.getTime() - TOLERANCE_MS), lte: new Date(windowFrom.getTime() + TOLERANCE_MS) } }),
+              ? {
+                  stayFrom: { lte: new Date(windowFrom.getTime() + TOLERANCE_MS) },
+                  stayTo: { gte: new Date(windowTo.getTime() - TOLERANCE_MS) },
+                }
+              : {
+                  stayFrom: {
+                    gte: new Date(windowFrom.getTime() - TOLERANCE_MS),
+                    lte: new Date(windowFrom.getTime() + TOLERANCE_MS),
+                  },
+                }),
           },
           include: { rateLines: { include: { agePricing: true } }, cancellationRules: true },
         });
 
-        const roomTypes = ((component.attributes as any)?.roomTypes ?? (component.attributes as any)?.room_types ?? []) as RoomTypeDefinition[];
+        const roomTypes = ((component.attributes as any)?.roomTypes ??
+          (component.attributes as any)?.room_types ??
+          []) as RoomTypeDefinition[];
         let best: { finalPrice: number; period: (typeof periods)[number] } | null = null;
 
         for (const period of periods) {
@@ -560,14 +656,23 @@ export class SearchService {
             let baseCost: number;
             if (isRoomBased && params.occupancy) {
               const roomConfig = assertRoomConfigMatchesTotals(params.occupancy);
-              const roomType = roomTypes.find((r) => r.code === period.roomType) ?? { code: period.roomType, capacityAdults: 99, capacityChildren: 99 };
+              const roomType = roomTypes.find((r) => r.code === period.roomType) ?? {
+                code: period.roomType,
+                capacityAdults: 99,
+                capacityChildren: 99,
+              };
               baseCost = roomConfig.reduce(
                 (sum, room) =>
                   sum +
                   computeRoomBaseCost({
                     room,
                     roomType,
-                    rateLine: { price: rateLine.price, priceBasis: rateLine.priceBasis, occupancy: rateLine.occupancy, cribFeePerNight: rateLine.cribFeePerNight },
+                    rateLine: {
+                      price: rateLine.price,
+                      priceBasis: rateLine.priceBasis,
+                      occupancy: rateLine.occupancy,
+                      cribFeePerNight: rateLine.cribFeePerNight,
+                    },
                     agePricingCandidates: rateLine.agePricing,
                     nights: durationDays,
                   }),
@@ -600,7 +705,11 @@ export class SearchService {
         fixedTotal += best.finalPrice;
         fixedRefundableFlags.push(isRefundableFromCancellationRules(best.period.cancellationRules));
         if (best.period.cancellationRules.length > 0) {
-          cancellationSummaries.push(best.period.cancellationRules.map((r) => `${r.daysBeforeStay} dana: ${r.refundPercentage}%`).join(', '));
+          cancellationSummaries.push(
+            best.period.cancellationRules
+              .map((r) => `${r.daysBeforeStay} dana: ${r.refundPercentage}%`)
+              .join(', '),
+          );
         }
       }
       if (unavailable) continue;
@@ -608,19 +717,34 @@ export class SearchService {
       let dynamicTotal = 0;
       const dynamicRefundableFlags: boolean[] = [];
       for (const dynamicComponent of dynamicComponents) {
-        const quote = await this.integrations.checkAvailabilityAndPrice(dynamicComponent.sourceProvider!, dynamicComponent.sourceExternalId!, {
-          stayFrom: windowFrom.toISOString().slice(0, 10),
-          stayTo: windowTo.toISOString().slice(0, 10),
-          adults: params.occupancy?.adults ?? 1,
-          children: params.occupancy?.children ?? 0,
-        });
-        if (quote.availableUnits <= 0) { unavailable = true; break; } // §3.0b.2
-        if (currency !== null && quote.currency !== currency) { unavailable = true; break; }
+        const quote = await this.integrations.checkAvailabilityAndPrice(
+          dynamicComponent.sourceProvider!,
+          dynamicComponent.sourceExternalId!,
+          {
+            stayFrom: windowFrom.toISOString().slice(0, 10),
+            stayTo: windowTo.toISOString().slice(0, 10),
+            adults: params.occupancy?.adults ?? 1,
+            children: params.occupancy?.children ?? 0,
+          },
+        );
+        if (quote.availableUnits <= 0) {
+          unavailable = true;
+          break;
+        } // §3.0b.2
+        if (currency !== null && quote.currency !== currency) {
+          unavailable = true;
+          break;
+        }
         if (currency === null) currency = quote.currency;
-        const dynamicMarkupRule = await this.markupRules.resolveForApi({ productId: dynamicComponent.id, providerCode: dynamicComponent.sourceProvider! });
+        const dynamicMarkupRule = await this.markupRules.resolveForApi({
+          productId: dynamicComponent.id,
+          providerCode: dynamicComponent.sourceProvider!,
+        });
         dynamicTotal += applyMarkup(quote.priceAmount, dynamicMarkupRule);
         dynamicRefundableFlags.push(
-          isRefundableFromQuoteCancellationPolicy(quote.cancellationPolicy.map((r) => ({ refundPercentage: r.refund_percentage }))),
+          isRefundableFromQuoteCancellationPolicy(
+            quote.cancellationPolicy.map((r) => ({ refundPercentage: r.refund_percentage })),
+          ),
         );
       }
       if (unavailable || currency === null) continue;
@@ -636,7 +760,8 @@ export class SearchService {
         rateLineId: null,
         providerQuoteReference: null,
         quoteExpiresAt: null,
-        cancellationPolicySummary: cancellationSummaries.length > 0 ? cancellationSummaries.join(' | ') : null,
+        cancellationPolicySummary:
+          cancellationSummaries.length > 0 ? cancellationSummaries.join(' | ') : null,
         // §3.0d.6/refundability.ts — vlasnikova odluka (1.9.2026): najstroži sastojak odlučuje za CEO paket.
         isRefundable: isRefundableForPackage([...fixedRefundableFlags, ...dynamicRefundableFlags]),
         packageDepartureDate: windowFrom.toISOString().slice(0, 10),
@@ -649,21 +774,31 @@ export class SearchService {
     product: Prisma.ProductGetPayload<{ include: { translations: true; sourceContract: true } }>,
     params: SearchParamsInput,
   ): Promise<SearchResultOffer[]> {
-    if (!product.sourceProvider || !product.sourceExternalId || !params.stayFrom || !params.stayTo) return [];
+    if (!product.sourceProvider || !product.sourceExternalId || !params.stayFrom || !params.stayTo)
+      return [];
 
-    const quote = await this.integrations.checkAvailabilityAndPrice(product.sourceProvider, product.sourceExternalId, {
-      stayFrom: params.stayFrom,
-      stayTo: params.stayTo,
-      adults: params.occupancy?.adults ?? 1,
-      children: params.occupancy?.children ?? 0,
-    });
+    const quote = await this.integrations.checkAvailabilityAndPrice(
+      product.sourceProvider,
+      product.sourceExternalId,
+      {
+        stayFrom: params.stayFrom,
+        stayTo: params.stayTo,
+        adults: params.occupancy?.adults ?? 1,
+        children: params.occupancy?.children ?? 0,
+      },
+    );
     if (quote.availableUnits <= 0) return []; // §3.0b.2 — ne vraćati SOLD_OUT
 
-    const markupRule = await this.markupRules.resolveForApi({ productId: product.id, providerCode: product.sourceProvider });
+    const markupRule = await this.markupRules.resolveForApi({
+      productId: product.id,
+      providerCode: product.sourceProvider,
+    });
     const finalPrice = applyMarkup(quote.priceAmount, markupRule);
     const cancellationSummary =
       quote.cancellationPolicy.length > 0
-        ? quote.cancellationPolicy.map((r) => `${r.days_before_stay} dana: ${r.refund_percentage}%`).join(', ')
+        ? quote.cancellationPolicy
+            .map((r) => `${r.days_before_stay} dana: ${r.refund_percentage}%`)
+            .join(', ')
         : null;
 
     return [

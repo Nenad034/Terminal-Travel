@@ -4,7 +4,6 @@ import { apiFetch } from '@/lib/api-client';
 import Icon from '@/components/Icon';
 import ContentCard from '@/components/ContentCard';
 
-
 interface AuditLogEntry {
   id: string;
   action: string;
@@ -53,8 +52,9 @@ export default async function DashboardPage() {
     // Straničenje audit loga (6.9.2026, dok. 39 nalaz 2.2) — odgovor je `{ data, total, ... }`.
     // Filter ide SERVERU umesto u memoriju, i traži se tačno onoliko redova koliko se prikazuje.
     canAudit
-      ? apiFetch<{ data: AuditLogEntry[] }>('/iam/audit-log?module=M1&action=user.locked,auth.login_failed&limit=5')
-          .catch(() => ({ data: [] }))
+      ? apiFetch<{ data: AuditLogEntry[] }>(
+          '/iam/audit-log?module=M1&action=user.locked,auth.login_failed&limit=5',
+        ).catch(() => ({ data: [] }))
       : Promise.resolve({ data: [] }),
     canContractPeriods
       ? apiFetch<ExpiringRelease[]>('/contracting/contracts/expiring-releases').catch(() => [])
@@ -64,7 +64,9 @@ export default async function DashboardPage() {
           '/compliance/travel-guarantee/utilization',
         ).catch(() => null)
       : Promise.resolve(null),
-    canAgentInbox ? apiFetch<AgentInboxSource[]>('/ai-orchestration/inbox').catch(() => []) : Promise.resolve([]),
+    canAgentInbox
+      ? apiFetch<AgentInboxSource[]>('/ai-orchestration/inbox').catch(() => [])
+      : Promise.resolve([]),
   ]);
 
   const securityAlerts = (auditEntries as { data: AuditLogEntry[] }).data;
@@ -92,7 +94,10 @@ export default async function DashboardPage() {
       <div className="mb-6">
         <h1 className="text-lg font-semibold text-ink">Dobrodošli, {me.fullName}</h1>
         <p className="mt-1 text-xs text-ink-faint">
-          Uloga: <span className="rounded-full bg-accent2-soft px-2 py-0.5 text-accent2">{me.roles.join(', ') || '—'}</span>
+          Uloga:{' '}
+          <span className="rounded-full bg-accent2-soft px-2 py-0.5 text-accent2">
+            {me.roles.join(', ') || '—'}
+          </span>
         </p>
       </div>
 
@@ -105,8 +110,12 @@ export default async function DashboardPage() {
               <ul className="flex flex-col gap-1">
                 {(expiringReleases as ExpiringRelease[]).slice(0, 5).map((r) => (
                   <li key={r.id}>
-                    <Link href={`/ugovori#contract-${r.contractId}`} className="block rounded bg-warn-bg px-2 py-1 text-xs text-warn hover:bg-warn-bg/70">
-                      Ugovor #{r.contractId.slice(0, 8)} — rok povrata {releaseDeadline(r).toLocaleDateString('sr-RS')}
+                    <Link
+                      href={`/ugovori#contract-${r.contractId}`}
+                      className="block rounded bg-warn-bg px-2 py-1 text-xs text-warn hover:bg-warn-bg/70"
+                    >
+                      Ugovor #{r.contractId.slice(0, 8)} — rok povrata{' '}
+                      {releaseDeadline(r).toLocaleDateString('sr-RS')}
                     </Link>
                   </li>
                 ))}
@@ -120,10 +129,12 @@ export default async function DashboardPage() {
             {guaranteeUtilization && guaranteeUtilization.guaranteeStatus ? (
               <div className="text-xs text-ink-dim">
                 <p>
-                  Iskorišćenost: <b className="text-ink">{guaranteeUtilization.utilizationPercent.toFixed(1)}%</b>
+                  Iskorišćenost:{' '}
+                  <b className="text-ink">{guaranteeUtilization.utilizationPercent.toFixed(1)}%</b>
                 </p>
                 <p className="mt-1">
-                  Status garancije: <b className="text-ink">{guaranteeUtilization.guaranteeStatus}</b>
+                  Status garancije:{' '}
+                  <b className="text-ink">{guaranteeUtilization.guaranteeStatus}</b>
                 </p>
               </div>
             ) : (
@@ -140,7 +151,10 @@ export default async function DashboardPage() {
               <ul className="flex flex-col gap-1">
                 {securityAlerts.map((e) => (
                   <li key={e.id}>
-                    <Link href={`/audit-log#audit-${e.id}`} className="block rounded bg-danger-bg px-2 py-1 text-xs text-danger hover:bg-danger-bg/70">
+                    <Link
+                      href={`/audit-log#audit-${e.id}`}
+                      className="block rounded bg-danger-bg px-2 py-1 text-xs text-danger hover:bg-danger-bg/70"
+                    >
                       {e.action === 'user.locked' ? 'Nalog zaključan' : 'Neuspeo pokušaj prijave'} —{' '}
                       {new Date(e.timestamp).toLocaleString('sr-RS')}
                     </Link>
@@ -178,11 +192,17 @@ export default async function DashboardPage() {
                     return (
                       <li key={`${s.moduleCode}.${s.actionCode}`}>
                         {href ? (
-                          <Link href={href} className="block rounded bg-warn-bg px-2 py-1 text-xs text-warn hover:bg-warn-bg/70">
+                          <Link
+                            href={href}
+                            className="block rounded bg-warn-bg px-2 py-1 text-xs text-warn hover:bg-warn-bg/70"
+                          >
                             {content}
                           </Link>
                         ) : (
-                          <span title="Još nema poseban ekran za ovu stavku" className="block rounded bg-warn-bg px-2 py-1 text-xs text-warn">
+                          <span
+                            title="Još nema poseban ekran za ovu stavku"
+                            className="block rounded bg-warn-bg px-2 py-1 text-xs text-warn"
+                          >
                             {content}
                           </span>
                         )}
@@ -202,7 +222,17 @@ export default async function DashboardPage() {
   );
 }
 
-function Card({ icon, title, href, children }: { icon: string; title: string; href?: string; children: React.ReactNode }) {
+function Card({
+  icon,
+  title,
+  href,
+  children,
+}: {
+  icon: string;
+  title: string;
+  href?: string;
+  children: React.ReactNode;
+}) {
   // `href` je ranije bio primljen a nikad iskorišćen — naslov karte se nikad nije mogao kliknuti
   // ka opštoj listi (23.8.2026, na zahtev vlasnika: "ovo treba da ima linkove ka stavkama").
   const titleRow = (

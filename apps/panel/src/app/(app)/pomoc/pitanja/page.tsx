@@ -8,7 +8,6 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import Pagination from '@/components/Pagination';
 
-
 interface HelpQuestion {
   id: string;
   askedBy: string;
@@ -29,9 +28,9 @@ const CONFIDENCES = ['HIGH', 'LOW', 'NONE'];
 // Vlasnik) — uvid u istoriju pitanja radi kvaliteta sadržaja i bezbednosnog pregleda (§3). Svaki
 // red pokazuje odgovor, pouzdanost, koji su članci korišćeni (sledljivost, isto načelo kao M13
 // "svaki izveštaj pokazuje izvor") i povratnu informaciju korisnika.
-export default async function PitanjaPage(
-  props: { searchParams: Promise<{ audienceContext?: string; confidence?: string; page?: string }> }
-) {
+export default async function PitanjaPage(props: {
+  searchParams: Promise<{ audienceContext?: string; confidence?: string; page?: string }>;
+}) {
   const searchParams = await props.searchParams;
   const me = await getMe();
   const showSuggestions = hasPermission(me, 'M21', 'suggestion', 'APPROVE');
@@ -76,7 +75,11 @@ export default async function PitanjaPage(
 
       {!error && (
         <form className="mb-3 flex flex-wrap gap-2 text-xs" action="/pomoc/pitanja">
-          <select name="audienceContext" defaultValue={searchParams?.audienceContext ?? ''} className="input">
+          <select
+            name="audienceContext"
+            defaultValue={searchParams?.audienceContext ?? ''}
+            className="input"
+          >
             <option value="">sve publike</option>
             {AUDIENCES.map((a) => (
               <option key={a} value={a}>
@@ -113,12 +116,18 @@ export default async function PitanjaPage(
 
       {!error && (
         <div className="flex flex-col gap-3">
-          {questions.length === 0 && <p className="rounded-lg border border-border bg-panel p-4 text-center text-xs text-ink-faint">Nema pitanja.</p>}
+          {questions.length === 0 && (
+            <p className="rounded-lg border border-border bg-panel p-4 text-center text-xs text-ink-faint">
+              Nema pitanja.
+            </p>
+          )}
           {questions.map((q) => (
             <div key={q.id} className="rounded-lg border border-border bg-panel p-4 text-xs">
               <div className="mb-1 flex items-center justify-between">
                 <span className="font-medium text-ink">{q.questionText}</span>
-                <span className="text-[11px] text-ink-faint">{new Date(q.createdAt).toLocaleString('sr-RS')}</span>
+                <span className="text-[11px] text-ink-faint">
+                  {new Date(q.createdAt).toLocaleString('sr-RS')}
+                </span>
               </div>
               <div className="mb-2 flex items-center gap-2">
                 <Badge variant="secondary" className="text-ink-dim">
@@ -127,7 +136,9 @@ export default async function PitanjaPage(
                 <ConfidenceBadge confidence={q.confidence} />
                 {q.wasHelpful === true && <Badge variant="ok">👍 korisno</Badge>}
                 {q.wasHelpful === false && <Badge variant="danger">👎 nije korisno</Badge>}
-                {q.escalatedTicketId && <Badge variant="warn">eskalirano → tiket {q.escalatedTicketId.slice(0, 8)}</Badge>}
+                {q.escalatedTicketId && (
+                  <Badge variant="warn">eskalirano → tiket {q.escalatedTicketId.slice(0, 8)}</Badge>
+                )}
               </div>
               {q.answerText ? (
                 <p className="whitespace-pre-wrap text-ink-dim">{q.answerText}</p>

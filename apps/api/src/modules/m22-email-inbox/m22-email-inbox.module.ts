@@ -26,7 +26,13 @@ import { M14HelpdeskModule } from '../m14-helpdesk/m14-helpdesk.module';
 // AnthropicClientService (M15) registrovan lokalno kao sopstveni provider (isti princip kao
 // M19/M21 — zavisi samo od globalnog ConfigService, ne od ostatka M15 modula).
 @Module({
-  imports: [AuthModule, PermissionsModule, AuditLogModule, M18OperativniNadzorModule, M14HelpdeskModule],
+  imports: [
+    AuthModule,
+    PermissionsModule,
+    AuditLogModule,
+    M18OperativniNadzorModule,
+    M14HelpdeskModule,
+  ],
   controllers: [MailboxesController, EmailThreadsController, TicketConversionController],
   providers: [
     MailboxesService,

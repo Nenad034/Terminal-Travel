@@ -24,13 +24,21 @@ export class BookingNotesController {
 
   @Post(':id/notes')
   @RequirePermission('M5', 'booking-note', 'CREATE')
-  create(@Param('id') id: string, @Body() dto: CreateBookingNoteDto, @CurrentUser() actor: { userId: string }) {
+  create(
+    @Param('id') id: string,
+    @Body() dto: CreateBookingNoteDto,
+    @CurrentUser() actor: { userId: string },
+  ) {
     return this.notes.create(id, dto.body, actor);
   }
 
   @Delete(':id/notes/:noteId')
   @RequirePermission('M5', 'booking-note', 'DELETE')
-  remove(@Param('id') id: string, @Param('noteId') noteId: string, @CurrentUser() actor: { userId: string }) {
+  remove(
+    @Param('id') id: string,
+    @Param('noteId') noteId: string,
+    @CurrentUser() actor: { userId: string },
+  ) {
     return this.notes.remove(id, noteId, actor);
   }
 }

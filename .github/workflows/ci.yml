@@ -66,6 +66,12 @@ jobs:
       - name: Instaliraj zavisnosti (monorepo, npm workspaces)
         run: npm ci
 
+      # Prettier (dok. 39, poglavlje Prettier, 7.9.2026) — jedan format za ceo repo umesto
+      # svako-svoje. Provera samo čita, ne piše (`--check`); ako padne, lokalno se rešava sa
+      # `npm run format`.
+      - name: Prettier — format
+        run: npx prettier --check .
+
       - name: Generiši Prisma klijent
         working-directory: apps/api
         run: npx prisma generate

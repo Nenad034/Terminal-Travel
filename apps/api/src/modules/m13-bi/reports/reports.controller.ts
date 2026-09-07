@@ -1,4 +1,14 @@
-import { BadRequestException, Body, Controller, Get, Param, Post, Query, Res, UseGuards } from '@nestjs/common';
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Get,
+  Param,
+  Post,
+  Query,
+  Res,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import type { Response } from 'express';
 import {
@@ -32,13 +42,17 @@ export class ReportsController {
   // B2C") — identična na svih pet endpoint-a ispod, izdvojena da se ne ponavlja pet puta.
   private assertValidDateField(dateField?: string): void {
     if (dateField && !REPORT_DATE_FIELDS.includes(dateField as ReportDateField)) {
-      throw new BadRequestException(`dateField mora biti jedno od: ${REPORT_DATE_FIELDS.join(', ')} (M13 spec §7).`);
+      throw new BadRequestException(
+        `dateField mora biti jedno od: ${REPORT_DATE_FIELDS.join(', ')} (M13 spec §7).`,
+      );
     }
   }
 
   private assertValidSegment(segment?: string): void {
     if (segment && !REPORT_SEGMENTS.includes(segment as ReportSegment)) {
-      throw new BadRequestException(`segment mora biti jedno od: ${REPORT_SEGMENTS.join(', ')} (M13 spec §7).`);
+      throw new BadRequestException(
+        `segment mora biti jedno od: ${REPORT_SEGMENTS.join(', ')} (M13 spec §7).`,
+      );
     }
   }
 
@@ -107,7 +121,9 @@ export class ReportsController {
     this.assertValidDateField(dateField);
     this.assertValidSegment(segment);
     if (groupBy && !OCCUPANCY_GROUP_BY.includes(groupBy as OccupancyGroupBy)) {
-      throw new BadRequestException(`group_by mora biti jedno od: ${OCCUPANCY_GROUP_BY.join(', ')} (M13 spec §7).`);
+      throw new BadRequestException(
+        `group_by mora biti jedno od: ${OCCUPANCY_GROUP_BY.join(', ')} (M13 spec §7).`,
+      );
     }
     return this.reports.occupancy({
       from,
@@ -138,14 +154,24 @@ export class ReportsController {
       .map((d) => d.trim())
       .filter((d) => d.length > 0) as DynamicDimension[];
     if (dims.length === 0) {
-      throw new BadRequestException('group_by je obavezan — uređena, zarezom razdvojena lista dimenzija (M13 spec §7).');
+      throw new BadRequestException(
+        'group_by je obavezan — uređena, zarezom razdvojena lista dimenzija (M13 spec §7).',
+      );
     }
     const invalid = dims.filter((d) => !DYNAMIC_DIMENSIONS.includes(d));
     if (invalid.length > 0) {
-      throw new BadRequestException(`Nepoznate dimenzije: ${invalid.join(', ')}. Dozvoljeno: ${DYNAMIC_DIMENSIONS.join(', ')} (M13 spec §4.2).`);
+      throw new BadRequestException(
+        `Nepoznate dimenzije: ${invalid.join(', ')}. Dozvoljeno: ${DYNAMIC_DIMENSIONS.join(', ')} (M13 spec §4.2).`,
+      );
     }
     return this.reports.dynamic(
-      { from, to, dateField: dateField as ReportDateField | undefined, segment: segment as ReportSegment | undefined, productType },
+      {
+        from,
+        to,
+        dateField: dateField as ReportDateField | undefined,
+        segment: segment as ReportSegment | undefined,
+        productType,
+      },
       dims,
     );
   }
@@ -160,7 +186,12 @@ export class ReportsController {
   ) {
     this.assertValidDateField(dateField);
     this.assertValidSegment(segment);
-    return this.reports.marketing({ from, to, dateField: dateField as ReportDateField | undefined, segment: segment as ReportSegment | undefined });
+    return this.reports.marketing({
+      from,
+      to,
+      dateField: dateField as ReportDateField | undefined,
+      segment: segment as ReportSegment | undefined,
+    });
   }
 
   // §7 (v1.5 dopuna) — BEZ @RequirePermission na ove tri rute: dozvola zavisi od `reportKind` u
@@ -174,14 +205,25 @@ export class ReportsController {
   }
 
   @Get('export/:id/download')
-  async downloadExport(@Param('id') id: string, @CurrentUser() actor: { userId: string }, @Res() res: Response) {
+  async downloadExport(
+    @Param('id') id: string,
+    @CurrentUser() actor: { userId: string },
+    @Res() res: Response,
+  ) {
     const report = await this.reports.downloadExport(id, actor.userId);
-    res.set({ 'Content-Type': report.mimeType, 'Content-Disposition': `attachment; filename="${report.fileName}"` });
+    res.set({
+      'Content-Type': report.mimeType,
+      'Content-Disposition': `attachment; filename="${report.fileName}"`,
+    });
     res.send(report.buffer);
   }
 
   @Post('export/:id/send-chat')
-  sendExportToChat(@Param('id') id: string, @Body() dto: SendReportChatDto, @CurrentUser() actor: { userId: string }) {
+  sendExportToChat(
+    @Param('id') id: string,
+    @Body() dto: SendReportChatDto,
+    @CurrentUser() actor: { userId: string },
+  ) {
     return this.reports.sendExportToChat(id, dto.conversationId, actor.userId);
   }
 }

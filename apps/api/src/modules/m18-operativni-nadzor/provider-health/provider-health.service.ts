@@ -46,7 +46,8 @@ export class ProviderHealthService {
 
     let status: 'ONLINE' | 'UNSTABLE' | 'OFFLINE' = 'ONLINE';
     if (uptimePercentage < OFFLINE_UPTIME_BELOW) status = 'OFFLINE';
-    else if (uptimePercentage < UNSTABLE_UPTIME_BELOW || errorCount > UNSTABLE_ERROR_COUNT_ABOVE) status = 'UNSTABLE';
+    else if (uptimePercentage < UNSTABLE_UPTIME_BELOW || errorCount > UNSTABLE_ERROR_COUNT_ABOVE)
+      status = 'UNSTABLE';
 
     const previous = await this.prisma.providerHealthSnapshot.findFirst({
       where: { providerCode },
@@ -54,7 +55,13 @@ export class ProviderHealthService {
     });
 
     const snapshot = await this.prisma.providerHealthSnapshot.create({
-      data: { providerCode, latencyMsAvg, uptimePercentage, errorCountLastHour: errorCount, status },
+      data: {
+        providerCode,
+        latencyMsAvg,
+        uptimePercentage,
+        errorCountLastHour: errorCount,
+        status,
+      },
     });
 
     const wasHealthy = !previous || previous.status === 'ONLINE';
@@ -63,7 +70,13 @@ export class ProviderHealthService {
         sourceModule: 'M4',
         signalType: 'PROVIDER_DEGRADED',
         severity: status === 'OFFLINE' ? 'CRITICAL' : 'WARNING',
-        details: { providerCode, status, uptimePercentage, errorCountLastHour: errorCount, latencyMsAvg },
+        details: {
+          providerCode,
+          status,
+          uptimePercentage,
+          errorCountLastHour: errorCount,
+          latencyMsAvg,
+        },
       });
     }
 
@@ -74,7 +87,12 @@ export class ProviderHealthService {
     // Poslednji snapshot po provajderu — isti princip kao ostatak modula ("uvek trenutno stanje").
     const providers = await this.prisma.providerConfig.findMany();
     const snapshots = await Promise.all(
-      providers.map((p) => this.prisma.providerHealthSnapshot.findFirst({ where: { providerCode: p.providerCode }, orderBy: { computedAt: 'desc' } })),
+      providers.map((p) =>
+        this.prisma.providerHealthSnapshot.findFirst({
+          where: { providerCode: p.providerCode },
+          orderBy: { computedAt: 'desc' },
+        }),
+      ),
     );
     return snapshots.filter((s): s is NonNullable<typeof s> => s !== null);
   }

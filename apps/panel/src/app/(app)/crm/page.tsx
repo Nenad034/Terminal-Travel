@@ -7,7 +7,6 @@ import TabLink from '@/components/TabLink';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 
-
 interface ClientAccount {
   id: string;
   accountType: 'INDIVIDUAL' | 'LEGAL_ENTITY';
@@ -24,7 +23,9 @@ interface ClientAccount {
 // (filtrirano po email/taxId — jedini pretražljivi filter koji API podržava jeftino).
 // Gosti (GuestProfile) žive na /crm/gosti, ankete posle putovanja na /crm/ankete — isti
 // obrazac razdvajanja resursa unutar jedne nav stavke kao "Dobavljači i ugovori" (M3).
-export default async function CrmPage(props: { searchParams: Promise<{ email?: string; taxId?: string }> }) {
+export default async function CrmPage(props: {
+  searchParams: Promise<{ email?: string; taxId?: string }>;
+}) {
   const searchParams = await props.searchParams;
   const me = await getMe();
   const canCreate = hasPermission(me, 'M6', 'client-account', 'CREATE');
@@ -77,8 +78,18 @@ export default async function CrmPage(props: { searchParams: Promise<{ email?: s
 
       {!error && (
         <form className="mb-3 flex gap-2 text-xs" action="/crm">
-          <input name="email" defaultValue={searchParams?.email ?? ''} placeholder="pretraga po email-u" className="input flex-1" />
-          <input name="taxId" defaultValue={searchParams?.taxId ?? ''} placeholder="pretraga po PIB-u" className="input flex-1" />
+          <input
+            name="email"
+            defaultValue={searchParams?.email ?? ''}
+            placeholder="pretraga po email-u"
+            className="input flex-1"
+          />
+          <input
+            name="taxId"
+            defaultValue={searchParams?.taxId ?? ''}
+            placeholder="pretraga po PIB-u"
+            className="input flex-1"
+          />
           <Button type="submit" variant="secondary" size="sm">
             traži
           </Button>
@@ -94,9 +105,12 @@ export default async function CrmPage(props: { searchParams: Promise<{ email?: s
 
       {!error && (
         <div className="overflow-hidden rounded-lg border border-border">
-          {accounts.length === 0 && <p className="p-4 text-center text-xs text-ink-faint">Nema nalogodavaca.</p>}
+          {accounts.length === 0 && (
+            <p className="p-4 text-center text-xs text-ink-faint">Nema nalogodavaca.</p>
+          )}
           {accounts.map((a) => {
-            const name = (a.accountType === 'LEGAL_ENTITY' ? a.companyName : a.fullName) || 'Nalogodavac';
+            const name =
+              (a.accountType === 'LEGAL_ENTITY' ? a.companyName : a.fullName) || 'Nalogodavac';
             return (
               <TabLink
                 key={a.id}
@@ -107,7 +121,11 @@ export default async function CrmPage(props: { searchParams: Promise<{ email?: s
                 <div>
                   <div className="font-medium text-ink">
                     {name}
-                    {a.accountType === 'LEGAL_ENTITY' && <span className="ml-2 text-[11px] text-ink-faint">PRAVNO LICE{a.taxId ? ` · PIB ${a.taxId}` : ''}</span>}
+                    {a.accountType === 'LEGAL_ENTITY' && (
+                      <span className="ml-2 text-[11px] text-ink-faint">
+                        PRAVNO LICE{a.taxId ? ` · PIB ${a.taxId}` : ''}
+                      </span>
+                    )}
                   </div>
                   <div className="text-xs text-ink-faint">
                     {a.email ?? '—'} {a.phone ? `· ${a.phone}` : ''}
@@ -122,7 +140,9 @@ export default async function CrmPage(props: { searchParams: Promise<{ email?: s
                     </div>
                   )}
                 </div>
-                {!a.marketingConsent && <span className="text-xs text-ink-faint">bez marketing saglasnosti</span>}
+                {!a.marketingConsent && (
+                  <span className="text-xs text-ink-faint">bez marketing saglasnosti</span>
+                )}
               </TabLink>
             );
           })}

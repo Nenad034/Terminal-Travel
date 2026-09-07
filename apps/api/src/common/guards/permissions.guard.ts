@@ -15,7 +15,10 @@ export class PermissionsGuard implements CanActivate {
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const required = this.reflector.get<RequiredPermission | undefined>(PERMISSION_KEY, context.getHandler());
+    const required = this.reflector.get<RequiredPermission | undefined>(
+      PERMISSION_KEY,
+      context.getHandler(),
+    );
     if (!required) return true; // ruta bez @RequirePermission — samo JwtAuthGuard važi
 
     const request = context.switchToHttp().getRequest();

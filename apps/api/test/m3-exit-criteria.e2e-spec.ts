@@ -26,7 +26,9 @@ describe('M3 — izlazni kriterijum (e2e)', () => {
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
     app = moduleRef.createNestApplication();
     app.setGlobalPrefix('api/v1');
-    app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }));
+    app.useGlobalPipes(
+      new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }),
+    );
     app.useGlobalFilters(new PrismaExceptionFilter());
     await app.init();
     prisma = app.get(PrismaService);
@@ -39,7 +41,9 @@ describe('M3 — izlazni kriterijum (e2e)', () => {
       for (const c of contracts) {
         const periods = await prisma.contractPeriod.findMany({ where: { contractId: c.id } });
         for (const p of periods) {
-          await prisma.rateLineAgePricing.deleteMany({ where: { rateLine: { contractPeriodId: p.id } } });
+          await prisma.rateLineAgePricing.deleteMany({
+            where: { rateLine: { contractPeriodId: p.id } },
+          });
           await prisma.rateLine.deleteMany({ where: { contractPeriodId: p.id } });
           await prisma.cancellationRule.deleteMany({ where: { contractPeriodId: p.id } });
           // v1.12 dopuna — nova tabela su FK Cascade od ContractPeriod (onDelete: Cascade),
@@ -54,7 +58,10 @@ describe('M3 — izlazni kriterijum (e2e)', () => {
       await prisma.pricelistImportRow.deleteMany({ where: { import: { supplierId } } });
       await prisma.pricelistImport.deleteMany({ where: { supplierId } });
       await prisma.supplierExtractionProfile.deleteMany({ where: { supplierId } });
-      await prisma.product.updateMany({ where: { sourceContractId: { in: contracts.map((c) => c.id) } }, data: { sourceContractId: null } });
+      await prisma.product.updateMany({
+        where: { sourceContractId: { in: contracts.map((c) => c.id) } },
+        data: { sourceContractId: null },
+      });
       await prisma.contract.deleteMany({ where: { supplierId } });
       await prisma.supplierContact.deleteMany({ where: { supplierId } });
     }
@@ -77,7 +84,9 @@ describe('M3 — izlazni kriterijum (e2e)', () => {
     });
     createdUserIds.push(user.id);
     const role = await prisma.role.findUniqueOrThrow({ where: { name: roleName } });
-    await prisma.userRole.create({ data: { userId: user.id, roleId: role.id, assignedBy: user.id } });
+    await prisma.userRole.create({
+      data: { userId: user.id, roleId: role.id, assignedBy: user.id },
+    });
     const accessToken = jwt.sign({ sub: user.id, sessionId: 'e2e-test-session' });
     return { user, accessToken };
   }
@@ -104,7 +113,11 @@ describe('M3 — izlazni kriterijum (e2e)', () => {
     return res.body;
   }
 
-  async function createContract(accessToken: string, supplierId: string, overrides: Record<string, unknown> = {}) {
+  async function createContract(
+    accessToken: string,
+    supplierId: string,
+    overrides: Record<string, unknown> = {},
+  ) {
     const res = await request(app.getHttpServer())
       .post('/api/v1/contracting/contracts')
       .set(authed(accessToken))
@@ -125,7 +138,9 @@ describe('M3 — izlazni kriterijum (e2e)', () => {
     it('kreira dobavljača, ugovor u EUR, FIXED period sa kapacitetom, RateLine i CancellationRule', async () => {
       const { accessToken } = await createInternalUser(SYSTEM_ROLES.VLASNIK);
       const supplier = await createSupplier(accessToken);
-      const contract = await createContract(accessToken, supplier.id, { defaultTipNastupanja: 'ORGANIZATOR' });
+      const contract = await createContract(accessToken, supplier.id, {
+        defaultTipNastupanja: 'ORGANIZATOR',
+      });
       expect(contract.currency).toBe('EUR');
 
       const periodRes = await request(app.getHttpServer())
@@ -145,7 +160,12 @@ describe('M3 — izlazni kriterijum (e2e)', () => {
       const rateRes = await request(app.getHttpServer())
         .put(`/api/v1/contracting/contracts/${contract.id}/periods/${periodId}/rates`)
         .set(authed(accessToken))
-        .send({ boardType: 'polupansion', occupancy: 'odrasla osoba u dvokrevetnoj', priceBasis: 'PER_ROOM_PER_NIGHT', price: 8000 });
+        .send({
+          boardType: 'polupansion',
+          occupancy: 'odrasla osoba u dvokrevetnoj',
+          priceBasis: 'PER_ROOM_PER_NIGHT',
+          price: 8000,
+        });
       expect(rateRes.status).toBe(200);
       expect(typeof rateRes.body.price).toBe('number');
 
@@ -166,7 +186,12 @@ describe('M3 — izlazni kriterijum (e2e)', () => {
       const res = await request(app.getHttpServer())
         .post(`/api/v1/contracting/contracts/${contract.id}/periods`)
         .set(authed(accessToken))
-        .send({ stayFrom: '2027-08-01', stayTo: '2027-08-31', roomType: 'STD', allotmentMode: 'ON_REQUEST' });
+        .send({
+          stayFrom: '2027-08-01',
+          stayTo: '2027-08-31',
+          roomType: 'STD',
+          allotmentMode: 'ON_REQUEST',
+        });
 
       expect(res.status).toBe(201);
       expect(res.body.totalCapacity).toBeNull();
@@ -232,7 +257,13 @@ describe('M3 — izlazni kriterijum (e2e)', () => {
       const periodRes = await request(app.getHttpServer())
         .post(`/api/v1/contracting/contracts/${contract.id}/periods`)
         .set(authed(accessToken))
-        .send({ stayFrom: '2027-12-20', stayTo: '2027-12-27', roomType: 'LAST_ROOM', allotmentMode: 'FIXED', totalCapacity: 1 });
+        .send({
+          stayFrom: '2027-12-20',
+          stayTo: '2027-12-27',
+          roomType: 'LAST_ROOM',
+          allotmentMode: 'FIXED',
+          totalCapacity: 1,
+        });
       const periodId = periodRes.body.id;
 
       const attempts = Array.from({ length: 10 }, () =>
@@ -248,7 +279,9 @@ describe('M3 — izlazni kriterijum (e2e)', () => {
       expect(succeeded).toHaveLength(1);
       expect(failed).toHaveLength(9);
 
-      const finalPeriod = await prisma.contractPeriod.findUniqueOrThrow({ where: { id: periodId } });
+      const finalPeriod = await prisma.contractPeriod.findUniqueOrThrow({
+        where: { id: periodId },
+      });
       expect(finalPeriod.unitsSold).toBe(1); // nikad prekoračeno
     });
 
@@ -259,7 +292,15 @@ describe('M3 — izlazni kriterijum (e2e)', () => {
       const periodRes = await request(app.getHttpServer())
         .post(`/api/v1/contracting/contracts/${contract.id}/periods`)
         .set(authed(accessToken))
-        .send({ stayFrom: '2027-12-01', stayTo: '2027-12-10', roomType: 'CHARTER_SEAT2', allotmentMode: 'CHARTER', totalCapacity: 5, ukupnaFiksnaObaveza: 1000, fixedObligationCurrency: 'EUR' });
+        .send({
+          stayFrom: '2027-12-01',
+          stayTo: '2027-12-10',
+          roomType: 'CHARTER_SEAT2',
+          allotmentMode: 'CHARTER',
+          totalCapacity: 5,
+          ukupnaFiksnaObaveza: 1000,
+          fixedObligationCurrency: 'EUR',
+        });
       const periodId = periodRes.body.id;
 
       const attempts = Array.from({ length: 8 }, () =>
@@ -271,7 +312,9 @@ describe('M3 — izlazni kriterijum (e2e)', () => {
       const results = await Promise.all(attempts);
 
       expect(results.filter((r) => r.status === 201)).toHaveLength(5);
-      const finalPeriod = await prisma.contractPeriod.findUniqueOrThrow({ where: { id: periodId } });
+      const finalPeriod = await prisma.contractPeriod.findUniqueOrThrow({
+        where: { id: periodId },
+      });
       expect(finalPeriod.unitsSold).toBe(5);
     });
 
@@ -282,7 +325,13 @@ describe('M3 — izlazni kriterijum (e2e)', () => {
       const periodRes = await request(app.getHttpServer())
         .post(`/api/v1/contracting/contracts/${contract.id}/periods`)
         .set(authed(accessToken))
-        .send({ stayFrom: '2027-11-01', stayTo: '2027-11-10', roomType: 'CRIT_TEST', allotmentMode: 'FIXED', totalCapacity: 2 });
+        .send({
+          stayFrom: '2027-11-01',
+          stayTo: '2027-11-10',
+          roomType: 'CRIT_TEST',
+          allotmentMode: 'FIXED',
+          totalCapacity: 2,
+        });
       const periodId = periodRes.body.id;
 
       // EventBusService.emit izvršava pg_notify preko iste Prisma konekcije (§4.3) —
@@ -312,7 +361,14 @@ describe('M3 — izlazni kriterijum (e2e)', () => {
       const periodRes = await request(app.getHttpServer())
         .post(`/api/v1/contracting/contracts/${contract.id}/periods`)
         .set(authed(accessToken))
-        .send({ stayFrom, stayTo, roomType: 'EXPIRING', allotmentMode: 'FIXED', totalCapacity: 10, releaseDaysBefore: 30 });
+        .send({
+          stayFrom,
+          stayTo,
+          roomType: 'EXPIRING',
+          allotmentMode: 'FIXED',
+          totalCapacity: 10,
+          releaseDaysBefore: 30,
+        });
 
       const res = await request(app.getHttpServer())
         .get('/api/v1/contracting/contracts/expiring-releases')
@@ -332,7 +388,12 @@ describe('M3 — izlazni kriterijum (e2e)', () => {
       const productRes = await request(app.getHttpServer())
         .post('/api/v1/catalog/products')
         .set(authed(accessToken))
-        .send({ type: 'ACCOMMODATION', destinationCountry: 'Srbija', destinationCity: 'Zlatibor', sourceContractId: contract.id });
+        .send({
+          type: 'ACCOMMODATION',
+          destinationCountry: 'Srbija',
+          destinationCity: 'Zlatibor',
+          sourceContractId: contract.id,
+        });
       expect(productRes.status).toBe(201);
       expect(productRes.body.sourceContractId).toBe(contract.id);
 
@@ -348,14 +409,27 @@ describe('M3 — izlazni kriterijum (e2e)', () => {
       const periodRes = await request(app.getHttpServer())
         .post(`/api/v1/contracting/contracts/${contract.id}/periods`)
         .set(authed(accessToken))
-        .send({ stayFrom: '2027-05-01', stayTo: '2027-05-10', roomType: 'MONEY_TEST', allotmentMode: 'CHARTER', totalCapacity: 10, ukupnaFiksnaObaveza: 123456, fixedObligationCurrency: 'EUR' });
+        .send({
+          stayFrom: '2027-05-01',
+          stayTo: '2027-05-10',
+          roomType: 'MONEY_TEST',
+          allotmentMode: 'CHARTER',
+          totalCapacity: 10,
+          ukupnaFiksnaObaveza: 123456,
+          fixedObligationCurrency: 'EUR',
+        });
 
       expect(Number.isInteger(periodRes.body.ukupnaFiksnaObaveza)).toBe(true);
 
       const rateRes = await request(app.getHttpServer())
         .put(`/api/v1/contracting/contracts/${contract.id}/periods/${periodRes.body.id}/rates`)
         .set(authed(accessToken))
-        .send({ boardType: 'all-inclusive', occupancy: 'odrasla osoba', priceBasis: 'PER_PERSON_PER_NIGHT', price: 4999 });
+        .send({
+          boardType: 'all-inclusive',
+          occupancy: 'odrasla osoba',
+          priceBasis: 'PER_PERSON_PER_NIGHT',
+          price: 4999,
+        });
       expect(Number.isInteger(rateRes.body.price)).toBe(true);
     });
   });
@@ -369,19 +443,34 @@ describe('M3 — izlazni kriterijum (e2e)', () => {
       const first = await request(app.getHttpServer())
         .post(`/api/v1/contracting/contracts/${contract.id}/periods`)
         .set(authed(accessToken))
-        .send({ stayFrom: '2027-08-01', stayTo: '2027-08-31', roomType: 'OVERLAP_TEST', allotmentMode: 'ON_REQUEST' });
+        .send({
+          stayFrom: '2027-08-01',
+          stayTo: '2027-08-31',
+          roomType: 'OVERLAP_TEST',
+          allotmentMode: 'ON_REQUEST',
+        });
       expect(first.status).toBe(201);
 
       const overlapping = await request(app.getHttpServer())
         .post(`/api/v1/contracting/contracts/${contract.id}/periods`)
         .set(authed(accessToken))
-        .send({ stayFrom: '2027-08-15', stayTo: '2027-09-15', roomType: 'OVERLAP_TEST', allotmentMode: 'ON_REQUEST' });
+        .send({
+          stayFrom: '2027-08-15',
+          stayTo: '2027-09-15',
+          roomType: 'OVERLAP_TEST',
+          allotmentMode: 'ON_REQUEST',
+        });
       expect(overlapping.status).toBe(400);
 
       const adjacent = await request(app.getHttpServer())
         .post(`/api/v1/contracting/contracts/${contract.id}/periods`)
         .set(authed(accessToken))
-        .send({ stayFrom: '2027-08-31', stayTo: '2027-09-15', roomType: 'OVERLAP_TEST', allotmentMode: 'ON_REQUEST' });
+        .send({
+          stayFrom: '2027-08-31',
+          stayTo: '2027-09-15',
+          roomType: 'OVERLAP_TEST',
+          allotmentMode: 'ON_REQUEST',
+        });
       expect(adjacent.status).toBe(201); // susedni, ne preklapa se
     });
   });
@@ -418,7 +507,12 @@ describe('M3 — izlazni kriterijum (e2e)', () => {
       const periodRes = await request(app.getHttpServer())
         .post(`/api/v1/contracting/contracts/${contract.id}/periods`)
         .set(authed(accessToken))
-        .send({ stayFrom: '2027-04-01', stayTo: '2027-04-10', roomType: 'AGE_PRICING_TEST', allotmentMode: 'ON_REQUEST' });
+        .send({
+          stayFrom: '2027-04-01',
+          stayTo: '2027-04-10',
+          roomType: 'AGE_PRICING_TEST',
+          allotmentMode: 'ON_REQUEST',
+        });
 
       const rateRes = await request(app.getHttpServer())
         .put(`/api/v1/contracting/contracts/${contract.id}/periods/${periodRes.body.id}/rates`)
@@ -429,7 +523,12 @@ describe('M3 — izlazni kriterijum (e2e)', () => {
           priceBasis: 'PER_PERSON_PER_NIGHT',
           price: 5000,
           agePricing: [
-            { ageCategory: 'CHILD', occupantIndex: 1, pricingMode: 'PERCENTAGE_OF_BASE_PRICE', percentage: 50 },
+            {
+              ageCategory: 'CHILD',
+              occupantIndex: 1,
+              pricingMode: 'PERCENTAGE_OF_BASE_PRICE',
+              percentage: 50,
+            },
             { ageCategory: 'INFANT', pricingMode: 'FLAT_PRICE_PER_NIGHT', flatPrice: 0 },
           ],
         });
@@ -447,13 +546,22 @@ describe('M3 — izlazni kriterijum (e2e)', () => {
       const productRes = await request(app.getHttpServer())
         .post('/api/v1/catalog/products')
         .set(authed(accessToken))
-        .send({ type: 'ACCOMMODATION', destinationCountry: 'Srbija', destinationCity: 'Vrnjačka Banja', sourceContractId: contract.id });
+        .send({
+          type: 'ACCOMMODATION',
+          destinationCountry: 'Srbija',
+          destinationCity: 'Vrnjačka Banja',
+          sourceContractId: contract.id,
+        });
       const productId = productRes.body.id;
 
       const importRes = await request(app.getHttpServer())
         .post('/api/v1/contracting/pricelist-imports')
         .set(authed(accessToken))
-        .send({ supplierId: supplier.id, sourceFileUrl: 'https://example.com/cenovnik.xlsx', sourceFormat: 'EXCEL' });
+        .send({
+          supplierId: supplier.id,
+          sourceFileUrl: 'https://example.com/cenovnik.xlsx',
+          sourceFormat: 'EXCEL',
+        });
       expect(importRes.status).toBe(201);
       expect(importRes.body.status).toBe('PROCESSING');
 
@@ -489,17 +597,23 @@ describe('M3 — izlazni kriterijum (e2e)', () => {
       expect(approveRes.status).toBe(201);
       expect(approveRes.body.reviewedBy).toBe(owner.id);
 
-      const period = await prisma.contractPeriod.findFirst({ where: { contractId: contract.id, roomType: 'STANDARD' } });
+      const period = await prisma.contractPeriod.findFirst({
+        where: { contractId: contract.id, roomType: 'STANDARD' },
+      });
       expect(period).not.toBeNull();
       expect(period!.allotmentMode).toBe('ON_REQUEST');
 
       const rateLine = await prisma.rateLine.findFirst({ where: { contractPeriodId: period!.id } });
       expect(rateLine?.price).toBe(6000);
 
-      const importAfter = await prisma.pricelistImport.findUniqueOrThrow({ where: { id: importRes.body.id } });
+      const importAfter = await prisma.pricelistImport.findUniqueOrThrow({
+        where: { id: importRes.body.id },
+      });
       expect(importAfter.status).toBe('COMPLETED');
 
-      const profile = await prisma.supplierExtractionProfile.findUnique({ where: { supplierId: supplier.id } });
+      const profile = await prisma.supplierExtractionProfile.findUnique({
+        where: { supplierId: supplier.id },
+      });
       expect(profile?.typicalPriceBasis).toBe('PER_ROOM_PER_NIGHT');
       expect(profile?.lastConfirmedImportId).toBe(importRes.body.id);
     });
@@ -510,7 +624,11 @@ describe('M3 — izlazni kriterijum (e2e)', () => {
       const importRes = await request(app.getHttpServer())
         .post('/api/v1/contracting/pricelist-imports')
         .set(authed(accessToken))
-        .send({ supplierId: supplier.id, sourceFileUrl: 'https://example.com/x.pdf', sourceFormat: 'PDF' });
+        .send({
+          supplierId: supplier.id,
+          sourceFileUrl: 'https://example.com/x.pdf',
+          sourceFormat: 'PDF',
+        });
 
       const row = await prisma.pricelistImportRow.create({
         data: {
@@ -558,7 +676,9 @@ describe('M3 — izlazni kriterijum (e2e)', () => {
     it('odbija prelaz u ACTIVE kad default_tip_nastupanja postoji ali commission_model ne', async () => {
       const { accessToken } = await createInternalUser(SYSTEM_ROLES.VLASNIK);
       const supplier = await createSupplier(accessToken);
-      const contract = await createContract(accessToken, supplier.id, { defaultTipNastupanja: 'ORGANIZATOR' });
+      const contract = await createContract(accessToken, supplier.id, {
+        defaultTipNastupanja: 'ORGANIZATOR',
+      });
 
       const res = await request(app.getHttpServer())
         .patch(`/api/v1/contracting/contracts/${contract.id}`)
@@ -605,7 +725,12 @@ describe('M3 — izlazni kriterijum (e2e)', () => {
       const periodRes = await request(app.getHttpServer())
         .post(`/api/v1/contracting/contracts/${contract.id}/periods`)
         .set(authed(accessToken))
-        .send({ stayFrom: '2027-07-01', stayTo: '2027-07-31', roomType: 'OFFER_TEST', allotmentMode: 'ON_REQUEST' });
+        .send({
+          stayFrom: '2027-07-01',
+          stayTo: '2027-07-31',
+          roomType: 'OFFER_TEST',
+          allotmentMode: 'ON_REQUEST',
+        });
       const periodId = periodRes.body.id;
 
       const offerRes = await request(app.getHttpServer())
@@ -625,7 +750,13 @@ describe('M3 — izlazni kriterijum (e2e)', () => {
       const freeNightsRes = await request(app.getHttpServer())
         .put(`/api/v1/contracting/contracts/${contract.id}/periods/${periodId}/offers`)
         .set(authed(accessToken))
-        .send({ offerType: 'FREE_NIGHTS', bookingFrom: '2027-01-01', bookingTo: '2027-03-31', stayNights: 6, payNights: 5 });
+        .send({
+          offerType: 'FREE_NIGHTS',
+          bookingFrom: '2027-01-01',
+          bookingTo: '2027-03-31',
+          stayNights: 6,
+          payNights: 5,
+        });
       expect(freeNightsRes.status).toBe(200);
       expect(freeNightsRes.body.stayNights).toBe(6);
       expect(freeNightsRes.body.payNights).toBe(5);
@@ -645,7 +776,12 @@ describe('M3 — izlazni kriterijum (e2e)', () => {
       const periodRes = await request(app.getHttpServer())
         .post(`/api/v1/contracting/contracts/${contract.id}/periods`)
         .set(authed(accessToken))
-        .send({ stayFrom: '2027-07-01', stayTo: '2027-07-31', roomType: 'CANCEL_RULE_TEST', allotmentMode: 'ON_REQUEST' });
+        .send({
+          stayFrom: '2027-07-01',
+          stayTo: '2027-07-31',
+          roomType: 'CANCEL_RULE_TEST',
+          allotmentMode: 'ON_REQUEST',
+        });
       const periodId = periodRes.body.id;
 
       const preArrivalRes = await request(app.getHttpServer())
@@ -658,7 +794,11 @@ describe('M3 — izlazni kriterijum (e2e)', () => {
       const earlyDepartureRes = await request(app.getHttpServer())
         .put(`/api/v1/contracting/contracts/${contract.id}/periods/${periodId}/cancellation-rules`)
         .set(authed(accessToken))
-        .send({ ruleType: 'EARLY_DEPARTURE', earlyDepartureBasis: 'PERCENTAGE_OF_REMAINING_STAY', earlyDeparturePercentage: 100 });
+        .send({
+          ruleType: 'EARLY_DEPARTURE',
+          earlyDepartureBasis: 'PERCENTAGE_OF_REMAINING_STAY',
+          earlyDeparturePercentage: 100,
+        });
       expect(earlyDepartureRes.status).toBe(200);
       expect(earlyDepartureRes.body.ruleType).toBe('EARLY_DEPARTURE');
       expect(earlyDepartureRes.body.daysBeforeStay).toBeNull();
@@ -667,7 +807,10 @@ describe('M3 — izlazni kriterijum (e2e)', () => {
         .get(`/api/v1/contracting/contracts/${contract.id}/periods/${periodId}/cancellation-rules`)
         .set(authed(accessToken));
       expect(listRes.body).toHaveLength(2);
-      expect(listRes.body.map((r: { ruleType: string }) => r.ruleType).sort()).toEqual(['EARLY_DEPARTURE', 'PRE_ARRIVAL']);
+      expect(listRes.body.map((r: { ruleType: string }) => r.ruleType).sort()).toEqual([
+        'EARLY_DEPARTURE',
+        'PRE_ARRIVAL',
+      ]);
     });
   });
 
@@ -679,7 +822,12 @@ describe('M3 — izlazni kriterijum (e2e)', () => {
       const periodRes = await request(app.getHttpServer())
         .post(`/api/v1/contracting/contracts/${contract.id}/periods`)
         .set(authed(accessToken))
-        .send({ stayFrom: '2027-07-01', stayTo: '2027-07-31', roomType: 'ANCILLARY_TEST', allotmentMode: 'ON_REQUEST' });
+        .send({
+          stayFrom: '2027-07-01',
+          stayTo: '2027-07-31',
+          roomType: 'ANCILLARY_TEST',
+          allotmentMode: 'ON_REQUEST',
+        });
       const periodId = periodRes.body.id;
 
       const flatRes = await request(app.getHttpServer())
@@ -687,14 +835,25 @@ describe('M3 — izlazni kriterijum (e2e)', () => {
         .set(authed(accessToken))
         // `priceBasis` je postao OBAVEZAN u M3 v1.13 (commit baa5675), a ovaj test nije ažuriran —
         // od tada je vraćao 400 i rušio CI. Zatečeno 5.9.2026 pri uvođenju CI provera.
-        .send({ name: 'Kućni ljubimac', pricingMode: 'FLAT_PER_UNIT', flatAmount: 1000, priceBasis: 'PER_PET_PER_STAY', isMandatory: false });
+        .send({
+          name: 'Kućni ljubimac',
+          pricingMode: 'FLAT_PER_UNIT',
+          flatAmount: 1000,
+          priceBasis: 'PER_PET_PER_STAY',
+          isMandatory: false,
+        });
       expect(flatRes.status).toBe(200);
       expect(flatRes.body.flatAmount).toBe(1000);
 
       const percentageRes = await request(app.getHttpServer())
         .put(`/api/v1/contracting/contracts/${contract.id}/periods/${periodId}/ancillary-services`)
         .set(authed(accessToken))
-        .send({ name: 'Rani check-in', pricingMode: 'PERCENTAGE_OF_NIGHTLY_RATE', percentageOfNightlyRate: 30, priceBasis: 'PER_PERSON_PER_STAY' });
+        .send({
+          name: 'Rani check-in',
+          pricingMode: 'PERCENTAGE_OF_NIGHTLY_RATE',
+          percentageOfNightlyRate: 30,
+          priceBasis: 'PER_PERSON_PER_STAY',
+        });
       expect(percentageRes.status).toBe(200);
       expect(Number(percentageRes.body.percentageOfNightlyRate)).toBe(30);
 
@@ -713,7 +872,12 @@ describe('M3 — izlazni kriterijum (e2e)', () => {
       const periodRes = await request(app.getHttpServer())
         .post(`/api/v1/contracting/contracts/${contract.id}/periods`)
         .set(authed(accessToken))
-        .send({ stayFrom: '2027-07-01', stayTo: '2027-07-31', roomType: 'TOURIST_TAX_TEST', allotmentMode: 'ON_REQUEST' });
+        .send({
+          stayFrom: '2027-07-01',
+          stayTo: '2027-07-31',
+          roomType: 'TOURIST_TAX_TEST',
+          allotmentMode: 'ON_REQUEST',
+        });
       const periodId = periodRes.body.id;
 
       const emptyRes = await request(app.getHttpServer())
@@ -729,7 +893,13 @@ describe('M3 — izlazni kriterijum (e2e)', () => {
       const upsertRes = await request(app.getHttpServer())
         .put(`/api/v1/contracting/contracts/${contract.id}/periods/${periodId}/tourist-tax`)
         .set(authed(accessToken))
-        .send({ includedInPrice: false, collectedBy: 'PAID_ON_SITE_BY_GUEST', amountPerNight: 200, currency: 'EUR', taxExemptMaxAge: 11.99 });
+        .send({
+          includedInPrice: false,
+          collectedBy: 'PAID_ON_SITE_BY_GUEST',
+          amountPerNight: 200,
+          currency: 'EUR',
+          taxExemptMaxAge: 11.99,
+        });
       expect(upsertRes.status).toBe(200);
       expect(upsertRes.body.includedInPrice).toBe(false);
       expect(upsertRes.body.collectedBy).toBe('PAID_ON_SITE_BY_GUEST');

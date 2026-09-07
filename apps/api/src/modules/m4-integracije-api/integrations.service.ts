@@ -63,7 +63,10 @@ export class IntegrationsService {
   }
 
   /** M4 spec §4.1 — kolo OPEN znači M4 prestaje da zove provajdera dok cooldown ne istekne. */
-  private async assertCircuitAllows(providerCode: string, operation: 'SEARCH' | 'CONTENT' | 'AVAILABILITY' | 'BOOK' | 'CANCEL') {
+  private async assertCircuitAllows(
+    providerCode: string,
+    operation: 'SEARCH' | 'CONTENT' | 'AVAILABILITY' | 'BOOK' | 'CANCEL',
+  ) {
     const config = await this.prisma.providerConfig.findUniqueOrThrow({ where: { providerCode } });
     const gate = await this.circuitBreaker.canCall(config);
     if (!gate.allowed) {
@@ -76,7 +79,10 @@ export class IntegrationsService {
         errorMessage: 'Circuit breaker OPEN',
         latencyMs: 0,
       });
-      throw new ProviderError('PROVIDER_UNAVAILABLE', `Provider ${providerCode} je trenutno isključen (circuit OPEN, M4 spec §4.1)`);
+      throw new ProviderError(
+        'PROVIDER_UNAVAILABLE',
+        `Provider ${providerCode} je trenutno isključen (circuit OPEN, M4 spec §4.1)`,
+      );
     }
     return config;
   }
@@ -88,11 +94,18 @@ export class IntegrationsService {
     try {
       const raw = await adapter.search(params);
       // M4 spec §2.4 — search() nikad ne vraća više od capabilities_profile.maxResultsPerSearch (podrazumevano 50).
-      const maxResults = (config.capabilitiesProfile as { maxResultsPerSearch?: number })?.maxResultsPerSearch ?? 50;
+      const maxResults =
+        (config.capabilitiesProfile as { maxResultsPerSearch?: number })?.maxResultsPerSearch ?? 50;
       const results = raw.slice(0, maxResults);
 
       await this.circuitBreaker.recordSuccess(providerCode);
-      await this.logCall({ providerCode, operation: 'SEARCH', requestSummary: params as any, responseStatus: 'OK', latencyMs: Date.now() - start });
+      await this.logCall({
+        providerCode,
+        operation: 'SEARCH',
+        requestSummary: params as any,
+        responseStatus: 'OK',
+        latencyMs: Date.now() - start,
+      });
       return results;
     } catch (err) {
       await this.handleFailure(providerCode, 'SEARCH', params as any, start, err);
@@ -107,7 +120,13 @@ export class IntegrationsService {
     try {
       const content = await adapter.getStaticContent(externalId);
       await this.circuitBreaker.recordSuccess(providerCode);
-      await this.logCall({ providerCode, operation: 'CONTENT', requestSummary: { externalId }, responseStatus: 'OK', latencyMs: Date.now() - start });
+      await this.logCall({
+        providerCode,
+        operation: 'CONTENT',
+        requestSummary: { externalId },
+        responseStatus: 'OK',
+        latencyMs: Date.now() - start,
+      });
       return content;
     } catch (err) {
       await this.handleFailure(providerCode, 'CONTENT', { externalId }, start, err);
@@ -115,17 +134,33 @@ export class IntegrationsService {
     }
   }
 
-  async checkAvailabilityAndPrice(providerCode: string, externalId: string, stay: StayParams): Promise<AvailabilityQuote> {
+  async checkAvailabilityAndPrice(
+    providerCode: string,
+    externalId: string,
+    stay: StayParams,
+  ): Promise<AvailabilityQuote> {
     const config = await this.assertCircuitAllows(providerCode, 'AVAILABILITY');
     const adapter = this.registry.getAdapter(config);
     const start = Date.now();
     try {
       const quote = await adapter.checkAvailabilityAndPrice(externalId, stay);
       await this.circuitBreaker.recordSuccess(providerCode);
-      await this.logCall({ providerCode, operation: 'AVAILABILITY', requestSummary: { externalId, stay } as any, responseStatus: 'OK', latencyMs: Date.now() - start });
+      await this.logCall({
+        providerCode,
+        operation: 'AVAILABILITY',
+        requestSummary: { externalId, stay } as any,
+        responseStatus: 'OK',
+        latencyMs: Date.now() - start,
+      });
       return quote;
     } catch (err) {
-      await this.handleFailure(providerCode, 'AVAILABILITY', { externalId, stay } as any, start, err);
+      await this.handleFailure(
+        providerCode,
+        'AVAILABILITY',
+        { externalId, stay } as any,
+        start,
+        err,
+      );
       throw err;
     }
   }
@@ -135,9 +170,18 @@ export class IntegrationsService {
    * `ProviderCallLog` da li je taj `idempotency_key` već uspešno poslat, umesto da se
    * poziv automatski ponovi (mrežni timeout ne znači da poziv nije uspeo kod provajdera).
    */
-  async confirmBooking(providerCode: string, externalId: string, booking: BookingRequest): Promise<BookingConfirmation> {
+  async confirmBooking(
+    providerCode: string,
+    externalId: string,
+    booking: BookingRequest,
+  ): Promise<BookingConfirmation> {
     const existing = await this.prisma.providerCallLog.findFirst({
-      where: { providerCode, operation: 'BOOK', idempotencyKey: booking.idempotencyKey, errorCode: null },
+      where: {
+        providerCode,
+        operation: 'BOOK',
+        idempotencyKey: booking.idempotencyKey,
+        errorCode: null,
+      },
       orderBy: { timestamp: 'desc' },
     });
     if (existing?.responseBody) {
@@ -171,7 +215,14 @@ export class IntegrationsService {
       });
       return confirmation;
     } catch (err) {
-      await this.handleFailure(providerCode, 'BOOK', { externalId, stay: booking.stay } as any, start, err, booking.idempotencyKey);
+      await this.handleFailure(
+        providerCode,
+        'BOOK',
+        { externalId, stay: booking.stay } as any,
+        start,
+        err,
+        booking.idempotencyKey,
+      );
       await this.auditLog.write({
         actorType: 'SYSTEM',
         module: 'M4',
@@ -184,14 +235,23 @@ export class IntegrationsService {
     }
   }
 
-  async cancelBooking(providerCode: string, providerBookingReference: string): Promise<CancellationResult> {
+  async cancelBooking(
+    providerCode: string,
+    providerBookingReference: string,
+  ): Promise<CancellationResult> {
     const config = await this.assertCircuitAllows(providerCode, 'CANCEL');
     const adapter = this.registry.getAdapter(config);
     const start = Date.now();
     try {
       const result = await adapter.cancelBooking(providerBookingReference);
       await this.circuitBreaker.recordSuccess(providerCode);
-      await this.logCall({ providerCode, operation: 'CANCEL', requestSummary: { providerBookingReference }, responseStatus: 'OK', latencyMs: Date.now() - start });
+      await this.logCall({
+        providerCode,
+        operation: 'CANCEL',
+        requestSummary: { providerBookingReference },
+        responseStatus: 'OK',
+        latencyMs: Date.now() - start,
+      });
       await this.auditLog.write({
         actorType: 'SYSTEM',
         module: 'M4',

@@ -42,7 +42,14 @@ export default function NewSubagentForm({ account }: { account: ClientAccountSum
           <input type="hidden" name="clientAccountId" value={account.id} />
           <label className="text-xs text-ink-faint">
             provizija % (opciono, može i pri odobravanju)
-            <input name="commissionPercentage" type="number" min={0} max={100} step="0.01" className="input mt-1" />
+            <input
+              name="commissionPercentage"
+              type="number"
+              min={0}
+              max={100}
+              step="0.01"
+              className="input mt-1"
+            />
           </label>
           <SubmitButton />
           <Button type="button" onClick={() => setExpanded(false)} variant="ghost" size="sm">

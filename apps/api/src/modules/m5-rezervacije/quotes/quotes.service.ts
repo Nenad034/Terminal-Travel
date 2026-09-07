@@ -44,7 +44,10 @@ export class QuotesService {
       if (identity.accountType === 'GUEST') {
         clientAccountId = identity.ownProfileId ?? undefined;
       } else if (identity.accountType === 'SUBAGENT_CONTACT' && identity.ownProfileId) {
-        clientAccountId = (await this.subagentBridge.resolveClientAccountIdForSubagentContact(identity.ownProfileId)) ?? undefined;
+        clientAccountId =
+          (await this.subagentBridge.resolveClientAccountIdForSubagentContact(
+            identity.ownProfileId,
+          )) ?? undefined;
       } else if (identity.accountType === 'AI_AGENT') {
         // M16 spec §2 dopuna — MCP klijent, isti razlog kao GUEST iznad ali bez stub
         // posredovanja: User.linked_profile_id je već direktno ClientAccount.id (bookings.service.ts).
@@ -74,10 +77,18 @@ export class QuotesService {
     // u RightPanel.tsx je samo brža povratna informacija). Bez `date_mismatch_acknowledged`,
     // PREVOZ (let/transfer) stavka čiji se datum uopšte ne preklapa sa opsegom BORAVAK stavki
     // (uz toleranciju 1 dan) blokira kreiranje Ponude umesto da tiho prođe.
-    const dateMismatch = findDateMismatches(built.map((b) => ({ productId: b.productId, type: b.type, stayFrom: b.stayFrom, stayTo: b.stayTo })));
+    const dateMismatch = findDateMismatches(
+      built.map((b) => ({
+        productId: b.productId,
+        type: b.type,
+        stayFrom: b.stayFrom,
+        stayTo: b.stayTo,
+      })),
+    );
     if (dateMismatch.mismatched.length > 0 && !dto.dateMismatchAcknowledged) {
       throw new BadRequestException({
-        message: 'Datumi stavki se ne poklapaju — termin prevoza je van perioda boravka. Potvrdite da je ovo namerno (M5 spec §3.0e.3a).',
+        message:
+          'Datumi stavki se ne poklapaju — termin prevoza je van perioda boravka. Potvrdite da je ovo namerno (M5 spec §3.0e.3a).',
         code: 'DATE_MISMATCH',
         mismatchedProductIds: dateMismatch.mismatched.map((m) => m.productId),
       });
@@ -96,10 +107,15 @@ export class QuotesService {
     // (isti obrazac/mesto u toku cene kao M6 spec §3.3).
     let discountPercentage = 0;
     if (clientAccountId) {
-      const commissionPercentage = await this.subagentBridge.getEffectiveCommissionPercentageForClientAccount(clientAccountId);
-      discountPercentage = commissionPercentage != null ? commissionPercentage : await this.loyalty.getDiscountPercentage(clientAccountId);
+      const commissionPercentage =
+        await this.subagentBridge.getEffectiveCommissionPercentageForClientAccount(clientAccountId);
+      discountPercentage =
+        commissionPercentage != null
+          ? commissionPercentage
+          : await this.loyalty.getDiscountPercentage(clientAccountId);
     }
-    const applyDiscount = (price: number) => (discountPercentage > 0 ? Math.round(price * (1 - discountPercentage / 100)) : price);
+    const applyDiscount = (price: number) =>
+      discountPercentage > 0 ? Math.round(price * (1 - discountPercentage / 100)) : price;
 
     const quote = await this.prisma.quote.create({
       data: {
@@ -143,7 +159,12 @@ export class QuotesService {
         resourceType: 'Quote',
         resourceId: quote.id,
         context: {
-          mismatchedItems: dateMismatch.mismatched.map((m) => ({ productId: m.productId, type: m.type, stayFrom: m.stayFrom, stayTo: m.stayTo })),
+          mismatchedItems: dateMismatch.mismatched.map((m) => ({
+            productId: m.productId,
+            type: m.type,
+            stayFrom: m.stayFrom,
+            stayTo: m.stayTo,
+          })),
         },
       });
     }
@@ -172,6 +193,9 @@ export class QuotesService {
     }
 
     const serialized = serializeQuote(quote as unknown as RawQuote, context);
-    return { ...serialized, isExpired: quote.status === 'DRAFT' && quote.expiresAt.getTime() < Date.now() };
+    return {
+      ...serialized,
+      isExpired: quote.status === 'DRAFT' && quote.expiresAt.getTime() < Date.now(),
+    };
   }
 }

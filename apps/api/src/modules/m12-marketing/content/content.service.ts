@@ -1,7 +1,18 @@
-import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { unlink } from 'fs/promises';
 import { join, relative } from 'path';
-import { ContentChannel, ContentPieceStatus, ContentPieceType, LanguageCode, Prisma } from '@prisma/client';
+import {
+  ContentChannel,
+  ContentPieceStatus,
+  ContentPieceType,
+  LanguageCode,
+  Prisma,
+} from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { AuditLogService } from '../../m1-core-identitet/audit-log/audit-log.service';
 import { CreateContentDto } from './dto/create-content.dto';
@@ -58,7 +69,9 @@ export class ContentService {
   private async assertSlugAvailable(slug: string, excludeId?: string): Promise<void> {
     const existing = await this.prisma.contentPiece.findUnique({ where: { slug } });
     if (existing && existing.id !== excludeId) {
-      throw new ConflictException(`slug "${slug}" je već zauzet (M12 spec §8 — slug jedinstvenost).`);
+      throw new ConflictException(
+        `slug "${slug}" je već zauzet (M12 spec §8 — slug jedinstvenost).`,
+      );
     }
   }
 
@@ -146,7 +159,12 @@ export class ContentService {
   // Čitanje
   // ==========================================================================
   // M12 spec §7 — GET /content: "lista (kalendar = sortirano po scheduled_publish_at)".
-  async findAll(filters: { type?: ContentPieceType; status?: ContentPieceStatus; channel?: ContentChannel; slug?: string }) {
+  async findAll(filters: {
+    type?: ContentPieceType;
+    status?: ContentPieceStatus;
+    channel?: ContentChannel;
+    slug?: string;
+  }) {
     return this.prisma.contentPiece.findMany({
       where: {
         type: filters.type,
@@ -160,7 +178,10 @@ export class ContentService {
   }
 
   async findOne(id: string) {
-    const content = await this.prisma.contentPiece.findUnique({ where: { id }, include: { translations: true, media: true } });
+    const content = await this.prisma.contentPiece.findUnique({
+      where: { id },
+      include: { translations: true, media: true },
+    });
     if (!content) throw new NotFoundException(`ContentPiece ${id} nije pronađen.`);
     return content;
   }
@@ -168,7 +189,10 @@ export class ContentService {
   // §7 — priprema za M8 rute /stranica/:slug i /blog/:slug (§3b) kad M8 frontend dobije kod;
   // već sad korisno za GET /content?slug=... preko findAll iznad.
   async findBySlug(slug: string) {
-    const content = await this.prisma.contentPiece.findUnique({ where: { slug }, include: { translations: true } });
+    const content = await this.prisma.contentPiece.findUnique({
+      where: { slug },
+      include: { translations: true },
+    });
     if (!content) throw new NotFoundException(`ContentPiece sa slug=${slug} nije pronađen.`);
     return content;
   }
@@ -179,7 +203,10 @@ export class ContentService {
   // §3b) — neobjavljen sadržaj ili sadržaj koji nikad nije nameravan za sajt ostaje nevidljiv,
   // NotFoundException umesto otkrivanja da zapis uopšte postoji.
   async findPublishedBySlug(type: ContentPieceType, slug: string, lang?: LanguageCode) {
-    const content = await this.prisma.contentPiece.findUnique({ where: { slug }, include: { translations: true } });
+    const content = await this.prisma.contentPiece.findUnique({
+      where: { slug },
+      include: { translations: true },
+    });
     if (
       !content ||
       content.type !== type ||
@@ -194,7 +221,11 @@ export class ContentService {
       type: content.type,
       slug: content.slug,
       translation: translation
-        ? { languageCode: translation.languageCode, title: translation.title, body: translation.body }
+        ? {
+            languageCode: translation.languageCode,
+            title: translation.title,
+            body: translation.body,
+          }
         : null,
     };
   }
@@ -216,7 +247,9 @@ export class ContentService {
   async update(id: string, dto: UpdateContentDto, actorId: string) {
     const before = await this.findOne(id);
     if (before.status === 'PUBLISHED') {
-      throw new BadRequestException('Objavljen sadržaj se više ne može menjati (M12 spec §3, nepovratna granica).');
+      throw new BadRequestException(
+        'Objavljen sadržaj se više ne može menjati (M12 spec §3, nepovratna granica).',
+      );
     }
     if (before.status === 'APPROVED') {
       throw new BadRequestException(
@@ -233,9 +266,13 @@ export class ContentService {
       data: {
         slug: dto.slug !== undefined ? dto.slug : undefined,
         targetChannels: dto.targetChannels,
-        targetTags: dto.targetTags !== undefined ? ((dto.targetTags ?? null) as Prisma.InputJsonValue) : undefined,
+        targetTags:
+          dto.targetTags !== undefined
+            ? ((dto.targetTags ?? null) as Prisma.InputJsonValue)
+            : undefined,
         containsAiGeneratedMedia: dto.containsAiGeneratedMedia,
-        scheduledPublishAt: dto.scheduledPublishAt !== undefined ? new Date(dto.scheduledPublishAt) : undefined,
+        scheduledPublishAt:
+          dto.scheduledPublishAt !== undefined ? new Date(dto.scheduledPublishAt) : undefined,
       },
       include: { translations: true },
     });
@@ -259,7 +296,9 @@ export class ContentService {
   async approve(id: string, actorId: string) {
     const content = await this.findOne(id);
     if (content.status !== 'DRAFT' && content.status !== 'PENDING_APPROVAL') {
-      throw new BadRequestException(`Sadržaj u statusu ${content.status} se ne može (ponovo) odobriti (M12 spec §3).`);
+      throw new BadRequestException(
+        `Sadržaj u statusu ${content.status} se ne može (ponovo) odobriti (M12 spec §3).`,
+      );
     }
     if (content.translations.length === 0) {
       throw new BadRequestException('ContentPiece nema nijedan prevod — nema šta da se odobri.');
@@ -313,12 +352,17 @@ export class ContentService {
   // Objava — poziva ga approve() (bez zakazivanja) i ContentPublishSchedulerService (cron, §3 korak 5)
   // ==========================================================================
   async publish(id: string) {
-    const content = await this.prisma.contentPiece.findUnique({ where: { id }, include: { translations: true } });
+    const content = await this.prisma.contentPiece.findUnique({
+      where: { id },
+      include: { translations: true },
+    });
     if (!content) throw new NotFoundException(`ContentPiece ${id} nije pronađen.`);
     if (content.status === 'PUBLISHED') return content; // idempotentno — cron sme da ponovo pokuša
 
     if (content.status !== 'APPROVED') {
-      throw new BadRequestException(`Samo APPROVED sadržaj se može objaviti (trenutni status: ${content.status}).`);
+      throw new BadRequestException(
+        `Samo APPROVED sadržaj se može objaviti (trenutni status: ${content.status}).`,
+      );
     }
 
     await this.distribution.publish(content);
@@ -364,7 +408,11 @@ export class ContentService {
     });
   }
 
-  async upsertTranslation(contentPieceId: string, dto: UpsertContentTranslationDto, actorId: string) {
+  async upsertTranslation(
+    contentPieceId: string,
+    dto: UpsertContentTranslationDto,
+    actorId: string,
+  ) {
     await this.findOne(contentPieceId);
     const translation = await this.prisma.contentTranslation.upsert({
       where: { contentPieceId_languageCode: { contentPieceId, languageCode: dto.languageCode } },
@@ -405,7 +453,9 @@ export class ContentService {
     // Ista granica kao update() iznad — sadržaj se "zamrzava" čim uđe u odobravanje, prilog
     // fajla ne sme da zaobiđe to pravilo (npr. zamena slike posle odobrenja bez ponovnog pregleda).
     if (content.status === 'PUBLISHED') {
-      throw new BadRequestException('Objavljen sadržaj se više ne može menjati (M12 spec §3, nepovratna granica).');
+      throw new BadRequestException(
+        'Objavljen sadržaj se više ne može menjati (M12 spec §3, nepovratna granica).',
+      );
     }
     if (content.status === 'APPROVED') {
       throw new BadRequestException(
@@ -420,7 +470,9 @@ export class ContentService {
 
     const mediaType = resolveContentMediaType(file.mimetype);
     if (!mediaType) {
-      throw new BadRequestException(`Tip fajla "${file.mimetype}" nije podržan — samo slika/video (M12 spec §2.5).`);
+      throw new BadRequestException(
+        `Tip fajla "${file.mimetype}" nije podržan — samo slika/video (M12 spec §2.5).`,
+      );
     }
 
     const media = await this.prisma.contentMedia.create({

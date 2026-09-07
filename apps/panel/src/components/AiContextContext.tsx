@@ -19,7 +19,14 @@ import { createContext, useContext, useState } from 'react';
 // / base64 slika) živi samo u ovom stanju pregledača, nikad se ne čuva na serveru trajno.
 export type AiContextItem =
   | { id: string; type: 'RECORD'; refLabel: string }
-  | { id: string; type: 'FILTERED_LIST'; view: string; filters: Record<string, unknown>; resultCount?: number; label: string }
+  | {
+      id: string;
+      type: 'FILTERED_LIST';
+      view: string;
+      filters: Record<string, unknown>;
+      resultCount?: number;
+      label: string;
+    }
   | { id: string; type: 'FILE'; label: string; content: string }
   | { id: string; type: 'IMAGE'; label: string; imageData: string; imageMediaType: string };
 
@@ -28,7 +35,12 @@ const MAX_ITEMS = 8;
 interface AiContextContextValue {
   items: AiContextItem[];
   addRecord: (refLabel: string) => void;
-  addFilteredList: (args: { view: string; filters: Record<string, unknown>; resultCount?: number; label: string }) => void;
+  addFilteredList: (args: {
+    view: string;
+    filters: Record<string, unknown>;
+    resultCount?: number;
+    label: string;
+  }) => void;
   addFile: (args: { label: string; content: string }) => void;
   addImage: (args: { label: string; imageData: string; imageMediaType: string }) => void;
   removeItem: (id: string) => void;
@@ -41,7 +53,13 @@ const AiContextContext = createContext<AiContextContextValue | null>(null);
 
 // `onFirstAdd` otvara/prikazuje AI chat prozor (Shell.tsx) — isti "pojavljuje se čim ima šta da
 // pokaže" obrazac kao SelectionProvider/RowSummaryProvider.
-export function AiContextProvider({ children, onFirstAdd }: { children: React.ReactNode; onFirstAdd?: () => void }) {
+export function AiContextProvider({
+  children,
+  onFirstAdd,
+}: {
+  children: React.ReactNode;
+  onFirstAdd?: () => void;
+}) {
   const [items, setItems] = useState<AiContextItem[]>([]);
 
   function addRecord(refLabel: string) {
@@ -53,12 +71,20 @@ export function AiContextProvider({ children, onFirstAdd }: { children: React.Re
     });
   }
 
-  function addFilteredList(args: { view: string; filters: Record<string, unknown>; resultCount?: number; label: string }) {
+  function addFilteredList(args: {
+    view: string;
+    filters: Record<string, unknown>;
+    resultCount?: number;
+    label: string;
+  }) {
     setItems((prev) => {
       if (prev.some((i) => i.type === 'FILTERED_LIST')) return prev; // najviše jedan odjednom, M15 spec §6.5.4.3
       if (prev.length >= MAX_ITEMS) return prev;
       if (prev.length === 0) onFirstAdd?.();
-      return [...prev, { id: `filtered-${args.view}-${Date.now()}`, type: 'FILTERED_LIST', ...args }];
+      return [
+        ...prev,
+        { id: `filtered-${args.view}-${Date.now()}`, type: 'FILTERED_LIST', ...args },
+      ];
     });
   }
 
@@ -66,7 +92,14 @@ export function AiContextProvider({ children, onFirstAdd }: { children: React.Re
     setItems((prev) => {
       if (prev.length >= MAX_ITEMS) return prev;
       if (prev.length === 0) onFirstAdd?.();
-      return [...prev, { id: `file-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, type: 'FILE', ...args }];
+      return [
+        ...prev,
+        {
+          id: `file-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+          type: 'FILE',
+          ...args,
+        },
+      ];
     });
   }
 
@@ -74,7 +107,14 @@ export function AiContextProvider({ children, onFirstAdd }: { children: React.Re
     setItems((prev) => {
       if (prev.length >= MAX_ITEMS) return prev;
       if (prev.length === 0) onFirstAdd?.();
-      return [...prev, { id: `image-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, type: 'IMAGE', ...args }];
+      return [
+        ...prev,
+        {
+          id: `image-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+          type: 'IMAGE',
+          ...args,
+        },
+      ];
     });
   }
 

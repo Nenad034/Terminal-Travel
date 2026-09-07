@@ -5,7 +5,12 @@ import { useFormStatus } from 'react-dom';
 import Icon from '@/components/Icon';
 import { Button } from '@/components/ui/button';
 import { PRODUCT_ICONS } from '@/lib/search-product-types';
-import { addBookingItem, addManualBookingItem, previewAddBookingItem, type AddItemPreviewResult } from './booking-changes-actions';
+import {
+  addBookingItem,
+  addManualBookingItem,
+  previewAddBookingItem,
+  type AddItemPreviewResult,
+} from './booking-changes-actions';
 import { emptyChangeState } from './change-form-state';
 
 // M5 spec §6.7 — DODAVANJE usluge na postojeću rezervaciju (3.9.2026, vlasnikov nalaz: „ni
@@ -35,7 +40,9 @@ interface CatalogOption {
 // §6.7 — grupni paket se ne dodaje ovim tokom (sastavlja se iz više stavki odjednom, §3.0d.6a),
 // a „Individualni paketi" nije vrsta proizvoda nego način sastavljanja pretrage (§3.0d.5a).
 // Obe ikonice se zato ovde ne nude: bolje da ih nema nego da postoje i vraćaju 400.
-const ADDABLE_ICONS = PRODUCT_ICONS.filter((p) => p.types.length > 0 && !p.types.includes('PACKAGE'));
+const ADDABLE_ICONS = PRODUCT_ICONS.filter(
+  (p) => p.types.length > 0 && !p.types.includes('PACKAGE'),
+);
 
 function formatMoney(amountCents: number, currency = 'EUR'): string {
   return `${(amountCents / 100).toLocaleString('sr-RS', { minimumFractionDigits: 2 })} ${currency}`;
@@ -59,7 +66,10 @@ export default function AddServicePanel({
   const [children, setChildren] = useState(String(defaults.children || 0));
   const [preview, setPreview] = useState<AddItemPreviewResult | null>(null);
   const [pendingPreview, startPreview] = useTransition();
-  const [state, formAction] = useActionState(addBookingItem.bind(null, bookingId), emptyChangeState);
+  const [state, formAction] = useActionState(
+    addBookingItem.bind(null, bookingId),
+    emptyChangeState,
+  );
   // §6.7b — ručni unos je odvojen režim, ne još jedna ikonica: polja su druga (dobavljač, obe
   // cene), a i sama radnja je druga — ovde se usluga PRAVI, ne bira iz kataloga.
   const [manualOpen, setManualOpen] = useState(false);
@@ -76,7 +86,9 @@ export default function AddServicePanel({
     setLoadError(null);
     Promise.all(
       active.types.map((t) =>
-        fetch(`/api/catalog/products?type=${encodeURIComponent(t)}`).then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status))))),
+        fetch(`/api/catalog/products?type=${encodeURIComponent(t)}`).then((r) =>
+          r.ok ? r.json() : Promise.reject(new Error(String(r.status))),
+        ),
       ),
     )
       .then((lists: CatalogOption[][]) => {
@@ -103,7 +115,15 @@ export default function AddServicePanel({
   function checkPrice() {
     setPreview(null);
     startPreview(async () => {
-      setPreview(await previewAddBookingItem(bookingId, { productId, stayFrom, stayTo, adults: Number(adults), children: Number(children) }));
+      setPreview(
+        await previewAddBookingItem(bookingId, {
+          productId,
+          stayFrom,
+          stayTo,
+          adults: Number(adults),
+          children: Number(children),
+        }),
+      );
     });
   }
 
@@ -111,8 +131,8 @@ export default function AddServicePanel({
     <div className="rounded-lg border border-border bg-panel p-4">
       <div className="mb-1 text-sm font-semibold text-ink">Dodaj uslugu</div>
       <p className="mb-3 text-xs text-ink-faint">
-        Izaberite vrstu usluge — iste ikonice kao u pretrazi. Usluga se dodaje na ovu rezervaciju bez obzira na poreklo (ugovoreno ili preko API
-        veze); ukupno zaduženje se preračunava.
+        Izaberite vrstu usluge — iste ikonice kao u pretrazi. Usluga se dodaje na ovu rezervaciju
+        bez obzira na poreklo (ugovoreno ili preko API veze); ukupno zaduženje se preračunava.
       </p>
 
       <div className="flex flex-wrap gap-2">
@@ -127,7 +147,9 @@ export default function AddServicePanel({
             setManualOpen(next);
           }}
           className={`flex min-w-[84px] flex-col items-center gap-1 rounded border border-dashed px-3 py-2 text-[11px] ${
-            manualOpen ? 'border-accent bg-accent-soft font-semibold text-accent-strong' : 'border-border text-ink-dim hover:border-accent hover:text-ink'
+            manualOpen
+              ? 'border-accent bg-accent-soft font-semibold text-accent-strong'
+              : 'border-border text-ink-dim hover:border-accent hover:text-ink'
           }`}
         >
           <Icon name="edit" />
@@ -142,7 +164,9 @@ export default function AddServicePanel({
               aria-pressed={on}
               onClick={() => (on ? reset() : (reset(), setOpenIcon(p.label)))}
               className={`flex min-w-[84px] flex-col items-center gap-1 rounded border px-3 py-2 text-[11px] ${
-                on ? 'border-accent bg-accent-soft font-semibold text-accent-strong' : 'border-border text-ink-dim hover:border-accent hover:text-ink'
+                on
+                  ? 'border-accent bg-accent-soft font-semibold text-accent-strong'
+                  : 'border-border text-ink-dim hover:border-accent hover:text-ink'
               }`}
             >
               <Icon name={p.icon} />
@@ -155,7 +179,10 @@ export default function AddServicePanel({
       {manualOpen && <ManualServiceForm bookingId={bookingId} defaults={defaults} onDone={reset} />}
 
       {active && (
-        <form action={formAction} className="mt-3 space-y-3 rounded border border-border bg-panel2 p-3">
+        <form
+          action={formAction}
+          className="mt-3 space-y-3 rounded border border-border bg-panel2 p-3"
+        >
           <input type="hidden" name="productId" value={productId} />
           <input type="hidden" name="stayFrom" value={stayFrom} />
           <input type="hidden" name="stayTo" value={stayTo} />
@@ -168,12 +195,15 @@ export default function AddServicePanel({
                 {active.label}
               </label>
               {loadError && <p className="text-xs text-danger">{loadError}</p>}
-              {!loadError && options === null && <p className="text-xs text-ink-faint">učitavam spisak…</p>}
+              {!loadError && options === null && (
+                <p className="text-xs text-ink-faint">učitavam spisak…</p>
+              )}
               {options !== null && options.length === 0 && (
                 // §3.0g.5 — izričita rečenica umesto prazne liste; prazan spisak inače uči
                 // korisnika da je ekran pokvaren.
                 <p className="text-xs text-ink-faint">
-                  {active.emptyMessage ?? 'Za ovu vrstu još nema nijednog aktivnog proizvoda u katalogu (M2).'}
+                  {active.emptyMessage ??
+                    'Za ovu vrstu još nema nijednog aktivnog proizvoda u katalogu (M2).'}
                 </p>
               )}
               {options !== null && options.length > 0 && (
@@ -189,28 +219,66 @@ export default function AddServicePanel({
                   <option value="">— izaberite uslugu —</option>
                   {options.map((o) => (
                     <option key={o.id} value={o.id}>
-                      {o.name} — {[o.destinationCity, o.destinationCountry].filter(Boolean).join(', ')}
+                      {o.name} —{' '}
+                      {[o.destinationCity, o.destinationCountry].filter(Boolean).join(', ')}
                     </option>
                   ))}
                 </select>
               )}
             </div>
 
-            <DateField id="add-from" label="Datum od" value={stayFrom} onChange={(v) => (setStayFrom(v), setPreview(null))} />
-            <DateField id="add-to" label="Datum do" value={stayTo} onChange={(v) => (setStayTo(v), setPreview(null))} />
-            <NumberField id="add-adults" label="Odraslih" min={1} value={adults} onChange={(v) => (setAdults(v), setPreview(null))} />
-            <NumberField id="add-children" label="Dece" min={0} value={children} onChange={(v) => (setChildren(v), setPreview(null))} />
+            <DateField
+              id="add-from"
+              label="Datum od"
+              value={stayFrom}
+              onChange={(v) => (setStayFrom(v), setPreview(null))}
+            />
+            <DateField
+              id="add-to"
+              label="Datum do"
+              value={stayTo}
+              onChange={(v) => (setStayTo(v), setPreview(null))}
+            />
+            <NumberField
+              id="add-adults"
+              label="Odraslih"
+              min={1}
+              value={adults}
+              onChange={(v) => (setAdults(v), setPreview(null))}
+            />
+            <NumberField
+              id="add-children"
+              label="Dece"
+              min={0}
+              value={children}
+              onChange={(v) => (setChildren(v), setPreview(null))}
+            />
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            <Button type="button" size="sm" variant="secondary" disabled={pendingPreview || !productId} onClick={checkPrice}>
+            <Button
+              type="button"
+              size="sm"
+              variant="secondary"
+              disabled={pendingPreview || !productId}
+              onClick={checkPrice}
+            >
               {pendingPreview ? 'proveravam cenu…' : 'Proveri cenu'}
             </Button>
             {preview && !preview.error && (
               <span className="text-xs text-ink">
-                usluga <span className="font-mono font-semibold">{formatMoney(preview.newPrice ?? 0, preview.newCurrency ?? undefined)}</span> ·
-                ukupno <span className="font-mono">{formatMoney(preview.bookingTotalBefore ?? 0, preview.newCurrency ?? undefined)}</span> →{' '}
-                <span className="font-mono font-semibold text-ink">{formatMoney(preview.bookingTotalAfter ?? 0, preview.newCurrency ?? undefined)}</span>
+                usluga{' '}
+                <span className="font-mono font-semibold">
+                  {formatMoney(preview.newPrice ?? 0, preview.newCurrency ?? undefined)}
+                </span>{' '}
+                · ukupno{' '}
+                <span className="font-mono">
+                  {formatMoney(preview.bookingTotalBefore ?? 0, preview.newCurrency ?? undefined)}
+                </span>{' '}
+                →{' '}
+                <span className="font-mono font-semibold text-ink">
+                  {formatMoney(preview.bookingTotalAfter ?? 0, preview.newCurrency ?? undefined)}
+                </span>
               </span>
             )}
             {preview?.error && <span className="text-xs text-danger">{preview.error}</span>}
@@ -224,8 +292,8 @@ export default function AddServicePanel({
           </div>
 
           <p className="text-[11px] text-ink-faint">
-            Kapacitet kod dobavljača se uzima pre upisa stavke (M5 spec §6.7). Za ugovorenu uslugu se odmah priprema NOVA najava tom dobavljaču;
-            već poslate najave se ne diraju.
+            Kapacitet kod dobavljača se uzima pre upisa stavke (M5 spec §6.7). Za ugovorenu uslugu
+            se odmah priprema NOVA najava tom dobavljaču; već poslate najave se ne diraju.
           </p>
 
           {state.error && <p className="text-xs text-danger">{state.error}</p>}
@@ -309,7 +377,8 @@ function ManualServiceForm({
   return (
     <div className="mt-3 space-y-3 rounded border border-dashed border-border bg-panel2 p-3">
       <p className="text-xs text-ink-faint">
-        Usluga koje nema ni u ugovoru ni kod provajdera. Dobavljač je obavezan — bez njega vaučer i najava po dobavljaču ne mogu da rade.
+        Usluga koje nema ni u ugovoru ni kod provajdera. Dobavljač je obavezan — bez njega vaučer i
+        najava po dobavljaču ne mogu da rade.
       </p>
 
       <div className="grid gap-3 sm:grid-cols-4">
@@ -353,7 +422,9 @@ function ManualServiceForm({
             onChange={(e) => setSupplierId(e.target.value)}
             className="w-full rounded border border-border bg-panel px-3 py-2 text-sm text-ink focus:border-accent focus:outline-none"
           >
-            <option value="">{suppliers === null ? 'učitavam…' : '— izaberite dobavljača —'}</option>
+            <option value="">
+              {suppliers === null ? 'učitavam…' : '— izaberite dobavljača —'}
+            </option>
             {(suppliers ?? []).map((s) => (
               <option key={s.id} value={s.id}>
                 {s.name}
@@ -367,19 +438,32 @@ function ManualServiceForm({
         <DateField id="m-from" label="Datum od" value={stayFrom} onChange={setStayFrom} />
         <DateField id="m-to" label="Datum do" value={stayTo} onChange={setStayTo} />
         <TextField id="m-base" label="Nabavna cena (EUR)" value={baseCost} onChange={setBaseCost} />
-        <TextField id="m-final" label="Izlazna cena (EUR)" value={finalPrice} onChange={setFinalPrice} />
+        <TextField
+          id="m-final"
+          label="Izlazna cena (EUR)"
+          value={finalPrice}
+          onChange={setFinalPrice}
+        />
       </div>
 
       <div className="flex flex-wrap items-center gap-4 text-xs">
         {/* Marža je izračun, ne polje — vidi komentar iznad komponente. */}
         <span className="text-ink-dim">
           Marža:{' '}
-          <span className={`font-mono font-semibold ${margin != null && margin < 0 ? 'text-danger' : 'text-ink'}`}>
-            {margin == null ? '—' : `${(margin / 100).toLocaleString('sr-RS', { minimumFractionDigits: 2 })} EUR`}
+          <span
+            className={`font-mono font-semibold ${margin != null && margin < 0 ? 'text-danger' : 'text-ink'}`}
+          >
+            {margin == null
+              ? '—'
+              : `${(margin / 100).toLocaleString('sr-RS', { minimumFractionDigits: 2 })} EUR`}
           </span>
         </span>
         <label className="flex items-center gap-1.5 text-ink-dim">
-          <input type="checkbox" checked={saveToCatalog} onChange={(e) => setSaveToCatalog(e.target.checked)} />
+          <input
+            type="checkbox"
+            checked={saveToCatalog}
+            onChange={(e) => setSaveToCatalog(e.target.checked)}
+          />
           sačuvaj u katalog (usluga koja se ponavlja)
         </label>
       </div>
@@ -394,7 +478,8 @@ function ManualServiceForm({
       </div>
 
       <p className="text-[11px] text-ink-faint">
-        Bez kvačice usluga ostaje samo na ovoj rezervaciji — ne pojavljuje se u pretrazi, na sajtu ni u B2B portalu (M5 spec §6.7b).
+        Bez kvačice usluga ostaje samo na ovoj rezervaciji — ne pojavljuje se u pretrazi, na sajtu
+        ni u B2B portalu (M5 spec §6.7b).
       </p>
 
       {result?.error && <p className="text-xs text-danger">{result.error}</p>}
@@ -403,7 +488,17 @@ function ManualServiceForm({
   );
 }
 
-function TextField({ id, label, value, onChange }: { id: string; label: string; value: string; onChange: (v: string) => void }) {
+function TextField({
+  id,
+  label,
+  value,
+  onChange,
+}: {
+  id: string;
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+}) {
   return (
     <div>
       <label htmlFor={id} className="mb-1 block text-xs font-medium text-ink">
@@ -419,7 +514,17 @@ function TextField({ id, label, value, onChange }: { id: string; label: string; 
   );
 }
 
-function DateField({ id, label, value, onChange }: { id: string; label: string; value: string; onChange: (v: string) => void }) {
+function DateField({
+  id,
+  label,
+  value,
+  onChange,
+}: {
+  id: string;
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+}) {
   return (
     <div>
       <label htmlFor={id} className="mb-1 block text-xs font-medium text-ink">
@@ -436,7 +541,19 @@ function DateField({ id, label, value, onChange }: { id: string; label: string; 
   );
 }
 
-function NumberField({ id, label, min, value, onChange }: { id: string; label: string; min: number; value: string; onChange: (v: string) => void }) {
+function NumberField({
+  id,
+  label,
+  min,
+  value,
+  onChange,
+}: {
+  id: string;
+  label: string;
+  min: number;
+  value: string;
+  onChange: (v: string) => void;
+}) {
   return (
     <div>
       <label htmlFor={id} className="mb-1 block text-xs font-medium text-ink">

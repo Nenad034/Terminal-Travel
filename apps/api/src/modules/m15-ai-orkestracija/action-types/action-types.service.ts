@@ -11,7 +11,9 @@ export class ActionTypesService {
   constructor(private readonly prisma: PrismaService) {}
 
   findAll() {
-    return this.prisma.agentActionType.findMany({ orderBy: [{ moduleCode: 'asc' }, { actionCode: 'asc' }] });
+    return this.prisma.agentActionType.findMany({
+      orderBy: [{ moduleCode: 'asc' }, { actionCode: 'asc' }],
+    });
   }
 
   async create(dto: CreateActionTypeDto) {

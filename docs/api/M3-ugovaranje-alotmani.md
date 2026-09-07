@@ -17,37 +17,39 @@
 
 Nijedno od ovih polja ne prima slobodan tekst; nepoznata vrednost vraća `400`.
 
-| Polje | Dozvoljene vrednosti |
-| :---- | :---- |
-| `Supplier.type` | `HOTEL`, `PREVOZNIK`, `OSIGURAVAC`, `DRUGO` |
-| `Supplier.status` | `ACTIVE`, `INACTIVE` |
-| `Contract.currency` | `EUR`, `RSD`, `USD` |
-| `Contract.status` | `DRAFT`, `ACTIVE`, `EXPIRED`, `TERMINATED` |
-| `Contract.defaultTipNastupanja` | `ORGANIZATOR`, `POSREDNIK` |
-| `Contract.commissionModel` | `NET`, `COMMISSIONABLE` |
-| `ContractPeriod.allotmentMode` | `FIXED`, `ON_REQUEST`, `CHARTER`, `FIXED_LEASE` |
-| `RateLine.priceBasis` | `PER_ROOM_PER_NIGHT`, `PER_PERSON_PER_NIGHT` |
-| `agePricing[].ageCategory` | `ADULT`, `CHILD`, `TEEN`, `INFANT` |
-| `agePricing[].pricingMode` | `PERCENTAGE_OF_BASE_PRICE`, `FLAT_PRICE_PER_NIGHT` |
-| `CancellationRule.ruleType` | `PRE_ARRIVAL`, `EARLY_DEPARTURE` |
-| `CancellationRule.earlyDepartureBasis` | `PERCENTAGE_OF_REMAINING_STAY`, `FLAT_AMOUNT` |
-| `PricelistOffer.offerType` | `EARLY_BOOKING`, `FREE_NIGHTS` |
-| `PricelistOffer.discountType` | `PERCENTAGE`, `FIXED_AMOUNT` |
-| `AncillaryService.kind` | `SURCHARGE`, `DISCOUNT` |
-| `AncillaryService.pricingMode` | `FLAT_PER_UNIT`, `PERCENTAGE_OF_NIGHTLY_RATE` |
-| `AncillaryService.priceBasis` | `PER_PERSON_PER_NIGHT`, `PER_ROOM_PER_NIGHT`, `PER_PERSON_PER_STAY`, `PER_ROOM_PER_STAY`, `PER_PET_PER_NIGHT`, `PER_PET_PER_STAY` |
-| `AncillaryService.payable` | `AGENCY`, `ON_SITE` |
-| `TouristTaxInfo.collectedBy` | `PAID_ON_SITE_BY_GUEST`, `INVOICED_TO_AGENCY` |
-| `PricelistImport.sourceFormat` | `PDF`, `EXCEL`, `WORD`, `HTML`, `EMAIL`, `SCANNED_PDF` |
+| Polje                                  | Dozvoljene vrednosti                                                                                                              |
+| :------------------------------------- | :-------------------------------------------------------------------------------------------------------------------------------- |
+| `Supplier.type`                        | `HOTEL`, `PREVOZNIK`, `OSIGURAVAC`, `DRUGO`                                                                                       |
+| `Supplier.status`                      | `ACTIVE`, `INACTIVE`                                                                                                              |
+| `Contract.currency`                    | `EUR`, `RSD`, `USD`                                                                                                               |
+| `Contract.status`                      | `DRAFT`, `ACTIVE`, `EXPIRED`, `TERMINATED`                                                                                        |
+| `Contract.defaultTipNastupanja`        | `ORGANIZATOR`, `POSREDNIK`                                                                                                        |
+| `Contract.commissionModel`             | `NET`, `COMMISSIONABLE`                                                                                                           |
+| `ContractPeriod.allotmentMode`         | `FIXED`, `ON_REQUEST`, `CHARTER`, `FIXED_LEASE`                                                                                   |
+| `RateLine.priceBasis`                  | `PER_ROOM_PER_NIGHT`, `PER_PERSON_PER_NIGHT`                                                                                      |
+| `agePricing[].ageCategory`             | `ADULT`, `CHILD`, `TEEN`, `INFANT`                                                                                                |
+| `agePricing[].pricingMode`             | `PERCENTAGE_OF_BASE_PRICE`, `FLAT_PRICE_PER_NIGHT`                                                                                |
+| `CancellationRule.ruleType`            | `PRE_ARRIVAL`, `EARLY_DEPARTURE`                                                                                                  |
+| `CancellationRule.earlyDepartureBasis` | `PERCENTAGE_OF_REMAINING_STAY`, `FLAT_AMOUNT`                                                                                     |
+| `PricelistOffer.offerType`             | `EARLY_BOOKING`, `FREE_NIGHTS`                                                                                                    |
+| `PricelistOffer.discountType`          | `PERCENTAGE`, `FIXED_AMOUNT`                                                                                                      |
+| `AncillaryService.kind`                | `SURCHARGE`, `DISCOUNT`                                                                                                           |
+| `AncillaryService.pricingMode`         | `FLAT_PER_UNIT`, `PERCENTAGE_OF_NIGHTLY_RATE`                                                                                     |
+| `AncillaryService.priceBasis`          | `PER_PERSON_PER_NIGHT`, `PER_ROOM_PER_NIGHT`, `PER_PERSON_PER_STAY`, `PER_ROOM_PER_STAY`, `PER_PET_PER_NIGHT`, `PER_PET_PER_STAY` |
+| `AncillaryService.payable`             | `AGENCY`, `ON_SITE`                                                                                                               |
+| `TouristTaxInfo.collectedBy`           | `PAID_ON_SITE_BY_GUEST`, `INVOICED_TO_AGENCY`                                                                                     |
+| `PricelistImport.sourceFormat`         | `PDF`, `EXCEL`, `WORD`, `HTML`, `EMAIL`, `SCANNED_PDF`                                                                            |
 
 ---
 
 ## Dobavljači
 
 ### GET /suppliers
+
 Dozvola: `M3/supplier/VIEW`. Vraća sve dobavljače, bez stranica (paginacija nije implementirana — lista je operativno mala).
 
 **Odgovor `200`:**
+
 ```json
 [
   {
@@ -69,9 +71,11 @@ Dozvola: `M3/supplier/VIEW`. Vraća sve dobavljače, bez stranica (paginacija ni
 ```
 
 ### POST /suppliers
+
 Dozvola: `M3/supplier/CREATE`. **Sva polja u primeru su obavezna** — nema opcionih. `bankAccount` i `status` se ne primaju pri kreiranju (`status` uvek kreće kao `ACTIVE`).
 
 **Zahtev:**
+
 ```json
 {
   "name": "Jadran Hoteli d.o.o.",
@@ -84,32 +88,43 @@ Dozvola: `M3/supplier/CREATE`. **Sva polja u primeru su obavezna** — nema opci
   "contactPhone": "+382 30 123 456"
 }
 ```
+
 **Odgovor `201`:** isti oblik kao jedan element `GET /suppliers`.
 
 `contactEmail` prolazi kroz proveru oblika e-adrese — neispravna adresa vraća `400` sa `"contactEmail must be an email"`.
 
 ### GET /suppliers/:id
+
 Dozvola: `M3/supplier/VIEW`. Nepostojeći `id` → `404` `{"message":"Zapis nije pronađen","error":"Not Found","statusCode":404}`.
 
 ### PATCH /suppliers/:id
+
 Dozvola: `M3/supplier/EDIT`. Prima **samo** `name`, `contactName`, `contactEmail`, `contactPhone`, `bankAccount`, `status` — sva opciona.
 
 **`type`, `taxId`, `registrationNumber` i `country` se ne mogu izmeniti** ovim pozivom; slanje bilo kog od njih vraća `400`. To su identifikaciona polja pravnog lica — ako se stvarno promene, u pitanju je drugi dobavljač, ne izmena postojećeg.
 
 ### GET /suppliers/:id/contacts
+
 Dozvola: `M3/supplier-contact/VIEW`. Kontakt-osobe su odvojene od `contactName`/`contactEmail` na samom dobavljaču — ta polja su „zvanični kontakt firme", a ovo su pojedinačne osobe sa kojima se radi.
 
 **Odgovor `200`:** `[]` kad ih nema (ne `404`).
 
 ### POST /suppliers/:id/contacts
+
 Dozvola: `M3/supplier-contact/CREATE`.
 
 **Zahtev:**
+
 ```json
-{ "fullName": "Ana Perović", "email": "ana.perovic@jadran-hoteli.example", "phone": "+382 69 111 222" }
+{
+  "fullName": "Ana Perović",
+  "email": "ana.perovic@jadran-hoteli.example",
+  "phone": "+382 69 111 222"
+}
 ```
 
 ### GET /suppliers/:id/contacts/:contactId · PATCH /suppliers/:id/contacts/:contactId
+
 Dozvole: `M3/supplier-contact/VIEW` odnosno `EDIT`. `PATCH` prima i `status`.
 
 **`linked_user_id` se ovde NE popunjava.** To polje daje kontakt-osobi dobavljača pristup portalu za chat i popunjava se isključivo kroz M19 tok (dozvola `M19/supplier-conversation/GRANT_ACCESS`). Slanje tog polja ovde nema efekta — ograda je namerna, jer davanje pristupa spoljnom licu ne sme da bude sporedni efekat izmene kontakt-podataka.
@@ -119,12 +134,15 @@ Dozvole: `M3/supplier-contact/VIEW` odnosno `EDIT`. `PATCH` prima i `status`.
 ## Ugovori
 
 ### GET /contracts
+
 Dozvola: `M3/contract/VIEW`.
 
 ### POST /contracts
+
 Dozvola: `M3/contract/CREATE`.
 
 **Zahtev:**
+
 ```json
 {
   "supplierId": "515a72e5-1945-40ae-a906-63ca52805a86",
@@ -142,9 +160,11 @@ Dozvola: `M3/contract/CREATE`.
 `defaultTipNastupanja` i `commissionModel` su tehnički opcioni pri kreiranju, ali **ugovor bez njih ne može preći u `ACTIVE`** (vidi `PATCH` ispod). `commissionPercentage` je obavezan samo kad je `commissionModel = "COMMISSIONABLE"`.
 
 ### GET /contracts/:id
+
 Dozvola: `M3/contract/VIEW`. **Vraća i ugnežden niz `periods[]`** — nije potrebno zvati `/periods` posebno ako vam treba samo pregled.
 
 **Odgovor `200`:**
+
 ```json
 {
   "id": "0c6c0ac8-a503-483c-a1b3-d182e2393ae9",
@@ -188,18 +208,29 @@ Dozvola: `M3/contract/VIEW`. **Vraća i ugnežden niz `periods[]`** — nije pot
 ```
 
 ### PATCH /contracts/:id
+
 Dozvola: `M3/contract/EDIT`. Ovde se menja `status`, i ovde su dve zaštite koje najčešće iznenade:
 
 ```json
-{"message":"Ugovor ne može preći u ACTIVE bez popunjenog default_tip_nastupanja (M3 spec §2.2)","error":"Bad Request","statusCode":400}
+{
+  "message": "Ugovor ne može preći u ACTIVE bez popunjenog default_tip_nastupanja (M3 spec §2.2)",
+  "error": "Bad Request",
+  "statusCode": 400
+}
 ```
+
 ```json
-{"message":"Ugovor ne može preći u ACTIVE bez popunjenog commission_model (M3 spec §2.2b)","error":"Bad Request","statusCode":400}
+{
+  "message": "Ugovor ne može preći u ACTIVE bez popunjenog commission_model (M3 spec §2.2b)",
+  "error": "Bad Request",
+  "statusCode": 400
+}
 ```
 
 Obe su namerne: bez `tip_nastupanja` se ne zna da li agencija nastupa kao organizator ili posrednik (menja zakonsku odgovornost i način fakturisanja), a bez `commission_model` se ne zna da li je ugovorena cena neto ili bruto sa provizijom — što bi tiho pokvarilo maržu na svakoj rezervaciji iz tog ugovora.
 
 ### GET /contracts/expiring-releases
+
 Dozvola: `M3/contract-period/VIEW` (ne `contract`). Vraća periode kojima se bliži rok povrata neprodatog kapaciteta (`releaseDaysBefore`), a koji još imaju neprodatih jedinica. Namenjen internom panelu i AI agentu koji upozorava na rokove.
 
 **Odgovor `200`:** niz perioda u istom obliku kao `periods[]` iznad.
@@ -213,19 +244,22 @@ Dozvola: `M3/contract-period/VIEW` (ne `contract`). Vraća periode kojima se bli
 Prefiks svih: `/contracts/:contractId/periods`.
 
 ### GET /contracts/:contractId/periods
+
 Dozvola: `M3/contract-period/VIEW`.
 
 ### POST /contracts/:contractId/periods
+
 Dozvola: `M3/contract-period/EDIT`. Koja su polja obavezna **zavisi od `allotmentMode`**:
 
-| `allotmentMode` | Obavezno dodatno | Nije dozvoljeno / nema smisla |
-| :---- | :---- | :---- |
-| `FIXED` | `totalCapacity` | `ukupnaFiksnaObaveza` |
-| `ON_REQUEST` | — (nema kapaciteta) | `totalCapacity`, `releaseDaysBefore` |
-| `CHARTER` | `totalCapacity`, `ukupnaFiksnaObaveza`, `fixedObligationCurrency` | `releaseDaysBefore` |
-| `FIXED_LEASE` | `totalCapacity`, `ukupnaFiksnaObaveza`, `fixedObligationCurrency`; opciono `paymentSchedule[]` | `releaseDaysBefore` |
+| `allotmentMode` | Obavezno dodatno                                                                               | Nije dozvoljeno / nema smisla        |
+| :-------------- | :--------------------------------------------------------------------------------------------- | :----------------------------------- |
+| `FIXED`         | `totalCapacity`                                                                                | `ukupnaFiksnaObaveza`                |
+| `ON_REQUEST`    | — (nema kapaciteta)                                                                            | `totalCapacity`, `releaseDaysBefore` |
+| `CHARTER`       | `totalCapacity`, `ukupnaFiksnaObaveza`, `fixedObligationCurrency`                              | `releaseDaysBefore`                  |
+| `FIXED_LEASE`   | `totalCapacity`, `ukupnaFiksnaObaveza`, `fixedObligationCurrency`; opciono `paymentSchedule[]` | `releaseDaysBefore`                  |
 
 **Zahtev (`FIXED`):**
+
 ```json
 {
   "stayFrom": "2027-06-01",
@@ -239,6 +273,7 @@ Dozvola: `M3/contract-period/EDIT`. Koja su polja obavezna **zavisi od `allotmen
 ```
 
 **Zahtev (`FIXED_LEASE` sa planom plaćanja):**
+
 ```json
 {
   "stayFrom": "2027-06-01",
@@ -257,18 +292,35 @@ Dozvola: `M3/contract-period/EDIT`. Koja su polja obavezna **zavisi od `allotmen
 ```
 
 **Preklapanje datuma se odbija** — dva perioda za isti ugovor i **isti `roomType`** ne smeju da se seku:
+
 ```json
-{"message":"Period se datumski preklapa sa postojećim periodom b20ea288-2bca-4723-8f55-4351ef58f4ef (2026-06-01–2026-09-30) za istu sobu (M3 spec §2.3b)","error":"Bad Request","statusCode":400}
+{
+  "message": "Period se datumski preklapa sa postojećim periodom b20ea288-2bca-4723-8f55-4351ef58f4ef (2026-06-01–2026-09-30) za istu sobu (M3 spec §2.3b)",
+  "error": "Bad Request",
+  "statusCode": 400
+}
 ```
+
 Susedni periodi (jedan se završava, drugi počinje sutradan) prolaze. Različit `roomType` u istom datumskom opsegu takođe prolazi — to su dva odvojena cenovnika.
 
 `agePolicyOverride[]` je izuzetak od uzrasne politike sobe (iz M2) **samo za ovaj period**. Oblik jednog reda:
+
 ```json
-{ "category": "CHILD", "ageFrom": 2, "ageTo": 11.99, "countsTowardCapacity": true, "maxCount": 2, "requiresCrib": false, "cribIncluded": null }
+{
+  "category": "CHILD",
+  "ageFrom": 2,
+  "ageTo": 11.99,
+  "countsTowardCapacity": true,
+  "maxCount": 2,
+  "requiresCrib": false,
+  "cribIncluded": null
+}
 ```
+
 Gornja granica se piše kao `11.99`, ne `12` — ceo broj kao granica je dvosmislen („da li dete od 12 godina ulazi?"). Isti zapis se koristi u M2.
 
 ### GET /contracts/:contractId/periods/:periodId
+
 Dozvola: `M3/contract-period/VIEW`.
 
 ---
@@ -276,9 +328,11 @@ Dozvola: `M3/contract-period/VIEW`.
 ## Cene (RateLine)
 
 ### GET /contracts/:contractId/periods/:periodId/rates
+
 Dozvola: `M3/contract-period/VIEW`.
 
 **Odgovor `200`:**
+
 ```json
 [
   {
@@ -307,19 +361,23 @@ Dozvola: `M3/contract-period/VIEW`.
   }
 ]
 ```
+
 `price: 8600` znači **86.00 EUR po sobi po noći** (valuta se nasleđuje iz ugovora, ne stoji na cenovnoj stavci).
 
 ### PUT /contracts/:contractId/periods/:periodId/rates
+
 Dozvola: `M3/contract-period/EDIT`.
 
 > **`PUT` ovde UVEK KREIRA nov red** — ne zamenjuje ceo skup i ne ažurira postojeći po ključu. Ime metoda je nasleđeno iz specifikacije; ponašanje je „dodaj cenovnu stavku". Isto važi za `offers` i `ancillary-services`. Ako pošaljete istu kombinaciju `boardType`/`occupancy` dvaput, dobićete **dva reda**, a ne izmenu prvog. Ovo je najlakša greška da se napravi na ovom API-ju.
 
 **Zahtev (cena po sobi):**
+
 ```json
 { "boardType": "HB", "occupancy": "2+0", "priceBasis": "PER_ROOM_PER_NIGHT", "price": 8600 }
 ```
 
 **Zahtev (cena po osobi, sa cenom po uzrastu):**
+
 ```json
 {
   "boardType": "HB",
@@ -328,7 +386,12 @@ Dozvola: `M3/contract-period/EDIT`.
   "price": 4300,
   "cribFeePerNight": 500,
   "agePricing": [
-    { "ageCategory": "CHILD", "occupantIndex": 1, "pricingMode": "PERCENTAGE_OF_BASE_PRICE", "percentage": 50 },
+    {
+      "ageCategory": "CHILD",
+      "occupantIndex": 1,
+      "pricingMode": "PERCENTAGE_OF_BASE_PRICE",
+      "percentage": 50
+    },
     { "ageCategory": "CHILD", "pricingMode": "PERCENTAGE_OF_BASE_PRICE", "percentage": 70 },
     { "ageCategory": "INFANT", "pricingMode": "FLAT_PRICE_PER_NIGHT", "flatPrice": 0 }
   ]
@@ -344,9 +407,11 @@ Ako gost ne pogađa nijedan red — ni uslovljen ni podrazumevani — **cena se 
 ## Pravila otkazivanja
 
 ### GET /contracts/:contractId/periods/:periodId/cancellation-rules
+
 Dozvola: `M3/contract-period/VIEW`.
 
 **Odgovor `200`:**
+
 ```json
 [
   {
@@ -361,24 +426,39 @@ Dozvola: `M3/contract-period/VIEW`.
   }
 ]
 ```
+
 `refundPercentage: 70` je **procenat koji se vraća gostu**, ne procenat kazne. Otkaz 21 dan pre dolaska → gost dobija nazad 70%.
 
 ### PUT /contracts/:contractId/periods/:periodId/cancellation-rules
+
 Dozvola: `M3/contract-period/EDIT`. Dva međusobno isključiva oblika, bira ih `ruleType` (podrazumevano `PRE_ARRIVAL` ako se izostavi):
 
 **Otkaz pre dolaska:**
+
 ```json
 { "ruleType": "PRE_ARRIVAL", "daysBeforeStay": 21, "refundPercentage": 70 }
 ```
 
 **Raniji odlazak (skraćenje već započetog boravka):**
+
 ```json
-{ "ruleType": "EARLY_DEPARTURE", "earlyDepartureBasis": "PERCENTAGE_OF_REMAINING_STAY", "earlyDeparturePercentage": 100 }
+{
+  "ruleType": "EARLY_DEPARTURE",
+  "earlyDepartureBasis": "PERCENTAGE_OF_REMAINING_STAY",
+  "earlyDeparturePercentage": 100
+}
 ```
+
 ili
+
 ```json
-{ "ruleType": "EARLY_DEPARTURE", "earlyDepartureBasis": "FLAT_AMOUNT", "earlyDepartureFlatAmount": 5000 }
+{
+  "ruleType": "EARLY_DEPARTURE",
+  "earlyDepartureBasis": "FLAT_AMOUNT",
+  "earlyDepartureFlatAmount": 5000
+}
 ```
+
 Polja iz jednog oblika se u drugom ne validiraju i ostaju `null`.
 
 ---
@@ -386,14 +466,17 @@ Polja iz jednog oblika se u drugom ne validiraju i ostaju `null`.
 ## Akcije na cenovniku (PricelistOffer)
 
 ### GET /contracts/:contractId/periods/:periodId/offers
+
 Dozvola: `M3/contract-period/VIEW`. Za period bez akcija vraća `[]` (provereno pozivom).
 
 ### PUT /contracts/:contractId/periods/:periodId/offers
+
 Dozvola: `M3/contract-period/EDIT`. **Kreira nov red pri svakom pozivu** (ista napomena kao kod `rates`).
 
 > Primeri zahteva u ovom odeljku su **sastavljeni iz modela podataka i pravila validacije, nisu uhvaćeni pozivom** — u bazi trenutno nema nijedne akcije. Oblik odgovora prati polja iz zahteva plus `id`, `contractPeriodId`, `createdAt`, `updatedAt`.
 
 **Rana rezervacija, popust u procentima:**
+
 ```json
 {
   "offerType": "EARLY_BOOKING",
@@ -407,6 +490,7 @@ Dozvola: `M3/contract-period/EDIT`. **Kreira nov red pri svakom pozivu** (ista n
 ```
 
 **„Plati 6, ostani 7":**
+
 ```json
 {
   "offerType": "FREE_NIGHTS",
@@ -428,9 +512,11 @@ Opciona ograničenja na oba tipa: `minAge`/`maxAge`, `validArrivalWeekdays` (niz
 ## Doplate i popusti (AncillaryService)
 
 ### GET /contracts/:contractId/periods/:periodId/ancillary-services
+
 Dozvola: `M3/contract-period/VIEW`. Za period bez doplata vraća `[]` (provereno pozivom).
 
 ### PUT /contracts/:contractId/periods/:periodId/ancillary-services
+
 Dozvola: `M3/contract-period/EDIT`. **Kreira nov red pri svakom pozivu.**
 
 > Kao i kod akcija: primeri ispod su **sastavljeni iz modela i pravila validacije, nisu uhvaćeni pozivom** — tabela `ancillary_services` je prazna (migracija iz septembra 2026 zahtevala je praznu tabelu jer `price_basis` nema podrazumevanu vrednost).
@@ -438,6 +524,7 @@ Dozvola: `M3/contract-period/EDIT`. **Kreira nov red pri svakom pozivu.**
 Ova struktura nosi **i doplatu i popust** — razlikuje ih `kind`, dok je iznos **uvek pozitivan**. Negativan iznos uz `DISCOUNT` bio bi dvostruka negacija i daje pogrešan znak.
 
 **Doplata za pun pansion, po osobi po noći:**
+
 ```json
 {
   "name": "Doplata za pun pansion",
@@ -452,6 +539,7 @@ Ova struktura nosi **i doplatu i popust** — razlikuje ih `kind`, dok je iznos 
 ```
 
 **Obavezna doplata po sobi — `coversPersons` je ovde OBAVEZAN:**
+
 ```json
 {
   "name": "Doplata za pogled na more",
@@ -464,9 +552,11 @@ Ova struktura nosi **i doplatu i popust** — razlikuje ih `kind`, dok je iznos 
   "payable": "AGENCY"
 }
 ```
+
 Bez `coversPersons` na `PER_ROOM_*` osnovi poziv vraća `400`. Razlog je praktičan: „doplata za sobu 20 EUR" ne znači ništa dok se ne zna koliko osoba ta soba pokriva, pa se stavka ne bi mogla ni primeniti na stvaran sastav gostiju. Bolje odbiti pri unosu nego tiho pogrešno naplatiti pri prodaji.
 
 **Popust za dete, ograničen uzrastom:**
+
 ```json
 {
   "name": "Popust za dete do 12 godina",
@@ -480,6 +570,7 @@ Bez `coversPersons` na `PER_ROOM_*` osnovi poziv vraća `400`. Razlog je prakti�
 ```
 
 **Doplata koja se plaća na licu mesta:**
+
 ```json
 {
   "name": "Boravišna taksa i osiguranje",
@@ -501,11 +592,13 @@ Ostala opciona polja: `maxAdults`, `maxChildren`, `maxQuantity`, `notes`.
 ## Boravišna taksa (informativno)
 
 ### GET /contracts/:contractId/periods/:periodId/tourist-tax
+
 Dozvola: `M3/contract-period/VIEW`.
 
 **Kad taksa nije uneta, odgovor je `200` sa praznim telom** — ne `404`, ne `{}`. Proverite prazan odgovor pre parsiranja.
 
 ### PUT /contracts/:contractId/periods/:periodId/tourist-tax
+
 Dozvola: `M3/contract-period/EDIT`. **Ovaj `PUT` je jedini u M3 koji se stvarno ponaša kao `PUT`** — odnos je 1:1 po periodu, pa ponovljen poziv menja postojeći zapis umesto da doda nov.
 
 ```json
@@ -518,6 +611,7 @@ Dozvola: `M3/contract-period/EDIT`. **Ovaj `PUT` je jedini u M3 koji se stvarno 
   "notes": "Naplaćuje hotel na recepciji pri prijavi."
 }
 ```
+
 `collectedBy` je obavezan samo kad je `includedInPrice: false`.
 
 > **Ovo polje je isključivo informativno.** Nijedan endpoint M10 (Finansije) ni M11 (Compliance) ga ne čita kao osnovu za fakturisanje ili poresku prijavu, i ne sme se tako koristiti — provereno pretragom kroz kod. Služi da se operateru i gostu kaže šta se plaća na licu mesta.
@@ -527,41 +621,55 @@ Dozvola: `M3/contract-period/EDIT`. **Ovaj `PUT` je jedini u M3 koji se stvarno 
 ## Kapacitet
 
 ### GET /contracts/:contractId/periods/:periodId/availability
+
 Dozvola: `M3/contract-period/VIEW`. Koristi ga M5 pri pretrazi.
 
 **Odgovor `200`:**
+
 ```json
 { "allotmentMode": "FIXED", "totalCapacity": 40, "unitsSold": 0, "remaining": 40 }
 ```
 
 ### POST /contracts/:contractId/periods/:periodId/reserve
+
 Dozvola: `M3/contract-period/EDIT`.
 
 **Zahtev:**
+
 ```json
 { "units": 1 }
 ```
+
 `units` se može izostaviti — podrazumeva se `1`.
 
 **Odgovor `201` (period sa kapacitetom):**
+
 ```json
 { "reserved": true, "unitsSold": 1, "remaining": 39 }
 ```
 
 **Odgovor `201` (`ON_REQUEST` — nema kapaciteta za brojanje):**
+
 ```json
 { "reserved": true, "allotmentMode": "ON_REQUEST", "requiresSupplierConfirmation": true }
 ```
+
 Ovde `reserved: true` **ne znači da je mesto obezbeđeno** — znači samo da je zahtev prihvaćen; potvrda ide kroz ručni tok sa dobavljačem. Ko ovo protumači kao potvrđenu rezervaciju, prodaće nešto što nema.
 
 **Nema kapaciteta → `400`:**
+
 ```json
-{"message":"Nema dovoljno preostalog kapaciteta za ovaj period (M3 spec §2.3)","error":"Bad Request","statusCode":400}
+{
+  "message": "Nema dovoljno preostalog kapaciteta za ovaj period (M3 spec §2.3)",
+  "error": "Bad Request",
+  "statusCode": 400
+}
 ```
 
 **Konkurentnost:** umanjenje je jedan atomski `UPDATE` sa uslovom, pa dva istovremena poziva za poslednju jedinicu ne mogu oba proći — tačno jedan dobija `201`, drugi `400`. Dokazano testom sa 10 stvarno paralelnih HTTP zahteva. Ne treba vam sopstveno zaključavanje pre poziva.
 
 > **Dve ograde koje se ne vide iz specifikacije:**
+>
 > 1. Specifikacija ovaj endpoint opisuje kao „interni poziv (samo M5)", ali u kodu **nema provere da poziv dolazi iz M5** — sme ga pozvati svako sa `M3/contract-period/EDIT`. Ograničenje je organizaciono (ko ima dozvolu), ne tehničko. Ako zovete direktno, umanjujete stvaran alotman bez ijedne rezervacije iza njega.
 > 2. **Suprotna radnja — oslobađanje kapaciteta — nema svoj endpoint.** Postoji u kodu (`release()`) i poziva je M5 pri otkazivanju, ali spolja nije dostupna. Kapacitet umanjen direktnim `reserve` pozivom ne možete vratiti kroz API.
 
@@ -572,9 +680,11 @@ Ovde `reserved: true` **ne znači da je mesto obezbeđeno** — znači samo da j
 Tok: dobavljač pošalje cenovnik (PDF/Excel) → uvoz se registruje → AI izvuče redove → **čovek odobri svaki red** → tek tada nastaje stvarna cena.
 
 ### GET /pricelist-imports · GET /pricelist-imports/:id
+
 Dozvola: `M3/pricelist-import/VIEW`. `GET /:id` vraća i ugnežden `rows[]`.
 
 **Odgovor `200`:**
+
 ```json
 [
   {
@@ -590,18 +700,25 @@ Dozvola: `M3/pricelist-import/VIEW`. `GET /:id` vraća i ugnežden `rows[]`.
 ```
 
 ### POST /pricelist-imports
+
 Dozvola: `M3/pricelist-import/CREATE` — jedina M3 dozvola koju sme imati i AI agent, i to samo za predlog, nikad za potvrdu.
 
 ```json
-{ "supplierId": "515a72e5-...", "sourceFileUrl": "https://primer.rs/cenovnici/jh-2027.pdf", "sourceFormat": "PDF" }
+{
+  "supplierId": "515a72e5-...",
+  "sourceFileUrl": "https://primer.rs/cenovnici/jh-2027.pdf",
+  "sourceFormat": "PDF"
+}
 ```
 
 > **Stanje u septembru 2026:** endpoint prima oba formata i registruje uvoz, ali **sama AI ekstrakcija još nije povezana** — uvoz ostaje u `PROCESSING` dok se ne izabere AI provajder. Redove je moguće uneti i pregledati, ali ih ništa ne popunjava automatski.
 
 ### GET /pricelist-imports/:id/rows
+
 Dozvola: `M3/pricelist-import/VIEW`.
 
 **Odgovor `200`:**
+
 ```json
 [
   {
@@ -627,17 +744,21 @@ Dozvola: `M3/pricelist-import/VIEW`.
 ```
 
 ### POST /pricelist-imports/:id/rows/:rowId/approve
+
 Dozvola: `M3/pricelist-import/APPROVE_ROW` — **nikad se ne dodeljuje AI agentu.** Poziv se dodatno beleži kao agentski potez.
 
 ```json
 { "decision": "CONFIRMED" }
 ```
+
 ili, kad AI nije pogodio proizvod pa ga čovek bira:
+
 ```json
 { "decision": "MANUALLY_MATCHED", "matchedProductId": "b7e2f1a0-..." }
 ```
 
 Odobrenje kreira stvarni `ContractPeriod`/`RateLine`. Odbijanja koja ćete videti:
+
 ```json
 {"message":"Red mora imati matched_product_id pre odobrenja (M3 spec §4.2.3/§4.2.4)","error":"Bad Request","statusCode":400}
 {"message":"Poklopljeni proizvod nema source_contract_id — nije CONTRACTED proizvod","error":"Bad Request","statusCode":400}
@@ -648,6 +769,7 @@ Odobrenje kreira stvarni `ContractPeriod`/`RateLine`. Odbijanja koja ćete videt
 Treća poruka je namerna stroga ograda: ako se iz dokumenta ne vidi da li je cena po sobi ili po osobi, sistem **ne pogađa**. Razlika je dvostruka ili polovična cena.
 
 ### POST /pricelist-imports/:id/rows/:rowId/reject
+
 Dozvola: `M3/pricelist-import/APPROVE_ROW`. Bez tela zahteva. Odbacuje red bez ikakvog upisa u cenovnik.
 
 > **Nijedan red se ne upisuje kao aktivna cena automatski, bez obzira na `matchConfidence`.** Ovo je svesno strože od uobičajene prakse (gde visoka pouzdanost prolazi bez pregleda). Razlog: pogrešna nabavna cena tiho menja maržu na svakoj budućoj rezervaciji iz tog ugovora, i otkriva se tek pri obračunu. Ne očekujte prag iznad kog se odobrenje preskače — neće ga biti.
@@ -657,19 +779,26 @@ Dozvola: `M3/pricelist-import/APPROVE_ROW`. Bez tela zahteva. Odbacuje red bez i
 ## Greške — zajednički oblik
 
 Sve greške imaju isti oblik (NestJS standard):
+
 ```json
 { "message": "opis greške", "error": "Bad Request", "statusCode": 400 }
 ```
+
 Kod greške validacije `message` je **niz** poruka, po jedna za svako polje:
+
 ```json
-{ "message": ["price must be an integer number", "boardType must be a string"], "error": "Bad Request", "statusCode": 400 }
+{
+  "message": ["price must be an integer number", "boardType must be a string"],
+  "error": "Bad Request",
+  "statusCode": 400
+}
 ```
 
-| Kod | Kada |
-| :---- | :---- |
-| `400` | validacija tela zahteva, preklapanje perioda, nedovoljan kapacitet, prelazak u `ACTIVE` bez obaveznih polja |
-| `401` | `{"message":"Nedostaje Bearer token",...}` ili `{"message":"Nevažeći ili istekao token",...}` |
+| Kod   | Kada                                                                                                                                                                |
+| :---- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `400` | validacija tela zahteva, preklapanje perioda, nedovoljan kapacitet, prelazak u `ACTIVE` bez obaveznih polja                                                         |
+| `401` | `{"message":"Nedostaje Bearer token",...}` ili `{"message":"Nevažeći ili istekao token",...}`                                                                       |
 | `403` | token je ispravan, ali uloga nema traženu dozvolu — poruka imenuje tačno koju: `{"message":"Nema dozvolu M3/contract/CREATE","error":"Forbidden","statusCode":403}` |
-| `404` | `{"message":"Zapis nije pronađen",...}` — nepostojeći `id`; za period `{"message":"Period nije pronađen",...}` |
+| `404` | `{"message":"Zapis nije pronađen",...}` — nepostojeći `id`; za period `{"message":"Period nije pronađen",...}`                                                      |
 
 Nepoznato polje u telu zahteva se **ne ignoriše** — vraća `400`. Ovo je namerno: tiho preskočeno polje znači da integrator misli da je nešto poslao, a nije.

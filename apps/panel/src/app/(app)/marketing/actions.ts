@@ -46,7 +46,9 @@ export async function createContent(_prev: FormState, formData: FormData): Promi
       },
     });
   } catch (err) {
-    return { error: err instanceof ApiError ? extractMessage(err) : 'Kreiranje sadržaja nije uspelo.' };
+    return {
+      error: err instanceof ApiError ? extractMessage(err) : 'Kreiranje sadržaja nije uspelo.',
+    };
   }
   revalidatePath('/marketing');
   redirect(`/marketing/${content.id}`);
@@ -54,20 +56,29 @@ export async function createContent(_prev: FormState, formData: FormData): Promi
 
 // M12 spec §7 — PATCH /content/:id. Servis odbija izmenu APPROVED/PUBLISHED sadržaja (§3,
 // nepovratna granica) — forma se u UI prikazuje samo dok je DRAFT/PENDING_APPROVAL.
-export async function updateContent(id: string, _prev: FormState, formData: FormData): Promise<FormState> {
+export async function updateContent(
+  id: string,
+  _prev: FormState,
+  formData: FormData,
+): Promise<FormState> {
   try {
     await apiFetch(`/marketing/content/${id}`, {
       method: 'PATCH',
       body: {
         slug: strOrUndef(formData, 'slug'),
-        targetChannels: formData.getAll('targetChannels').length > 0 ? formData.getAll('targetChannels') : undefined,
+        targetChannels:
+          formData.getAll('targetChannels').length > 0
+            ? formData.getAll('targetChannels')
+            : undefined,
         targetTags: tagsOrUndef(formData, 'targetTags'),
         containsAiGeneratedMedia: formData.get('containsAiGeneratedMedia') === 'on',
         scheduledPublishAt: strOrUndef(formData, 'scheduledPublishAt'),
       },
     });
   } catch (err) {
-    return { error: err instanceof ApiError ? extractMessage(err) : 'Izmena sadržaja nije uspela.' };
+    return {
+      error: err instanceof ApiError ? extractMessage(err) : 'Izmena sadržaja nije uspela.',
+    };
   }
   revalidatePath(`/marketing/${id}`);
   revalidatePath('/marketing');
@@ -77,11 +88,17 @@ export async function updateContent(id: string, _prev: FormState, formData: Form
 // M12 spec §3 korak 4/§7 — POST /content/:id/approve. Nepovratna granica ka javnoj objavi,
 // nikad AI agent (M15 registar: content.approve_publish = PROPOSE_THEN_APPROVE, sprovedeno na
 // nivou koda preko AgentActionGuard-a).
-export async function approveContent(id: string, _prev: FormState, _formData: FormData): Promise<FormState> {
+export async function approveContent(
+  id: string,
+  _prev: FormState,
+  _formData: FormData,
+): Promise<FormState> {
   try {
     await apiFetch(`/marketing/content/${id}/approve`, { method: 'POST' });
   } catch (err) {
-    return { error: err instanceof ApiError ? extractMessage(err) : 'Odobravanje sadržaja nije uspelo.' };
+    return {
+      error: err instanceof ApiError ? extractMessage(err) : 'Odobravanje sadržaja nije uspelo.',
+    };
   }
   revalidatePath(`/marketing/${id}`);
   revalidatePath('/marketing');
@@ -89,7 +106,11 @@ export async function approveContent(id: string, _prev: FormState, _formData: Fo
 }
 
 // M12 spec §2.2/§7 — PUT /content/:id/translations, isti obrazac kao M2 prevodi.
-export async function upsertContentTranslation(id: string, _prev: FormState, formData: FormData): Promise<FormState> {
+export async function upsertContentTranslation(
+  id: string,
+  _prev: FormState,
+  formData: FormData,
+): Promise<FormState> {
   try {
     await apiFetch(`/marketing/content/${id}/translations`, {
       method: 'PUT',
@@ -102,7 +123,9 @@ export async function upsertContentTranslation(id: string, _prev: FormState, for
       },
     });
   } catch (err) {
-    return { error: err instanceof ApiError ? extractMessage(err) : 'Čuvanje prevoda nije uspelo.' };
+    return {
+      error: err instanceof ApiError ? extractMessage(err) : 'Čuvanje prevoda nije uspelo.',
+    };
   }
   revalidatePath(`/marketing/${id}`);
   return { error: null };
@@ -110,24 +133,34 @@ export async function upsertContentTranslation(id: string, _prev: FormState, for
 
 // M12 spec §2.5/§7 (23.8.2026) — POST /content/:id/media, multipart/form-data. Isti obrazac kao
 // M19 `sendMessageRestFallback` prilog fajla (actions.ts u chat/).
-export async function addContentMedia(contentId: string, file: File): Promise<{ error: string | null }> {
+export async function addContentMedia(
+  contentId: string,
+  file: File,
+): Promise<{ error: string | null }> {
   try {
     const formData = new FormData();
     formData.set('file', file);
     await apiFetchMultipart(`/marketing/content/${contentId}/media`, formData);
   } catch (err) {
-    return { error: err instanceof ApiError ? extractMessage(err) : 'Dodavanje medije nije uspelo.' };
+    return {
+      error: err instanceof ApiError ? extractMessage(err) : 'Dodavanje medije nije uspelo.',
+    };
   }
   revalidatePath(`/marketing/${contentId}`);
   return { error: null };
 }
 
 // M12 spec §2.5/§7 — DELETE /content/media/:mediaId.
-export async function removeContentMedia(contentId: string, mediaId: string): Promise<{ error: string | null }> {
+export async function removeContentMedia(
+  contentId: string,
+  mediaId: string,
+): Promise<{ error: string | null }> {
   try {
     await apiFetch(`/marketing/content/media/${mediaId}`, { method: 'DELETE' });
   } catch (err) {
-    return { error: err instanceof ApiError ? extractMessage(err) : 'Uklanjanje medije nije uspelo.' };
+    return {
+      error: err instanceof ApiError ? extractMessage(err) : 'Uklanjanje medije nije uspelo.',
+    };
   }
   revalidatePath(`/marketing/${contentId}`);
   return { error: null };
@@ -144,14 +177,20 @@ export async function createChannel(_prev: FormState, formData: FormData): Promi
       },
     });
   } catch (err) {
-    return { error: err instanceof ApiError ? extractMessage(err) : 'Kreiranje kanala nije uspelo.' };
+    return {
+      error: err instanceof ApiError ? extractMessage(err) : 'Kreiranje kanala nije uspelo.',
+    };
   }
   revalidatePath('/marketing/kanali');
   return { error: null };
 }
 
 // M12 spec §7 — PATCH /channels/:code.
-export async function updateChannel(code: string, _prev: FormState, formData: FormData): Promise<FormState> {
+export async function updateChannel(
+  code: string,
+  _prev: FormState,
+  formData: FormData,
+): Promise<FormState> {
   try {
     await apiFetch(`/marketing/channels/${code}`, {
       method: 'PATCH',

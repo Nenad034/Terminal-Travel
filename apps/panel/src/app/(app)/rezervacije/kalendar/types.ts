@@ -30,7 +30,12 @@ export interface DayDetail {
   SINGLE_DAY: DayDetailEntry[];
 }
 
-export const EMPTY_DAY_DETAIL: DayDetail = { ARRIVAL: [], DEPARTURE: [], STAYOVER: [], SINGLE_DAY: [] };
+export const EMPTY_DAY_DETAIL: DayDetail = {
+  ARRIVAL: [],
+  DEPARTURE: [],
+  STAYOVER: [],
+  SINGLE_DAY: [],
+};
 
 export function dayDetailCount(d: DayDetail): number {
   return d.ARRIVAL.length + d.DEPARTURE.length + d.STAYOVER.length + d.SINGLE_DAY.length;

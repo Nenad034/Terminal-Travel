@@ -13,7 +13,10 @@ const CHANNEL_TYPES = ['TELEGRAM', 'EMAIL'];
 export default function NewChannelForm() {
   const [state, formAction] = useActionState(createNotificationChannel, initialState);
   return (
-    <form action={formAction} className="flex flex-col gap-2 rounded-lg border border-border bg-panel p-3 text-xs">
+    <form
+      action={formAction}
+      className="flex flex-col gap-2 rounded-lg border border-border bg-panel p-3 text-xs"
+    >
       {state.error && <p className="rounded bg-danger-bg p-2 text-danger">{state.error}</p>}
       <div className="flex items-end gap-2">
         <label className="text-ink-faint">
@@ -28,7 +31,12 @@ export default function NewChannelForm() {
         </label>
         <label className="flex-1 text-ink-faint">
           chatId (Telegram) / email adresa
-          <input name="configValue" required className="input mt-1" placeholder="npr. 123456789 ili vlasnik@primer.rs" />
+          <input
+            name="configValue"
+            required
+            className="input mt-1"
+            placeholder="npr. 123456789 ili vlasnik@primer.rs"
+          />
         </label>
         <label className="text-ink-faint">
           uloga primaoca

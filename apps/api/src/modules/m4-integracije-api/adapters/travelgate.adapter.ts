@@ -11,7 +11,13 @@ import {
   SearchParams,
   StayParams,
 } from '../provider-adapter.interface';
-import { BOOK_MUTATION, CANCEL_MUTATION, CONTENT_QUERY, QUOTE_QUERY, SEARCH_QUERY } from './travelgate.graphql';
+import {
+  BOOK_MUTATION,
+  CANCEL_MUTATION,
+  CONTENT_QUERY,
+  QUOTE_QUERY,
+  SEARCH_QUERY,
+} from './travelgate.graphql';
 
 interface GraphQlError {
   message?: string;
@@ -64,7 +70,10 @@ export class TravelgateAdapter implements ProviderAdapter {
     }
 
     if (res.status === 401 || res.status === 403) {
-      throw new ProviderError('AUTH_FAILED', `Travelgate autentikacija odbijena (HTTP ${res.status})`);
+      throw new ProviderError(
+        'AUTH_FAILED',
+        `Travelgate autentikacija odbijena (HTTP ${res.status})`,
+      );
     }
     if (res.status === 429) {
       throw new ProviderError('RATE_LIMITED', 'Travelgate rate limit dostignut');
@@ -114,9 +123,12 @@ export class TravelgateAdapter implements ProviderAdapter {
   }
 
   async getStaticContent(externalId: string): Promise<NormalizedContent> {
-    const data = await this.graphql<{ hotelX: { content: { hotels: Record<string, any>[] } } }>(CONTENT_QUERY, {
-      criteriaContent: { hotels: [externalId] },
-    });
+    const data = await this.graphql<{ hotelX: { content: { hotels: Record<string, any>[] } } }>(
+      CONTENT_QUERY,
+      {
+        criteriaContent: { hotels: [externalId] },
+      },
+    );
     const hotel = data.hotelX.content.hotels[0];
     if (!hotel) throw new ProviderError('INVALID_REQUEST', `Nema sadržaja za ${externalId}`);
 
@@ -126,25 +138,36 @@ export class TravelgateAdapter implements ProviderAdapter {
       description: hotel.description ?? '',
       destinationCountry: hotel.address?.country ?? '',
       destinationCity: hotel.address?.city ?? '',
-      media: (hotel.images ?? []).map((i: { url: string }) => ({ url: i.url, type: 'image' as const })),
+      media: (hotel.images ?? []).map((i: { url: string }) => ({
+        url: i.url,
+        type: 'image' as const,
+      })),
       attributes: { stars: hotel.category?.code ?? null },
     };
   }
 
-  async checkAvailabilityAndPrice(externalId: string, stay: StayParams): Promise<AvailabilityQuote> {
+  async checkAvailabilityAndPrice(
+    externalId: string,
+    stay: StayParams,
+  ): Promise<AvailabilityQuote> {
     const data = await this.graphql<{
       hotelX: { quote: { optionQuote: Record<string, any> } };
     }>(QUOTE_QUERY, {
-      criteriaQuote: { optionRefId: externalId, stay: { checkIn: stay.stayFrom, checkOut: stay.stayTo } },
+      criteriaQuote: {
+        optionRefId: externalId,
+        stay: { checkIn: stay.stayFrom, checkOut: stay.stayTo },
+      },
     });
     const quote = data.hotelX.quote.optionQuote;
     if (!quote) throw new ProviderError('NO_AVAILABILITY', `Nema ponude za ${externalId}`);
 
     // §2.1 — cancellationPolicy uvek isti oblik kao M3 CancellationRule.
-    const cancellationPolicy = (quote.cancelPolicy?.cancelPenalties ?? []).map((p: Record<string, any>) => ({
-      days_before_stay: Math.floor((p.hoursBefore ?? 0) / 24),
-      refund_percentage: p.penaltyType === 'PERCENT' ? 100 - p.value : 100,
-    }));
+    const cancellationPolicy = (quote.cancelPolicy?.cancelPenalties ?? []).map(
+      (p: Record<string, any>) => ({
+        days_before_stay: Math.floor((p.hoursBefore ?? 0) / 24),
+        refund_percentage: p.penaltyType === 'PERCENT' ? 100 - p.value : 100,
+      }),
+    );
 
     return {
       externalId,
@@ -157,9 +180,16 @@ export class TravelgateAdapter implements ProviderAdapter {
   }
 
   async confirmBooking(externalId: string, booking: BookingRequest): Promise<BookingConfirmation> {
-    const data = await this.graphql<{ hotelX: { book: { booking: Record<string, any> } } }>(BOOK_MUTATION, {
-      bookInput: { optionRefId: externalId, clientReference: booking.idempotencyKey, holder: { name: booking.guestName } },
-    });
+    const data = await this.graphql<{ hotelX: { book: { booking: Record<string, any> } } }>(
+      BOOK_MUTATION,
+      {
+        bookInput: {
+          optionRefId: externalId,
+          clientReference: booking.idempotencyKey,
+          holder: { name: booking.guestName },
+        },
+      },
+    );
     const result = data.hotelX.book.booking;
     return {
       providerBookingReference: result.supplierReference ?? result.id,

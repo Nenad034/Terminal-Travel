@@ -22,7 +22,9 @@ describe('BasicAuthStrategy', () => {
   it('dodaje ispravno Base64-enkodiran Authorization header', () => {
     const strategy = new BasicAuthStrategy('user', 'pass');
     const result = strategy.applyAuth({ headers: {} });
-    expect(result.headers.Authorization).toBe(`Basic ${Buffer.from('user:pass').toString('base64')}`);
+    expect(result.headers.Authorization).toBe(
+      `Basic ${Buffer.from('user:pass').toString('base64')}`,
+    );
   });
 });
 
@@ -37,7 +39,12 @@ describe('OAuth2ClientCredentialsStrategy', () => {
       ok: true,
       json: async () => ({ access_token: 'abc123', expires_in: 3600 }),
     });
-    const strategy = new OAuth2ClientCredentialsStrategy('https://x.com/token', 'id', 'secret', fetchMock as any);
+    const strategy = new OAuth2ClientCredentialsStrategy(
+      'https://x.com/token',
+      'id',
+      'secret',
+      fetchMock as any,
+    );
 
     await strategy.refreshIfNeeded();
     const result = strategy.applyAuth({ headers: {} });
@@ -54,7 +61,12 @@ describe('OAuth2ClientCredentialsStrategy', () => {
       ok: true,
       json: async () => ({ access_token: 'abc123', expires_in: 3600 }),
     });
-    const strategy = new OAuth2ClientCredentialsStrategy('https://x.com/token', 'id', 'secret', fetchMock as any);
+    const strategy = new OAuth2ClientCredentialsStrategy(
+      'https://x.com/token',
+      'id',
+      'secret',
+      fetchMock as any,
+    );
 
     await strategy.refreshIfNeeded();
     await strategy.refreshIfNeeded();
@@ -64,7 +76,12 @@ describe('OAuth2ClientCredentialsStrategy', () => {
 
   it('baca grešku kad token endpoint vrati ne-2xx status', async () => {
     const fetchMock = jest.fn().mockResolvedValue({ ok: false, status: 401 });
-    const strategy = new OAuth2ClientCredentialsStrategy('https://x.com/token', 'id', 'secret', fetchMock as any);
+    const strategy = new OAuth2ClientCredentialsStrategy(
+      'https://x.com/token',
+      'id',
+      'secret',
+      fetchMock as any,
+    );
 
     await expect(strategy.refreshIfNeeded()).rejects.toThrow();
   });

@@ -9,7 +9,11 @@ const PRICE_PER_MILLION_TOKENS_EUR: Record<string, { input: number; output: numb
 
 const DEFAULT_PRICE = { input: 1, output: 5 }; // konzervativna pretpostavka za nepoznat model_identifier
 
-export function estimateCostEur(modelIdentifier: string, inputTokens: number, outputTokens: number): number {
+export function estimateCostEur(
+  modelIdentifier: string,
+  inputTokens: number,
+  outputTokens: number,
+): number {
   const price = PRICE_PER_MILLION_TOKENS_EUR[modelIdentifier] ?? DEFAULT_PRICE;
   const cost = (inputTokens / 1_000_000) * price.input + (outputTokens / 1_000_000) * price.output;
   return Math.round(cost * 1_000_000) / 1_000_000; // zaokruženo na 6 decimala

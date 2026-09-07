@@ -74,7 +74,9 @@ export default function ProductPreviewCard() {
             key={i.productId}
             onClick={() => setActiveId(i.productId)}
             className={`truncate rounded px-2 py-1 text-[11px] font-medium ${
-              i.productId === activeId ? 'bg-accent-soft text-accent-strong' : 'text-ink-faint hover:bg-panel hover:text-ink'
+              i.productId === activeId
+                ? 'bg-accent-soft text-accent-strong'
+                : 'text-ink-faint hover:bg-panel hover:text-ink'
             }`}
             style={{ maxWidth: '33%' }}
           >
@@ -84,17 +86,30 @@ export default function ProductPreviewCard() {
       </div>
 
       <div className="flex-1 overflow-y-auto p-2">
-        {loadingId === activeId && !detail && <p className="p-2 text-xs text-ink-faint">Učitavanje…</p>}
-        {errorId === activeId && !detail && <p className="p-2 text-xs text-danger">Proizvod nije moguće učitati.</p>}
+        {loadingId === activeId && !detail && (
+          <p className="p-2 text-xs text-ink-faint">Učitavanje…</p>
+        )}
+        {errorId === activeId && !detail && (
+          <p className="p-2 text-xs text-danger">Proizvod nije moguće učitati.</p>
+        )}
 
         {detail && (
           <>
             {detail.photos.length > 0 && (
               <div className="mb-2 grid grid-cols-2 gap-1.5">
                 {detail.photos.map((p) => (
-                  <button key={p.url} onClick={() => setLightbox(p.url)} className="overflow-hidden rounded-md border border-border" title={p.caption ?? undefined}>
+                  <button
+                    key={p.url}
+                    onClick={() => setLightbox(p.url)}
+                    className="overflow-hidden rounded-md border border-border"
+                    title={p.caption ?? undefined}
+                  >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={p.url} alt={p.caption ?? ''} className="aspect-[3/2] w-full object-cover" />
+                    <img
+                      src={p.url}
+                      alt={p.caption ?? ''}
+                      className="aspect-[3/2] w-full object-cover"
+                    />
                   </button>
                 ))}
               </div>
@@ -105,7 +120,9 @@ export default function ProductPreviewCard() {
                 <div className="flex items-center gap-1.5">
                   <span className="font-medium text-ink">{detail.name ?? activeRef?.name}</span>
                   {detail.stars !== null && (
-                    <span className="rounded bg-panel2 px-1.5 py-0.5 text-[11px] font-semibold text-warn">{detail.stars}*</span>
+                    <span className="rounded bg-panel2 px-1.5 py-0.5 text-[11px] font-semibold text-warn">
+                      {detail.stars}*
+                    </span>
                   )}
                 </div>
                 <div className="text-[11px] text-ink-faint">
@@ -114,7 +131,9 @@ export default function ProductPreviewCard() {
               </div>
               <AddToAiContextButton refLabel={detail.name ?? activeRef?.name ?? detail.id} />
             </div>
-            {detail.description && <p className="mb-3 text-xs leading-relaxed text-ink-dim">{detail.description}</p>}
+            {detail.description && (
+              <p className="mb-3 text-xs leading-relaxed text-ink-dim">{detail.description}</p>
+            )}
 
             <button
               onClick={() => openTab(`/katalog/${detail.id}/pregled`, detail.name ?? 'Proizvod')}
@@ -127,7 +146,10 @@ export default function ProductPreviewCard() {
       </div>
 
       {lightbox && (
-        <div onClick={() => setLightbox(null)} className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-6">
+        <div
+          onClick={() => setLightbox(null)}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-6"
+        >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={lightbox} alt="" className="max-h-full max-w-full rounded-lg object-contain" />
         </div>

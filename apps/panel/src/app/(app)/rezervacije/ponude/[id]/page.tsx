@@ -2,7 +2,6 @@ import { apiFetch, ApiError } from '@/lib/api-client';
 import RegisterTab from '@/components/RegisterTab';
 import ConfirmQuoteForm from './ConfirmQuoteForm';
 
-
 interface QuoteItem {
   id: string;
   productId: string;
@@ -26,7 +25,10 @@ export default async function QuoteDetailPage(props: { params: Promise<{ id: str
   try {
     quote = await apiFetch<Quote>(`/sales/quotes/${params.id}`);
   } catch (err) {
-    error = err instanceof ApiError && err.status === 404 ? 'Ponuda nije pronađena.' : 'Ponuda trenutno nije dostupna.';
+    error =
+      err instanceof ApiError && err.status === 404
+        ? 'Ponuda nije pronađena.'
+        : 'Ponuda trenutno nije dostupna.';
   }
 
   return (
@@ -40,10 +42,14 @@ export default async function QuoteDetailPage(props: { params: Promise<{ id: str
         <>
           <div className="mb-4 overflow-hidden rounded-lg border border-border">
             {quote.items.map((item) => (
-              <div key={item.id} className="flex items-center justify-between border-b border-border bg-panel px-4 py-3 text-sm last:border-b-0">
+              <div
+                key={item.id}
+                className="flex items-center justify-between border-b border-border bg-panel px-4 py-3 text-sm last:border-b-0"
+              >
                 <span className="text-ink-faint">proizvod {item.productId.slice(0, 8)}…</span>
                 <span className="font-mono font-semibold text-ink">
-                  {(item.finalPrice / 100).toLocaleString('sr-RS', { minimumFractionDigits: 2 })} {item.finalPriceCurrency}
+                  {(item.finalPrice / 100).toLocaleString('sr-RS', { minimumFractionDigits: 2 })}{' '}
+                  {item.finalPriceCurrency}
                 </span>
               </div>
             ))}
@@ -55,8 +61,14 @@ export default async function QuoteDetailPage(props: { params: Promise<{ id: str
               <ConfirmQuoteForm quoteId={quote.id} itemCount={quote.items.length} />
             </div>
           )}
-          {quote.isExpired && <p className="rounded bg-warn-bg p-3 text-sm text-warn">Ponuda je istekla — ponovite pretragu za novu cenu.</p>}
-          {quote.status !== 'DRAFT' && <p className="text-xs text-ink-faint">Status ponude: {quote.status}</p>}
+          {quote.isExpired && (
+            <p className="rounded bg-warn-bg p-3 text-sm text-warn">
+              Ponuda je istekla — ponovite pretragu za novu cenu.
+            </p>
+          )}
+          {quote.status !== 'DRAFT' && (
+            <p className="text-xs text-ink-faint">Status ponude: {quote.status}</p>
+          )}
         </>
       )}
     </div>

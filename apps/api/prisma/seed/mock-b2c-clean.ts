@@ -19,8 +19,12 @@ async function main() {
   // findMany, ne findFirst: `Supplier.taxId` nije unique u šemi, pa ponovljena pokretanja seed-a
   // mogu ostaviti više mock dobavljača — brisanje samo prvog ostavlja proizvode koji zatim ruše
   // sledeći seed sudarom na (language_code, slug).
-  const suppliers = await prisma.supplier.findMany({ where: { taxId: `${MOCK_MARKER}-100000001` } });
-  const bookings = await prisma.booking.findMany({ where: { bookingNumber: { startsWith: MOCK_MARKER } } });
+  const suppliers = await prisma.supplier.findMany({
+    where: { taxId: `${MOCK_MARKER}-100000001` },
+  });
+  const bookings = await prisma.booking.findMany({
+    where: { bookingNumber: { startsWith: MOCK_MARKER } },
+  });
   const account = await prisma.clientAccount.findFirst({ where: { email: GUEST_EMAIL } });
 
   // Rezervacije gosta (stavke → uplate → rezervacija)
@@ -42,7 +46,10 @@ async function main() {
     await prisma.guestProfile.deleteMany({ where: { linkedClientAccountId: account.id } });
     await prisma.clientAccount.delete({ where: { id: account.id } });
   }
-  const guestUsers = await prisma.user.findMany({ where: { email: GUEST_EMAIL }, select: { id: true } });
+  const guestUsers = await prisma.user.findMany({
+    where: { email: GUEST_EMAIL },
+    select: { id: true },
+  });
   if (guestUsers.length) {
     await prisma.userRole.deleteMany({ where: { userId: { in: guestUsers.map((u) => u.id) } } });
   }
@@ -51,13 +58,17 @@ async function main() {
   // Katalog i ugovorni lanac
   if (suppliers.length) {
     const supplierIds = suppliers.map((s) => s.id);
-    const contracts = await prisma.contract.findMany({ where: { supplierId: { in: supplierIds } } });
+    const contracts = await prisma.contract.findMany({
+      where: { supplierId: { in: supplierIds } },
+    });
     const cids = contracts.map((c) => c.id);
     const periods = await prisma.contractPeriod.findMany({ where: { contractId: { in: cids } } });
     const pids = periods.map((p) => p.id);
 
     // Proizvodi mogu imati QuoteItem/BookingItem iz pregleda — obriši ih pre proizvoda.
-    const mockProducts = await prisma.product.findMany({ where: { sourceContractId: { in: cids } } });
+    const mockProducts = await prisma.product.findMany({
+      where: { sourceContractId: { in: cids } },
+    });
     const prodIds = mockProducts.map((p) => p.id);
     if (prodIds.length) {
       await prisma.quoteItem.deleteMany({ where: { productId: { in: prodIds } } });
@@ -67,7 +78,9 @@ async function main() {
     }
 
     if (pids.length) {
-      await prisma.rateLineAgePricing.deleteMany({ where: { rateLine: { contractPeriodId: { in: pids } } } }).catch(() => undefined);
+      await prisma.rateLineAgePricing
+        .deleteMany({ where: { rateLine: { contractPeriodId: { in: pids } } } })
+        .catch(() => undefined);
       await prisma.rateLine.deleteMany({ where: { contractPeriodId: { in: pids } } });
       await prisma.cancellationRule.deleteMany({ where: { contractPeriodId: { in: pids } } });
       await prisma.contractPeriod.deleteMany({ where: { id: { in: pids } } });
@@ -79,10 +92,15 @@ async function main() {
     // i to tek posle desetak već izvršenih brisanja, jer skripta nije u transakciji, pa je
     // mock skup ostajao polovično obrisan. Stavke idu pre samog manifesta (svoj FK).
     const manifestIds = (
-      await prisma.supplierManifest.findMany({ where: { supplierId: { in: supplierIds } }, select: { id: true } })
+      await prisma.supplierManifest.findMany({
+        where: { supplierId: { in: supplierIds } },
+        select: { id: true },
+      })
     ).map((m) => m.id);
     if (manifestIds.length) {
-      await prisma.supplierManifestItem.deleteMany({ where: { supplierManifestId: { in: manifestIds } } });
+      await prisma.supplierManifestItem.deleteMany({
+        where: { supplierManifestId: { in: manifestIds } },
+      });
       await prisma.supplierManifest.deleteMany({ where: { id: { in: manifestIds } } });
     }
     await prisma.supplier.deleteMany({ where: { id: { in: supplierIds } } });
@@ -90,12 +108,19 @@ async function main() {
 
   // Sigurnosna mreža — proizvod prepoznat po mock slug-u, i ako mu je ugovor već obrisan.
   const MOCK_SLUGS = [
-    'hotel-avala-resort', 'blue-bay-hotel', 'apartmani-vidikovac', 'rim-tri-dana',
-    'antalija-sedam-noci', 'boka-kotorska-brodom', 'transfer-solun-halkidiki',
+    'hotel-avala-resort',
+    'blue-bay-hotel',
+    'apartmani-vidikovac',
+    'rim-tri-dana',
+    'antalija-sedam-noci',
+    'boka-kotorska-brodom',
+    'transfer-solun-halkidiki',
     'fruska-gora-sremski-karlovci',
   ];
   const strayTranslations = await prisma.productTranslation.findMany({
-    where: { OR: [{ slug: { in: MOCK_SLUGS } }, { slug: { in: MOCK_SLUGS.map((s) => `${s}-en`) } }] },
+    where: {
+      OR: [{ slug: { in: MOCK_SLUGS } }, { slug: { in: MOCK_SLUGS.map((s) => `${s}-en`) } }],
+    },
     select: { productId: true },
   });
   const strayIds = [...new Set(strayTranslations.map((t) => t.productId))];
@@ -108,7 +133,12 @@ async function main() {
   }
 
   // M12 sadržaj i M23 članak
-  const slugs = ['o-nama', 'kontakt', 'pet-plaza-crne-gore-bez-gomile', 'kako-spakovati-kofer-za-autobuski-aranzman'];
+  const slugs = [
+    'o-nama',
+    'kontakt',
+    'pet-plaza-crne-gore-bez-gomile',
+    'kako-spakovati-kofer-za-autobuski-aranzman',
+  ];
   const pieces = await prisma.contentPiece.findMany({ where: { slug: { in: slugs } } });
   if (pieces.length) {
     const ids = pieces.map((p) => p.id);
@@ -116,7 +146,9 @@ async function main() {
     await prisma.contentPiece.deleteMany({ where: { id: { in: ids } } });
   }
 
-  const articles = await prisma.article.findMany({ where: { shareToken: { startsWith: MOCK_MARKER.toLowerCase() } } });
+  const articles = await prisma.article.findMany({
+    where: { shareToken: { startsWith: MOCK_MARKER.toLowerCase() } },
+  });
   if (articles.length) {
     const ids = articles.map((a) => a.id);
     await prisma.articleTranslation.deleteMany({ where: { articleId: { in: ids } } });

@@ -20,7 +20,10 @@ function str(formData: FormData, key: string): string | undefined {
 }
 
 // M6 spec §2.1 — POST /client-accounts.
-export async function createClientAccount(_prev: FormState, formData: FormData): Promise<FormState> {
+export async function createClientAccount(
+  _prev: FormState,
+  formData: FormData,
+): Promise<FormState> {
   let account: { id: string };
   try {
     account = await apiFetch<{ id: string }>('/crm/client-accounts', {
@@ -45,14 +48,20 @@ export async function createClientAccount(_prev: FormState, formData: FormData):
       },
     });
   } catch (err) {
-    return { error: err instanceof ApiError ? extractMessage(err) : 'Kreiranje nalogodavca nije uspelo.' };
+    return {
+      error: err instanceof ApiError ? extractMessage(err) : 'Kreiranje nalogodavca nije uspelo.',
+    };
   }
   revalidatePath('/crm');
   redirect(`/crm/${account.id}`);
 }
 
 // M6 spec §2.1 — PATCH /client-accounts/:id. Sva polja opciona.
-export async function updateClientAccount(id: string, _prev: FormState, formData: FormData): Promise<FormState> {
+export async function updateClientAccount(
+  id: string,
+  _prev: FormState,
+  formData: FormData,
+): Promise<FormState> {
   try {
     await apiFetch(`/crm/client-accounts/${id}`, {
       method: 'PATCH',
@@ -76,7 +85,9 @@ export async function updateClientAccount(id: string, _prev: FormState, formData
       },
     });
   } catch (err) {
-    return { error: err instanceof ApiError ? extractMessage(err) : 'Izmena nalogodavca nije uspela.' };
+    return {
+      error: err instanceof ApiError ? extractMessage(err) : 'Izmena nalogodavca nije uspela.',
+    };
   }
   revalidatePath(`/crm/${id}`);
   revalidatePath('/crm');
@@ -101,14 +112,20 @@ export async function createGuestProfile(_prev: FormState, formData: FormData): 
       },
     });
   } catch (err) {
-    return { error: err instanceof ApiError ? extractMessage(err) : 'Kreiranje profila gosta nije uspelo.' };
+    return {
+      error: err instanceof ApiError ? extractMessage(err) : 'Kreiranje profila gosta nije uspelo.',
+    };
   }
   revalidatePath('/crm/gosti');
   redirect(`/crm/gosti/${profile.id}`);
 }
 
 // M6 spec §2.2 — PATCH /guest-profiles/:id. Sva polja opciona.
-export async function updateGuestProfile(id: string, _prev: FormState, formData: FormData): Promise<FormState> {
+export async function updateGuestProfile(
+  id: string,
+  _prev: FormState,
+  formData: FormData,
+): Promise<FormState> {
   try {
     await apiFetch(`/crm/guest-profiles/${id}`, {
       method: 'PATCH',
@@ -124,7 +141,9 @@ export async function updateGuestProfile(id: string, _prev: FormState, formData:
       },
     });
   } catch (err) {
-    return { error: err instanceof ApiError ? extractMessage(err) : 'Izmena profila gosta nije uspela.' };
+    return {
+      error: err instanceof ApiError ? extractMessage(err) : 'Izmena profila gosta nije uspela.',
+    };
   }
   revalidatePath(`/crm/gosti/${id}`);
   revalidatePath('/crm/gosti');
@@ -132,7 +151,11 @@ export async function updateGuestProfile(id: string, _prev: FormState, formData:
 }
 
 // M6 spec §3.2 — POST /loyalty-status/:clientAccountId/override. Razlog obavezan.
-export async function overrideLoyaltyStatus(clientAccountId: string, _prev: FormState, formData: FormData): Promise<FormState> {
+export async function overrideLoyaltyStatus(
+  clientAccountId: string,
+  _prev: FormState,
+  formData: FormData,
+): Promise<FormState> {
   try {
     await apiFetch(`/crm/loyalty-status/${clientAccountId}/override`, {
       method: 'POST',
@@ -142,7 +165,9 @@ export async function overrideLoyaltyStatus(clientAccountId: string, _prev: Form
       },
     });
   } catch (err) {
-    return { error: err instanceof ApiError ? extractMessage(err) : 'Ručna dodela nivoa nije uspela.' };
+    return {
+      error: err instanceof ApiError ? extractMessage(err) : 'Ručna dodela nivoa nije uspela.',
+    };
   }
   revalidatePath(`/crm/${clientAccountId}`);
   return { error: null };
@@ -169,7 +194,9 @@ export async function createCommunicationLog(
       },
     });
   } catch (err) {
-    return { error: err instanceof ApiError ? extractMessage(err) : 'Beleženje komunikacije nije uspelo.' };
+    return {
+      error: err instanceof ApiError ? extractMessage(err) : 'Beleženje komunikacije nije uspelo.',
+    };
   }
   if (target.clientAccountId) revalidatePath(`/crm/${target.clientAccountId}`);
   if (target.guestProfileId) revalidatePath(`/crm/gosti/${target.guestProfileId}`);
@@ -187,7 +214,9 @@ export async function markCommunicationSent(
   try {
     await apiFetch(`/crm/communication-log/${id}/mark-sent`, { method: 'POST' });
   } catch (err) {
-    return { error: err instanceof ApiError ? extractMessage(err) : 'Označavanje kao poslato nije uspelo.' };
+    return {
+      error: err instanceof ApiError ? extractMessage(err) : 'Označavanje kao poslato nije uspelo.',
+    };
   }
   if (target.clientAccountId) revalidatePath(`/crm/${target.clientAccountId}`);
   if (target.guestProfileId) revalidatePath(`/crm/gosti/${target.guestProfileId}`);

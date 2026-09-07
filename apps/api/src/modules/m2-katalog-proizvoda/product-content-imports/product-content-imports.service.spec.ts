@@ -33,7 +33,9 @@ describe('ProductContentImportsService (M2 spec §3.3/§3.3a)', () => {
   describe('create — MANUAL_URL (§3.3)', () => {
     it('zahteva source_url', async () => {
       const { service } = makeService();
-      await expect(service.create({ origin: 'MANUAL_URL' as any }, 'actor-1')).rejects.toThrow(BadRequestException);
+      await expect(service.create({ origin: 'MANUAL_URL' as any }, 'actor-1')).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('kreira uvoz sa status=FAILED i jasnim razlogom (AI ekstrakcija još nije povezana)', async () => {
@@ -48,7 +50,9 @@ describe('ProductContentImportsService (M2 spec §3.3/§3.3a)', () => {
       const createCall = prisma.productContentImport.create.mock.calls[0][0];
       expect(createCall.data.status).toBe('FAILED');
       expect(createCall.data.failureReason).toMatch(/AI provajder/);
-      expect(auditLog.write).toHaveBeenCalledWith(expect.objectContaining({ action: 'product_content_import.created' }));
+      expect(auditLog.write).toHaveBeenCalledWith(
+        expect.objectContaining({ action: 'product_content_import.created' }),
+      );
       expect(result.status).toBe('FAILED');
     });
   });
@@ -94,12 +98,17 @@ describe('ProductContentImportsService (M2 spec §3.3/§3.3a)', () => {
         extractedValue: { value: 'x' },
         fieldType: 'AMENITY',
       });
-      prisma.productContentImportField.update.mockResolvedValue({ id: 'f1', reviewStatus: 'REJECTED' });
+      prisma.productContentImportField.update.mockResolvedValue({
+        id: 'f1',
+        reviewStatus: 'REJECTED',
+      });
 
       await service.reviewField('imp-1', 'f1', { decision: 'REJECTED' }, 'actor-1');
 
       expect(prisma.product.update).not.toHaveBeenCalled();
-      expect(auditLog.write).toHaveBeenCalledWith(expect.objectContaining({ action: 'product_content_import_field.rejected' }));
+      expect(auditLog.write).toHaveBeenCalledWith(
+        expect.objectContaining({ action: 'product_content_import_field.rejected' }),
+      );
     });
   });
 
@@ -113,7 +122,10 @@ describe('ProductContentImportsService (M2 spec §3.3/§3.3a)', () => {
         fieldType: 'AMENITY',
       });
       prisma.product.findUniqueOrThrow.mockResolvedValue({ id: 'p1', attributes: {} });
-      prisma.productContentImportField.update.mockResolvedValue({ id: 'f1', reviewStatus: 'APPROVED' });
+      prisma.productContentImportField.update.mockResolvedValue({
+        id: 'f1',
+        reviewStatus: 'APPROVED',
+      });
 
       await service.reviewField('imp-1', 'f1', { decision: 'APPROVED' }, 'actor-vlasnik');
 
@@ -132,7 +144,10 @@ describe('ProductContentImportsService (M2 spec §3.3/§3.3a)', () => {
         extractedValue: { value: 'Bazen' },
         fieldType: 'AMENITY',
       });
-      prisma.product.findUniqueOrThrow.mockResolvedValue({ id: 'p1', attributes: { amenities: ['Wifi'] } });
+      prisma.product.findUniqueOrThrow.mockResolvedValue({
+        id: 'p1',
+        attributes: { amenities: ['Wifi'] },
+      });
       prisma.productContentImportField.update.mockResolvedValue({});
 
       await service.reviewField('imp-1', 'f1', { decision: 'APPROVED' }, 'actor-1');
@@ -155,7 +170,9 @@ describe('ProductContentImportsService (M2 spec §3.3/§3.3a)', () => {
       await service.reviewField('imp-1', 'f1', { decision: 'APPROVED' }, 'actor-1');
 
       const productUpdateCall = prisma.product.update.mock.calls[0][0];
-      expect(productUpdateCall.data.attributes.room_types).toEqual([{ code: 'DELUXE', name: 'Deluxe' }]);
+      expect(productUpdateCall.data.attributes.room_types).toEqual([
+        { code: 'DELUXE', name: 'Deluxe' },
+      ]);
     });
 
     it('PHOTO se dodaje u media[] sa source=AI_IMPORTED', async () => {
@@ -193,7 +210,10 @@ describe('ProductContentImportsService (M2 spec §3.3/§3.3a)', () => {
       await service.reviewField('imp-1', 'f1', { decision: 'APPROVED' }, 'actor-1');
 
       const upsertCall = prisma.productTranslation.upsert.mock.calls[0][0];
-      expect(upsertCall.where.productId_languageCode).toEqual({ productId: 'p1', languageCode: 'en' });
+      expect(upsertCall.where.productId_languageCode).toEqual({
+        productId: 'p1',
+        languageCode: 'en',
+      });
       expect(upsertCall.create.name).toBe('Hotel Example');
       expect(upsertCall.create.translationSource).toBe('AI_GENERATED');
       expect(upsertCall.create.isReviewed).toBe(true);
@@ -239,7 +259,11 @@ describe('ProductContentImportsService (M2 spec §3.3/§3.3a)', () => {
 
       expect(prisma.product.create).toHaveBeenCalledWith(
         expect.objectContaining({
-          data: expect.objectContaining({ type: 'ACCOMMODATION', sourceType: 'CONTRACTED', status: 'DRAFT' }),
+          data: expect.objectContaining({
+            type: 'ACCOMMODATION',
+            sourceType: 'CONTRACTED',
+            status: 'DRAFT',
+          }),
         }),
       );
       expect(prisma.productContentImport.update).toHaveBeenCalledWith({
@@ -301,9 +325,9 @@ describe('ProductContentImportsService (M2 spec §3.3/§3.3a)', () => {
         fieldType: 'AMENITY',
       });
 
-      await expect(service.reviewField('imp-1', 'f1', { decision: 'REJECTED' }, 'actor-1')).rejects.toThrow(
-        BadRequestException,
-      );
+      await expect(
+        service.reviewField('imp-1', 'f1', { decision: 'REJECTED' }, 'actor-1'),
+      ).rejects.toThrow(BadRequestException);
     });
   });
 });

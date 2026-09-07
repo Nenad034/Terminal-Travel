@@ -25,7 +25,9 @@ function makeSummary(overrides: Partial<BookingRowSummary> = {}): BookingRowSumm
 describe('BookingSummary (dosije — sažetak reda)', () => {
   it('prikazuje dugme "Otvori pun zapis" i poziva callback kad sažetak nosi bookingId', async () => {
     const onOpen = jest.fn();
-    render(<BookingSummary summary={makeSummary({ bookingId: 'abc-123' })} onOpenFullRecord={onOpen} />);
+    render(
+      <BookingSummary summary={makeSummary({ bookingId: 'abc-123' })} onOpenFullRecord={onOpen} />,
+    );
 
     const button = screen.getByRole('button', { name: /otvori pun zapis/i });
     await userEvent.click(button);
@@ -40,7 +42,9 @@ describe('BookingSummary (dosije — sažetak reda)', () => {
   });
 
   it('prikazuje broj rezervacije i status', () => {
-    render(<BookingSummary summary={makeSummary({ bookingNumber: 'TT-000999', status: 'PENDING' })} />);
+    render(
+      <BookingSummary summary={makeSummary({ bookingNumber: 'TT-000999', status: 'PENDING' })} />,
+    );
 
     expect(screen.getByText('TT-000999')).toBeInTheDocument();
     expect(screen.getByText('PENDING')).toBeInTheDocument();

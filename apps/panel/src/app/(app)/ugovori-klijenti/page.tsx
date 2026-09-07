@@ -5,7 +5,6 @@ import RegisterTab from '@/components/RegisterTab';
 import TabLink from '@/components/TabLink';
 import { Badge } from '@/components/ui/badge';
 
-
 interface ClientContract {
   id: string;
   bookingId: string;
@@ -19,7 +18,9 @@ const STATUSES = ['', 'DRAFT', 'GENERATED', 'ACCEPTED', 'VOIDED'];
 
 // M17 spec §4/§7 (Faza 2) — "Ugovori sa klijentima", M20 §6 GET /client-contracts
 // (filtrirano po statusu — jedini filter koji API podržava jeftino).
-export default async function ClientContractsPage(props: { searchParams: Promise<{ status?: string }> }) {
+export default async function ClientContractsPage(props: {
+  searchParams: Promise<{ status?: string }>;
+}) {
   const searchParams = await props.searchParams;
   // Poziv ostaje bez dodele: `me` je koristila samo uklonjena provera, ali `getMe()` puca ako
   // sesije nema, pa je i dalje najranija tačka u kojoj se to vidi. Uklanjanje poziva bi bila
@@ -65,7 +66,9 @@ export default async function ClientContractsPage(props: { searchParams: Promise
 
       {!error && (
         <div className="overflow-hidden rounded-lg border border-border">
-          {contracts.length === 0 && <p className="p-4 text-center text-xs text-ink-faint">Nema ugovora.</p>}
+          {contracts.length === 0 && (
+            <p className="p-4 text-center text-xs text-ink-faint">Nema ugovora.</p>
+          )}
           {contracts.map((c) => (
             <TabLink
               key={c.id}
@@ -75,11 +78,16 @@ export default async function ClientContractsPage(props: { searchParams: Promise
             >
               <div>
                 <div className="font-medium text-ink">
-                  {c.contractType} <span className="text-ink-faint">— rezervacija {c.bookingId.slice(0, 8)}…</span>
+                  {c.contractType}{' '}
+                  <span className="text-ink-faint">— rezervacija {c.bookingId.slice(0, 8)}…</span>
                 </div>
                 <div className="text-xs text-ink-faint">
-                  {c.generatedAt ? `generisan ${new Date(c.generatedAt).toLocaleDateString('sr-RS')}` : 'nije generisan'}
-                  {c.acceptedAt ? ` · prihvaćen ${new Date(c.acceptedAt).toLocaleDateString('sr-RS')}` : ''}
+                  {c.generatedAt
+                    ? `generisan ${new Date(c.generatedAt).toLocaleDateString('sr-RS')}`
+                    : 'nije generisan'}
+                  {c.acceptedAt
+                    ? ` · prihvaćen ${new Date(c.acceptedAt).toLocaleDateString('sr-RS')}`
+                    : ''}
                 </div>
               </div>
               <StatusBadge status={c.status} />

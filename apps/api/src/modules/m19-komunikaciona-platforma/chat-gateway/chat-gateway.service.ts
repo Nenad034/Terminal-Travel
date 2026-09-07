@@ -13,7 +13,10 @@ import { Server, Socket } from 'socket.io';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { PresenceService } from '../presence/presence.service';
 import { ConversationsService } from '../conversations/conversations.service';
-import { AccessTokenPayload, assertAccessTokenPayload } from '../../m1-core-identitet/auth/guards/jwt-auth.guard';
+import {
+  AccessTokenPayload,
+  assertAccessTokenPayload,
+} from '../../m1-core-identitet/auth/guards/jwt-auth.guard';
 
 // M19 spec §3/§8 — WS namespace /ws/chat. Prvi WebSocket kod u repozitorijumu (nema postojećeg
 // presedana, standardni NestJS Gateway obrazac — vlasnik potvrdio @nestjs/websockets + socket.io,
@@ -62,7 +65,9 @@ export class ChatGatewayService implements OnGatewayConnection, OnGatewayDisconn
     // §9.7 — SUPPLIER_CONTACT se povezuje istim protokolom, ograničen serverski na sopstveni
     // conversation_id preko istog participant upisa koji već štiti REST (ConversationParticipant),
     // nema posebnog case-a ovde — samo se pridružuje sobama gde JESTE učesnik (ispod).
-    const memberships = await this.prisma.conversationParticipant.findMany({ where: { userId: payload.sub } });
+    const memberships = await this.prisma.conversationParticipant.findMany({
+      where: { userId: payload.sub },
+    });
     for (const m of memberships) {
       await socket.join(m.conversationId);
     }
@@ -104,23 +109,36 @@ export class ChatGatewayService implements OnGatewayConnection, OnGatewayDisconn
       );
       this.server.to(body.conversationId).emit('message.new', message);
     } catch (err) {
-      socket.emit('message.error', { conversationId: body.conversationId, error: (err as Error).message });
+      socket.emit('message.error', {
+        conversationId: body.conversationId,
+        error: (err as Error).message,
+      });
     }
   }
 
   // §2.4/§8 — efemerno, nikad upisano u bazu.
   @SubscribeMessage('typing.start')
-  handleTypingStart(@ConnectedSocket() socket: Socket, @MessageBody() body: { conversationId: string }): void {
+  handleTypingStart(
+    @ConnectedSocket() socket: Socket,
+    @MessageBody() body: { conversationId: string },
+  ): void {
     const userId: string | undefined = socket.data?.userId;
     if (!userId) return;
-    socket.to(body.conversationId).emit('typing.started', { conversationId: body.conversationId, userId });
+    socket
+      .to(body.conversationId)
+      .emit('typing.started', { conversationId: body.conversationId, userId });
   }
 
   @SubscribeMessage('typing.stop')
-  handleTypingStop(@ConnectedSocket() socket: Socket, @MessageBody() body: { conversationId: string }): void {
+  handleTypingStop(
+    @ConnectedSocket() socket: Socket,
+    @MessageBody() body: { conversationId: string },
+  ): void {
     const userId: string | undefined = socket.data?.userId;
     if (!userId) return;
-    socket.to(body.conversationId).emit('typing.stopped', { conversationId: body.conversationId, userId });
+    socket
+      .to(body.conversationId)
+      .emit('typing.stopped', { conversationId: body.conversationId, userId });
   }
 
   // §2.4 — eksplicitan klijent-signal (ne cron) za AWAY.

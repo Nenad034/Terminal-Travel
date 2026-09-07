@@ -14,7 +14,10 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from '
 export type FilterDisplayMode = 'traka' | 'prozor';
 const MODE_STORAGE_KEY = 'rezervacije-lista-filter-mode';
 
-const FilterModeContext = createContext<{ mode: FilterDisplayMode; setMode: (m: FilterDisplayMode) => void } | null>(null);
+const FilterModeContext = createContext<{
+  mode: FilterDisplayMode;
+  setMode: (m: FilterDisplayMode) => void;
+} | null>(null);
 
 export function FilterModeProvider({ children }: { children: ReactNode }) {
   const [mode, setModeState] = useState<FilterDisplayMode>('traka');
@@ -38,7 +41,9 @@ export function FilterModeProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  return <FilterModeContext.Provider value={{ mode, setMode }}>{children}</FilterModeContext.Provider>;
+  return (
+    <FilterModeContext.Provider value={{ mode, setMode }}>{children}</FilterModeContext.Provider>
+  );
 }
 
 export function useFilterMode() {

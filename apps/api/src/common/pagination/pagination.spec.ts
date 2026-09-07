@@ -34,7 +34,12 @@ describe('Straničenje (dok. 39 nalaz 2.2)', () => {
 
   describe('paginationArgs — prevod u Prisma skip/take', () => {
     it('prva strana ne preskače ništa', () => {
-      expect(paginationArgs({ page: 1, limit: 20 })).toEqual({ skip: 0, take: 20, page: 1, limit: 20 });
+      expect(paginationArgs({ page: 1, limit: 20 })).toEqual({
+        skip: 0,
+        take: 20,
+        page: 1,
+        limit: 20,
+      });
     });
 
     it('treća strana preskače tačno dve pune strane', () => {

@@ -36,14 +36,20 @@ export async function createMailbox(_prev: FormState, formData: FormData): Promi
       },
     });
   } catch (err) {
-    return { error: err instanceof ApiError ? extractMessage(err) : 'Kreiranje sandučeta nije uspelo.' };
+    return {
+      error: err instanceof ApiError ? extractMessage(err) : 'Kreiranje sandučeta nije uspelo.',
+    };
   }
   revalidatePath('/email/sanducad');
   return { error: null };
 }
 
 // M22 spec §2.2 — POST /email/mailboxes/:id/access, zahteva M22/mailbox-access/GRANT.
-export async function grantMailboxAccess(mailboxId: string, _prev: FormState, formData: FormData): Promise<FormState> {
+export async function grantMailboxAccess(
+  mailboxId: string,
+  _prev: FormState,
+  formData: FormData,
+): Promise<FormState> {
   try {
     await apiFetch(`/email/mailboxes/${mailboxId}/access`, {
       method: 'POST',
@@ -53,7 +59,9 @@ export async function grantMailboxAccess(mailboxId: string, _prev: FormState, fo
       },
     });
   } catch (err) {
-    return { error: err instanceof ApiError ? extractMessage(err) : 'Dodela pristupa nije uspela.' };
+    return {
+      error: err instanceof ApiError ? extractMessage(err) : 'Dodela pristupa nije uspela.',
+    };
   }
   revalidatePath('/email/sanducad');
   return { error: null };
@@ -61,7 +69,11 @@ export async function grantMailboxAccess(mailboxId: string, _prev: FormState, fo
 
 // M22 spec §2.4/§8 — POST /email/threads/:id/messages, zahteva REPLY (+ MailboxAccess REPLY na
 // sanduče niti, sprovedeno u servisu). Kreira isključivo STAFF poruku; send=true odmah šalje.
-export async function createEmailMessage(threadId: string, _prev: FormState, formData: FormData): Promise<FormState> {
+export async function createEmailMessage(
+  threadId: string,
+  _prev: FormState,
+  formData: FormData,
+): Promise<FormState> {
   try {
     await apiFetch(`/email/threads/${threadId}/messages`, {
       method: 'POST',
@@ -79,7 +91,12 @@ export async function createEmailMessage(threadId: string, _prev: FormState, for
 
 // M22 spec §4/§8 — POST /email/threads/:id/messages/:messageId/send. Jedini put kroz koji
 // AI_DRAFT/STAFF nacrt (sentBy=null) dobija sentBy — uvek ljudska potvrda (REPLY).
-export async function sendEmailDraft(threadId: string, messageId: string, _prev: FormState, _formData: FormData): Promise<FormState> {
+export async function sendEmailDraft(
+  threadId: string,
+  messageId: string,
+  _prev: FormState,
+  _formData: FormData,
+): Promise<FormState> {
   try {
     await apiFetch(`/email/threads/${threadId}/messages/${messageId}/send`, { method: 'POST' });
   } catch (err) {
@@ -91,14 +108,20 @@ export async function sendEmailDraft(threadId: string, messageId: string, _prev:
 
 // M22 spec §3.2/§8 — POST /email/threads/:id/link-booking, zahteva REPLY. Predlog/potvrda veze
 // ka M5 Booking, čisto informativno na niti — ne menja M5 stanje.
-export async function linkBooking(threadId: string, _prev: FormState, formData: FormData): Promise<FormState> {
+export async function linkBooking(
+  threadId: string,
+  _prev: FormState,
+  formData: FormData,
+): Promise<FormState> {
   try {
     await apiFetch(`/email/threads/${threadId}/link-booking`, {
       method: 'POST',
       body: { bookingId: strOrUndef(formData, 'bookingId') },
     });
   } catch (err) {
-    return { error: err instanceof ApiError ? extractMessage(err) : 'Povezivanje rezervacije nije uspelo.' };
+    return {
+      error: err instanceof ApiError ? extractMessage(err) : 'Povezivanje rezervacije nije uspelo.',
+    };
   }
   revalidatePath(`/email/${threadId}`);
   return { error: null };
@@ -108,7 +131,11 @@ export async function linkBooking(threadId: string, _prev: FormState, formData: 
 // ISKLJUČIVO weak-ref polje na niti (related_supplier_manifest_id/related_supplier_change_notice_id)
 // — konačna M5 supplier_confirmed_at/by potvrda ostaje isključivo M5/supplier-confirmation/CONFIRM,
 // van ovog modula (backend email-threads.service.ts to sprovodi, ne poziva M5 servise).
-export async function linkSupplierAnnouncement(threadId: string, _prev: FormState, formData: FormData): Promise<FormState> {
+export async function linkSupplierAnnouncement(
+  threadId: string,
+  _prev: FormState,
+  formData: FormData,
+): Promise<FormState> {
   try {
     await apiFetch(`/email/threads/${threadId}/link-supplier-announcement`, {
       method: 'POST',
@@ -118,7 +145,12 @@ export async function linkSupplierAnnouncement(threadId: string, _prev: FormStat
       },
     });
   } catch (err) {
-    return { error: err instanceof ApiError ? extractMessage(err) : 'Povezivanje najave dobavljača nije uspelo.' };
+    return {
+      error:
+        err instanceof ApiError
+          ? extractMessage(err)
+          : 'Povezivanje najave dobavljača nije uspelo.',
+    };
   }
   revalidatePath(`/email/${threadId}`);
   return { error: null };
@@ -126,12 +158,18 @@ export async function linkSupplierAnnouncement(threadId: string, _prev: FormStat
 
 // M22 spec §5/§8 — POST /email/threads/:id/convert-to-ticket, zahteva CONVERT_TO_TICKET (isti
 // krug kao REPLY, §7). Ljudska radnja — AI agent sme samo da predloži, nikad sam da izvrši (§5).
-export async function convertToTicket(threadId: string, _prev: FormState, _formData: FormData): Promise<FormState> {
+export async function convertToTicket(
+  threadId: string,
+  _prev: FormState,
+  _formData: FormData,
+): Promise<FormState> {
   let result: { thread: { id: string; convertedToTicketId: string }; ticket: { id: string } };
   try {
     result = await apiFetch(`/email/threads/${threadId}/convert-to-ticket`, { method: 'POST' });
   } catch (err) {
-    return { error: err instanceof ApiError ? extractMessage(err) : 'Konverzija u tiket nije uspela.' };
+    return {
+      error: err instanceof ApiError ? extractMessage(err) : 'Konverzija u tiket nije uspela.',
+    };
   }
   revalidatePath(`/email/${threadId}`);
   redirect(`/podrska/${result.ticket.id}`);

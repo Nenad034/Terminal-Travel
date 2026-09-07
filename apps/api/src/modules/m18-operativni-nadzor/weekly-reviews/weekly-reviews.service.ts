@@ -38,14 +38,21 @@ export class WeeklyReviewsService {
         periodStart,
         periodEnd,
         summary,
-        signalsIncluded: signals.map((s) => ({ id: s.id, type: s.signalType, severity: s.severity })),
+        signalsIncluded: signals.map((s) => ({
+          id: s.id,
+          type: s.signalType,
+          severity: s.severity,
+        })),
         status: 'GENERATED',
       },
     });
 
     await this.dispatch.dispatchText(summary);
 
-    return this.prisma.weeklyHealthReview.update({ where: { id: review.id }, data: { status: 'SENT', sentAt: new Date() } });
+    return this.prisma.weeklyHealthReview.update({
+      where: { id: review.id },
+      data: { status: 'SENT', sentAt: new Date() },
+    });
   }
 
   async findAll() {
@@ -65,7 +72,9 @@ export class WeeklyReviewsService {
       byType.set(s.signalType, (byType.get(s.signalType) ?? 0) + 1);
     }
 
-    const typeLines = [...byType.entries()].map(([type, count]) => `- ${type}: ${count}`).join('\n');
+    const typeLines = [...byType.entries()]
+      .map(([type, count]) => `- ${type}: ${count}`)
+      .join('\n');
     return (
       `Nedeljni pregled (${range}): ${signals.length} signala ukupno ` +
       `(${bySeverity.CRITICAL} CRITICAL, ${bySeverity.WARNING} WARNING, ${bySeverity.INFO} INFO).\n${typeLines}`

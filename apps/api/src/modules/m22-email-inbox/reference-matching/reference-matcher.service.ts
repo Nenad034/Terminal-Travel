@@ -9,7 +9,11 @@ export interface ReferenceMatchResult {
   relatedSupplierChangeNoticeId: string | null;
 }
 
-const NO_MATCH: ReferenceMatchResult = { matchType: 'NONE', relatedSupplierManifestId: null, relatedSupplierChangeNoticeId: null };
+const NO_MATCH: ReferenceMatchResult = {
+  matchType: 'NONE',
+  relatedSupplierManifestId: null,
+  relatedSupplierChangeNoticeId: null,
+};
 
 // M22 spec §3.1a (M5 §8.8) — za nit u jedinstvenom sandučetu za dobavljače, svaka nova INBOUND
 // poruka se proverava na obrazac `[REF: TT-NNNNNN]` u naslovu i telu, PRE fuzzy-match pokušaja.
@@ -41,10 +45,22 @@ export class ReferenceMatcherService {
     if (!referenceCode) return NO_MATCH;
 
     const manifest = await this.prisma.supplierManifest.findUnique({ where: { referenceCode } });
-    if (manifest) return { matchType: 'EXACT_REFERENCE', relatedSupplierManifestId: manifest.id, relatedSupplierChangeNoticeId: null };
+    if (manifest)
+      return {
+        matchType: 'EXACT_REFERENCE',
+        relatedSupplierManifestId: manifest.id,
+        relatedSupplierChangeNoticeId: null,
+      };
 
-    const changeNotice = await this.prisma.supplierChangeNotice.findUnique({ where: { referenceCode } });
-    if (changeNotice) return { matchType: 'EXACT_REFERENCE', relatedSupplierManifestId: null, relatedSupplierChangeNoticeId: changeNotice.id };
+    const changeNotice = await this.prisma.supplierChangeNotice.findUnique({
+      where: { referenceCode },
+    });
+    if (changeNotice)
+      return {
+        matchType: 'EXACT_REFERENCE',
+        relatedSupplierManifestId: null,
+        relatedSupplierChangeNoticeId: changeNotice.id,
+      };
 
     return NO_MATCH;
   }
@@ -71,7 +87,11 @@ export class ReferenceMatcherService {
       orderBy: { sentAt: 'desc' },
     });
     if (latestManifest) {
-      return { matchType: 'FUZZY_SUGGESTION', relatedSupplierManifestId: latestManifest.id, relatedSupplierChangeNoticeId: null };
+      return {
+        matchType: 'FUZZY_SUGGESTION',
+        relatedSupplierManifestId: latestManifest.id,
+        relatedSupplierChangeNoticeId: null,
+      };
     }
 
     return NO_MATCH;

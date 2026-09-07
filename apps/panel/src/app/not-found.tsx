@@ -29,7 +29,8 @@ export default function NotFound() {
         </div>
 
         <p className="mb-4 text-sm text-ink-dim">
-          Adresa na koju ste stigli ne postoji u panelu — možda je link zastareo ili je greška u kucanju.
+          Adresa na koju ste stigli ne postoji u panelu — možda je link zastareo ili je greška u
+          kucanju.
         </p>
 
         <Button asChild size="sm" variant="outline" className="mx-auto">

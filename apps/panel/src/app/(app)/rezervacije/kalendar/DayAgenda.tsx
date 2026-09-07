@@ -11,10 +11,18 @@ const SECTIONS: { key: keyof DayDetail; title: string; dot: string }[] = [
 // Spisak termina jednog dana — deljen između "Dan" prikaza (veći, sa naslovima sekcija) i
 // kolona "Nedelja" prikaza (kompaktniji, `compact` prop). Klik na termin otvara pun zapis
 // rezervacije U ISTOM tabu (`TabLink`/`navigateInTab`, isti obrazac kao `rezervacije/lista`).
-export default function DayAgenda({ detail, compact = false }: { detail: DayDetail; compact?: boolean }) {
+export default function DayAgenda({
+  detail,
+  compact = false,
+}: {
+  detail: DayDetail;
+  compact?: boolean;
+}) {
   const hasAny = SECTIONS.some((s) => detail[s.key].length > 0);
   if (!hasAny) {
-    return compact ? null : <p className="text-xs text-ink-faint">Nema rezervacija za ovaj dan (uz trenutne filtere).</p>;
+    return compact ? null : (
+      <p className="text-xs text-ink-faint">Nema rezervacija za ovaj dan (uz trenutne filtere).</p>
+    );
   }
   return (
     <div className={compact ? 'flex flex-col gap-1.5' : 'flex flex-col gap-3'}>
@@ -46,7 +54,9 @@ function Entry({ entry, dot, compact }: { entry: DayDetailEntry; dot: string; co
     >
       <span className={`h-1.5 w-1.5 flex-shrink-0 rounded-full ${dot}`} />
       <span className="truncate">
-        {compact ? entry.bookingNumber : `${entry.bookingNumber} — ${entry.guests.join(', ') || 'bez imena gosta'}`}
+        {compact
+          ? entry.bookingNumber
+          : `${entry.bookingNumber} — ${entry.guests.join(', ') || 'bez imena gosta'}`}
       </span>
     </TabLink>
   );

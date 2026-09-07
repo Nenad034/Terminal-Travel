@@ -8,7 +8,7 @@
 
 ## 0. Šta ovaj dokument NE može
 
-Ovaj dokument **ne garantuje** da se greška neće ponoviti, i nijedna sesija ne sme da tvrdi da garantuje. Greška u nalazu 1.1 nije nastala iz nepažnje — nastala je iz *usmerene* pažnje koja je tražila potvrdu umesto provere. Pravilo oblika „budi temeljniji" na to ne deluje, jer se subjektivno oseća kao da je već ispunjeno.
+Ovaj dokument **ne garantuje** da se greška neće ponoviti, i nijedna sesija ne sme da tvrdi da garantuje. Greška u nalazu 1.1 nije nastala iz nepažnje — nastala je iz _usmerene_ pažnje koja je tražila potvrdu umesto provere. Pravilo oblika „budi temeljniji" na to ne deluje, jer se subjektivno oseća kao da je već ispunjeno.
 
 Zato su sva pravila ispod napisana tako da traže **proizvod** (izlaz komande, broj, adresu ekrana), ne stanje svesti. Odsustvo dokaza je vidljivo u tekstu; odsustvo temeljnosti nije.
 
@@ -18,12 +18,12 @@ Zato su sva pravila ispod napisana tako da traže **proizvod** (izlaz komande, b
 
 Nijedan nalaz ne ulazi u dokument bez jedne od ove četiri oznake, upisane u sam nalaz:
 
-| Klasa | Značenje | Šta MORA da stoji u nalazu |
-| :---- | :---- | :---- |
-| **A — izmereno** | mašina je prebrojala | komanda/upit i njen izlaz (broj, lista) |
-| **B — viđeno na ekranu** | stvarno učitana stranica | tačna adresa, tačan klik/put, i šta je ispisano |
-| **C — pročitano u kodu** | tvrdnja o kodu | `fajl:linija` + dokaz da se taj kod stvarno izvršava (v. pravilo 3) |
-| **D — procena** | mišljenje, ne nalaz | mora biti u odvojenom poglavlju i označeno kao procena |
+| Klasa                    | Značenje                 | Šta MORA da stoji u nalazu                                          |
+| :----------------------- | :----------------------- | :------------------------------------------------------------------ |
+| **A — izmereno**         | mašina je prebrojala     | komanda/upit i njen izlaz (broj, lista)                             |
+| **B — viđeno na ekranu** | stvarno učitana stranica | tačna adresa, tačan klik/put, i šta je ispisano                     |
+| **C — pročitano u kodu** | tvrdnja o kodu           | `fajl:linija` + dokaz da se taj kod stvarno izvršava (v. pravilo 3) |
+| **D — procena**          | mišljenje, ne nalaz      | mora biti u odvojenom poglavlju i označeno kao procena              |
 
 **Klasa D se nikad ne piše u jeziku kvara.** „Ovo je loše rešeno" bez A/B/C dokaza je procena, ne nalaz. Ide u poglavlje „Procene i preporuke", ne među greške.
 
@@ -37,7 +37,7 @@ Provera kroz stvaran ekran (zamka 7.1) dokazuje **da** se nešto dešava. Ne dok
 
 U svakom nalazu klase B, simptom i uzrok se pišu kao dve odvojene stavke, svaka sa svojim dokazom. Ako uzrok nema sopstveni dokaz, nalaz se objavljuje **samo kao simptom**, sa rečenicom „uzrok nije utvrđen".
 
-*Odakle pravilo:* u nalazu 1.1 viđena poruka na ekranu (tačna) uzeta je i kao dokaz uzroka (netačan).
+_Odakle pravilo:_ u nalazu 1.1 viđena poruka na ekranu (tačna) uzeta je i kao dokaz uzroka (netačan).
 
 ---
 
@@ -49,7 +49,7 @@ Pre nego što se ijedan fajl optuži, obavezno se pokrene pretraga ko ga uvozi (
 - Tvrdnja **„X se koristi umesto Y"** bez iste pretrage za oba — zabranjena.
 - **Broj linija fajla nikad nije dokaz.** Veličina meri koliko je napisano, ne da li se izvršava. Ako se broj linija navodi, mora stajati uz dokaz izvršavanja, nikad umesto njega.
 
-*Odakle pravilo:* `BookingsTable.tsx` je optužen jer mu se ime poklopilo sa očekivanjem; iz njega se uvozi samo tip `ColumnKey`, a živa tabela je `RealBookingsTable.tsx`.
+_Odakle pravilo:_ `BookingsTable.tsx` je optužen jer mu se ime poklopilo sa očekivanjem; iz njega se uvozi samo tip `ColumnKey`, a živa tabela je `RealBookingsTable.tsx`.
 
 ---
 
@@ -61,7 +61,7 @@ Nalaz se onda formuliše brojem: **„2 od 3 ulaza vode pogrešno"**, nikad „l
 
 Reči **„sve", „nijedan", „ceo", „svuda"** u nalazu zahtevaju prebrojan izlaz komande u istom nalazu. Bez njega se ne koriste.
 
-*Odakle pravilo:* u 1.1 su tri ulaza vodila na pun zapis; dva su bila pokvarena, a nalaz je rekao „lista".
+_Odakle pravilo:_ u 1.1 su tri ulaza vodila na pun zapis; dva su bila pokvarena, a nalaz je rekao „lista".
 
 ---
 
@@ -73,7 +73,7 @@ U nalaz se upisuje jedan red: **„Pokušaj obaranja: &lt;šta je provereno&gt; 
 
 Ako pokušaj obaranja nije izvršen, nalaz ne sme nositi oznaku Kritično ni Visoko — ide u Srednje, sa napomenom da nije falsifikovan.
 
-*Zašto:* obaranje je jeftino. Nalaz 1.1 je oboren sa četiri komande. Nije propušten zbog cene, nego zato što je traženje prestalo čim je prvi rezultat odgovarao očekivanju.
+_Zašto:_ obaranje je jeftino. Nalaz 1.1 je oboren sa četiri komande. Nije propušten zbog cene, nego zato što je traženje prestalo čim je prvi rezultat odgovarao očekivanju.
 
 ---
 
@@ -81,7 +81,7 @@ Ako pokušaj obaranja nije izvršen, nalaz ne sme nositi oznaku Kritično ni Vis
 
 `CLAUDE.md` postoji zbog PrimeTravel iskustva: paralelni moduli, monoliti, „delimično gotovo". Nalaz koji **potvrđuje tu priču** deluje istinitije nego što jeste i prolazi manju kontrolu.
 
-Pre upisa svakog nalaza postavlja se pitanje: *„da li ovaj nalaz laska osnovnoj premisi projekta (duplirani moduli / mrtav kod / lažno gotovo)?"* Ako da — obavezan je **još jedan** nezavisan pokušaj obaranja, iz drugog ugla nego onaj iz pravila 5.
+Pre upisa svakog nalaza postavlja se pitanje: _„da li ovaj nalaz laska osnovnoj premisi projekta (duplirani moduli / mrtav kod / lažno gotovo)?"_ Ako da — obavezan je **još jedan** nezavisan pokušaj obaranja, iz drugog ugla nego onaj iz pravila 5.
 
 Isto važi za nalaz koji zvuči efektno u jednoj rečenici. Efektnost je signal za dodatnu proveru, ne za viši prioritet.
 
@@ -109,7 +109,7 @@ Zato svaka revizija na kraju navodi **koliko je nalaza prošlo pun postupak** (p
 
 Kad se utvrdi da je raniji nalaz netačan, tekst se **ne prepravlja u tišini**. U nalaz ide vidljiv blok: šta je tvrđeno, šta je stvarno, i **zbog čega je promašeno**. Uzrok promašaja ide u `33-ZAMKE-I-OBAVEZNE-PROVERE.md` u istom prolazu.
 
-*Zašto:* vlasnik odluke donosi na osnovu ovih dokumenata. Dokument koji tiho ispravlja sam sebe ne može da posluži kao osnov za odluku, jer se ne zna šta je od ranije pročitanog još važeće.
+_Zašto:_ vlasnik odluke donosi na osnovu ovih dokumenata. Dokument koji tiho ispravlja sam sebe ne može da posluži kao osnov za odluku, jer se ne zna šta je od ranije pročitanog još važeće.
 
 ---
 
@@ -117,16 +117,16 @@ Kad se utvrdi da je raniji nalaz netačan, tekst se **ne prepravlja u tišini**.
 
 Revizija se **ne vezuje za kalendar** — vezuje se za događaje posle kojih tačno određena vrsta kvara nastaje. Sesija koja primeti neki od ovih okidača **treba sama da predloži reviziju vlasniku**, sa obrazloženjem koji je okidač nastupio.
 
-| Okidač | Zašto baš tada | Obim |
-| :---- | :---- | :---- |
-| **Ekran pređe sa mock na prave podatke** | ovo je tačna klasa greške iz nalaza 1.1 — prelazak se desi „na pola", glavni put pređe a sporedni ulazi ostanu. Nastaje odmah, a vidi se tek kad neko klikne baš tim putem | uzak: nabrojati sve ulaze u taj ekran (pravilo 4) |
-| **Zatvaranje faze iz master plana (Faza N → N+1)** | granica faze je mesto gde se najviše modula dodiruje odjednom i gde se „delimično gotovo" najlakše proglasi gotovim | pun, ali samo nad modulima te faze |
-| **Pre prvih stvarnih podataka / prvih stvarnih korisnika** | nalazi klase „radi danas, pada pod opterećenjem" (indeksi, paginacija, N+1) nevidljivi su na 16 mock rezervacija, a skupi posle. Ovo je jedina revizija koja se NE sme odložiti | usko, ali obavezno: indeksi, paginacija, N+1, limiti |
-| **Nova aplikacija ili modul uđe u `apps/`** | nov deo ne nasleđuje navike postojećeg — testovi, CI, obrada grešaka najčešće se propuste na startu | uzak: samo taj deo, uz poređenje sa `apps/api` kao merilom |
-| **Posle perioda paralelnog rada više sesija/računara** | paralelan rad je izvor duplikata i razilaženja spec↔kod; PrimeTravel je nastao upravo tako | uzak: samo dodirnuti moduli |
-| **Kad vlasnik primeti kvar koji je „trebalo da bude uhvaćen"** | znači da postoji rupa u proveri, ne samo jedan kvar. Popraviti kvar bez revizije te rupe znači da će ista klasa greške doći opet | uzak: klasa greške, ne ceo repozitorijum |
+| Okidač                                                         | Zašto baš tada                                                                                                                                                                  | Obim                                                       |
+| :------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | :--------------------------------------------------------- |
+| **Ekran pređe sa mock na prave podatke**                       | ovo je tačna klasa greške iz nalaza 1.1 — prelazak se desi „na pola", glavni put pređe a sporedni ulazi ostanu. Nastaje odmah, a vidi se tek kad neko klikne baš tim putem      | uzak: nabrojati sve ulaze u taj ekran (pravilo 4)          |
+| **Zatvaranje faze iz master plana (Faza N → N+1)**             | granica faze je mesto gde se najviše modula dodiruje odjednom i gde se „delimično gotovo" najlakše proglasi gotovim                                                             | pun, ali samo nad modulima te faze                         |
+| **Pre prvih stvarnih podataka / prvih stvarnih korisnika**     | nalazi klase „radi danas, pada pod opterećenjem" (indeksi, paginacija, N+1) nevidljivi su na 16 mock rezervacija, a skupi posle. Ovo je jedina revizija koja se NE sme odložiti | usko, ali obavezno: indeksi, paginacija, N+1, limiti       |
+| **Nova aplikacija ili modul uđe u `apps/`**                    | nov deo ne nasleđuje navike postojećeg — testovi, CI, obrada grešaka najčešće se propuste na startu                                                                             | uzak: samo taj deo, uz poređenje sa `apps/api` kao merilom |
+| **Posle perioda paralelnog rada više sesija/računara**         | paralelan rad je izvor duplikata i razilaženja spec↔kod; PrimeTravel je nastao upravo tako                                                                                      | uzak: samo dodirnuti moduli                                |
+| **Kad vlasnik primeti kvar koji je „trebalo da bude uhvaćen"** | znači da postoji rupa u proveri, ne samo jedan kvar. Popraviti kvar bez revizije te rupe znači da će ista klasa greške doći opet                                                | uzak: klasa greške, ne ceo repozitorijum                   |
 
-**Šta ne raditi:** ne ponavljati punu reviziju celog repozitorijuma bez okidača. Druga puna revizija bez izmene u međuvremenu nalazi malo novog, troši mnogo, i — opasnije — stvara pritisak da se nešto *nađe*, što je tačno pritisak iz pravila 6 i 7.
+**Šta ne raditi:** ne ponavljati punu reviziju celog repozitorijuma bez okidača. Druga puna revizija bez izmene u međuvremenu nalazi malo novog, troši mnogo, i — opasnije — stvara pritisak da se nešto _nađe_, što je tačno pritisak iz pravila 6 i 7.
 
 **Prvi sledeći put po ovom spisku:** pre prelaska na stvaran rad sa pravim rezervacijama (treći red tabele). Do tada mock podaci ostaju po odluci vlasnika od 5.9.2026.
 

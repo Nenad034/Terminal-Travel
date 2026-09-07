@@ -22,7 +22,10 @@ export class OAuth2ClientCredentialsStrategy implements AuthStrategy {
     if (!this.accessToken) {
       throw new Error('OAuth2 token not obtained — call refreshIfNeeded() before applyAuth()');
     }
-    return { ...request, headers: { ...request.headers, Authorization: `Bearer ${this.accessToken}` } };
+    return {
+      ...request,
+      headers: { ...request.headers, Authorization: `Bearer ${this.accessToken}` },
+    };
   }
 
   async refreshIfNeeded(): Promise<void> {

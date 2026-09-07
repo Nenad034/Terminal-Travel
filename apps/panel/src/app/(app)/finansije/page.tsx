@@ -6,7 +6,6 @@ import TabLink from '@/components/TabLink';
 import { ApproveButton, PayButton } from './SupplierObligationActions';
 import { Badge } from '@/components/ui/badge';
 
-
 interface Mismatch {
   bookingId: string;
   reason: 'MISSING_FISCAL_DOCUMENT' | 'PARTIAL_PAYMENT_STALE';
@@ -45,9 +44,15 @@ export default async function FinansijePage() {
   const canViewSchedules = hasPermission(me, 'M10', 'client-payment-schedule', 'VIEW');
 
   const [mismatches, obligations, schedules] = await Promise.all([
-    canViewFiscal ? apiFetch<Mismatch[]>('/finance/reconciliation/mismatches').catch(() => null) : Promise.resolve(null),
-    canViewObligations ? apiFetch<SupplierObligation[]>('/finance/supplier-obligations').catch(() => null) : Promise.resolve(null),
-    canViewSchedules ? apiFetch<ClientPaymentSchedule[]>('/finance/client-payment-schedules').catch(() => null) : Promise.resolve(null),
+    canViewFiscal
+      ? apiFetch<Mismatch[]>('/finance/reconciliation/mismatches').catch(() => null)
+      : Promise.resolve(null),
+    canViewObligations
+      ? apiFetch<SupplierObligation[]>('/finance/supplier-obligations').catch(() => null)
+      : Promise.resolve(null),
+    canViewSchedules
+      ? apiFetch<ClientPaymentSchedule[]>('/finance/client-payment-schedules').catch(() => null)
+      : Promise.resolve(null),
   ]);
 
   const noAccess = !canViewFiscal && !canViewObligations && !canViewSchedules;
@@ -59,10 +64,17 @@ export default async function FinansijePage() {
         <h1 className="text-lg font-semibold text-ink">Finansije</h1>
       </div>
 
-      {noAccess && <p className="rounded bg-danger-bg p-3 text-sm text-danger">Nemate dozvolu za uvid u finansijske podatke.</p>}
+      {noAccess && (
+        <p className="rounded bg-danger-bg p-3 text-sm text-danger">
+          Nemate dozvolu za uvid u finansijske podatke.
+        </p>
+      )}
 
       {canViewFiscal && (
-        <Section icon="warning" title="Rekonsilijacija — potvrđene rezervacije koje zahtevaju pažnju (M10 §5.3)">
+        <Section
+          icon="warning"
+          title="Rekonsilijacija — potvrđene rezervacije koje zahtevaju pažnju (M10 §5.3)"
+        >
           {mismatches === null ? (
             <ErrorRow />
           ) : mismatches.length === 0 ? (
@@ -76,8 +88,14 @@ export default async function FinansijePage() {
                   label={`rezervacija ${m.bookingId.slice(0, 8)}…`}
                   className="flex items-center justify-between border-b border-border bg-panel px-4 py-3 text-sm last:border-b-0 hover:bg-panel2"
                 >
-                  <span className="font-medium text-ink">rezervacija {m.bookingId.slice(0, 8)}…</span>
-                  <Badge variant="warn">{m.reason === 'MISSING_FISCAL_DOCUMENT' ? 'nedostaje fiskalni dokument' : 'delimično plaćeno, predugo'}</Badge>
+                  <span className="font-medium text-ink">
+                    rezervacija {m.bookingId.slice(0, 8)}…
+                  </span>
+                  <Badge variant="warn">
+                    {m.reason === 'MISSING_FISCAL_DOCUMENT'
+                      ? 'nedostaje fiskalni dokument'
+                      : 'delimično plaćeno, predugo'}
+                  </Badge>
                 </TabLink>
               ))}
             </div>
@@ -96,11 +114,19 @@ export default async function FinansijePage() {
               {obligations.map((o) => {
                 const overdue = new Date(o.dueDate) < new Date() && o.status !== 'PAID';
                 return (
-                  <div key={o.id} className="flex items-center justify-between border-b border-border bg-panel px-4 py-3 text-sm last:border-b-0">
+                  <div
+                    key={o.id}
+                    className="flex items-center justify-between border-b border-border bg-panel px-4 py-3 text-sm last:border-b-0"
+                  >
                     <div>
                       <div className="font-medium text-ink">
-                        {(o.amountOriginal / 100).toLocaleString('sr-RS', { minimumFractionDigits: 2 })} {o.currencyOriginal}
-                        {!o.bookingItemId && <span className="ml-2 text-[11px] text-danger">(neuparena stavka)</span>}
+                        {(o.amountOriginal / 100).toLocaleString('sr-RS', {
+                          minimumFractionDigits: 2,
+                        })}{' '}
+                        {o.currencyOriginal}
+                        {!o.bookingItemId && (
+                          <span className="ml-2 text-[11px] text-danger">(neuparena stavka)</span>
+                        )}
                       </div>
                       <div className={`text-xs ${overdue ? 'text-danger' : 'text-ink-faint'}`}>
                         rok: {new Date(o.dueDate).toLocaleDateString('sr-RS')}
@@ -108,7 +134,9 @@ export default async function FinansijePage() {
                     </div>
                     <div className="flex items-center gap-2">
                       <StatusBadge status={o.status} />
-                      {canApproveObligations && o.status === 'PENDING' && o.bookingItemId && <ApproveButton id={o.id} />}
+                      {canApproveObligations && o.status === 'PENDING' && o.bookingItemId && (
+                        <ApproveButton id={o.id} />
+                      )}
                       {canApproveObligations && o.status === 'APPROVED' && <PayButton id={o.id} />}
                     </div>
                   </div>
@@ -136,12 +164,20 @@ export default async function FinansijePage() {
                     label={`rezervacija ${s.bookingId.slice(0, 8)}…`}
                     className="flex items-center justify-between border-b border-border bg-panel px-4 py-3 text-sm last:border-b-0 hover:bg-panel2"
                   >
-                    <span className="font-medium text-ink">rezervacija {s.bookingId.slice(0, 8)}…</span>
-                    <Badge variant="danger">{s.depositStatus === 'OVERDUE' ? 'akontacija probijena' : 'balans probijen'}</Badge>
+                    <span className="font-medium text-ink">
+                      rezervacija {s.bookingId.slice(0, 8)}…
+                    </span>
+                    <Badge variant="danger">
+                      {s.depositStatus === 'OVERDUE' ? 'akontacija probijena' : 'balans probijen'}
+                    </Badge>
                   </TabLink>
                 ))}
-              {schedules.every((s) => s.depositStatus !== 'OVERDUE' && s.balanceStatus !== 'OVERDUE') && (
-                <p className="p-4 text-center text-xs text-ink-faint">Nema probijenih rokova naplate.</p>
+              {schedules.every(
+                (s) => s.depositStatus !== 'OVERDUE' && s.balanceStatus !== 'OVERDUE',
+              ) && (
+                <p className="p-4 text-center text-xs text-ink-faint">
+                  Nema probijenih rokova naplate.
+                </p>
               )}
             </div>
           )}
@@ -151,7 +187,15 @@ export default async function FinansijePage() {
   );
 }
 
-function Section({ icon, title, children }: { icon: string; title: string; children: React.ReactNode }) {
+function Section({
+  icon,
+  title,
+  children,
+}: {
+  icon: string;
+  title: string;
+  children: React.ReactNode;
+}) {
   return (
     <div className="mb-6">
       <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-ink">
@@ -169,9 +213,17 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 function EmptyRow({ text }: { text: string }) {
-  return <p className="rounded-lg border border-border bg-panel p-4 text-center text-xs text-ink-faint">{text}</p>;
+  return (
+    <p className="rounded-lg border border-border bg-panel p-4 text-center text-xs text-ink-faint">
+      {text}
+    </p>
+  );
 }
 
 function ErrorRow() {
-  return <p className="rounded bg-danger-bg p-3 text-xs text-danger">Nemate dozvolu ili podaci trenutno nisu dostupni.</p>;
+  return (
+    <p className="rounded bg-danger-bg p-3 text-xs text-danger">
+      Nemate dozvolu ili podaci trenutno nisu dostupni.
+    </p>
+  );
 }

@@ -7,7 +7,6 @@ import TabLink from '@/components/TabLink';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 
-
 interface Subagent {
   id: string;
   clientAccountId: string;
@@ -48,7 +47,11 @@ export default async function B2bPage() {
   const accountsById = new Map<string, ClientAccountSummary>();
   if (!error && canViewAccounts && subagents.length > 0) {
     const results = await Promise.all(
-      subagents.map((s) => apiFetch<ClientAccountSummary>(`/crm/client-accounts/${s.clientAccountId}`).catch(() => null)),
+      subagents.map((s) =>
+        apiFetch<ClientAccountSummary>(`/crm/client-accounts/${s.clientAccountId}`).catch(
+          () => null,
+        ),
+      ),
     );
     results.forEach((acc) => {
       if (acc) accountsById.set(acc.id, acc);
@@ -84,10 +87,16 @@ export default async function B2bPage() {
 
       {!error && (
         <div className="overflow-hidden rounded-lg border border-border">
-          {subagents.length === 0 && <p className="p-4 text-center text-xs text-ink-faint">Nema registrovanih subagenata.</p>}
+          {subagents.length === 0 && (
+            <p className="p-4 text-center text-xs text-ink-faint">Nema registrovanih subagenata.</p>
+          )}
           {subagents.map((s) => {
             const account = accountsById.get(s.clientAccountId);
-            const name = account ? (account.accountType === 'LEGAL_ENTITY' ? account.companyName : account.fullName) : s.clientAccountId.slice(0, 8);
+            const name = account
+              ? account.accountType === 'LEGAL_ENTITY'
+                ? account.companyName
+                : account.fullName
+              : s.clientAccountId.slice(0, 8);
             return (
               <TabLink
                 key={s.id}
@@ -98,13 +107,20 @@ export default async function B2bPage() {
                 <div>
                   <div className="font-medium text-ink">
                     {name}
-                    {account?.taxId && <span className="ml-2 text-[11px] text-ink-faint">PIB {account.taxId}</span>}
-                    {s.parentSubagentId && <span className="ml-2 text-[11px] text-ink-faint">sub-subagent</span>}
+                    {account?.taxId && (
+                      <span className="ml-2 text-[11px] text-ink-faint">PIB {account.taxId}</span>
+                    )}
+                    {s.parentSubagentId && (
+                      <span className="ml-2 text-[11px] text-ink-faint">sub-subagent</span>
+                    )}
                   </div>
                   <div className="text-xs text-ink-faint">
                     provizija {s.commissionPercentage != null ? `${s.commissionPercentage}%` : '—'}
                     {' · '}
-                    kredit {s.creditLimit != null ? `${s.creditLimit.toLocaleString('sr-RS')} ${s.creditLimitCurrency}` : '—'}
+                    kredit{' '}
+                    {s.creditLimit != null
+                      ? `${s.creditLimit.toLocaleString('sr-RS')} ${s.creditLimitCurrency}`
+                      : '—'}
                   </div>
                 </div>
                 <StatusBadge status={s.status} />

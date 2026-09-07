@@ -11,7 +11,12 @@ export interface ConfirmState {
 // su OBAVEZNI u ConfirmQuoteDto (M10 fiskalizacija, §4.1 dopuna v1.17) — contractTermsAccepted
 // NIJE polje ovog DTO-a (whitelist:true/forbidNonWhitelisted:true u main.ts bi odbio zahtev
 // da je pošaljemo ovde); prihvatanje uslova ugovora se beleži pri kreiranju Quote-a (§3.1).
-export async function confirmQuote(quoteId: string, itemCount: number, _prev: ConfirmState, formData: FormData): Promise<ConfirmState> {
+export async function confirmQuote(
+  quoteId: string,
+  itemCount: number,
+  _prev: ConfirmState,
+  formData: FormData,
+): Promise<ConfirmState> {
   const guests = Array.from({ length: itemCount }).map((_, i) => ({
     itemIndex: i,
     firstName: formData.get(`firstName-${i}`),
@@ -27,12 +32,15 @@ export async function confirmQuote(quoteId: string, itemCount: number, _prev: Co
         guests,
         buyerName: formData.get('buyerName'),
         buyerType,
-        buyerTaxId: buyerType === 'PRAVNO_LICE' ? formData.get('buyerTaxId') || undefined : undefined,
+        buyerTaxId:
+          buyerType === 'PRAVNO_LICE' ? formData.get('buyerTaxId') || undefined : undefined,
       },
     });
     bookingId = booking.id;
   } catch (err) {
-    return { error: err instanceof ApiError ? extractMessage(err) : 'Potvrda rezervacije nije uspela.' };
+    return {
+      error: err instanceof ApiError ? extractMessage(err) : 'Potvrda rezervacije nije uspela.',
+    };
   }
   redirect(`/rezervacije/${bookingId}`);
 }

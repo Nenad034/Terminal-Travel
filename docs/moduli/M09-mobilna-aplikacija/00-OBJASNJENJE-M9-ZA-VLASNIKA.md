@@ -34,6 +34,7 @@ Zato je ovaj deo napravljen po principu "offline-first" (bukvalno: "prvo radi be
 ## Hitna beleška ne čeka da je neko slučajno primeti
 
 Kad vodič označi belešku kao "hitna" (npr. "autobus se pokvario, kasnimo dva sata"), sistem to ne ostavlja da samo sedi u bazi dok neko slučajno ne pogleda. Čim se ta beleška stigne do servera (kad se telefon vrati u signal), sistem odmah:
+
 1. Upiše to u trajni, nepromenljiv trag (isti mehanizam koji već čuva trag svake važne radnje u sistemu).
 2. Pošalje "obaveštenje" kroz unutrašnji sistem signala koji je Terminal već koristi za slične hitne slučajeve (npr. kad slanje računa poreskoj upravi ne uspe). Ovaj signal je već spreman da ga budući ekran za tim (M17) ili tim-chat (M19) pokupi i pokaže odmah — ti ekrani sami još ne postoje, ali "žica" ka njima je već povezana, isti obrazac koji je Terminal koristio i za druge slične hitne signale pre nego što je M18 (nadzorni modul) bio izgrađen.
 
@@ -46,6 +47,7 @@ Napravljena je nova uloga u sistemu, "Vodič" — potpuno odvojena od prodajnog 
 Gost pri prvom unosu svojih putnih podataka (broj pasoša, državljanstvo, datum rođenja) sad bira: kucati sve ručno, kao i do sada, ili **fotografisati pasoš** — telefon pošalje sliku, AI je pročita i sam popuni polja, gost samo pregleda i, ako treba, ispravi pre nego što sačuva. Isti princip kao svuda u sistemu: AI predlaže, čovek potvrđuje — ništa se ne upisuje bez gosta.
 
 Dve stvari su namerno stroge, na tvoj izričit zahtev:
+
 - **Slika se nikad ne čuva.** Ni na trenutak na disku servera, ni trajno bilo gde — obradi se u memoriji dok traje jedan poziv, i odmah nestane. Nema nigde u sistemu zapisa "ovo je slika pasoša gosta X" — pasoš je osetljiv dokument, pa je najsigurniji odgovor na pitanje "gde se čuva" da ga uopšte i nema.
 - **Radi samo za PRVI unos, ne za izmenu postojećeg profila.** Ako gost već ima unet profil i, recimo, promeni pasoš, ova opcija se ne nudi — to ostaje za kasnije, ako se pokaže da je stvarno potrebno.
 
@@ -61,4 +63,4 @@ Kamera je uvek samo pogodnost, nikad prepreka — ako telefon nema kameru, gost 
 
 ---
 
-*Za tehničke detalje (tačna imena polja, redosled provera, API pozivi) vidi `16-SPECIFIKACIJA-M9-MOBILNA-APLIKACIJA.md` u istom folderu i `docs/api/M9-mobilna-aplikacija.md` — ovaj dokument je namerno pojednostavljen, ne zamenjuje ih.*
+_Za tehničke detalje (tačna imena polja, redosled provera, API pozivi) vidi `16-SPECIFIKACIJA-M9-MOBILNA-APLIKACIJA.md` u istom folderu i `docs/api/M9-mobilna-aplikacija.md` — ovaj dokument je namerno pojednostavljen, ne zamenjuje ih._

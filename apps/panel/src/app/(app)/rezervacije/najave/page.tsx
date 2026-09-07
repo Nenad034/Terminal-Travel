@@ -37,7 +37,9 @@ export default async function SupplierNoticesPage() {
     error = 'Nemate dozvolu za uvid u najave dobavljačima (M5/supplier-manifest/VIEW).';
   }
 
-  const waiting = manifests.filter((m) => m.status === 'PENDING_SEND').length + notices.filter((n) => n.status === 'PENDING_SEND').length;
+  const waiting =
+    manifests.filter((m) => m.status === 'PENDING_SEND').length +
+    notices.filter((n) => n.status === 'PENDING_SEND').length;
 
   return (
     <div className="p-6">
@@ -53,8 +55,8 @@ export default async function SupplierNoticesPage() {
         // „poslato". Sad se broji i stoji na vrhu, jer je to jedino stanje koje traži radnju.
         <p className="mb-4 flex items-center gap-1.5 rounded bg-warn-bg p-3 text-sm text-warn">
           <Icon name="warning" />
-          {waiting === 1 ? 'Jedna najava čeka slanje' : `${waiting} najava čeka slanje`} — pokušaj je zabeležen, ali poruka nije otišla
-          dobavljaču.
+          {waiting === 1 ? 'Jedna najava čeka slanje' : `${waiting} najava čeka slanje`} — pokušaj
+          je zabeležen, ali poruka nije otišla dobavljaču.
         </p>
       )}
 

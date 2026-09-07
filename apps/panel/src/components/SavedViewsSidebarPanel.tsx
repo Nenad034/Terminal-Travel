@@ -111,29 +111,35 @@ export default function SavedViewsSidebarPanel({
         open={open}
         onToggle={() => setOpen((v) => !v)}
       >
-      {views.length === 0 ? (
-        <p className="px-1 text-[11px] text-ink-faint">{emptyHint}</p>
-      ) : (
-        <ul className="flex flex-col gap-1">
-          {views.map((v) => (
-            <li key={v.id} className="group flex items-center gap-2 rounded-lg border border-border bg-panel p-2 hover:border-accent">
-              <Link href={`${baseHref}${toQueryString(v.filters)}`} className="flex flex-1 items-center gap-2 truncate">
-                <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md bg-panel2 text-ink-dim">
-                  <Icon name="bookmark" />
-                </span>
-                <span className="truncate text-xs font-medium text-ink">{v.name}</span>
-              </Link>
-              <button
-                onClick={() => remove(v.id)}
-                title="Obriši sačuvan prikaz"
-                className="hidden h-[20px] w-[20px] flex-shrink-0 items-center justify-center rounded text-ink-faint hover:bg-danger-bg hover:text-danger group-hover:flex"
+        {views.length === 0 ? (
+          <p className="px-1 text-[11px] text-ink-faint">{emptyHint}</p>
+        ) : (
+          <ul className="flex flex-col gap-1">
+            {views.map((v) => (
+              <li
+                key={v.id}
+                className="group flex items-center gap-2 rounded-lg border border-border bg-panel p-2 hover:border-accent"
               >
-                <Icon name="close" />
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
+                <Link
+                  href={`${baseHref}${toQueryString(v.filters)}`}
+                  className="flex flex-1 items-center gap-2 truncate"
+                >
+                  <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md bg-panel2 text-ink-dim">
+                    <Icon name="bookmark" />
+                  </span>
+                  <span className="truncate text-xs font-medium text-ink">{v.name}</span>
+                </Link>
+                <button
+                  onClick={() => remove(v.id)}
+                  title="Obriši sačuvan prikaz"
+                  className="hidden h-[20px] w-[20px] flex-shrink-0 items-center justify-center rounded text-ink-faint hover:bg-danger-bg hover:text-danger group-hover:flex"
+                >
+                  <Icon name="close" />
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
       </SidebarSection>
     </div>
   );

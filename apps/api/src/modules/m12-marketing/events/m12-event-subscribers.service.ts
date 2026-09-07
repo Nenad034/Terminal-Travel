@@ -53,7 +53,9 @@ export class M12EventSubscribersService implements OnModuleInit {
     } catch (err) {
       // Isti princip kao EventListenerService.dispatch — jedan neuspešan handler ne sme
       // srušiti proces niti blokirati druge pretplatnike istog događaja.
-      this.logger.error(`Neuspešno kreiranje AI nacrta za proizvod ${productId}: ${(err as Error).message}`);
+      this.logger.error(
+        `Neuspešno kreiranje AI nacrta za proizvod ${productId}: ${(err as Error).message}`,
+      );
     }
   }
 }

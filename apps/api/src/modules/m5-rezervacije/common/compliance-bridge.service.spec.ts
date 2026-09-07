@@ -7,7 +7,10 @@ import { ComplianceBridgeService } from './compliance-bridge.service';
 describe('ComplianceBridgeService (M5 spec §4 korak 1)', () => {
   function makeService() {
     const travelGuarantee = { assessForBooking: jest.fn() };
-    const subagentBridge = { checkCreditLimitIfSubagent: jest.fn(), isActiveSubagentWithinCreditLimit: jest.fn() };
+    const subagentBridge = {
+      checkCreditLimitIfSubagent: jest.fn(),
+      isActiveSubagentWithinCreditLimit: jest.fn(),
+    };
     const service = new ComplianceBridgeService(travelGuarantee as any, subagentBridge as any);
     return { service, travelGuarantee, subagentBridge };
   }
@@ -16,19 +19,37 @@ describe('ComplianceBridgeService (M5 spec §4 korak 1)', () => {
     const { service, travelGuarantee } = makeService();
     travelGuarantee.assessForBooking.mockResolvedValue({ allowed: false, reason: 'test-razlog' });
 
-    const result = await service.checkTravelGuaranteeUtilization({ bookingTotalPrice: 1_000_000, currency: 'EUR' });
+    const result = await service.checkTravelGuaranteeUtilization({
+      bookingTotalPrice: 1_000_000,
+      currency: 'EUR',
+    });
 
-    expect(travelGuarantee.assessForBooking).toHaveBeenCalledWith({ bookingTotalPrice: 1_000_000, currency: 'EUR' });
+    expect(travelGuarantee.assessForBooking).toHaveBeenCalledWith({
+      bookingTotalPrice: 1_000_000,
+      currency: 'EUR',
+    });
     expect(result).toEqual({ allowed: false, reason: 'test-razlog' });
   });
 
   it('kreditni limit (M7) — prosleđuje rezultat SubagentBridgeService.checkCreditLimitIfSubagent', async () => {
     const { service, subagentBridge } = makeService();
-    subagentBridge.checkCreditLimitIfSubagent.mockResolvedValue({ isSubagent: true, allowed: false, withinCreditLimit: false });
+    subagentBridge.checkCreditLimitIfSubagent.mockResolvedValue({
+      isSubagent: true,
+      allowed: false,
+      withinCreditLimit: false,
+    });
 
-    const result = await service.checkCreditLimitIfSubagent({ clientAccountId: 'x', additionalAmount: 1000, currency: 'EUR' });
+    const result = await service.checkCreditLimitIfSubagent({
+      clientAccountId: 'x',
+      additionalAmount: 1000,
+      currency: 'EUR',
+    });
 
-    expect(subagentBridge.checkCreditLimitIfSubagent).toHaveBeenCalledWith({ clientAccountId: 'x', additionalAmount: 1000, currency: 'EUR' });
+    expect(subagentBridge.checkCreditLimitIfSubagent).toHaveBeenCalledWith({
+      clientAccountId: 'x',
+      additionalAmount: 1000,
+      currency: 'EUR',
+    });
     expect(result).toEqual({ isSubagent: true, allowed: false, withinCreditLimit: false });
   });
 

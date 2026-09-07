@@ -44,13 +44,21 @@ export class SubagentsController {
 
   @Post(':id/approve')
   @RequirePermission('M7', 'subagent', 'APPROVE')
-  approve(@Param('id') id: string, @Body() dto: ApproveSubagentDto, @CurrentUser() actor: { userId: string }) {
+  approve(
+    @Param('id') id: string,
+    @Body() dto: ApproveSubagentDto,
+    @CurrentUser() actor: { userId: string },
+  ) {
     return this.subagents.approve(id, dto, actor);
   }
 
   @Patch(':id')
   @RequirePermission('M7', 'subagent', 'EDIT')
-  update(@Param('id') id: string, @Body() dto: UpdateSubagentDto, @CurrentUser() actor: { userId: string }) {
+  update(
+    @Param('id') id: string,
+    @Body() dto: UpdateSubagentDto,
+    @CurrentUser() actor: { userId: string },
+  ) {
     return this.subagents.update(id, dto, actor);
   }
 
@@ -66,7 +74,11 @@ export class SubagentsController {
 
   @Post(':id/children')
   @RequirePermission('M7', 'subagent', 'MANAGE_OWN_NETWORK')
-  createChild(@Param('id') id: string, @Body() dto: CreateSubagentDto, @CurrentUser() actor: { userId: string }) {
+  createChild(
+    @Param('id') id: string,
+    @Body() dto: CreateSubagentDto,
+    @CurrentUser() actor: { userId: string },
+  ) {
     return this.subagents.createChild(id, dto, actor);
   }
 

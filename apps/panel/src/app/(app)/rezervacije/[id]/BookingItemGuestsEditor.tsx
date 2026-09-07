@@ -83,8 +83,14 @@ function GuestRow({
   canModify: boolean;
 }) {
   const [editing, setEditing] = useState(false);
-  const [updateState, updateAction] = useActionState(updateBookingGuest.bind(null, bookingId, bookingItemId, guest.id), emptyGuestCrudState);
-  const [deleteState, deleteAction] = useActionState(deleteBookingGuest.bind(null, bookingId, bookingItemId, guest.id), emptyGuestCrudState);
+  const [updateState, updateAction] = useActionState(
+    updateBookingGuest.bind(null, bookingId, bookingItemId, guest.id),
+    emptyGuestCrudState,
+  );
+  const [deleteState, deleteAction] = useActionState(
+    deleteBookingGuest.bind(null, bookingId, bookingItemId, guest.id),
+    emptyGuestCrudState,
+  );
 
   // Zatvori formu za izmenu tek kad akcija stvarno uspe — ostaje otvorena (sa vidljivom
   // greškom) ako API odbije zahtev, umesto da se tiho vrati na prikaz kao da je uspelo.
@@ -109,7 +115,11 @@ function GuestRow({
             className="w-28 rounded border border-border bg-panel2 px-2 py-1 text-sm text-ink focus:border-accent focus:outline-none"
           />
           <SmallSubmitButton label="sačuvaj" pendingLabel="čuvam…" />
-          <button type="button" onClick={() => setEditing(false)} className="text-xs text-ink-faint hover:text-ink">
+          <button
+            type="button"
+            onClick={() => setEditing(false)}
+            className="text-xs text-ink-faint hover:text-ink"
+          >
             otkaži
           </button>
         </form>
@@ -126,11 +136,16 @@ function GuestRow({
       <span className="flex flex-wrap items-center gap-3">
         {profile ? (
           <span className="text-xs text-ink-faint">
-            {profile.documentType} {profile.documentNumber} · {profile.nationality} · {new Date(profile.dateOfBirth).toLocaleDateString('sr-RS')}
+            {profile.documentType} {profile.documentNumber} · {profile.nationality} ·{' '}
+            {new Date(profile.dateOfBirth).toLocaleDateString('sr-RS')}
           </span>
         ) : (
           <span className="text-xs text-ink-faint">
-            {guest.guestProfileId ? (canViewGuestProfiles ? 'profil gosta nije dostupan' : 'podaci dokumenta zahtevaju M6/guest-profile/VIEW') : 'nema povezan profil gosta'}
+            {guest.guestProfileId
+              ? canViewGuestProfiles
+                ? 'profil gosta nije dostupan'
+                : 'podaci dokumenta zahtevaju M6/guest-profile/VIEW'
+              : 'nema povezan profil gosta'}
           </span>
         )}
         {profile && (
@@ -140,7 +155,10 @@ function GuestRow({
         )}
         {canModify && (
           <>
-            <button onClick={() => setEditing(true)} className="text-xs text-accent hover:underline">
+            <button
+              onClick={() => setEditing(true)}
+              className="text-xs text-accent hover:underline"
+            >
               izmeni
             </button>
             <form action={deleteAction}>
@@ -155,16 +173,28 @@ function GuestRow({
 }
 
 function AddGuestForm({ bookingId, bookingItemId }: { bookingId: string; bookingItemId: string }) {
-  const [state, formAction] = useActionState(addBookingGuest.bind(null, bookingId, bookingItemId), emptyGuestCrudState);
+  const [state, formAction] = useActionState(
+    addBookingGuest.bind(null, bookingId, bookingItemId),
+    emptyGuestCrudState,
+  );
   return (
-    <form action={formAction} className="mt-2 flex flex-wrap items-end gap-2 border-t border-border pt-2">
+    <form
+      action={formAction}
+      className="mt-2 flex flex-wrap items-end gap-2 border-t border-border pt-2"
+    >
       <div>
         <label className="mb-1 block text-[11px] text-ink-faint">Ime</label>
-        <input name="guestFirstName" className="w-28 rounded border border-border bg-panel2 px-2 py-1 text-sm text-ink focus:border-accent focus:outline-none" />
+        <input
+          name="guestFirstName"
+          className="w-28 rounded border border-border bg-panel2 px-2 py-1 text-sm text-ink focus:border-accent focus:outline-none"
+        />
       </div>
       <div>
         <label className="mb-1 block text-[11px] text-ink-faint">Prezime</label>
-        <input name="guestLastName" className="w-28 rounded border border-border bg-panel2 px-2 py-1 text-sm text-ink focus:border-accent focus:outline-none" />
+        <input
+          name="guestLastName"
+          className="w-28 rounded border border-border bg-panel2 px-2 py-1 text-sm text-ink focus:border-accent focus:outline-none"
+        />
       </div>
       <SmallSubmitButton label="Dodaj putnika" pendingLabel="dodajem…" icon="add" />
       {state.error && <span className="text-xs text-danger">{state.error}</span>}
@@ -172,7 +202,15 @@ function AddGuestForm({ bookingId, bookingItemId }: { bookingId: string; booking
   );
 }
 
-function SmallSubmitButton({ label, pendingLabel, icon }: { label: string; pendingLabel: string; icon?: string }) {
+function SmallSubmitButton({
+  label,
+  pendingLabel,
+  icon,
+}: {
+  label: string;
+  pendingLabel: string;
+  icon?: string;
+}) {
   const { pending } = useFormStatus();
   return (
     <Button type="submit" size="sm" variant="secondary" disabled={pending}>
@@ -184,7 +222,11 @@ function SmallSubmitButton({ label, pendingLabel, icon }: { label: string; pendi
 function DeleteButton() {
   const { pending } = useFormStatus();
   return (
-    <button type="submit" disabled={pending} className="text-xs text-danger hover:underline disabled:opacity-50">
+    <button
+      type="submit"
+      disabled={pending}
+      className="text-xs text-danger hover:underline disabled:opacity-50"
+    >
       {pending ? 'uklanjam…' : 'ukloni'}
     </button>
   );

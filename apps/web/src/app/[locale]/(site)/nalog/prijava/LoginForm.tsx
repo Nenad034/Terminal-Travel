@@ -12,7 +12,13 @@ export default function LoginForm({
   labels,
 }: {
   locale: string;
-  labels: { email: string; password: string; submit: string; noAccount: string; registerLink: string };
+  labels: {
+    email: string;
+    password: string;
+    submit: string;
+    noAccount: string;
+    registerLink: string;
+  };
 }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
@@ -37,7 +43,9 @@ export default function LoginForm({
       return;
     }
     if (body.requiresMfa) {
-      setError('Nalog ima uključenu dvofaktorsku autentikaciju — ovaj ekran je van obima prvog prolaza.');
+      setError(
+        'Nalog ima uključenu dvofaktorsku autentikaciju — ovaj ekran je van obima prvog prolaza.',
+      );
       return;
     }
     router.push(`/${locale}/nalog/moje-rezervacije`);
@@ -49,13 +57,27 @@ export default function LoginForm({
       {error && <p className="rounded-md bg-danger-bg p-3 text-sm text-danger">{error}</p>}
       <label className="text-sm">
         {labels.email}
-        <input type="email" name="email" required className="mt-1 w-full rounded-md border border-border px-3 py-2" />
+        <input
+          type="email"
+          name="email"
+          required
+          className="mt-1 w-full rounded-md border border-border px-3 py-2"
+        />
       </label>
       <label className="text-sm">
         {labels.password}
-        <input type="password" name="password" required className="mt-1 w-full rounded-md border border-border px-3 py-2" />
+        <input
+          type="password"
+          name="password"
+          required
+          className="mt-1 w-full rounded-md border border-border px-3 py-2"
+        />
       </label>
-      <button type="submit" disabled={pending} className="rounded-md bg-accent px-4 py-2 font-medium text-accent-ink hover:bg-accent-strong disabled:opacity-50">
+      <button
+        type="submit"
+        disabled={pending}
+        className="rounded-md bg-accent px-4 py-2 font-medium text-accent-ink hover:bg-accent-strong disabled:opacity-50"
+      >
         {labels.submit}
       </button>
       <p className="text-sm text-ink-faint">

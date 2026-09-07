@@ -38,7 +38,13 @@ import { CommissionModule } from '../../m7-b2b-subagenti/commission/commission.m
     CommissionModule,
   ],
   controllers: [BookingsController, PublicVoucherController],
-  providers: [BookingsService, QuoteItemBuilderService, ComplianceBridgeService, ClientContractBridgeService, SubagentBridgeService],
+  providers: [
+    BookingsService,
+    QuoteItemBuilderService,
+    ComplianceBridgeService,
+    ClientContractBridgeService,
+    SubagentBridgeService,
+  ],
   exports: [BookingsService],
 })
 export class BookingsModule {}

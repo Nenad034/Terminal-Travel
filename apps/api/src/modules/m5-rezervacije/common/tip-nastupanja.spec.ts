@@ -2,7 +2,10 @@ import { isSelfServiceChannel, resolveTipNastupanja } from './tip-nastupanja';
 
 describe('resolveTipNastupanja (M5 spec §4.0a)', () => {
   it('vraća vrednost kad se svi kandidati slažu', () => {
-    expect(resolveTipNastupanja(['ORGANIZATOR', 'ORGANIZATOR'])).toEqual({ resolved: 'ORGANIZATOR', conflicting: false });
+    expect(resolveTipNastupanja(['ORGANIZATOR', 'ORGANIZATOR'])).toEqual({
+      resolved: 'ORGANIZATOR',
+      conflicting: false,
+    });
   });
 
   it('prijavljuje sukob kad se kandidati ne slažu', () => {
@@ -14,7 +17,10 @@ describe('resolveTipNastupanja (M5 spec §4.0a)', () => {
   });
 
   it('radi za jednu stavku', () => {
-    expect(resolveTipNastupanja(['POSREDNIK'])).toEqual({ resolved: 'POSREDNIK', conflicting: false });
+    expect(resolveTipNastupanja(['POSREDNIK'])).toEqual({
+      resolved: 'POSREDNIK',
+      conflicting: false,
+    });
   });
 });
 

@@ -36,7 +36,11 @@ export class ProviderConfigsController {
 
   @Patch(':code')
   @RequirePermission('M4', 'provider-config', 'EDIT')
-  update(@Param('code') code: string, @Body() dto: UpdateProviderConfigDto, @CurrentUser() actor: { userId: string }) {
+  update(
+    @Param('code') code: string,
+    @Body() dto: UpdateProviderConfigDto,
+    @CurrentUser() actor: { userId: string },
+  ) {
     return this.providers.update(code, dto, actor.userId);
   }
 }

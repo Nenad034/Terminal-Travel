@@ -38,7 +38,9 @@ function parsirajDatum(vrednost: string, ime: string): Date {
 async function main() {
   const args = process.argv.slice(2).filter((a) => !a.startsWith('--'));
   if (args.length === 0) {
-    console.error('Upotreba: npm run rates:backfill --workspace=apps/api -- <od GGGG-MM-DD> [do GGGG-MM-DD]');
+    console.error(
+      'Upotreba: npm run rates:backfill --workspace=apps/api -- <od GGGG-MM-DD> [do GGGG-MM-DD]',
+    );
     process.exit(2);
   }
 
@@ -51,7 +53,9 @@ async function main() {
   if (od > do_) throw new Error('Početni datum je posle krajnjeg.');
 
   const brojDana = Math.round((do_.getTime() - od.getTime()) / (24 * 60 * 60 * 1000)) + 1;
-  console.log(`--- Popunjavanje kursne liste: ${args[0]} → ${do_.toISOString().slice(0, 10)} (${brojDana} dana) ---`);
+  console.log(
+    `--- Popunjavanje kursne liste: ${args[0]} → ${do_.toISOString().slice(0, 10)} (${brojDana} dana) ---`,
+  );
 
   // Servisi se prave ručno (bez Nest kontejnera) — skripta je jednokratna i ne diže aplikaciju.
   const service = new ExchangeRatesService(prisma as never, new NbsRateFetcherService());

@@ -101,7 +101,8 @@ function buildHref(f: KatalogFilters): string {
 
 type MultiKey = 'tip' | 'status' | 'drzava' | 'grad' | 'konekcija';
 
-const FILTER_TITLE_CLASS = 'block w-full text-[10px] font-bold uppercase tracking-wide text-ink-dim';
+const FILTER_TITLE_CLASS =
+  'block w-full text-[10px] font-bold uppercase tracking-wide text-ink-dim';
 const FILTER_BLOCK_CLASS = 'rounded bg-sunken p-2';
 const FILTER_PILL_CLASS =
   'cursor-pointer rounded border border-border bg-panel font-semibold text-ink-dim has-[:checked]:border-accent has-[:checked]:bg-accent-soft has-[:checked]:text-accent-strong';
@@ -125,7 +126,9 @@ export default function KatalogSidebarPanel() {
 
   function toggle(key: MultiKey, value: string) {
     const current = filters[key];
-    apply({ [key]: current.includes(value) ? current.filter((v) => v !== value) : [...current, value] });
+    apply({
+      [key]: current.includes(value) ? current.filter((v) => v !== value) : [...current, value],
+    });
   }
 
   function applyQ(value: string) {
@@ -139,7 +142,10 @@ export default function KatalogSidebarPanel() {
   // izvedeno iz stvarnih podataka, ne iz ručno pisane liste (isti razlog kao `findIconByTypes`
   // u `search-product-types.ts`: statična lista tiho zastari čim se doda novi ugovor/provajder).
   const countries = useMemo(
-    () => [...new Set(products.map((p) => p.destinationCountry).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'sr')),
+    () =>
+      [...new Set(products.map((p) => p.destinationCountry).filter(Boolean))].sort((a, b) =>
+        a.localeCompare(b, 'sr'),
+      ),
     [products],
   );
   // Zavisnost je NIZ SPOJEN U STRING, ne sam niz (6.9.2026, ESLint
@@ -153,8 +159,13 @@ export default function KatalogSidebarPanel() {
   const drzaveKljuc = sp.getAll('drzava').join('|');
   const cities = useMemo(() => {
     const izabrane = drzaveKljuc ? drzaveKljuc.split('|') : [];
-    const scoped = izabrane.length > 0 ? products.filter((p) => izabrane.includes(p.destinationCountry)) : products;
-    return [...new Set(scoped.map((p) => p.destinationCity).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'sr'));
+    const scoped =
+      izabrane.length > 0
+        ? products.filter((p) => izabrane.includes(p.destinationCountry))
+        : products;
+    return [...new Set(scoped.map((p) => p.destinationCity).filter(Boolean))].sort((a, b) =>
+      a.localeCompare(b, 'sr'),
+    );
   }, [products, drzaveKljuc]);
   const connections = useMemo(() => {
     const keys = new Set(products.map(connectionKey));
@@ -165,9 +176,28 @@ export default function KatalogSidebarPanel() {
   // brisanje pojedinacih filtera ne samo sve zajedno") — svaka izabrana vrednost (ne samo svaka
   // grupa) dobija sopstveni × koji gasi SAMO nju, ostatak grupe ostaje netaknut.
   const activeChips: { key: string; label: string; onRemove: () => void }[] = [
-    ...(filters.q ? [{ key: 'q', label: `naziv: ${filters.q}`, onRemove: () => { setQDraft(''); apply({ q: '' }); } }] : []),
-    ...filters.drzava.map((v) => ({ key: `drzava:${v}`, label: `država: ${v}`, onRemove: () => toggle('drzava', v) })),
-    ...filters.grad.map((v) => ({ key: `grad:${v}`, label: `destinacija: ${v}`, onRemove: () => toggle('grad', v) })),
+    ...(filters.q
+      ? [
+          {
+            key: 'q',
+            label: `naziv: ${filters.q}`,
+            onRemove: () => {
+              setQDraft('');
+              apply({ q: '' });
+            },
+          },
+        ]
+      : []),
+    ...filters.drzava.map((v) => ({
+      key: `drzava:${v}`,
+      label: `država: ${v}`,
+      onRemove: () => toggle('drzava', v),
+    })),
+    ...filters.grad.map((v) => ({
+      key: `grad:${v}`,
+      label: `destinacija: ${v}`,
+      onRemove: () => toggle('grad', v),
+    })),
     ...filters.tip.map((v) => ({
       key: `tip:${v}`,
       label: `vrsta: ${TYPE_OPTIONS.find((o) => o.value === v)?.label ?? v}`,
@@ -178,62 +208,97 @@ export default function KatalogSidebarPanel() {
       label: `status: ${STATUS_OPTIONS.find((o) => o.value === v)?.label ?? v}`,
       onRemove: () => toggle('status', v),
     })),
-    ...filters.konekcija.map((v) => ({ key: `konekcija:${v}`, label: `konekcija: ${connectionLabel(v)}`, onRemove: () => toggle('konekcija', v) })),
+    ...filters.konekcija.map((v) => ({
+      key: `konekcija:${v}`,
+      label: `konekcija: ${connectionLabel(v)}`,
+      onRemove: () => toggle('konekcija', v),
+    })),
   ];
 
   return (
     <div className="flex flex-col overflow-y-auto px-2 pb-3 text-xs">
-    <SidebarSection title="Filteri" icon="filter" open={filtersOpen} onToggle={() => setFiltersOpen((v) => !v)} contentClassName="flex flex-col gap-3">
-      {activeChips.length > 0 && (
-        <div className="flex flex-col gap-1.5 rounded border border-accent bg-accent-soft p-1.5 text-[11px] text-accent-strong">
-          <div className="flex flex-wrap gap-1">
-            {activeChips.map((c) => (
+      <SidebarSection
+        title="Filteri"
+        icon="filter"
+        open={filtersOpen}
+        onToggle={() => setFiltersOpen((v) => !v)}
+        contentClassName="flex flex-col gap-3"
+      >
+        {activeChips.length > 0 && (
+          <div className="flex flex-col gap-1.5 rounded border border-accent bg-accent-soft p-1.5 text-[11px] text-accent-strong">
+            <div className="flex flex-wrap gap-1">
+              {activeChips.map((c) => (
+                <button
+                  key={c.key}
+                  type="button"
+                  onClick={c.onRemove}
+                  title={`ukloni filter — ${c.label}`}
+                  className="flex items-center gap-1 rounded-full border border-accent bg-panel px-2 py-0.5 hover:bg-danger-bg hover:text-danger"
+                >
+                  <span className="truncate">{c.label}</span>
+                  <Icon name="close" />
+                </button>
+              ))}
+            </div>
+            {activeChips.length > 1 && (
               <button
-                key={c.key}
                 type="button"
-                onClick={c.onRemove}
-                title={`ukloni filter — ${c.label}`}
-                className="flex items-center gap-1 rounded-full border border-accent bg-panel px-2 py-0.5 hover:bg-danger-bg hover:text-danger"
+                onClick={() => {
+                  setQDraft('');
+                  router.replace('/katalog');
+                }}
+                className="flex items-center gap-1 self-start hover:underline"
               >
-                <span className="truncate">{c.label}</span>
-                <Icon name="close" />
+                <Icon name="clear-all" /> poništi sve ({activeChips.length})
               </button>
-            ))}
+            )}
           </div>
-          {activeChips.length > 1 && (
-            <button
-              type="button"
-              onClick={() => {
-                setQDraft('');
-                router.replace('/katalog');
-              }}
-              className="flex items-center gap-1 self-start hover:underline"
-            >
-              <Icon name="clear-all" /> poništi sve ({activeChips.length})
-            </button>
-          )}
-        </div>
-      )}
+        )}
 
-      <label className={`block text-ink-faint ${FILTER_BLOCK_CLASS}`}>
-        <span className={FILTER_TITLE_CLASS}>naziv</span>
-        <input value={qDraft} onChange={(e) => applyQ(e.target.value)} placeholder="pretraga po nazivu…" className="input mt-1 bg-panel" />
-      </label>
+        <label className={`block text-ink-faint ${FILTER_BLOCK_CLASS}`}>
+          <span className={FILTER_TITLE_CLASS}>naziv</span>
+          <input
+            value={qDraft}
+            onChange={(e) => applyQ(e.target.value)}
+            placeholder="pretraga po nazivu…"
+            className="input mt-1 bg-panel"
+          />
+        </label>
 
-      <ComboFilter label="država" values={filters.drzava} options={countries} onToggle={(v) => toggle('drzava', v)} />
-      <ComboFilter label="destinacija" values={filters.grad} options={cities} onToggle={(v) => toggle('grad', v)} />
-
-      <PillGroup label="vrsta" values={filters.tip} onToggle={(v) => toggle('tip', v)} options={TYPE_OPTIONS} />
-      <PillGroup label="status" values={filters.status} onToggle={(v) => toggle('status', v)} options={STATUS_OPTIONS} />
-      {connections.length > 0 && (
-        <PillGroup
-          label="konekcija"
-          values={filters.konekcija}
-          onToggle={(v) => toggle('konekcija', v)}
-          options={connections.map((k) => ({ value: k, label: connectionLabel(k) }))}
+        <ComboFilter
+          label="država"
+          values={filters.drzava}
+          options={countries}
+          onToggle={(v) => toggle('drzava', v)}
         />
-      )}
-    </SidebarSection>
+        <ComboFilter
+          label="destinacija"
+          values={filters.grad}
+          options={cities}
+          onToggle={(v) => toggle('grad', v)}
+        />
+
+        <PillGroup
+          label="vrsta"
+          values={filters.tip}
+          onToggle={(v) => toggle('tip', v)}
+          options={TYPE_OPTIONS}
+        />
+        <PillGroup
+          label="status"
+          values={filters.status}
+          onToggle={(v) => toggle('status', v)}
+          options={STATUS_OPTIONS}
+        />
+        {connections.length > 0 && (
+          <PillGroup
+            label="konekcija"
+            values={filters.konekcija}
+            onToggle={(v) => toggle('konekcija', v)}
+            options={connections.map((k) => ({ value: k, label: connectionLabel(k) }))}
+          />
+        )}
+      </SidebarSection>
     </div>
   );
 }
@@ -261,7 +326,12 @@ function PillGroup({
       <div className="mt-1 flex flex-col items-stretch gap-1">
         {options.map((o) => (
           <label key={o.value} className={`w-full px-2 py-1 text-[11px] ${FILTER_PILL_CLASS}`}>
-            <input type="checkbox" checked={values.includes(o.value)} onChange={() => onToggle(o.value)} className="sr-only" />
+            <input
+              type="checkbox"
+              checked={values.includes(o.value)}
+              onChange={() => onToggle(o.value)}
+              className="sr-only"
+            />
             {o.label}
           </label>
         ))}
@@ -286,7 +356,14 @@ function ComboFilter({
   onToggle: (value: string) => void;
 }) {
   const [open, setOpen] = useState(false);
-  const summary = values.length === 0 ? (options.length === 0 ? 'nema podataka' : 'sve') : values.length <= 2 ? values.join(', ') : `${values.length} izabrano`;
+  const summary =
+    values.length === 0
+      ? options.length === 0
+        ? 'nema podataka'
+        : 'sve'
+      : values.length <= 2
+        ? values.join(', ')
+        : `${values.length} izabrano`;
 
   return (
     <div className={`text-ink-faint ${FILTER_BLOCK_CLASS}`}>

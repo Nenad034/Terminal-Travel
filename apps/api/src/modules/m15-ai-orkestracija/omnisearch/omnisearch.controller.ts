@@ -1,4 +1,14 @@
-import { BadRequestException, Body, Controller, Post, Req, UnauthorizedException, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Post,
+  Req,
+  UnauthorizedException,
+  UploadedFile,
+  UseGuards,
+  UseInterceptors,
+} from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
 import { ApiTags } from '@nestjs/swagger';
@@ -7,7 +17,11 @@ import { JwtService } from '@nestjs/jwt';
 import { OmnisearchService } from './omnisearch.service';
 import { ExtractFileService } from './extract-file.service';
 import { OmnisearchQueryDto } from './dto/omnisearch-query.dto';
-import { AccessTokenPayload, JwtAuthGuard, assertAccessTokenPayload } from '../../m1-core-identitet/auth/guards/jwt-auth.guard';
+import {
+  AccessTokenPayload,
+  JwtAuthGuard,
+  assertAccessTokenPayload,
+} from '../../m1-core-identitet/auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import { Public } from '../../../common/decorators/public.decorator';
 
@@ -59,8 +73,16 @@ export class OmnisearchController {
    */
   @Post('extract-file')
   @UseGuards(JwtAuthGuard)
-  @UseInterceptors(FileInterceptor('file', { storage: memoryStorage(), limits: { fileSize: MAX_CONTEXT_FILE_BYTES } }))
-  async extractFileText(@UploadedFile() file: Express.Multer.File | undefined, @CurrentUser() _user: { userId: string }) {
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: memoryStorage(),
+      limits: { fileSize: MAX_CONTEXT_FILE_BYTES },
+    }),
+  )
+  async extractFileText(
+    @UploadedFile() file: Express.Multer.File | undefined,
+    @CurrentUser() _user: { userId: string },
+  ) {
     if (!file) throw new BadRequestException('Nedostaje fajl.');
     const { text } = await this.extractFile.extractText(file.buffer, file.originalname);
     return { label: file.originalname, content: text };
@@ -72,12 +94,16 @@ export class OmnisearchController {
    * važeći token identifikuje prijavljenog gosta (za sopstvene rezervacije u rezultatima),
    * odsutan token = anoniman posetilac (actorUserId = null), NIKAD izmišljen identitet.
    */
-  private async resolveActor(channel: 'INTERNAL_PANEL' | 'B2C_SITE', req: Request): Promise<string | null> {
+  private async resolveActor(
+    channel: 'INTERNAL_PANEL' | 'B2C_SITE',
+    req: Request,
+  ): Promise<string | null> {
     const authHeader = req.headers['authorization'];
     const token = authHeader?.startsWith('Bearer ') ? authHeader.slice('Bearer '.length) : null;
 
     if (channel === 'INTERNAL_PANEL') {
-      if (!token) throw new UnauthorizedException('channel=INTERNAL_PANEL zahteva prijavu (Bearer token).');
+      if (!token)
+        throw new UnauthorizedException('channel=INTERNAL_PANEL zahteva prijavu (Bearer token).');
       try {
         return assertAccessTokenPayload(this.jwt.verify<AccessTokenPayload>(token)).sub;
       } catch {

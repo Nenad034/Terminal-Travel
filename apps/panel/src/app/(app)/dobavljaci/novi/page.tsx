@@ -1,7 +1,6 @@
 import RegisterTab from '@/components/RegisterTab';
 import NewSupplierForm from './NewSupplierForm';
 
-
 export default function NewSupplierPage() {
   return (
     <div className="p-6">

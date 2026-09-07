@@ -23,7 +23,10 @@ export function PaymentScreen({ quoteId, buyerName }: Params) {
         method: 'POST',
         body: { buyerName, buyerType: 'FIZICKO_LICE' },
       });
-      router.replace({ pathname: '/(guest)/potvrda', params: { bookingId: booking.id, nacin: 'bank' } });
+      router.replace({
+        pathname: '/(guest)/potvrda',
+        params: { bookingId: booking.id, nacin: 'bank' },
+      });
     } catch {
       setError('Plaćanje nije uspelo, pokušajte ponovo.');
     } finally {
@@ -35,17 +38,27 @@ export function PaymentScreen({ quoteId, buyerName }: Params) {
     setPending('card');
     setError(null);
     try {
-      const initiated = await apiFetch<{ gatewayTransactionId: string }>('/finance/payments/card/initiate', {
-        method: 'POST',
-        body: { quoteId, idempotencyKey: `${quoteId}-card` },
-        auth: false,
-      });
+      const initiated = await apiFetch<{ gatewayTransactionId: string }>(
+        '/finance/payments/card/initiate',
+        {
+          method: 'POST',
+          body: { quoteId, idempotencyKey: `${quoteId}-card` },
+          auth: false,
+        },
+      );
       const booking = await apiFetch<{ bookingId: string }>('/finance/payments/card/webhook', {
         method: 'POST',
-        body: { gatewayTransactionId: initiated.gatewayTransactionId, buyerName, buyerType: 'FIZICKO_LICE' },
+        body: {
+          gatewayTransactionId: initiated.gatewayTransactionId,
+          buyerName,
+          buyerType: 'FIZICKO_LICE',
+        },
         auth: false,
       });
-      router.replace({ pathname: '/(guest)/potvrda', params: { bookingId: booking.bookingId, nacin: 'card' } });
+      router.replace({
+        pathname: '/(guest)/potvrda',
+        params: { bookingId: booking.bookingId, nacin: 'card' },
+      });
     } catch {
       setError('Plaćanje nije uspelo, pokušajte ponovo.');
     } finally {
@@ -58,10 +71,22 @@ export function PaymentScreen({ quoteId, buyerName }: Params) {
       <Text style={styles.title}>Plaćanje</Text>
       {error && <Text style={styles.error}>{error}</Text>}
       <Pressable style={styles.button} onPress={payByCard} disabled={pending !== null}>
-        {pending === 'card' ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Plaćanje karticom</Text>}
+        {pending === 'card' ? (
+          <ActivityIndicator color="#fff" />
+        ) : (
+          <Text style={styles.buttonText}>Plaćanje karticom</Text>
+        )}
       </Pressable>
-      <Pressable style={styles.buttonOutline} onPress={payByBankTransfer} disabled={pending !== null}>
-        {pending === 'bank' ? <ActivityIndicator color="#1a4d8f" /> : <Text style={styles.buttonOutlineText}>Uplata na račun</Text>}
+      <Pressable
+        style={styles.buttonOutline}
+        onPress={payByBankTransfer}
+        disabled={pending !== null}
+      >
+        {pending === 'bank' ? (
+          <ActivityIndicator color="#1a4d8f" />
+        ) : (
+          <Text style={styles.buttonOutlineText}>Uplata na račun</Text>
+        )}
       </Pressable>
     </View>
   );
@@ -73,6 +98,12 @@ const styles = StyleSheet.create({
   error: { color: '#b00020' },
   button: { backgroundColor: '#1a4d8f', borderRadius: 8, padding: 14, alignItems: 'center' },
   buttonText: { color: '#fff', fontWeight: '600' },
-  buttonOutline: { borderWidth: 1, borderColor: '#1a4d8f', borderRadius: 8, padding: 14, alignItems: 'center' },
+  buttonOutline: {
+    borderWidth: 1,
+    borderColor: '#1a4d8f',
+    borderRadius: 8,
+    padding: 14,
+    alignItems: 'center',
+  },
   buttonOutlineText: { color: '#1a4d8f', fontWeight: '600' },
 });

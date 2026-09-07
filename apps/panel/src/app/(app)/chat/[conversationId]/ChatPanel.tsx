@@ -69,7 +69,9 @@ export default function ChatPanel({
 }) {
   const [messages, setMessages] = useState<MessageItem[]>(initialMessages);
   const [connected, setConnected] = useState(false);
-  const [presenceByUser, setPresenceByUser] = useState<Map<string, 'ONLINE' | 'AWAY' | 'OFFLINE'>>(new Map());
+  const [presenceByUser, setPresenceByUser] = useState<Map<string, 'ONLINE' | 'AWAY' | 'OFFLINE'>>(
+    new Map(),
+  );
   const [typingUserIds, setTypingUserIds] = useState<Set<string>>(new Set());
   const [draft, setDraft] = useState('');
   const [sendError, setSendError] = useState<string | null>(null);
@@ -107,7 +109,10 @@ export default function ChatPanel({
       }
       if (cancelled || !token) return;
 
-      const socket = io(`${WS_ORIGIN}/ws/chat`, { auth: { token }, transports: ['websocket', 'polling'] });
+      const socket = io(`${WS_ORIGIN}/ws/chat`, {
+        auth: { token },
+        transports: ['websocket', 'polling'],
+      });
       socketRef.current = socket;
 
       socket.on('connect', () => setConnected(true));
@@ -122,9 +127,12 @@ export default function ChatPanel({
         markConversationRead(conversationId).catch(() => {});
       });
 
-      socket.on('presence.updated', (payload: { userId: string; status: 'ONLINE' | 'AWAY' | 'OFFLINE' }) => {
-        setPresenceByUser((prev) => new Map(prev).set(payload.userId, payload.status));
-      });
+      socket.on(
+        'presence.updated',
+        (payload: { userId: string; status: 'ONLINE' | 'AWAY' | 'OFFLINE' }) => {
+          setPresenceByUser((prev) => new Map(prev).set(payload.userId, payload.status));
+        },
+      );
 
       socket.on('typing.started', (payload: { conversationId: string; userId: string }) => {
         if (payload.conversationId !== conversationId || payload.userId === currentUserId) return;
@@ -228,7 +236,12 @@ export default function ChatPanel({
       return;
     }
 
-    const result = await sendMessageRestFallback(conversationId, body, draftFromAi, pendingFile ?? undefined);
+    const result = await sendMessageRestFallback(
+      conversationId,
+      body,
+      draftFromAi,
+      pendingFile ?? undefined,
+    );
     if (result.error) {
       setSendError(result.error);
     } else {
@@ -238,7 +251,9 @@ export default function ChatPanel({
       if (fileInputRef.current) fileInputRef.current.value = '';
       if (result.message) {
         const m = result.message as MessageItem;
-        setMessages((prev) => (prev.some((existing) => existing.id === m.id) ? prev : [...prev, m]));
+        setMessages((prev) =>
+          prev.some((existing) => existing.id === m.id) ? prev : [...prev, m],
+        );
       }
     }
     setSending(false);
@@ -248,8 +263,13 @@ export default function ChatPanel({
     <div className="flex h-full flex-col rounded-lg border border-border bg-panel">
       <div className="flex items-center justify-between border-b border-border px-4 py-2 text-[11px] text-ink-faint">
         <span>
-          <Icon name={connected ? 'plug' : 'debug-disconnect'} className={connected ? 'text-ok' : 'text-ink-faint'} />{' '}
-          {connected ? 'uživo povezano' : 'nije povezano (WS) — poruke se šalju preko REST fallback-a'}
+          <Icon
+            name={connected ? 'plug' : 'debug-disconnect'}
+            className={connected ? 'text-ok' : 'text-ink-faint'}
+          />{' '}
+          {connected
+            ? 'uživo povezano'
+            : 'nije povezano (WS) — poruke se šalju preko REST fallback-a'}
         </span>
         {conversationType !== 'EXTERNAL_SUPPLIER' && (
           <span className="flex items-center gap-2">
@@ -257,7 +277,8 @@ export default function ChatPanel({
               .filter((p) => p.userId !== currentUserId)
               .map((p) => (
                 <span key={p.userId} className="flex items-center gap-1">
-                  <PresenceDot status={presenceByUser.get(p.userId) ?? null} /> {p.user?.fullName ?? '—'}
+                  <PresenceDot status={presenceByUser.get(p.userId) ?? null} />{' '}
+                  {p.user?.fullName ?? '—'}
                 </span>
               ))}
           </span>
@@ -265,12 +286,17 @@ export default function ChatPanel({
       </div>
 
       <div className="flex min-h-[16rem] flex-1 flex-col gap-2 overflow-y-auto p-4">
-        {messages.length === 0 && <p className="text-center text-xs text-ink-faint">Nema poruka. Napišite prvu.</p>}
+        {messages.length === 0 && (
+          <p className="text-center text-xs text-ink-faint">Nema poruka. Napišite prvu.</p>
+        )}
         {messages.map((m) => {
           const mine = m.senderId === currentUserId;
           const sender = userById.get(m.senderId);
           return (
-            <div key={m.id} className={`max-w-[75%] rounded border p-2 text-xs ${mine ? 'self-end border-accent bg-accent-soft' : 'self-start border-border bg-panel2'}`}>
+            <div
+              key={m.id}
+              className={`max-w-[75%] rounded border p-2 text-xs ${mine ? 'self-end border-accent bg-accent-soft' : 'self-start border-border bg-panel2'}`}
+            >
               {/* 29-DIZAJN-SISTEM-UI.md §6a — poreklo je vidljivo na SVAKOJ poruci, i na sopstvenoj:
                   oznaka AI nacrta (§6a.2 pravilo 2) mora da se vidi i kad je poruku poslao onaj ko
                   gleda ekran, jer je upravo on odgovoran za tekst koji je AI predložio. */}
@@ -281,7 +307,9 @@ export default function ChatPanel({
                   draftedByAi={m.draftedByAi ?? false}
                 />
               </div>
-              {!m.deletedAt && m.body && <p className="whitespace-pre-wrap text-ink-dim">{m.body}</p>}
+              {!m.deletedAt && m.body && (
+                <p className="whitespace-pre-wrap text-ink-dim">{m.body}</p>
+              )}
               {m.deletedAt && <p className="whitespace-pre-wrap text-ink-dim">(poruka obrisana)</p>}
               {!m.deletedAt && m.attachments && m.attachments.length > 0 && (
                 <div className="mt-1 flex flex-col gap-1">
@@ -291,7 +319,8 @@ export default function ChatPanel({
                       href={`/api/chat/attachments/${a.id}`}
                       className="flex items-center gap-1.5 rounded border border-border bg-panel px-2 py-1 text-[11px] text-ink-dim hover:border-accent hover:text-ink"
                     >
-                      <Icon name="file" /> {a.fileName} <span className="text-ink-faint">({formatFileSize(a.sizeBytes)})</span>
+                      <Icon name="file" /> {a.fileName}{' '}
+                      <span className="text-ink-faint">({formatFileSize(a.sizeBytes)})</span>
                     </a>
                   ))}
                 </div>
@@ -313,22 +342,34 @@ export default function ChatPanel({
 
       {canSend ? (
         <form onSubmit={handleSend} className="flex flex-wrap gap-2 border-t border-border p-3">
-          {sendError && <p className="w-full rounded bg-danger-bg p-2 text-[11px] text-danger">{sendError}</p>}
-          {draftNote && <p className="w-full rounded bg-panel2 p-2 text-[11px] text-ink-faint">{draftNote}</p>}
+          {sendError && (
+            <p className="w-full rounded bg-danger-bg p-2 text-[11px] text-danger">{sendError}</p>
+          )}
+          {draftNote && (
+            <p className="w-full rounded bg-panel2 p-2 text-[11px] text-ink-faint">{draftNote}</p>
+          )}
           {/* 29-DIZAJN-SISTEM-UI.md §6a.2 pravilo 1 — oznaka je vidljiva pre slanja, ne posle:
               zaposleni mora znati da šalje AI tekst dok još može da ga izmeni ili odbaci. */}
           {draftFromAi && (
             <p className="flex w-full items-center gap-1 rounded bg-accent-soft p-2 text-[11px] text-accent-strong">
-              <Icon name="sparkle" /> Tekst potiče iz AI nacrta — biće tako i zabeležen. Odgovornost za
-              poslatu poruku ostaje na vama.
+              <Icon name="sparkle" /> Tekst potiče iz AI nacrta — biće tako i zabeležen. Odgovornost
+              za poslatu poruku ostaje na vama.
             </p>
           )}
           {/* §2.5 (v1.6) — prilog fajla; skriveni <input type=file>, vidljivo dugme sa spajalicom
               pokreće ga preko ref-a (isti obrazac kao svaki drugi prilagođen file-picker). */}
           {pendingFile && (
             <p className="flex w-full items-center gap-1.5 rounded bg-panel2 px-2 py-1 text-[11px] text-ink-dim">
-              <Icon name="file" /> {pendingFile.name} <span className="text-ink-faint">({formatFileSize(pendingFile.size)})</span>
-              <button type="button" onClick={() => { setPendingFile(null); if (fileInputRef.current) fileInputRef.current.value = ''; }} className="ml-auto text-ink-faint hover:text-danger">
+              <Icon name="file" /> {pendingFile.name}{' '}
+              <span className="text-ink-faint">({formatFileSize(pendingFile.size)})</span>
+              <button
+                type="button"
+                onClick={() => {
+                  setPendingFile(null);
+                  if (fileInputRef.current) fileInputRef.current.value = '';
+                }}
+                className="ml-auto text-ink-faint hover:text-danger"
+              >
                 <Icon name="close" />
               </button>
             </p>
@@ -365,20 +406,33 @@ export default function ChatPanel({
             className="input flex-1"
           />
           <div className="flex flex-col items-end gap-1 self-end">
-            <Button type="submit" disabled={sending || (draft.trim() === '' && !pendingFile)} size="sm">
+            <Button
+              type="submit"
+              disabled={sending || (draft.trim() === '' && !pendingFile)}
+              size="sm"
+            >
               {sending ? 'Šaljem…' : 'pošalji'}
             </Button>
             {/* §9.5 — AI nacrt postoji samo za razgovore sa dobavljačima; interni tim-chat ga
                 nema (namerno uža granica nego M7 chat). */}
             {conversationType === 'EXTERNAL_SUPPLIER' && (
-              <Button type="button" onClick={handleRequestDraft} disabled={drafting} variant="outline" size="sm" className="h-auto px-2 py-1 text-[11px]">
+              <Button
+                type="button"
+                onClick={handleRequestDraft}
+                disabled={drafting}
+                variant="outline"
+                size="sm"
+                className="h-auto px-2 py-1 text-[11px]"
+              >
                 {drafting ? 'Pišem nacrt…' : 'predloži nacrt (AI)'}
               </Button>
             )}
           </div>
         </form>
       ) : (
-        <p className="border-t border-border p-3 text-[11px] text-ink-faint">Nemate dozvolu za slanje poruka u ovom razgovoru.</p>
+        <p className="border-t border-border p-3 text-[11px] text-ink-faint">
+          Nemate dozvolu za slanje poruka u ovom razgovoru.
+        </p>
       )}
     </div>
   );

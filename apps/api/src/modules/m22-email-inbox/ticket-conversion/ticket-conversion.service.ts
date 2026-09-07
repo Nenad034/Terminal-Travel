@@ -22,7 +22,9 @@ export class TicketConversionService {
 
     const access = await this.mailboxes.findAccess(thread.mailboxId, actorUserId);
     if (!access || access.accessLevel !== 'REPLY') {
-      throw new ForbiddenException(`Konverzija u tiket zahteva REPLY MailboxAccess za sanduče ${thread.mailboxId} (§2.2).`);
+      throw new ForbiddenException(
+        `Konverzija u tiket zahteva REPLY MailboxAccess za sanduče ${thread.mailboxId} (§2.2).`,
+      );
     }
 
     const ticket = await this.tickets.create(

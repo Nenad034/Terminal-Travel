@@ -61,7 +61,9 @@ export default function RecordPaymentForm({
   editPayment?: EditablePayment;
   onDone?: () => void;
 }) {
-  const boundAction = editPayment ? updatePayment.bind(null, editPayment.id, path) : recordPayment.bind(null, bookingId, path);
+  const boundAction = editPayment
+    ? updatePayment.bind(null, editPayment.id, path)
+    : recordPayment.bind(null, bookingId, path);
   const [state, formAction] = useActionState(boundAction, initialState);
   const [method, setMethod] = useState<Method>((editPayment?.method as Method) ?? 'BANK_TRANSFER');
 
@@ -96,13 +98,22 @@ export default function RecordPaymentForm({
           />
         </Field>
         <Field label="valuta">
-          <select name="currency" defaultValue={editPayment?.currency ?? currency} className="input w-full">
+          <select
+            name="currency"
+            defaultValue={editPayment?.currency ?? currency}
+            className="input w-full"
+          >
             <option value="RSD">RSD</option>
             <option value="EUR">EUR</option>
           </select>
         </Field>
         <Field label="način">
-          <select name="method" value={method} onChange={(e) => setMethod(e.target.value as Method)} className="input w-full">
+          <select
+            name="method"
+            value={method}
+            onChange={(e) => setMethod(e.target.value as Method)}
+            className="input w-full"
+          >
             {METHOD_OPTIONS.map((m) => (
               <option key={m.value} value={m.value}>
                 {m.label}
@@ -111,7 +122,11 @@ export default function RecordPaymentForm({
           </select>
         </Field>
         <Field label="poziv na broj (opciono)">
-          <input name="reference" defaultValue={editPayment?.reference ?? undefined} className="input w-full" />
+          <input
+            name="reference"
+            defaultValue={editPayment?.reference ?? undefined}
+            className="input w-full"
+          />
         </Field>
         {/* Dopuna (2.9.2026, na zahtev vlasnika: "dugme zabeleži uplatu nije u pravcu polja
             pored") — nevidljiva labela iste visine kao kod suseda (Field ispod) da dugme sedi
@@ -119,7 +134,11 @@ export default function RecordPaymentForm({
         <div className="flex items-end gap-2">
           <SubmitButton editing={Boolean(editPayment)} />
           {editPayment && onDone && (
-            <button type="button" onClick={onDone} className="text-xs text-ink-faint hover:text-ink hover:underline">
+            <button
+              type="button"
+              onClick={onDone}
+              className="text-xs text-ink-faint hover:text-ink hover:underline"
+            >
               otkaži
             </button>
           )}
@@ -129,7 +148,12 @@ export default function RecordPaymentForm({
       {needsBank && (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
           <Field label={method === 'BANK_TRANSFER' ? 'banka' : 'kartica — banka'}>
-            <select name="bankId" required defaultValue={editPayment?.bankId ?? ''} className="input w-full">
+            <select
+              name="bankId"
+              required
+              defaultValue={editPayment?.bankId ?? ''}
+              className="input w-full"
+            >
               <option value="">— izaberite banku —</option>
               {banks.map((b) => (
                 <option key={b.id} value={b.id}>
@@ -141,7 +165,9 @@ export default function RecordPaymentForm({
         </div>
       )}
 
-      {needsCheckDetails && <CheckDetailsFields banks={banks} initialRows={editPayment?.checkDetails} />}
+      {needsCheckDetails && (
+        <CheckDetailsFields banks={banks} initialRows={editPayment?.checkDetails} />
+      )}
     </form>
   );
 }
@@ -161,17 +187,18 @@ function CheckDetailsFields({
   banks: BankOption[];
   initialRows?: { bankId: string; amount: number; checkNumber: string; clearanceDate: string }[];
 }) {
-  const [rows, setRows] = useState<{ id: number; bankId: string; amount?: string; checkNumber?: string; clearanceDate?: string }[]>(
-    () =>
-      initialRows && initialRows.length > 0
-        ? initialRows.map((r, i) => ({
-            id: -(i + 1),
-            bankId: r.bankId,
-            amount: (r.amount / 100).toFixed(2),
-            checkNumber: r.checkNumber,
-            clearanceDate: r.clearanceDate.slice(0, 10),
-          }))
-        : [{ id: 0, bankId: '' }],
+  const [rows, setRows] = useState<
+    { id: number; bankId: string; amount?: string; checkNumber?: string; clearanceDate?: string }[]
+  >(() =>
+    initialRows && initialRows.length > 0
+      ? initialRows.map((r, i) => ({
+          id: -(i + 1),
+          bankId: r.bankId,
+          amount: (r.amount / 100).toFixed(2),
+          checkNumber: r.checkNumber,
+          clearanceDate: r.clearanceDate.slice(0, 10),
+        }))
+      : [{ id: 0, bankId: '' }],
   );
 
   function addRow() {
@@ -182,7 +209,11 @@ function CheckDetailsFields({
     <div className="space-y-2 rounded border border-border bg-panel2 p-3">
       <div className="flex items-center justify-between">
         <span className="text-xs font-semibold text-ink">Specifikacija čekova</span>
-        <button type="button" onClick={addRow} className="flex items-center gap-1 text-xs text-accent hover:underline">
+        <button
+          type="button"
+          onClick={addRow}
+          className="flex items-center gap-1 text-xs text-accent hover:underline"
+        >
           <Icon name="add" /> dodaj ček
         </button>
       </div>
@@ -192,7 +223,11 @@ function CheckDetailsFields({
             <select
               name="checkBankId"
               value={row.bankId}
-              onChange={(e) => setRows((r) => r.map((x) => (x.id === row.id ? { ...x, bankId: e.target.value } : x)))}
+              onChange={(e) =>
+                setRows((r) =>
+                  r.map((x) => (x.id === row.id ? { ...x, bankId: e.target.value } : x)),
+                )
+              }
               required
               className="input w-full"
             >
@@ -205,24 +240,43 @@ function CheckDetailsFields({
             </select>
           </Field>
           <Field label="iznos">
-            <input name="checkAmount" type="number" step="0.01" min={0.01} required defaultValue={row.amount} className="input w-full" />
+            <input
+              name="checkAmount"
+              type="number"
+              step="0.01"
+              min={0.01}
+              required
+              defaultValue={row.amount}
+              className="input w-full"
+            />
           </Field>
           <Field label="broj čeka">
-            <input name="checkNumber" required defaultValue={row.checkNumber} className="input w-full" />
+            <input
+              name="checkNumber"
+              required
+              defaultValue={row.checkNumber}
+              className="input w-full"
+            />
           </Field>
           <Field label="datum realizacije">
             <DateField name="checkClearanceDate" required defaultValue={row.clearanceDate} />
           </Field>
           <div className="flex items-end">
             {rows.length > 1 && (
-              <button type="button" onClick={() => setRows((r) => r.filter((x) => x.id !== row.id))} className="text-xs text-danger hover:underline">
+              <button
+                type="button"
+                onClick={() => setRows((r) => r.filter((x) => x.id !== row.id))}
+                className="text-xs text-danger hover:underline"
+              >
                 ukloni
               </button>
             )}
           </div>
         </div>
       ))}
-      <p className="text-[11px] text-ink-faint">Zbir iznosa svih čekova mora biti jednak ukupnom iznosu uplate iznad.</p>
+      <p className="text-[11px] text-ink-faint">
+        Zbir iznosa svih čekova mora biti jednak ukupnom iznosu uplate iznad.
+      </p>
     </div>
   );
 }

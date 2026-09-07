@@ -18,12 +18,14 @@ Agregacioni poziv — kompozicija preko M5 (`BookingItem` filtriran po `assigned
 **Query parametri:** `from`, `to` (ISO 8601 datum/vreme) — period za koji se povlače podaci (mobilni klijent osvežava lokalnu SQLite bazu za tekući/naredni period, predlog 14 dana, podesivo — vidi §9 specifikacije).
 
 **Zahtev:**
+
 ```
 GET /api/v1/mobile/staff/my-itinerary?from=2027-06-01T00:00:00.000Z&to=2027-06-30T00:00:00.000Z
 Authorization: Bearer <JWT vodiča>
 ```
 
 **Odgovor `200`:**
+
 ```json
 [
   {
@@ -60,26 +62,53 @@ Samo stavke sa `itemStatus` u `CONFIRMED`/`PENDING_SUPPLIER_CONFIRMATION` i `ass
 Prima ceo red čekanja odjednom — sve radnje koje je vodič uradio bez signala, sa klijentski generisanim `id` po zapisu (isti taj `id` je idempotency ključ — nema posebnog `idempotency_key` polja, uloga mu je identična). Ponovljen isti `id` **ne pravi duplikat** — server samo potvrđuje `syncedAt`. Ako se isti `id` pošalje sa **različitim sadržajem**, primenjuje se "poslednji upis pobeđuje" po vremenskoj oznaci zapisa (`checkedInAt`/`createdAt`) — noviji sadržaj prepisuje stariji, uz obavezan upis u M1 audit log koji beleži da je detektovan konflikt (`context.conflictDetected`).
 
 **Zahtev:**
+
 ```json
 {
   "checkIns": [
-    { "id": "3fae2b1e-...-uuid", "bookingItemGuestId": "big-1", "checkedInAt": "2027-06-10T08:15:00.000Z" }
+    {
+      "id": "3fae2b1e-...-uuid",
+      "bookingItemGuestId": "big-1",
+      "checkedInAt": "2027-06-10T08:15:00.000Z"
+    }
   ],
   "incidentNotes": [
-    { "id": "9c11a0aa-...-uuid", "bookingId": "bk-1", "note": "Autobus u kvaru, kasnimo 2h", "severity": "URGENT", "createdAt": "2027-06-10T08:20:00.000Z" }
+    {
+      "id": "9c11a0aa-...-uuid",
+      "bookingId": "bk-1",
+      "note": "Autobus u kvaru, kasnimo 2h",
+      "severity": "URGENT",
+      "createdAt": "2027-06-10T08:20:00.000Z"
+    }
   ]
 }
 ```
+
 Oba niza su opciona — klijent šalje samo ono što ima u redu čekanja.
 
 **Odgovor `201`:**
+
 ```json
 {
   "checkIns": [
-    { "id": "3fae2b1e-...-uuid", "bookingItemGuestId": "big-1", "checkedInAt": "2027-06-10T08:15:00.000Z", "checkedInBy": "u-vodic-1", "syncedAt": "2027-06-10T09:00:00.000Z" }
+    {
+      "id": "3fae2b1e-...-uuid",
+      "bookingItemGuestId": "big-1",
+      "checkedInAt": "2027-06-10T08:15:00.000Z",
+      "checkedInBy": "u-vodic-1",
+      "syncedAt": "2027-06-10T09:00:00.000Z"
+    }
   ],
   "incidentNotes": [
-    { "id": "9c11a0aa-...-uuid", "bookingId": "bk-1", "guideId": "u-vodic-1", "note": "Autobus u kvaru, kasnimo 2h", "severity": "URGENT", "createdAt": "2027-06-10T08:20:00.000Z", "syncedAt": "2027-06-10T09:00:00.000Z" }
+    {
+      "id": "9c11a0aa-...-uuid",
+      "bookingId": "bk-1",
+      "guideId": "u-vodic-1",
+      "note": "Autobus u kvaru, kasnimo 2h",
+      "severity": "URGENT",
+      "createdAt": "2027-06-10T08:20:00.000Z",
+      "syncedAt": "2027-06-10T09:00:00.000Z"
+    }
   ]
 }
 ```
@@ -87,6 +116,7 @@ Oba niza su opciona — klijent šalje samo ono što ima u redu čekanja.
 ### `URGENT` beleška — odmah vidljivo upozorenje timu
 
 Čim se `FieldIncidentNote` sa `severity: "URGENT"` **prvi put** sinhronizuje (ne pri ponovnom idempotentnom slanju istog već sinhronizovanog zapisa), sistem:
+
 1. Upisuje poseban M1 audit log zapis (`module: "M9"`, `action: "field_incident.urgent_alert"`) — isti princip kao M10 neuspešno slanje fiskalnog dokumenta ka SEF/ESIR (vidljivo i proverljivo, ne tiho izgubljeno).
 2. Emituje `M9 field_incident.urgent` preko Event Bus-a (`{ fieldIncidentNoteId, bookingId, guideId, note }`) — budući M17 (interni panel)/M18 (operativni nadzor)/M19 (tim-chat) mogu da se pretplate i proslede upozorenje timu u realnom vremenu; nijedan od njih još ne postoji kao implementacija, isti obrazac kao ostali "spreman signal, čeka pretplatnika" slučajevi u kodnoj bazi (npr. M10 `supplier_obligation_due_soon`).
 
@@ -99,9 +129,11 @@ Oba niza su opciona — klijent šalje samo ono što ima u redu čekanja.
 v1.4 dopuna — bilo koja autentikovana mobilna uloga (gost ili vodič) registruje sopstveni Expo push token. Nema posebne dozvole (isti obrazac kao `GET /iam/permissions` — svako sme za sopstveni nalog).
 
 **Zahtev:**
+
 ```json
 { "pushToken": "ExponentPushToken[xxxxxxxxxxxxxxxxxxxxxx]" }
 ```
+
 **Odgovor `201`:** `{ "ok": true }`
 
 Server čuva token u `User.push_token` i koristi ga (preko postojećih Event Bus signala — M5 `booking.confirmed`, M9 `field_incident.urgent`) da pošalje Expo push poruku odgovarajućem korisniku. Odsustvo registrovanog tokena se tiho preskače, nije greška.
@@ -119,6 +151,7 @@ Content-Type: application/json
 
 { "assignedGuideId": "u-vodic-1" }
 ```
+
 Dozvola: `M5/booking/MODIFY` (ista dozvola kao ostale izmene rezervacije — M9 spec ne uvodi poseban ključ za dodelu vodiča). `assignedGuideId: null` uklanja dodelu. Detalji: `docs/api/M5-rezervacije.md`. M17 (interni panel) postoji kao implementacija, ali još nema poseban ekran za ovu dodelu — poziva se direktno dok taj ekran ne bude dodat, isto ograničenje kao za `URGENT` upozorenje ispod.
 
 ---
@@ -132,6 +165,7 @@ Pretraga, ponuda, rezervacija, kartično plaćanje, "moje rezervacije", vaučeri
 Poglavlje 2a specifikacije / M15 spec §6.5.6e. Gost fotografiše pasoš u mobilnoj aplikaciji, slika se šalje kao `multipart/form-data` (**nikad ne dodiruje disk servera, nikad se ne čuva** — obrađuje se u memoriji i odmah odbacuje), Claude Vision izvuče strukturisana polja koja **predpopunjavaju** formu — ništa se ne upisuje u bazu ovim pozivom, gost sam čuva preko `POST /crm/guest-profiles` iznad. Samo `JwtAuthGuard` (bez posebne dozvole) — bilo koji autentikovan mobilni korisnik sme da pozove za SEBE, isti obrazac kao `/mobile/push-token`.
 
 **Zahtev:**
+
 ```
 POST /api/v1/mobile/guest-profile/scan-document
 Authorization: Bearer <JWT>
@@ -141,6 +175,7 @@ image: <JPEG/PNG/WEBP fajl, maks 5MB>
 ```
 
 **Odgovor `201`** — sva polja `null` ako model nije pouzdano pročitao vrednost (nikad izmišljeno), `warning` objašnjava razlog kad nešto nedostaje ili slika uopšte nije prepoznata kao putni dokument:
+
 ```json
 {
   "documentDetected": true,
@@ -152,6 +187,7 @@ image: <JPEG/PNG/WEBP fajl, maks 5MB>
   "warning": null
 }
 ```
+
 Primer nečitljive slike: `{ "documentDetected": false, "fullName": null, "documentType": null, "documentNumber": null, "nationality": null, "dateOfBirth": null, "warning": "Fotografija ne izgleda kao čitljiv putni dokument — unesite podatke ručno." }`.
 
 **Greške:** `400` ako slika nedostaje u telu zahteva. Nepodržan format slike (nije JPEG/PNG/WEBP) i pad samog AI poziva **ne** vraćaju HTTP grešku — dolaze kao `200`/`201` sa `documentDetected: false` i objašnjenjem u `warning`, jer je skeniranje uvek opciona pogodnost: klijent uvek ostaje spreman za ručan unos, nikad blokiran greškom.

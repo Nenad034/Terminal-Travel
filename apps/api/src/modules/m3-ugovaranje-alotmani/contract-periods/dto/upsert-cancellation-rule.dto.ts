@@ -26,7 +26,9 @@ export class UpsertCancellationRuleDto {
   @IsEnum(EarlyDepartureBasis)
   earlyDepartureBasis?: EarlyDepartureBasis;
 
-  @ValidateIf((o: UpsertCancellationRuleDto) => o.earlyDepartureBasis === 'PERCENTAGE_OF_REMAINING_STAY')
+  @ValidateIf(
+    (o: UpsertCancellationRuleDto) => o.earlyDepartureBasis === 'PERCENTAGE_OF_REMAINING_STAY',
+  )
   @IsInt()
   @Min(0)
   @Max(100)

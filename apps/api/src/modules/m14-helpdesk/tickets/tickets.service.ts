@@ -1,4 +1,9 @@
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { EventBusService } from '../../../common/events/event-bus.service';
 import { resolveCallerIdentity } from '../../../common/auth/resolve-caller-identity';
@@ -30,7 +35,9 @@ export class TicketsService {
   // isključivo sopstvene tikete na nivou API-ja (obim nije zaseban ključ dozvole, sprovodi se
   // ovde). Interni tim (nema linked_profile_id koji vodi ka ClientAccount preko ova dva puta)
   // nije ograničen.
-  private async resolveOwnershipContext(actorUserId: string | undefined): Promise<OwnershipContext> {
+  private async resolveOwnershipContext(
+    actorUserId: string | undefined,
+  ): Promise<OwnershipContext> {
     if (!actorUserId) return { isRestricted: false, ownAccountId: null };
     const identity = await resolveCallerIdentity(this.prisma, actorUserId);
 
@@ -38,7 +45,9 @@ export class TicketsService {
       return { isRestricted: true, ownAccountId: identity.ownProfileId };
     }
     if (identity.accountType === 'SUBAGENT_CONTACT' && identity.ownProfileId) {
-      const subagent = await this.prisma.subagent.findUnique({ where: { id: identity.ownProfileId } });
+      const subagent = await this.prisma.subagent.findUnique({
+        where: { id: identity.ownProfileId },
+      });
       return { isRestricted: true, ownAccountId: subagent?.clientAccountId ?? null };
     }
     return { isRestricted: false, ownAccountId: null };
@@ -47,12 +56,16 @@ export class TicketsService {
   private async nextTicketNumber(): Promise<string> {
     const year = new Date().getFullYear();
     for (let attempt = 0; attempt < 5; attempt++) {
-      const count = await this.prisma.ticket.count({ where: { ticketNumber: { startsWith: `HD-${year}-` } } });
+      const count = await this.prisma.ticket.count({
+        where: { ticketNumber: { startsWith: `HD-${year}-` } },
+      });
       const candidate = `HD-${year}-${String(count + 1 + attempt).padStart(6, '0')}`;
       const exists = await this.prisma.ticket.findUnique({ where: { ticketNumber: candidate } });
       if (!exists) return candidate;
     }
-    throw new BadRequestException('Nije moguće generisati jedinstven ticket_number, pokušajte ponovo.');
+    throw new BadRequestException(
+      'Nije moguće generisati jedinstven ticket_number, pokušajte ponovo.',
+    );
   }
 
   // §6 — GET /tickets. Gost/SUBAGENT_ADMIN vide isključivo sopstvene tikete (requester_client_
@@ -63,7 +76,9 @@ export class TicketsService {
    *  već dozvoljen skup, pa se vidljivost (ownership / VIEW_ALL) primenjuje nepromenjeno pre njega.
    *  Traženo za karticu "Reklamacije" na ekranu rezervacije (M5 spec §4.5). */
   async findMany(actorUserId?: string, filters?: { relatedBookingId?: string }) {
-    const bookingFilter = filters?.relatedBookingId ? { relatedBookingId: filters.relatedBookingId } : {};
+    const bookingFilter = filters?.relatedBookingId
+      ? { relatedBookingId: filters.relatedBookingId }
+      : {};
     const ownership = await this.resolveOwnershipContext(actorUserId);
     if (ownership.isRestricted) {
       if (!ownership.ownAccountId) return [];
@@ -74,7 +89,12 @@ export class TicketsService {
     }
     let scopedToAssignee = false;
     if (actorUserId) {
-      const hasViewAll = await this.permissions.hasPermission(actorUserId, 'M14', 'ticket', 'VIEW_ALL');
+      const hasViewAll = await this.permissions.hasPermission(
+        actorUserId,
+        'M14',
+        'ticket',
+        'VIEW_ALL',
+      );
       scopedToAssignee = !hasViewAll;
     }
     return this.prisma.ticket.findMany({
@@ -94,14 +114,27 @@ export class TicketsService {
       throw new NotFoundException(`Ticket ${id} nije pronađen.`);
     }
     if (!ownership.isRestricted && actorUserId) {
-      const hasViewAll = await this.permissions.hasPermission(actorUserId, 'M14', 'ticket', 'VIEW_ALL');
-      if (!hasViewAll && ticket.assignedTo !== actorUserId) throw new NotFoundException(`Ticket ${id} nije pronađen.`);
+      const hasViewAll = await this.permissions.hasPermission(
+        actorUserId,
+        'M14',
+        'ticket',
+        'VIEW_ALL',
+      );
+      if (!hasViewAll && ticket.assignedTo !== actorUserId)
+        throw new NotFoundException(`Ticket ${id} nije pronađen.`);
     }
 
     let relatedBooking: { id: string; bookingNumber: string; status: string } | null = null;
     if (ticket.relatedBookingId) {
-      const booking = await this.prisma.booking.findUnique({ where: { id: ticket.relatedBookingId } });
-      if (booking) relatedBooking = { id: booking.id, bookingNumber: booking.bookingNumber, status: booking.status };
+      const booking = await this.prisma.booking.findUnique({
+        where: { id: ticket.relatedBookingId },
+      });
+      if (booking)
+        relatedBooking = {
+          id: booking.id,
+          bookingNumber: booking.bookingNumber,
+          status: booking.status,
+        };
     }
 
     return { ...ticket, relatedBooking };
@@ -115,7 +148,9 @@ export class TicketsService {
     let requesterClientAccountId = dto.requesterClientAccountId ?? null;
     if (ownership.isRestricted) {
       if (!ownership.ownAccountId) {
-        throw new ForbiddenException('Nalog pozivaoca nije povezan ni sa jednim ClientAccount profilom.');
+        throw new ForbiddenException(
+          'Nalog pozivaoca nije povezan ni sa jednim ClientAccount profilom.',
+        );
       }
       requesterClientAccountId = ownership.ownAccountId;
     }
@@ -226,10 +261,14 @@ export class TicketsService {
   // dobija sent_by — uvek ljudski nalog (kontroler štiti sa M14/ticket/RESPOND).
   async sendMessage(ticketId: string, messageId: string, actor: { userId: string }) {
     const message = await this.prisma.ticketMessage.findUnique({ where: { id: messageId } });
-    if (!message || message.ticketId !== ticketId) throw new NotFoundException(`Poruka ${messageId} nije pronađena na tiketu ${ticketId}.`);
+    if (!message || message.ticketId !== ticketId)
+      throw new NotFoundException(`Poruka ${messageId} nije pronađena na tiketu ${ticketId}.`);
     if (message.sentBy) throw new BadRequestException(`Poruka ${messageId} je već poslata.`);
 
-    return this.prisma.ticketMessage.update({ where: { id: messageId }, data: { sentBy: actor.userId } });
+    return this.prisma.ticketMessage.update({
+      where: { id: messageId },
+      data: { sentBy: actor.userId },
+    });
   }
 }
 

@@ -4,7 +4,6 @@ import RegisterTab from '@/components/RegisterTab';
 import NadzorSubnav from '../NadzorSubnav';
 import Icon from '@/components/Icon';
 
-
 interface ProcessMapDefinition {
   key: string;
   label: string;
@@ -37,7 +36,9 @@ export default async function ProcessMapsPage() {
 
       {!error && (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {maps.length === 0 && <p className="text-xs text-ink-faint">Nijedna procesna mapa još nije registrovana.</p>}
+          {maps.length === 0 && (
+            <p className="text-xs text-ink-faint">Nijedna procesna mapa još nije registrovana.</p>
+          )}
           {maps.map((m) => (
             <Link
               key={m.key}
@@ -48,7 +49,9 @@ export default async function ProcessMapsPage() {
                 <Icon name="pulse" className="text-accent" />
                 <span className="text-sm font-semibold text-ink">{m.label}</span>
               </div>
-              <p className="text-xs text-ink-faint">{m.nodes.length} čvorova · modul {m.module}</p>
+              <p className="text-xs text-ink-faint">
+                {m.nodes.length} čvorova · modul {m.module}
+              </p>
             </Link>
           ))}
         </div>

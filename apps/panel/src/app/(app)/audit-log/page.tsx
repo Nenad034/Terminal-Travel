@@ -6,7 +6,6 @@ import AuditLogRows, { type AuditLogEntry } from './AuditLogRows';
 import AuditLogSearchForm from './AuditLogSearchForm';
 import Pagination from '@/components/Pagination';
 
-
 // M17 spec §7 (Faza 0 izlazni kriterijum) — Vlasnik/Direktor vidi audit log. Dozvola
 // (M1/audit-log/VIEW) se već proverava na nivou apps/api (AuditLogController) — ako
 // korisnik nema pravo, apiFetch baca 403 i stranica prikazuje grešku umesto podataka
@@ -79,7 +78,10 @@ export default async function AuditLogPage(props: { searchParams: Promise<AuditL
         // M18 spec §9a dopuna (29.8.2026, na zahtev vlasnika: "kada se udje u neku od listi u
         // procesnim mapama nemamo nacin da se vratimo korak ili dva nazad") — eksplicitan put
         // nazad na ekran sa kog je stigao klik (procesna mapa), ne samo browser back dugme.
-        <Link href={backHref} className="mb-2 flex items-center gap-1 text-xs text-ink-faint hover:text-accent">
+        <Link
+          href={backHref}
+          className="mb-2 flex items-center gap-1 text-xs text-ink-faint hover:text-accent"
+        >
           <span aria-hidden="true">←</span> Nazad na {searchParams?.backLabel || 'prethodni ekran'}
         </Link>
       )}
@@ -92,8 +94,13 @@ export default async function AuditLogPage(props: { searchParams: Promise<AuditL
         // vidljiv, sa jasnim putem nazad na neisfiltriranu listu.
         <div className="mb-3 flex items-center gap-2 text-xs text-ink-faint">
           <span>
-            filtrirano: {searchParams?.module && <span className="font-mono text-accent2">{searchParams.module}</span>}
-            {searchParams?.action && <span className="font-mono text-ink"> · {searchParams.action}</span>}
+            filtrirano:{' '}
+            {searchParams?.module && (
+              <span className="font-mono text-accent2">{searchParams.module}</span>
+            )}
+            {searchParams?.action && (
+              <span className="font-mono text-ink"> · {searchParams.action}</span>
+            )}
           </span>
           <Button asChild variant="ghost" size="sm" className="h-auto px-2 py-0.5 text-[11px]">
             <Link href="/audit-log">obriši filter</Link>
@@ -121,7 +128,9 @@ export default async function AuditLogPage(props: { searchParams: Promise<AuditL
       {!error && (
         <>
           <div className="overflow-hidden rounded-lg border border-border">
-            {entries.length === 0 && <p className="p-4 text-center text-xs text-ink-faint">Nema zapisa.</p>}
+            {entries.length === 0 && (
+              <p className="p-4 text-center text-xs text-ink-faint">Nema zapisa.</p>
+            )}
             <AuditLogRows entries={entries} />
           </div>
           {/* Traka uvek ispisuje i UKUPAN broj zapisa, ne samo koju stranu gledaš — nemogućnost

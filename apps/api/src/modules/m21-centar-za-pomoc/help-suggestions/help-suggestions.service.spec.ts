@@ -8,7 +8,12 @@ describe('HelpSuggestionsService (M21 spec §5.4/§7)', () => {
   function makeService() {
     const prisma = {
       helpQuestion: { findMany: jest.fn(), findUnique: jest.fn() },
-      helpArticleSuggestion: { findMany: jest.fn().mockResolvedValue([]), create: jest.fn(), findUnique: jest.fn(), update: jest.fn() },
+      helpArticleSuggestion: {
+        findMany: jest.fn().mockResolvedValue([]),
+        create: jest.fn(),
+        findUnique: jest.fn(),
+        update: jest.fn(),
+      },
       helpArticle: { create: jest.fn(), findUnique: jest.fn() },
       aIAgent: { findFirst: jest.fn() },
     };
@@ -16,7 +21,13 @@ describe('HelpSuggestionsService (M21 spec §5.4/§7)', () => {
     const permissions = { hasPermission: jest.fn().mockResolvedValue(true) };
     const anthropic = { isConfigured: jest.fn().mockReturnValue(false), getClient: jest.fn() };
     const invocationLog = { record: jest.fn() };
-    const service = new HelpSuggestionsService(prisma as any, auditLog as any, permissions as any, anthropic as any, invocationLog as any);
+    const service = new HelpSuggestionsService(
+      prisma as any,
+      auditLog as any,
+      permissions as any,
+      anthropic as any,
+      invocationLog as any,
+    );
     return { service, prisma, auditLog, permissions, anthropic, invocationLog };
   }
 
@@ -49,7 +60,10 @@ describe('HelpSuggestionsService (M21 spec §5.4/§7)', () => {
     expect(created).toBe(1);
     expect(prisma.helpArticleSuggestion.create).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: expect.objectContaining({ basedOnQuestionIds: expect.arrayContaining(['q1', 'q2', 'q3']), status: 'PENDING_APPROVAL' }),
+        data: expect.objectContaining({
+          basedOnQuestionIds: expect.arrayContaining(['q1', 'q2', 'q3']),
+          status: 'PENDING_APPROVAL',
+        }),
       }),
     );
   });
@@ -71,8 +85,14 @@ describe('HelpSuggestionsService (M21 spec §5.4/§7)', () => {
     const { service, prisma } = makeService();
     prisma.helpQuestion.findMany.mockResolvedValue([
       question('q1', { audienceContext: 'STAFF' }),
-      question('q2', { audienceContext: 'SUBAGENT', questionText: 'Kako obraditi delimičan povraćaj kod rezervacije?' }),
-      question('q3', { audienceContext: 'SUBAGENT', questionText: 'Postupak za delimičan povraćaj novca rezervacije' }),
+      question('q2', {
+        audienceContext: 'SUBAGENT',
+        questionText: 'Kako obraditi delimičan povraćaj kod rezervacije?',
+      }),
+      question('q3', {
+        audienceContext: 'SUBAGENT',
+        questionText: 'Postupak za delimičan povraćaj novca rezervacije',
+      }),
     ]);
 
     const created = await service.generateSuggestions();
@@ -97,7 +117,9 @@ describe('HelpSuggestionsService (M21 spec §5.4/§7)', () => {
     const result = await service.review('s1', 'APPROVE', 'hr-1');
 
     expect(prisma.helpArticle.create).toHaveBeenCalledWith(
-      expect.objectContaining({ data: expect.objectContaining({ status: 'PENDING_APPROVAL', generatedBy: 'AI' }) }),
+      expect.objectContaining({
+        data: expect.objectContaining({ status: 'PENDING_APPROVAL', generatedBy: 'AI' }),
+      }),
     );
     expect(result.createdArticle?.status).toBe('PENDING_APPROVAL');
     expect(result.suggestion.status).toBe('APPROVED');
@@ -105,7 +127,11 @@ describe('HelpSuggestionsService (M21 spec §5.4/§7)', () => {
 
   it('review(REJECT) ne kreira HelpArticle', async () => {
     const { service, prisma } = makeService();
-    prisma.helpArticleSuggestion.findUnique.mockResolvedValue({ id: 's1', status: 'PENDING_APPROVAL', basedOnQuestionIds: [] });
+    prisma.helpArticleSuggestion.findUnique.mockResolvedValue({
+      id: 's1',
+      status: 'PENDING_APPROVAL',
+      basedOnQuestionIds: [],
+    });
     prisma.helpArticleSuggestion.update.mockResolvedValue({ id: 's1', status: 'REJECTED' });
 
     const result = await service.review('s1', 'REJECT', 'hr-1');
@@ -116,15 +142,25 @@ describe('HelpSuggestionsService (M21 spec §5.4/§7)', () => {
 
   it('review() bez M21/suggestion/APPROVE dozvole baca ForbiddenException', async () => {
     const { service, prisma, permissions } = makeService();
-    prisma.helpArticleSuggestion.findUnique.mockResolvedValue({ id: 's1', status: 'PENDING_APPROVAL', basedOnQuestionIds: [] });
+    prisma.helpArticleSuggestion.findUnique.mockResolvedValue({
+      id: 's1',
+      status: 'PENDING_APPROVAL',
+      basedOnQuestionIds: [],
+    });
     permissions.hasPermission.mockResolvedValue(false);
 
-    await expect(service.review('s1', 'APPROVE', 'neko-bez-prava')).rejects.toThrow(ForbiddenException);
+    await expect(service.review('s1', 'APPROVE', 'neko-bez-prava')).rejects.toThrow(
+      ForbiddenException,
+    );
   });
 
   it('review() na već rešen predlog baca BadRequestException', async () => {
     const { service, prisma } = makeService();
-    prisma.helpArticleSuggestion.findUnique.mockResolvedValue({ id: 's1', status: 'APPROVED', basedOnQuestionIds: [] });
+    prisma.helpArticleSuggestion.findUnique.mockResolvedValue({
+      id: 's1',
+      status: 'APPROVED',
+      basedOnQuestionIds: [],
+    });
 
     await expect(service.review('s1', 'APPROVE', 'hr-1')).rejects.toThrow(BadRequestException);
   });

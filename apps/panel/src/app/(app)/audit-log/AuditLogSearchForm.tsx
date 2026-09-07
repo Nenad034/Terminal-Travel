@@ -38,7 +38,15 @@ function buildHref(params: Params): string {
 // URL preko `router.replace` (ne `push` — pretraga ne puni istoriju nazad-dugmeta pojedinačnim
 // slovima). Datum (DateField.tsx) se primenjuje odmah pri izboru — to je jedan diskretan čin
 // (klik na dan/kompletiran unos), ne kontinuirano kucanje, pa debounce tu nije potreban.
-export default function AuditLogSearchForm({ module, action, q, from, to, back, backLabel }: Params) {
+export default function AuditLogSearchForm({
+  module,
+  action,
+  q,
+  from,
+  to,
+  back,
+  backLabel,
+}: Params) {
   const router = useRouter();
   const [qDraft, setQDraft] = useState(q ?? '');
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -75,7 +83,12 @@ export default function AuditLogSearchForm({ module, action, q, from, to, back, 
     <div className="mb-3 flex flex-wrap items-end gap-2 text-xs">
       <label className="flex flex-col gap-0.5">
         <span className="text-ink-faint">pojam</span>
-        <input value={qDraft} onChange={(e) => applyQ(e.target.value)} placeholder="akcija, resurs, modul…" className="input" />
+        <input
+          value={qDraft}
+          onChange={(e) => applyQ(e.target.value)}
+          placeholder="akcija, resurs, modul…"
+          className="input"
+        />
       </label>
       <label className="flex flex-col gap-0.5">
         <span className="text-ink-faint">od datuma</span>

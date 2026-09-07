@@ -22,12 +22,37 @@ import type { BookingFilters } from './RealFilterBar';
 // `Booking.ownerId`, Dobavljač/Vrsta dobavljača → `BookingItem.product.(sourceContract.)supplier`,
 // Vrsta objekta → `Product.attributes.accommodation_type` (M2 §2.3). Sakriveni iza linka da ne
 // zagušuju uvek-vidljiv skup — retko se koriste u odnosu na gornjih pet grupa.
-const STATUSES = ['PENDING_SUPPLIER_CONFIRMATION', 'CONFIRMED', 'MODIFIED', 'CANCELLED', 'COMPLETED'];
+const STATUSES = [
+  'PENDING_SUPPLIER_CONFIRMATION',
+  'CONFIRMED',
+  'MODIFIED',
+  'CANCELLED',
+  'COMPLETED',
+];
 const PAYMENT_STATUSES = ['UNPAID', 'PARTIALLY_PAID', 'PAID', 'INVOICE_PENDING'];
 const TIP_NASTUPANJA = ['ORGANIZATOR', 'POSREDNIK'];
-const PRODUCT_TYPES = ['ACCOMMODATION', 'PACKAGE', 'TRANSFER', 'EXCURSION', 'FLIGHT', 'INSURANCE', 'TRANSPORT', 'TICKET', 'EVENT', 'CRUISE'];
+const PRODUCT_TYPES = [
+  'ACCOMMODATION',
+  'PACKAGE',
+  'TRANSFER',
+  'EXCURSION',
+  'FLIGHT',
+  'INSURANCE',
+  'TRANSPORT',
+  'TICKET',
+  'EVENT',
+  'CRUISE',
+];
 const SUPPLIER_TYPES = ['HOTEL', 'PREVOZNIK', 'OSIGURAVAC', 'DRUGO'];
-const ACCOMMODATION_TYPES = ['HOTEL', 'VILA', 'APARTMAN', 'HOSTEL', 'KAMP', 'KABINA_NA_BRODU', 'DRUGO'];
+const ACCOMMODATION_TYPES = [
+  'HOTEL',
+  'VILA',
+  'APARTMAN',
+  'HOSTEL',
+  'KAMP',
+  'KABINA_NA_BRODU',
+  'DRUGO',
+];
 
 const inputClass = 'input text-xs w-full';
 
@@ -56,33 +81,90 @@ export default function RealFilterFields({
       <Columns>
         <Column>
           <Field label="Broj">
-            <ClearableTextField name="bookingNumber" defaultValue={filters.bookingNumber ?? ''} placeholder="TT-2026-..." className={inputClass} autoSubmit={autoSubmit} />
+            <ClearableTextField
+              name="bookingNumber"
+              defaultValue={filters.bookingNumber ?? ''}
+              placeholder="TT-2026-..."
+              className={inputClass}
+              autoSubmit={autoSubmit}
+            />
           </Field>
           <Field label="Nosilac rezervacije">
-            <ClearableTextField name="buyerName" defaultValue={filters.buyerName ?? ''} placeholder="ime/naziv" className={inputClass} autoSubmit={autoSubmit} />
+            <ClearableTextField
+              name="buyerName"
+              defaultValue={filters.buyerName ?? ''}
+              placeholder="ime/naziv"
+              className={inputClass}
+              autoSubmit={autoSubmit}
+            />
           </Field>
-          <MultiSelectDropdown name="status" label="Status" options={STATUSES.map((s) => ({ value: s, label: s }))} defaultValues={toArray(filters.status)} autoSubmit={autoSubmit} />
+          <MultiSelectDropdown
+            name="status"
+            label="Status"
+            options={STATUSES.map((s) => ({ value: s, label: s }))}
+            defaultValues={toArray(filters.status)}
+            autoSubmit={autoSubmit}
+          />
         </Column>
         <Column>
           <Field label="Država">
-            <ClearableTextField name="destinationCountry" defaultValue={filters.destinationCountry ?? ''} placeholder="npr. Grčka" className={inputClass} autoSubmit={autoSubmit} />
+            <ClearableTextField
+              name="destinationCountry"
+              defaultValue={filters.destinationCountry ?? ''}
+              placeholder="npr. Grčka"
+              className={inputClass}
+              autoSubmit={autoSubmit}
+            />
           </Field>
           <Field label="Mesto">
-            <ClearableTextField name="destinationCity" defaultValue={filters.destinationCity ?? ''} placeholder="npr. Budva" className={inputClass} autoSubmit={autoSubmit} />
+            <ClearableTextField
+              name="destinationCity"
+              defaultValue={filters.destinationCity ?? ''}
+              placeholder="npr. Budva"
+              className={inputClass}
+              autoSubmit={autoSubmit}
+            />
           </Field>
           <Field label="Hotel">
-            <ClearableTextField name="productName" defaultValue={filters.productName ?? ''} placeholder="naziv hotela" className={inputClass} autoSubmit={autoSubmit} />
+            <ClearableTextField
+              name="productName"
+              defaultValue={filters.productName ?? ''}
+              placeholder="naziv hotela"
+              className={inputClass}
+              autoSubmit={autoSubmit}
+            />
           </Field>
         </Column>
         <Column>
           <Field label="Kreirano od...do">
-            <ClearableDateRange nameFrom="createdFrom" nameTo="createdTo" defaultFrom={filters.createdFrom ?? ''} defaultTo={filters.createdTo ?? ''} className={inputClass} autoSubmit={autoSubmit} />
+            <ClearableDateRange
+              nameFrom="createdFrom"
+              nameTo="createdTo"
+              defaultFrom={filters.createdFrom ?? ''}
+              defaultTo={filters.createdTo ?? ''}
+              className={inputClass}
+              autoSubmit={autoSubmit}
+            />
           </Field>
           <Field label="Dolazak od...do">
-            <ClearableDateRange nameFrom="stayFrom" nameTo="stayTo" defaultFrom={filters.stayFrom ?? ''} defaultTo={filters.stayTo ?? ''} className={inputClass} autoSubmit={autoSubmit} />
+            <ClearableDateRange
+              nameFrom="stayFrom"
+              nameTo="stayTo"
+              defaultFrom={filters.stayFrom ?? ''}
+              defaultTo={filters.stayTo ?? ''}
+              className={inputClass}
+              autoSubmit={autoSubmit}
+            />
           </Field>
           <Field label="Odlazak od...do">
-            <ClearableDateRange nameFrom="returnFrom" nameTo="returnTo" defaultFrom={filters.returnFrom ?? ''} defaultTo={filters.returnTo ?? ''} className={inputClass} autoSubmit={autoSubmit} />
+            <ClearableDateRange
+              nameFrom="returnFrom"
+              nameTo="returnTo"
+              defaultFrom={filters.returnFrom ?? ''}
+              defaultTo={filters.returnTo ?? ''}
+              className={inputClass}
+              autoSubmit={autoSubmit}
+            />
           </Field>
         </Column>
         <Column>
@@ -94,10 +176,20 @@ export default function RealFilterFields({
             autoSubmit={autoSubmit}
           />
           <Field label="Valuta">
-            <ClearableTextField name="currency" defaultValue={filters.currency ?? ''} placeholder="EUR" className={inputClass} autoSubmit={autoSubmit} />
+            <ClearableTextField
+              name="currency"
+              defaultValue={filters.currency ?? ''}
+              placeholder="EUR"
+              className={inputClass}
+              autoSubmit={autoSubmit}
+            />
           </Field>
           <Field label="Garancija putovanja">
-            <select name="hasTravelGuarantee" defaultValue={filters.hasTravelGuarantee ?? ''} className={inputClass}>
+            <select
+              name="hasTravelGuarantee"
+              defaultValue={filters.hasTravelGuarantee ?? ''}
+              className={inputClass}
+            >
               <option value="">svejedno</option>
               <option value="true">ima</option>
               <option value="false">nema</option>
@@ -156,7 +248,11 @@ export default function RealFilterFields({
           </Column>
           <Column>
             <Field label="Vrsta objekta">
-              <select name="accommodationType" defaultValue={filters.accommodationType ?? ''} className={inputClass}>
+              <select
+                name="accommodationType"
+                defaultValue={filters.accommodationType ?? ''}
+                className={inputClass}
+              >
                 <option value="">sve</option>
                 {ACCOMMODATION_TYPES.map((t) => (
                   <option key={t} value={t}>
@@ -168,7 +264,11 @@ export default function RealFilterFields({
           </Column>
           <Column>
             <Field label="Dobavljač">
-              <select name="supplierId" defaultValue={filters.supplierId ?? ''} className={inputClass}>
+              <select
+                name="supplierId"
+                defaultValue={filters.supplierId ?? ''}
+                className={inputClass}
+              >
                 <option value="">svi</option>
                 {suppliers.map((s) => (
                   <option key={s.id} value={s.id}>
@@ -178,7 +278,11 @@ export default function RealFilterFields({
               </select>
             </Field>
             <Field label="Vrsta dobavljača">
-              <select name="supplierType" defaultValue={filters.supplierType ?? ''} className={inputClass}>
+              <select
+                name="supplierType"
+                defaultValue={filters.supplierType ?? ''}
+                className={inputClass}
+              >
                 <option value="">sve</option>
                 {SUPPLIER_TYPES.map((t) => (
                   <option key={t} value={t}>
@@ -206,7 +310,9 @@ function Columns({ children }: { children: React.ReactNode }) {
 }
 
 function Column({ children }: { children: React.ReactNode }) {
-  return <div className="flex min-w-0 flex-1 flex-col gap-2 px-3 first:pl-0 last:pr-0">{children}</div>;
+  return (
+    <div className="flex min-w-0 flex-1 flex-col gap-2 px-3 first:pl-0 last:pr-0">{children}</div>
+  );
 }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {

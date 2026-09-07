@@ -13,6 +13,7 @@
 ## 1. Svrha i obim modula
 
 M20 generiše i čuva **Ugovor o organizovanju putovanja** (ili odgovarajući tip ugovora, poglavlje 2.2) sa gostom/nalogodavcem — zakonski obavezan dokument po Zakonu o turizmu, koji dosad nije postojao nigde u sistemu. Ovo je **treći, zaseban pravni dokument** u lancu rezervacije, različit od:
+
 - M3 (ugovori sa dobavljačima — obrnut smer, agencija kao kupac usluge),
 - M10 (fiskalni dokument — poreski/računovodstveni dokaz naplate).
 
@@ -23,32 +24,33 @@ M20 ne duplira podatke — sastavlja ugovor **isključivo iz podataka koji već 
 ## 2. Model podataka
 
 ### 2.1 `ClientContract`
-| Polje | Tip | Napomena |
-| :---- | :---- | :---- |
-| id | UUID (PK) | |
-| booking_id | UUID (FK → M5 Booking), unique | jedan ugovor po rezervaciji |
-| contract_type | enum: `ORGANIZOVANO_PUTOVANJE`, `POSREDOVANJE`, `PRODAJA_AVIO_KARTE`, `TRANSFER`, `KORPORATIVNI_OKVIRNI` | vidi poglavlje 2.2 |
-| status | enum: `DRAFT`, `GENERATED`, `ACCEPTED`, `VOIDED` | `DRAFT` — u pripremi; `GENERATED` — PDF sastavljen, čeka prihvatanje; `ACCEPTED` — gost prihvatio/potpisao; `VOIDED` — poništen (npr. duplikat, greška u rezervaciji) |
-| document_url | string, nullable | PDF, EU cloud skladište, generiše se pri prelasku u `GENERATED` |
-| generated_at | timestamp, nullable | |
-| accepted_at | timestamp, nullable | |
-| accepted_method | enum: `ELECTRONIC_CLICKWRAP`, `WET_SIGNATURE_SCAN`, nullable | vidi poglavlje 3.2 |
-| voided_by | UUID (FK → M1 User), nullable | |
-| supersedes_contract_id | UUID, nullable (FK → self) | popunjeno ako je ovo revidovana verzija ranijeg ugovora — vidi poglavlje 3.4 |
-| content_snapshot | JSON | dopuna (implementacija, avgust 2026) — snimak svih popunjenih elemenata iz poglavlja 2.3 u trenutku generisanja, potreban da mock `document_url` (poglavlje 8) ostane proverljiv sadržaj, ne crna kutija |
-| created_at / updated_at | timestamp | |
+
+| Polje                   | Tip                                                                                                      | Napomena                                                                                                                                                                                                 |
+| :---------------------- | :------------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| id                      | UUID (PK)                                                                                                |                                                                                                                                                                                                          |
+| booking_id              | UUID (FK → M5 Booking), unique                                                                           | jedan ugovor po rezervaciji                                                                                                                                                                              |
+| contract_type           | enum: `ORGANIZOVANO_PUTOVANJE`, `POSREDOVANJE`, `PRODAJA_AVIO_KARTE`, `TRANSFER`, `KORPORATIVNI_OKVIRNI` | vidi poglavlje 2.2                                                                                                                                                                                       |
+| status                  | enum: `DRAFT`, `GENERATED`, `ACCEPTED`, `VOIDED`                                                         | `DRAFT` — u pripremi; `GENERATED` — PDF sastavljen, čeka prihvatanje; `ACCEPTED` — gost prihvatio/potpisao; `VOIDED` — poništen (npr. duplikat, greška u rezervaciji)                                    |
+| document_url            | string, nullable                                                                                         | PDF, EU cloud skladište, generiše se pri prelasku u `GENERATED`                                                                                                                                          |
+| generated_at            | timestamp, nullable                                                                                      |                                                                                                                                                                                                          |
+| accepted_at             | timestamp, nullable                                                                                      |                                                                                                                                                                                                          |
+| accepted_method         | enum: `ELECTRONIC_CLICKWRAP`, `WET_SIGNATURE_SCAN`, nullable                                             | vidi poglavlje 3.2                                                                                                                                                                                       |
+| voided_by               | UUID (FK → M1 User), nullable                                                                            |                                                                                                                                                                                                          |
+| supersedes_contract_id  | UUID, nullable (FK → self)                                                                               | popunjeno ako je ovo revidovana verzija ranijeg ugovora — vidi poglavlje 3.4                                                                                                                             |
+| content_snapshot        | JSON                                                                                                     | dopuna (implementacija, avgust 2026) — snimak svih popunjenih elemenata iz poglavlja 2.3 u trenutku generisanja, potreban da mock `document_url` (poglavlje 8) ostane proverljiv sadržaj, ne crna kutija |
+| created_at / updated_at | timestamp                                                                                                |                                                                                                                                                                                                          |
 
 **Napomena (implementacija, avgust 2026):** `booking_id` NIJE hard DB unique constraint, iako "jedan ugovor po rezervaciji" ostaje poslovno pravilo — poglavlje 3.4 zahteva da revizija kreira NOVI zapis dok stari ostaje (VOIDED) u istoriji, što bi bilo nemoguće sa striktnim unique-om. Pravilo se sprovodi u servisu: najviše jedan zapis sa `status != VOIDED` po `booking_id` u bilo kom trenutku.
 
 ### 2.2 `contract_type` — određuje se automatski iz `Booking.tip_nastupanja` (M5 poglavlje 4.1) i tipa proizvoda
 
-| `contract_type` | Kad se primenjuje |
-| :---- | :---- |
-| `ORGANIZOVANO_PUTOVANJE` | `tip_nastupanja = ORGANIZATOR`, proizvod tipa `PACKAGE`/`ACCOMMODATION` sa organizacijom putovanja |
-| `POSREDOVANJE` | `tip_nastupanja = POSREDNIK` |
-| `PRODAJA_AVIO_KARTE` | Samostalna prodaja `FLIGHT` proizvoda bez organizacije putovanja (granični slučaj — vidi ogradu u poglavlju 8, isti kao otvoreno pitanje u M10 poglavlje 4.4) |
-| `TRANSFER` | Samostalna prodaja `TRANSFER` proizvoda van paketa |
-| `KORPORATIVNI_OKVIRNI` | Rezervacija B2B nalogodavca sa unapred sklopljenim okvirnim ugovorom (van obima automatskog generisanja — vidi poglavlje 8) |
+| `contract_type`          | Kad se primenjuje                                                                                                                                             |
+| :----------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `ORGANIZOVANO_PUTOVANJE` | `tip_nastupanja = ORGANIZATOR`, proizvod tipa `PACKAGE`/`ACCOMMODATION` sa organizacijom putovanja                                                            |
+| `POSREDOVANJE`           | `tip_nastupanja = POSREDNIK`                                                                                                                                  |
+| `PRODAJA_AVIO_KARTE`     | Samostalna prodaja `FLIGHT` proizvoda bez organizacije putovanja (granični slučaj — vidi ogradu u poglavlju 8, isti kao otvoreno pitanje u M10 poglavlje 4.4) |
+| `TRANSFER`               | Samostalna prodaja `TRANSFER` proizvoda van paketa                                                                                                            |
+| `KORPORATIVNI_OKVIRNI`   | Rezervacija B2B nalogodavca sa unapred sklopljenim okvirnim ugovorom (van obima automatskog generisanja — vidi poglavlje 8)                                   |
 
 Agent nikad ručno ne bira `contract_type` — sistem ga izvodi iz postojećih podataka, isti princip kao izbor `document_type` u M10 poglavlje 2.
 
@@ -58,18 +60,18 @@ Agent nikad ručno ne bira `contract_type` — sistem ga izvodi iz postojećih p
 
 Zakon o turizmu propisuje obavezne elemente organizovanog putovanja. Svaki se popunjava iz već postojećeg izvora, nikad ručno ponovo unosi:
 
-| Obavezan element | Izvor |
-| :---- | :---- |
-| Naziv/adresa/broj licence agencije | Statička konfiguracija agencije (van modela podataka) |
-| Dnevni program (itinerar) | M2 `Product.attributes.itinerary` — **samo za `PACKAGE`/`EXCURSION` proizvode, koji jedini imaju ovo polje** (M2 poglavlje 2.3); za čist `ACCOMMODATION` bez paketa, element se izostavlja kao neprimenjiv, ne prikazuje se kao prazno polje |
-| Naziv/kategorija hotela | M2 `Product.attributes.stars`, naziv iz `ProductTranslation` |
-| Tip prevoza i klasa | M2 `Product.attributes` (za `TRANSFER`/`FLIGHT`) |
-| Tip usluge (pansion) | M3 `RateLine.board_type`, preko `BookingItem.rate_line_id` (M5 poglavlje 4.2) |
-| Cena i valuta | `Booking.total_price`/`currency` (M5) |
-| Uslovi i penali otkazivanja | M3 `CancellationRule` / M4 `cancellationPolicy`, agregirano po `BookingItem` |
-| Naziv osiguravača i broj polise garancije | M11 `TravelGuarantee.provider`/`policy_number` |
-| Rok za reklamacije na promenu cene | Statička pravna konfiguracija (konfigurabilno, ne hardkodovano) |
-| Kontakt za hitne slučajeve | Statička konfiguracija agencije |
+| Obavezan element                          | Izvor                                                                                                                                                                                                                                        |
+| :---------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Naziv/adresa/broj licence agencije        | Statička konfiguracija agencije (van modela podataka)                                                                                                                                                                                        |
+| Dnevni program (itinerar)                 | M2 `Product.attributes.itinerary` — **samo za `PACKAGE`/`EXCURSION` proizvode, koji jedini imaju ovo polje** (M2 poglavlje 2.3); za čist `ACCOMMODATION` bez paketa, element se izostavlja kao neprimenjiv, ne prikazuje se kao prazno polje |
+| Naziv/kategorija hotela                   | M2 `Product.attributes.stars`, naziv iz `ProductTranslation`                                                                                                                                                                                 |
+| Tip prevoza i klasa                       | M2 `Product.attributes` (za `TRANSFER`/`FLIGHT`)                                                                                                                                                                                             |
+| Tip usluge (pansion)                      | M3 `RateLine.board_type`, preko `BookingItem.rate_line_id` (M5 poglavlje 4.2)                                                                                                                                                                |
+| Cena i valuta                             | `Booking.total_price`/`currency` (M5)                                                                                                                                                                                                        |
+| Uslovi i penali otkazivanja               | M3 `CancellationRule` / M4 `cancellationPolicy`, agregirano po `BookingItem`                                                                                                                                                                 |
+| Naziv osiguravača i broj polise garancije | M11 `TravelGuarantee.provider`/`policy_number`                                                                                                                                                                                               |
+| Rok za reklamacije na promenu cene        | Statička pravna konfiguracija (konfigurabilno, ne hardkodovano)                                                                                                                                                                              |
+| Kontakt za hitne slučajeve                | Statička konfiguracija agencije                                                                                                                                                                                                              |
 
 Dinamika plaćanja (iznos akontacije, rok akontacije, rok balansa) popunjava se iz M10 `ClientPaymentSchedule.deposit_amount`/`deposit_due_date`/`balance_due_date` (M10 poglavlje 5.4.2, dopuna avgust 2026) — više nije slobodan tekst, isti princip "bez dupliranja unosa" kao ostali elementi ove tabele.
 
@@ -91,7 +93,7 @@ Dinamika plaćanja (iznos akontacije, rok akontacije, rok balansa) popunjava se 
 
 Doplate koje gost plaća **direktno dobavljaču na licu mesta** (M3 `AncillaryService.payable = ON_SITE`, M5 §6.7a — boravišna doplata, parking, depozit, ljubimac) **ne ulaze u ukupnu cenu aranžmana** u TT-u, jer ih agencija nikad ne naplati ni ne isplati. Upravo zato moraju biti **izričito navedeni u ugovoru sa klijentom**, kao odvojena stavka sa jasnom oznakom da se plaća na licu mesta i kome.
 
-Vlasnikova formulacija: *„ako je na licu mesta to jasno treba da piše u ugovoru i na vaučeru i taj iznos ne ulazi u ukupnu cenu aranžmana u TT-u"*. Isti podatak stoji i na vaučeru (M5 §6) — ugovor i vaučer se ovde ne razlikuju, jer gost jedan dokument potpisuje a drugi nosi sa sobom.
+Vlasnikova formulacija: _„ako je na licu mesta to jasno treba da piše u ugovoru i na vaučeru i taj iznos ne ulazi u ukupnu cenu aranžmana u TT-u"_. Isti podatak stoji i na vaučeru (M5 §6) — ugovor i vaučer se ovde ne razlikuju, jer gost jedan dokument potpisuje a drugi nosi sa sobom.
 
 Sadržajno ovo znači da `content_snapshot` (poglavlje 3.1) mora nositi i `ON_SITE` stavke, odvojene od ukupne cene — ne kao napomenu u slobodnom tekstu, nego kao stavke, da bi bile prepoznatljive i posle izmene rezervacije.
 
@@ -104,6 +106,7 @@ Za `tip_nastupanja = ORGANIZATOR` rezervacije, automatsko generisanje vaučera (
 Ugovor opisuje konkretne uslove (datumi, cena, sadržaj) rezervacije u trenutku prihvatanja — ako se rezervacija posle toga **izmeni** (M5 poglavlje 6: datum, broj gostiju, sastav stavki), već prihvaćen ugovor više ne opisuje stvarno stanje, što je pravno neprihvatljivo, ne samo kozmetički nedostatak. **Otkazivanje** (delimično ili potpuno) ne pokreće ovo — originalni ugovor ostaje merodavan istorijski zapis uslova pod kojima je otkazivanje/penal i nastao (uključujući `CancellationRule` iz poglavlja 2.3), ne treba mu revizija.
 
 Kad M5 emituje `booking.modified` (M5 poglavlje 9), M20 se pretplaćuje i:
+
 1. Postojeći `ClientContract` (bio `GENERATED` ili `ACCEPTED`) prelazi u `VOIDED` (`voided_by = null` — sistemski, ne ljudska radnja, jer je uzrok već odobrena izmena rezervacije, ne greška).
 2. Automatski se generiše nova verzija (`DRAFT → GENERATED`, isti nivo autonomije kao poglavlje 3.1) sa `supersedes_contract_id` ka prethodnoj verziji, sa ažuriranim podacima iz izmenjene rezervacije.
 3. Nova verzija **zahteva ponovno prihvatanje** (`status` ne prelazi u `ACCEPTED` automatski, čak i ako je prethodna verzija bila prihvaćena) — isti tok kao poglavlje 3.2, na kanalu kojim je izmena izvršena.
@@ -119,11 +122,11 @@ Priprema nacrta (`DRAFT → GENERATED`, poglavlje 3.1) je nivo **"Autonomno"** �
 
 ## 5. Dozvole (registruju se u M1 katalog dozvola)
 
-| Dozvola | Podrazumevana dodela po ulozi |
-| :---- | :---- |
-| `M20/client-contract/VIEW` | Vlasnik, Direktor, Sales Manager, Prodajni agent (svi podrazumevano, isti `VIEW_ALL` obrazac kao M5 poglavlje 6.6/M1 §3.9a); Gost (sopstvena rezervacija) |
-| `M20/client-contract/ACCEPT` (ručno evidentiranje) | Vlasnik, Direktor, Sales Manager, Prodajni agent — Gost prihvata sam kroz M8 tok (poglavlje 3.2), ne kroz ovu dozvolu |
-| `M20/client-contract/VOID` | Vlasnik, Direktor |
+| Dozvola                                            | Podrazumevana dodela po ulozi                                                                                                                             |
+| :------------------------------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `M20/client-contract/VIEW`                         | Vlasnik, Direktor, Sales Manager, Prodajni agent (svi podrazumevano, isti `VIEW_ALL` obrazac kao M5 poglavlje 6.6/M1 §3.9a); Gost (sopstvena rezervacija) |
+| `M20/client-contract/ACCEPT` (ručno evidentiranje) | Vlasnik, Direktor, Sales Manager, Prodajni agent — Gost prihvata sam kroz M8 tok (poglavlje 3.2), ne kroz ovu dozvolu                                     |
+| `M20/client-contract/VOID`                         | Vlasnik, Direktor                                                                                                                                         |
 
 ---
 
@@ -131,12 +134,12 @@ Priprema nacrta (`DRAFT → GENERATED`, poglavlje 3.1) je nivo **"Autonomno"** �
 
 Prefiks: `/api/v1/client-contracts`
 
-| Endpoint | Metod | Opis |
-| :---- | :---- | :---- |
-| `/client-contracts` | GET | lista, filtrirano po `booking_id`/statusu (prava pristupa iz poglavlja 5) — Gost (`M20/client-contract/VIEW`, M5 spec §10) dobija samo ugovore SOPSTVENIH rezervacija; `ClientContract` nema sopstveni `client_account_id`, ownership ide preko `booking.client_account_id` (dopuna avgust 2026, priprema za M8 — dozvola sama po sebi ne razlikuje sopstveno od tuđeg, isti obrazac kao M5 §6.2/M6 §7) |
-| `/client-contracts/:id` | GET | detalji, uključujući `document_url` — ista ownership provera kao gore |
-| `/client-contracts/:id/accept` | POST | beleži prihvatanje — gost sam (M8 tok) ili ručno (`M20/client-contract/ACCEPT`) |
-| `/client-contracts/:id/void` | POST | zahteva `M20/client-contract/VOID` |
+| Endpoint                       | Metod | Opis                                                                                                                                                                                                                                                                                                                                                                                                    |
+| :----------------------------- | :---- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `/client-contracts`            | GET   | lista, filtrirano po `booking_id`/statusu (prava pristupa iz poglavlja 5) — Gost (`M20/client-contract/VIEW`, M5 spec §10) dobija samo ugovore SOPSTVENIH rezervacija; `ClientContract` nema sopstveni `client_account_id`, ownership ide preko `booking.client_account_id` (dopuna avgust 2026, priprema za M8 — dozvola sama po sebi ne razlikuje sopstveno od tuđeg, isti obrazac kao M5 §6.2/M6 §7) |
+| `/client-contracts/:id`        | GET   | detalji, uključujući `document_url` — ista ownership provera kao gore                                                                                                                                                                                                                                                                                                                                   |
+| `/client-contracts/:id/accept` | POST  | beleži prihvatanje — gost sam (M8 tok) ili ručno (`M20/client-contract/ACCEPT`)                                                                                                                                                                                                                                                                                                                         |
+| `/client-contracts/:id/void`   | POST  | zahteva `M20/client-contract/VOID`                                                                                                                                                                                                                                                                                                                                                                      |
 
 ---
 

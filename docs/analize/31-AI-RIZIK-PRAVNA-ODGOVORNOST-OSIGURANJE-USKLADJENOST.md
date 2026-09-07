@@ -13,16 +13,16 @@
 
 **Terminal Travel mitigacija (već postoji, ne nova ideja):** `AgentActionType.tier` (M15 spec poglavlje 4/5) sprovodi se **na nivou koda**, ne samo procedure — svaka akcija koja bi mogla da izloži agenciju obavezi ima eksplicitan nivo, i to je stvarno primenjeno kroz `AgentActionGuard`/`@AgentAction` na 9 endpoint-a (M15 spec v1.10):
 
-| Modul | Akcija | Nivo | Zašto ovo sprečava "Moffatt scenario" |
-| :---- | :---- | :---- | :---- |
-| M6 | `communication.send_with_price_or_obligation` | `PROPOSE_THEN_APPROVE` | AI ne može sam poslati gostu poruku koja sadrži cenu/obavezu — tačno tip poruke koji je Air Canada chatbot poslao |
-| M14 | `ticket_response.send_with_price_or_obligation` | `PROPOSE_THEN_APPROVE` | Isto, za odgovor na tiket podrške |
-| M7 | `subagent_chat.booking_confirm` | `PROPOSE_THEN_APPROVE` | AI chat sa subagentom ne može sam potvrditi rezervaciju — potvrđuje isključivo subagent svojim nalogom |
-| M10 | `fiscal_document.submit` | `NEVER_AUTONOMOUS` | Slanje fiskalnog dokumenta (novčana/zakonska obaveza) odbija se na nivou koda za `actor_type = AI_AGENT`, bez obzira na dozvole |
-| M11 | `travel_guarantee.edit` | `NEVER_AUTONOMOUS` | Izmena garancije putovanja nikad nije AI odluka |
-| M20 | `client_contract.generate_draft` | `AUTONOMOUS`, ali samo **nacrt** | Sam ugovor je uvek generisan iz determinističkih pravila (§4 tog modula), ne slobodne AI generacije teksta |
-| (globalno) | `contract.sign`, `money.transfer`, `license_data.edit` | `NEVER_AUTONOMOUS` | Tri kategorije koje Master dokument poglavlje 7 unapred proglašava "nikad AI" |
-| (globalno) | `omnisearch.query` | `AUTONOMOUS`, ali isključivo pronalaženje | Ako korisnik pita "otkaži rezervaciju X", odgovor je link ka ekranu gde čovek potvrđuje — nikad izvršena radnja iz same pretrage |
+| Modul      | Akcija                                                 | Nivo                                      | Zašto ovo sprečava "Moffatt scenario"                                                                                            |
+| :--------- | :----------------------------------------------------- | :---------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------- |
+| M6         | `communication.send_with_price_or_obligation`          | `PROPOSE_THEN_APPROVE`                    | AI ne može sam poslati gostu poruku koja sadrži cenu/obavezu — tačno tip poruke koji je Air Canada chatbot poslao                |
+| M14        | `ticket_response.send_with_price_or_obligation`        | `PROPOSE_THEN_APPROVE`                    | Isto, za odgovor na tiket podrške                                                                                                |
+| M7         | `subagent_chat.booking_confirm`                        | `PROPOSE_THEN_APPROVE`                    | AI chat sa subagentom ne može sam potvrditi rezervaciju — potvrđuje isključivo subagent svojim nalogom                           |
+| M10        | `fiscal_document.submit`                               | `NEVER_AUTONOMOUS`                        | Slanje fiskalnog dokumenta (novčana/zakonska obaveza) odbija se na nivou koda za `actor_type = AI_AGENT`, bez obzira na dozvole  |
+| M11        | `travel_guarantee.edit`                                | `NEVER_AUTONOMOUS`                        | Izmena garancije putovanja nikad nije AI odluka                                                                                  |
+| M20        | `client_contract.generate_draft`                       | `AUTONOMOUS`, ali samo **nacrt**          | Sam ugovor je uvek generisan iz determinističkih pravila (§4 tog modula), ne slobodne AI generacije teksta                       |
+| (globalno) | `contract.sign`, `money.transfer`, `license_data.edit` | `NEVER_AUTONOMOUS`                        | Tri kategorije koje Master dokument poglavlje 7 unapred proglašava "nikad AI"                                                    |
+| (globalno) | `omnisearch.query`                                     | `AUTONOMOUS`, ali isključivo pronalaženje | Ako korisnik pita "otkaži rezervaciju X", odgovor je link ka ekranu gde čovek potvrđuje — nikad izvršena radnja iz same pretrage |
 
 **Otvoreno:** M8 (B2C sajt za goste) još nema nijedan AI agent u specifikaciji — kad dobije bilo kakav chat/asistent koji gostu direktno odgovara, mora proći kroz isti M15 registar **pre** aktivacije (`ModuleAgentActivation`, uvek ljudska odluka), ne posle. Ovo nije propust — M8 još nije ni dizajniran — ali vredi zapamtiti kao tvrd zahtev kad taj trenutak dođe, ne kao naknadnu popravku.
 
@@ -50,6 +50,7 @@
 **Ovo NIJE nešto što arhitektura može da reši.** Terminal Travel je licencirani tur-operator sa zakonski obaveznom garancijom putovanja (M11, YUTA) — to je zaštita gosta od propasti agencije, ne zaštita agencije od sopstvene AI greške. To su dva različita pokrića.
 
 **Preporučena akcija (za Vas/knjigovođu, ne za kod):** Pri sledećem razgovoru sa osiguravajućim brokerom, proveriti:
+
 1. Da li postojeća (ili buduća) poslovna polisa Terminal Travel-a uopšte pominje AI-generisan sadržaj.
 2. Da li treba poseban rider/klauzula pre nego što bilo koji M15 domenski agent (M3/M5/M6/M7/M10/M11/M12/M14/M18/M20/M21/M23) pređe iz `NOT_READY` u `ACTIVATED` status u produkciji.
 
@@ -68,6 +69,7 @@ Ovo je upisano kao otvorena stavka u `docs/analize/26-PRAVNA-I-KNJIGOVODSTVENA-O
 - M15 omnisearch trenutno pokriva samo M17 (interni panel), ne M7/M8.
 
 **Zaključak:** ovo trenutno nije aktivan propust — ali je tačno mesto gde treba ugraditi rešenje **pre** prvog puštanja, ne posle:
+
 1. Kad M23 `/znanje/:share_token` stranica dobije stvaran UI (M8), ili
 2. Kad M7 `subagent_chat.*` dobije stvaran korisnički interfejs, ili
 3. Kad M15 omnisearch/glas prošire obim na M7/M8 kanale (M15 spec poglavlje 6.6.3 — ovo je već eksplicitno označeno kao "namerno van obima", čeka potvrdu vlasnika),
@@ -78,7 +80,7 @@ Ovo je upisano kao otvorena stavka u `docs/analize/26-PRAVNA-I-KNJIGOVODSTVENA-O
 
 ## 5. Rizik E — obrada podataka gosta/klijenta kod spoljnog LLM provajdera (bez obzira koji se izabere)
 
-*(dodato 18.8.2026, na zahtev vlasnika, povodom pitanja "da li Anthropic koristi podatke kad se agent poziva preko API-ja")*
+_(dodato 18.8.2026, na zahtev vlasnika, povodom pitanja "da li Anthropic koristi podatke kad se agent poziva preko API-ja")_
 
 **Rizik, ukratko:** Svaki poziv spoljnom jezičkom modelu (Anthropic danas za omnisearch, M15 §6.5.4; bilo koji budući provajder po drugim domenskim agentima — M15 §11 to eksplicitno ostavlja otvorenim po agentu) znači da podaci u tom pozivu **fizički napuštaju infrastrukturu koju Terminal kontroliše** i idu ka serverima trećeg lica. Ovo je nezavisno od toga kog konkretno provajdera biramo — pitanje se mora postaviti za svakog, ne samo za Anthropic:
 
@@ -95,13 +97,13 @@ Ovo je upisano kao otvorena stavka u `docs/analize/26-PRAVNA-I-KNJIGOVODSTVENA-O
 
 ## 6. Zbirna tabela
 
-| Rizik | Da li Terminal Travel već ima mitigaciju | Gde | Šta ostaje otvoreno |
-| :---- | :---- | :---- | :---- |
-| A. Pravna odgovornost za AI izjave | **Da** — sprovedeno na nivou koda | M15 registar, `AgentActionGuard` | Primeniti isti registar na M8 kad dobije AI agenta |
-| B. Halucinacije | **Da**, za korisniku-vidljive odgovore (grounded-only) | M21 §5.2, M23 §3.2/§6 | Periodično uzorkovanje audit loga radi merenja stope grešaka (nova, mala ideja) |
-| C. Osiguranje isključuje AI greške | **Ne** — ovo nije pitanje za kod | — | Razgovor sa brokerom pre aktivacije prvog domenskog agenta u produkciji |
-| D. EU AI Act transparentnost | **Delimično** — trenutno nema aktivnog gost-facing AI, pa nema aktivnog kršenja | — | Ugraditi "razgovarate sa AI" oznaku u M7/M8/M23 UI pre nego što se aktivira, ne posle |
-| E. Obrada podataka kod spoljnog LLM provajdera | **Ne** — ovo nije pitanje za kod | — | DPA/retention/rezidencija podataka provera sa pravnikom, po provajderu, pre svake `ACTIVATED` aktivacije agenta koji dodiruje lične podatke |
+| Rizik                                          | Da li Terminal Travel već ima mitigaciju                                        | Gde                              | Šta ostaje otvoreno                                                                                                                         |
+| :--------------------------------------------- | :------------------------------------------------------------------------------ | :------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------ |
+| A. Pravna odgovornost za AI izjave             | **Da** — sprovedeno na nivou koda                                               | M15 registar, `AgentActionGuard` | Primeniti isti registar na M8 kad dobije AI agenta                                                                                          |
+| B. Halucinacije                                | **Da**, za korisniku-vidljive odgovore (grounded-only)                          | M21 §5.2, M23 §3.2/§6            | Periodično uzorkovanje audit loga radi merenja stope grešaka (nova, mala ideja)                                                             |
+| C. Osiguranje isključuje AI greške             | **Ne** — ovo nije pitanje za kod                                                | —                                | Razgovor sa brokerom pre aktivacije prvog domenskog agenta u produkciji                                                                     |
+| D. EU AI Act transparentnost                   | **Delimično** — trenutno nema aktivnog gost-facing AI, pa nema aktivnog kršenja | —                                | Ugraditi "razgovarate sa AI" oznaku u M7/M8/M23 UI pre nego što se aktivira, ne posle                                                       |
+| E. Obrada podataka kod spoljnog LLM provajdera | **Ne** — ovo nije pitanje za kod                                                | —                                | DPA/retention/rezidencija podataka provera sa pravnikom, po provajderu, pre svake `ACTIVATED` aktivacije agenta koji dodiruje lične podatke |
 
 **Šta NE preporučujem menjati:** M15 registar, gate mehanizam (`ModuleAgentActivation`), i princip "grounded-only" odgovor za M21/M23 — sve to je već tačno u skladu sa pravcem koji video opisuje kao ono što je "preživelo hype fazu" kod velikih kompanija. Ovo nije poziv na novu arhitekturu, samo potvrda da postojeća drži.
 

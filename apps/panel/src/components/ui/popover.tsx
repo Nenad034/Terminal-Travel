@@ -24,7 +24,7 @@ const PopoverContent = React.forwardRef<
       className={cn(
         'z-50 w-72 rounded-lg border border-border bg-panel p-1 text-ink shadow-lg outline-none',
         'data-[state=open]:animate-fade-in',
-        className
+        className,
       )}
       {...props}
     />

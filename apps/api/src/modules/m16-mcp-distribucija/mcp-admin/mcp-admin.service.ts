@@ -6,7 +6,9 @@ import { CreateMcpClientDto } from './dto/create-mcp-client.dto';
 
 // M16 spec §3.1 — nikad vraćati credentials_encrypted u odgovoru (isti princip kao M4
 // ProviderConfig.authConfigEncrypted).
-function omitSecret<T extends { credentialsEncrypted: string }>(client: T): Omit<T, 'credentialsEncrypted'> {
+function omitSecret<T extends { credentialsEncrypted: string }>(
+  client: T,
+): Omit<T, 'credentialsEncrypted'> {
   const { credentialsEncrypted, ...rest } = client;
   void credentialsEncrypted;
   return rest;
@@ -20,7 +22,9 @@ export class McpAdminService {
   ) {}
 
   async findAll() {
-    const clients = await this.prisma.mCPClientRegistration.findMany({ orderBy: { createdAt: 'desc' } });
+    const clients = await this.prisma.mCPClientRegistration.findMany({
+      orderBy: { createdAt: 'desc' },
+    });
     return clients.map(omitSecret);
   }
 
@@ -64,7 +68,9 @@ export class McpAdminService {
     const before = await this.prisma.mCPClientRegistration.findUnique({ where: { id } });
     if (!before) throw new NotFoundException(`MCPClientRegistration ${id} nije pronađen.`);
     if (before.status !== 'PENDING') {
-      throw new BadRequestException(`Samo PENDING klijent može preći u ACTIVE (trenutni status: ${before.status}).`);
+      throw new BadRequestException(
+        `Samo PENDING klijent može preći u ACTIVE (trenutni status: ${before.status}).`,
+      );
     }
 
     const clientAccount = await this.prisma.clientAccount.create({
@@ -130,7 +136,10 @@ export class McpAdminService {
     const before = await this.prisma.mCPClientRegistration.findUnique({ where: { id } });
     if (!before) throw new NotFoundException(`MCPClientRegistration ${id} nije pronađen.`);
 
-    const after = await this.prisma.mCPClientRegistration.update({ where: { id }, data: { status: 'SUSPENDED' } });
+    const after = await this.prisma.mCPClientRegistration.update({
+      where: { id },
+      data: { status: 'SUSPENDED' },
+    });
     await this.auditLog.write({
       actorType: 'HUMAN',
       actorId,

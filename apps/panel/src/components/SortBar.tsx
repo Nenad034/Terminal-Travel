@@ -121,7 +121,9 @@ export default function SortBar({
               // mora imati neki, "nesortirano" nije smisleno stanje.
               aria-pressed={current === o.value}
               className={`flex w-full items-center justify-between gap-2 rounded px-2 py-1.5 text-left text-xs ${
-                current === o.value ? 'bg-accent-soft font-semibold text-accent-strong' : 'text-ink-dim hover:bg-panel2 hover:text-ink'
+                current === o.value
+                  ? 'bg-accent-soft font-semibold text-accent-strong'
+                  : 'text-ink-dim hover:bg-panel2 hover:text-ink'
               }`}
             >
               <span className="truncate">{o.label}</span>
@@ -141,7 +143,9 @@ export default function SortBar({
                 onClick={() => pickView(v)}
                 aria-pressed={view === v}
                 className={`flex items-center gap-1 px-2.5 py-0.5 ${
-                  view === v ? 'bg-accent-soft font-semibold text-accent-strong' : 'text-ink-dim hover:text-ink'
+                  view === v
+                    ? 'bg-accent-soft font-semibold text-accent-strong'
+                    : 'text-ink-dim hover:text-ink'
                 }`}
               >
                 <Icon name={v === 'lista' ? 'list-flat' : 'location'} /> {v}

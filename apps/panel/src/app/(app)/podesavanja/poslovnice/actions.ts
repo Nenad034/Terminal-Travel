@@ -17,11 +17,14 @@ function extractMessage(err: ApiError): string {
 // (npr. uloge) u ovom modulu.
 export async function createBranch(_prev: FormState, formData: FormData): Promise<FormState> {
   const name = formData.get('name');
-  if (typeof name !== 'string' || name.trim() === '') return { error: 'Naziv poslovnice je obavezan.' };
+  if (typeof name !== 'string' || name.trim() === '')
+    return { error: 'Naziv poslovnice je obavezan.' };
   try {
     await apiFetch('/iam/branches', { method: 'POST', body: { name: name.trim() } });
   } catch (err) {
-    return { error: err instanceof ApiError ? extractMessage(err) : 'Kreiranje poslovnice nije uspelo.' };
+    return {
+      error: err instanceof ApiError ? extractMessage(err) : 'Kreiranje poslovnice nije uspelo.',
+    };
   }
   revalidatePath('/podesavanja/poslovnice');
   return { error: null };
@@ -29,7 +32,11 @@ export async function createBranch(_prev: FormState, formData: FormData): Promis
 
 // PATCH /iam/branches/:id — izmena naziva i/ili aktivna/neaktivna (meko gašenje, ne brisanje —
 // `Booking.branchId`/`User.branchId` se oslanjaju na postojeće redove).
-export async function updateBranch(id: string, _prev: FormState, formData: FormData): Promise<FormState> {
+export async function updateBranch(
+  id: string,
+  _prev: FormState,
+  formData: FormData,
+): Promise<FormState> {
   const name = formData.get('name');
   try {
     await apiFetch(`/iam/branches/${id}`, {
@@ -40,7 +47,9 @@ export async function updateBranch(id: string, _prev: FormState, formData: FormD
       },
     });
   } catch (err) {
-    return { error: err instanceof ApiError ? extractMessage(err) : 'Izmena poslovnice nije uspela.' };
+    return {
+      error: err instanceof ApiError ? extractMessage(err) : 'Izmena poslovnice nije uspela.',
+    };
   }
   revalidatePath('/podesavanja/poslovnice');
   return { error: null };

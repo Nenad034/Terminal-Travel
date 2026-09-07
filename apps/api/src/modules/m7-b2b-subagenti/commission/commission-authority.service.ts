@@ -23,10 +23,14 @@ export class CommissionAuthorityService {
     const subagent = await this.prisma.subagent.findUnique({ where: { id: subagentId } });
     if (!subagent) throw new NotFoundException(`Subagent ${subagentId} nije pronađen.`);
     if (subagent.parentSubagentId === null) {
-      throw new ForbiddenException('Tier 1 proviziju/pragove postavlja isključivo agencija (M7 spec §3).');
+      throw new ForbiddenException(
+        'Tier 1 proviziju/pragove postavlja isključivo agencija (M7 spec §3).',
+      );
     }
     if (identity.ownProfileId !== subagent.parentSubagentId) {
-      throw new ForbiddenException('Proviziju/pragove sub-subagenta postavlja isključivo njegov roditeljski subagent (M7 spec §3).');
+      throw new ForbiddenException(
+        'Proviziju/pragove sub-subagenta postavlja isključivo njegov roditeljski subagent (M7 spec §3).',
+      );
     }
   }
 }

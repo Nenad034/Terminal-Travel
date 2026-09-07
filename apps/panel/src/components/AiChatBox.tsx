@@ -32,7 +32,12 @@ function SendArrowIcon({ className = '' }: { className?: string }) {
         strokeLinejoin="round"
         strokeLinecap="round"
       />
-      <path d="M6.5 9.5 14.5 1.5" stroke="url(#tt-send-gradient)" strokeWidth="1.3" strokeLinecap="round" />
+      <path
+        d="M6.5 9.5 14.5 1.5"
+        stroke="url(#tt-send-gradient)"
+        strokeWidth="1.3"
+        strokeLinecap="round"
+      />
     </svg>
   );
 }
@@ -124,7 +129,9 @@ function itemLabel(item: AiContextItem): string {
   if (item.type === 'RECORD') return item.refLabel;
   if (item.type === 'FILE') return `Fajl: ${item.label}`;
   if (item.type === 'IMAGE') return `Slika: ${item.label}`;
-  return item.resultCount !== undefined ? `Filtrirano: ${item.label} (${item.resultCount})` : `Filtrirano: ${item.label}`;
+  return item.resultCount !== undefined
+    ? `Filtrirano: ${item.label} (${item.resultCount})`
+    : `Filtrirano: ${item.label}`;
 }
 
 // M15 spec §6.5.4.3 dopuna v1.43 (25.8.2026, na zahtev vlasnika — "kada se klikne na +
@@ -164,7 +171,9 @@ const PATH_TO_FILTERABLE_VIEW: Record<string, string> = {
   '/nadzor': 'health_signals',
 };
 function filterableViewForPath(pathname: string): string | null {
-  const match = Object.keys(PATH_TO_FILTERABLE_VIEW).find((p) => pathname === p || pathname.startsWith(`${p}?`));
+  const match = Object.keys(PATH_TO_FILTERABLE_VIEW).find(
+    (p) => pathname === p || pathname.startsWith(`${p}?`),
+  );
   return match ? PATH_TO_FILTERABLE_VIEW[match] : null;
 }
 
@@ -189,7 +198,16 @@ function filterableViewForPath(pathname: string): string | null {
 // Početna, M15 spec §6.5.1).
 export default function AiChatBox({ fokus = false }: { fokus?: boolean }) {
   const { tabs, activePath, openTab } = useTabs();
-  const { items: contextItems, addRecord, addFilteredList, addFile, addImage, removeItem: removeContextItem, clear: clearContextItems, atCapacity } = useAiContext();
+  const {
+    items: contextItems,
+    addRecord,
+    addFilteredList,
+    addFile,
+    addImage,
+    removeItem: removeContextItem,
+    clear: clearContextItems,
+    atCapacity,
+  } = useAiContext();
   const [turns, setTurns] = useState<Turn[]>([]);
   const [input, setInput] = useState('');
   // Naziv otvorenog taba se automatski prilaže kao kontekst na svaku poruku (22.8.2026, na
@@ -219,7 +237,9 @@ export default function AiChatBox({ fokus = false }: { fokus?: boolean }) {
   const [plusMenuPos, setPlusMenuPos] = useState<{ bottom: number; left: number } | null>(null);
   const [modulePickerOpen, setModulePickerOpen] = useState(false);
   const moduleButtonRef = useRef<HTMLDivElement>(null);
-  const [modulePickerPos, setModulePickerPos] = useState<{ bottom: number; left: number } | null>(null);
+  const [modulePickerPos, setModulePickerPos] = useState<{ bottom: number; left: number } | null>(
+    null,
+  );
   // §6c.0a (dopuna 25.8.2026, na zahtev vlasnika: "oznaka za kontekst... otvore svi moduli u
   // popup meniju... odabrati jedan od modula") — ISTA, ulogom filtrirana lista koju već koriste
   // Sidebar/CommandPalette (`visibleNavItems`, server-side) — učitana preko `/api/nav-items` jer
@@ -229,7 +249,9 @@ export default function AiChatBox({ fokus = false }: { fokus?: boolean }) {
   useEffect(() => {
     fetch('/api/nav-items', { cache: 'no-store' })
       .then((r) => (r.ok ? r.json() : []))
-      .then((data) => setModuleItems(Array.isArray(data) ? data.filter((i: NavItem) => i.implemented) : []))
+      .then((data) =>
+        setModuleItems(Array.isArray(data) ? data.filter((i: NavItem) => i.implemented) : []),
+      )
       .catch(() => setModuleItems([]));
   }, []);
   // Prilog fajla/slike preko "+" (v1.43) — jedan skriven <input type=file>, grananje po MIME
@@ -317,8 +339,15 @@ export default function AiChatBox({ fokus = false }: { fokus?: boolean }) {
   // Čipovi za prikaz/slanje = automatski kontekst taba (ako nije uklonjen) + deljena lista ručno
   // priloženih stavki (dopuna v1.40/§6c.1a) — auto-kontekst se NE dupira ako je korisnik već
   // ručno dodao isti naziv preko "Trenutno otvoren zapis".
-  const manualLabels = new Set(contextItems.filter((i): i is Extract<AiContextItem, { type: 'RECORD' }> => i.type === 'RECORD').map((i) => i.refLabel));
-  const effectiveContextLabels = [...(autoContext && !manualLabels.has(autoContext) ? [autoContext] : []), ...contextItems.map(itemLabel)];
+  const manualLabels = new Set(
+    contextItems
+      .filter((i): i is Extract<AiContextItem, { type: 'RECORD' }> => i.type === 'RECORD')
+      .map((i) => i.refLabel),
+  );
+  const effectiveContextLabels = [
+    ...(autoContext && !manualLabels.has(autoContext) ? [autoContext] : []),
+    ...contextItems.map(itemLabel),
+  ];
 
   // Isti obrazac kao u `Sidebar.tsx` (6.9.2026, dok. 41): uklonjen čip konteksta važi za JEDAN
   // tab, pa se prelaskom na drugi poništava. Podešavanje u renderu, ne u efektu — inače se
@@ -368,24 +397,52 @@ export default function AiChatBox({ fokus = false }: { fokus?: boolean }) {
       ...contextItems.map((i) => {
         if (i.type === 'RECORD') return { type: 'RECORD' as const, refLabel: i.refLabel };
         if (i.type === 'FILE') return { type: 'FILE' as const, label: i.label, content: i.content };
-        if (i.type === 'IMAGE') return { type: 'IMAGE' as const, label: i.label, imageData: i.imageData, imageMediaType: i.imageMediaType };
-        return { type: 'FILTERED_LIST' as const, view: i.view, filters: i.filters, resultCount: i.resultCount, label: i.label };
+        if (i.type === 'IMAGE')
+          return {
+            type: 'IMAGE' as const,
+            label: i.label,
+            imageData: i.imageData,
+            imageMediaType: i.imageMediaType,
+          };
+        return {
+          type: 'FILTERED_LIST' as const,
+          view: i.view,
+          filters: i.filters,
+          resultCount: i.resultCount,
+          label: i.label,
+        };
       }),
     ];
     // Istorija (25.8.2026, uživo — vlasnik je primetio da "da" posle pitanja o konkretnoj
     // rezervaciji dobija potpuno nepovezan odgovor, jer je svaki poziv bio izolovan razgovor).
     // Isti obrazac kao TerminalPanel.tsx (BiTerminalAgent, 23.8.2026) — samo tura sa stvarnim
     // odgovorom (ne učitavanje/neaktivno) ima šta da doprinese, server ionako seče na poslednjih 6.
-    const history = turns.filter((t) => t.answer && !t.loading).map((t) => ({ question: t.question, answer: t.answer! }));
+    const history = turns
+      .filter((t) => t.answer && !t.loading)
+      .map((t) => ({ question: t.question, answer: t.answer! }));
     setInput('');
     clearContextItems();
-    setTurns((t) => [...t, { question, contextLabels: effectiveContextLabels, links: [], loading: true, inactive: false }]);
+    setTurns((t) => [
+      ...t,
+      {
+        question,
+        contextLabels: effectiveContextLabels,
+        links: [],
+        loading: true,
+        inactive: false,
+      },
+    ]);
 
     try {
       const res = await fetch('/api/omnisearch', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: question, pageContent, contextItems: sentContextItems, history }),
+        body: JSON.stringify({
+          query: question,
+          pageContent,
+          contextItems: sentContextItems,
+          history,
+        }),
       });
       const data: OmnisearchResponse & { message?: string } = await res.json();
       // BAG (23.8.2026, prijavio vlasnik uživo) — `res.status` se ranije uopšte nije proveravao,
@@ -396,7 +453,11 @@ export default function AiChatBox({ fokus = false }: { fokus?: boolean }) {
       if (res.status === 401) {
         setTurns((t) => {
           const next = [...t];
-          next[next.length - 1] = { ...next[next.length - 1], loading: false, answer: 'Sesija je istekla — osveži stranicu i prijavi se ponovo.' };
+          next[next.length - 1] = {
+            ...next[next.length - 1],
+            loading: false,
+            answer: 'Sesija je istekla — osveži stranicu i prijavi se ponovo.',
+          };
           return next;
         });
         return;
@@ -408,13 +469,22 @@ export default function AiChatBox({ fokus = false }: { fokus?: boolean }) {
           next[next.length - 1] = { ...last, loading: false, inactive: true };
           return next;
         }
-        next[next.length - 1] = { ...last, loading: false, answer: data.aiAnswer, links: [...data.matchedRoutes] };
+        next[next.length - 1] = {
+          ...last,
+          loading: false,
+          answer: data.aiAnswer,
+          links: [...data.matchedRoutes],
+        };
         return next;
       });
     } catch {
       setTurns((t) => {
         const next = [...t];
-        next[next.length - 1] = { ...next[next.length - 1], loading: false, answer: 'Zahtev nije uspeo — pokušaj ponovo.' };
+        next[next.length - 1] = {
+          ...next[next.length - 1],
+          loading: false,
+          answer: 'Zahtev nije uspeo — pokušaj ponovo.',
+        };
         return next;
       });
     }
@@ -458,50 +528,56 @@ export default function AiChatBox({ fokus = false }: { fokus?: boolean }) {
           crta na DNU (najbliže polju za unos), stariji razgovor raste NAGORE; scroll pozicija
           prirodno ostaje "prilepljena" za najnoviju poruku bez ručnog scrollIntoView-a. */}
       <div className="flex min-h-0 flex-1 flex-col-reverse gap-3 overflow-y-auto py-2">
-          {[...turns].reverse().map((t, i) => (
-            <div key={turns.length - 1 - i} className="flex flex-col gap-1.5">
-              {t.contextLabels && t.contextLabels.length > 0 && (
-                <div className="self-end text-[11px] italic text-ink-faint">kontekst: {t.contextLabels.join(' · ')}</div>
-              )}
-              <div className="group flex items-center gap-1 self-end">
-                <CopyButton text={t.question} />
-                <div className="rounded-lg bg-accent-soft px-3 py-1.5 text-xs text-ink">{t.question}</div>
+        {[...turns].reverse().map((t, i) => (
+          <div key={turns.length - 1 - i} className="flex flex-col gap-1.5">
+            {t.contextLabels && t.contextLabels.length > 0 && (
+              <div className="self-end text-[11px] italic text-ink-faint">
+                kontekst: {t.contextLabels.join(' · ')}
               </div>
-              {t.loading ? (
-                <div className="flex items-center gap-2 text-xs text-ink-faint">
-                  <Icon name="loading" className="animate-spin" /> razmišljam...
-                </div>
-              ) : t.inactive ? (
-                <div className="rounded-lg border border-border bg-panel-2 px-3 py-1.5 text-xs text-ink-faint">
-                  AI pretraga još nije uključena za ovaj panel.
-                </div>
-              ) : (
-                <div className="group relative rounded-lg border border-border bg-panel-2 px-3 py-2 text-xs text-ink">
-                  {t.answer && (
-                    <>
-                      <CopyButton text={t.answer} className="absolute right-1.5 top-1.5" />
-                      <TypewriterText text={t.answer} />
-                    </>
-                  )}
-                  {t.links.length > 0 && (
-                    <div className="mt-2 flex flex-wrap gap-1.5">
-                      {t.links.map((l) => (
-                        <Link
-                          key={l.href}
-                          href={l.href}
-                          target="_blank"
-                          className="rounded-full border border-border bg-panel px-2 py-0.5 text-[11px] text-accent hover:border-accent"
-                        >
-                          {l.label}
-                        </Link>
-                      ))}
-                    </div>
-                  )}
-                  {!t.answer && t.links.length === 0 && <p className="text-ink-faint">Nema rezultata.</p>}
-                </div>
-              )}
+            )}
+            <div className="group flex items-center gap-1 self-end">
+              <CopyButton text={t.question} />
+              <div className="rounded-lg bg-accent-soft px-3 py-1.5 text-xs text-ink">
+                {t.question}
+              </div>
             </div>
-          ))}
+            {t.loading ? (
+              <div className="flex items-center gap-2 text-xs text-ink-faint">
+                <Icon name="loading" className="animate-spin" /> razmišljam...
+              </div>
+            ) : t.inactive ? (
+              <div className="rounded-lg border border-border bg-panel-2 px-3 py-1.5 text-xs text-ink-faint">
+                AI pretraga još nije uključena za ovaj panel.
+              </div>
+            ) : (
+              <div className="group relative rounded-lg border border-border bg-panel-2 px-3 py-2 text-xs text-ink">
+                {t.answer && (
+                  <>
+                    <CopyButton text={t.answer} className="absolute right-1.5 top-1.5" />
+                    <TypewriterText text={t.answer} />
+                  </>
+                )}
+                {t.links.length > 0 && (
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {t.links.map((l) => (
+                      <Link
+                        key={l.href}
+                        href={l.href}
+                        target="_blank"
+                        className="rounded-full border border-border bg-panel px-2 py-0.5 text-[11px] text-accent hover:border-accent"
+                      >
+                        {l.label}
+                      </Link>
+                    ))}
+                  </div>
+                )}
+                {!t.answer && t.links.length === 0 && (
+                  <p className="text-ink-faint">Nema rezultata.</p>
+                )}
+              </div>
+            )}
+          </div>
+        ))}
       </div>
 
       {effectiveContextLabels.length > 0 && (
@@ -510,16 +586,37 @@ export default function AiChatBox({ fokus = false }: { fokus?: boolean }) {
             <div className="flex items-center gap-1.5 self-start rounded-full border border-accent bg-accent-soft px-2 py-0.5 text-[11px] text-ink">
               <Icon name="link" />
               {autoContext}
-              <button onClick={() => setDismissedForPath(activePath)} title="Ukloni kontekst" className="ml-0.5 hover:text-danger">
+              <button
+                onClick={() => setDismissedForPath(activePath)}
+                title="Ukloni kontekst"
+                className="ml-0.5 hover:text-danger"
+              >
                 <Icon name="close" />
               </button>
             </div>
           )}
           {contextItems.map((item) => (
-            <div key={item.id} className="flex items-center gap-1.5 self-start rounded-full border border-accent bg-accent-soft px-2 py-0.5 text-[11px] text-ink">
-              <Icon name={item.type === 'FILTERED_LIST' ? 'filter' : item.type === 'FILE' ? 'file' : item.type === 'IMAGE' ? 'file-media' : 'symbol-number'} />
+            <div
+              key={item.id}
+              className="flex items-center gap-1.5 self-start rounded-full border border-accent bg-accent-soft px-2 py-0.5 text-[11px] text-ink"
+            >
+              <Icon
+                name={
+                  item.type === 'FILTERED_LIST'
+                    ? 'filter'
+                    : item.type === 'FILE'
+                      ? 'file'
+                      : item.type === 'IMAGE'
+                        ? 'file-media'
+                        : 'symbol-number'
+                }
+              />
               {itemLabel(item)}
-              <button onClick={() => removeContextItem(item.id)} title="Ukloni iz konteksta" className="ml-0.5 hover:text-danger">
+              <button
+                onClick={() => removeContextItem(item.id)}
+                title="Ukloni iz konteksta"
+                className="ml-0.5 hover:text-danger"
+              >
                 <Icon name="close" />
               </button>
             </div>
@@ -595,7 +692,8 @@ export default function AiChatBox({ fokus = false }: { fokus?: boolean }) {
                   }}
                   className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-ink-dim hover:bg-panel-2 hover:text-ink disabled:opacity-40 disabled:hover:bg-transparent"
                 >
-                  <Icon name="file" /> Trenutno otvoren zapis{!isUnlabeledHome ? ` — ${activeTab!.label}` : ''}
+                  <Icon name="file" /> Trenutno otvoren zapis
+                  {!isUnlabeledHome ? ` — ${activeTab!.label}` : ''}
                 </button>
                 <button
                   disabled={!isSearchTab}
@@ -660,7 +758,9 @@ export default function AiChatBox({ fokus = false }: { fokus?: boolean }) {
                 style={{ bottom: modulePickerPos.bottom, left: modulePickerPos.left }}
                 className="fixed z-50 max-h-72 w-64 overflow-y-auto rounded-lg border border-border bg-panel py-1 text-xs shadow-lg"
               >
-                {moduleItems.length === 0 && <p className="px-3 py-2 text-ink-faint">Učitavanje...</p>}
+                {moduleItems.length === 0 && (
+                  <p className="px-3 py-2 text-ink-faint">Učitavanje...</p>
+                )}
                 {/* Grupisano po `NAV_GROUPS` (25.8.2026, na zahtev vlasnika — snimak ekrana: "boldirajte
                     osnovne stavke i neka budu bez linka. Otvaraju se samo podlinkovi") — isti obrazac kao
                     Sidebar/ActivityBar: naziv grupe je podebljan, NIJE klikabilan (nema svoju rutu), samo
@@ -684,7 +784,11 @@ export default function AiChatBox({ fokus = false }: { fokus?: boolean }) {
                         <button
                           onClick={() => addRecord(`Modul: ${group.label}`)}
                           disabled={atCapacity}
-                          title={atCapacity ? 'Najviše 8 zapisa u AI kontekstu odjednom' : `Dodaj modul "${group.label}" u AI kontekst`}
+                          title={
+                            atCapacity
+                              ? 'Najviše 8 zapisa u AI kontekstu odjednom'
+                              : `Dodaj modul "${group.label}" u AI kontekst`
+                          }
                           className="flex h-[22px] w-[22px] flex-shrink-0 items-center justify-center rounded font-normal text-ink-faint hover:bg-panel-2 hover:text-accent disabled:cursor-not-allowed disabled:opacity-30"
                         >
                           <Icon name="symbol-number" />
@@ -696,7 +800,10 @@ export default function AiChatBox({ fokus = false }: { fokus?: boolean }) {
                           sekciju (npr. "Kalendar rezervacija"), ne ceo modul. Ne navigira, ne
                           zatvara popup — razlika od klika na ostatak reda. */}
                       {groupItems.map((item) => (
-                        <div key={item.id} className="group flex w-full items-center justify-between gap-1 pl-7 pr-1.5 text-ink-dim hover:bg-panel-2 hover:text-ink">
+                        <div
+                          key={item.id}
+                          className="group flex w-full items-center justify-between gap-1 pl-7 pr-1.5 text-ink-dim hover:bg-panel-2 hover:text-ink"
+                        >
                           <button
                             onClick={() => {
                               openTab(item.href, item.label);
@@ -721,7 +828,11 @@ export default function AiChatBox({ fokus = false }: { fokus?: boolean }) {
                               }
                             }}
                             disabled={atCapacity}
-                            title={atCapacity ? 'Najviše 8 zapisa u AI kontekstu odjednom' : `Dodaj "${item.label}" u AI kontekst`}
+                            title={
+                              atCapacity
+                                ? 'Najviše 8 zapisa u AI kontekstu odjednom'
+                                : `Dodaj "${item.label}" u AI kontekst`
+                            }
                             className="flex h-[22px] w-[22px] flex-shrink-0 items-center justify-center rounded text-ink-faint opacity-0 hover:bg-panel hover:text-accent focus:opacity-100 group-hover:opacity-100 disabled:cursor-not-allowed disabled:opacity-30"
                           >
                             <Icon name="symbol-number" />
@@ -753,7 +864,9 @@ export default function AiChatBox({ fokus = false }: { fokus?: boolean }) {
             onClick={toggleListening}
             title={listening ? 'Zaustavi snimanje' : 'Pitaj glasom'}
             className={`flex h-[31px] w-[31px] flex-shrink-0 items-center justify-center rounded ${
-              listening ? 'animate-pulse bg-danger-bg text-danger' : 'hover:bg-panel-2 hover:text-ink'
+              listening
+                ? 'animate-pulse bg-danger-bg text-danger'
+                : 'hover:bg-panel-2 hover:text-ink'
             }`}
           >
             <Icon name="mic" />

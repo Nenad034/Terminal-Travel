@@ -23,24 +23,37 @@ export class ArticleRevisionsService {
   ) {}
 
   async findAll(articleId: string) {
-    return this.prisma.articleRevision.findMany({ where: { articleId }, orderBy: { createdAt: 'desc' } });
+    return this.prisma.articleRevision.findMany({
+      where: { articleId },
+      orderBy: { createdAt: 'desc' },
+    });
   }
 
   async approve(articleId: string, revisionId: string, actorId: string) {
-    await assertHumanActor(this.prisma, actorId, 'Odobrenje revizije (M23/article-revision/APPROVE)');
+    await assertHumanActor(
+      this.prisma,
+      actorId,
+      'Odobrenje revizije (M23/article-revision/APPROVE)',
+    );
 
     const revision = await this.prisma.articleRevision.findUnique({ where: { id: revisionId } });
     if (!revision || revision.articleId !== articleId) {
-      throw new NotFoundException(`ArticleRevision ${revisionId} nije pronađena za članak ${articleId}.`);
+      throw new NotFoundException(
+        `ArticleRevision ${revisionId} nije pronađena za članak ${articleId}.`,
+      );
     }
     if (revision.status !== 'PENDING_REVIEW') {
-      throw new BadRequestException(`Revizija je već ${revision.status} — ne može se ponovo odobriti.`);
+      throw new BadRequestException(
+        `Revizija je već ${revision.status} — ne može se ponovo odobriti.`,
+      );
     }
 
     // M23 spec §9, izlazni kriterijum — revizija se NE MOŽE odobriti dok bar jedan referenciran
     // ArticleSource nije APPROVED ljudskim nalogom.
     if (revision.sourceIds.length > 0) {
-      const sources = await this.prisma.articleSource.findMany({ where: { id: { in: revision.sourceIds } } });
+      const sources = await this.prisma.articleSource.findMany({
+        where: { id: { in: revision.sourceIds } },
+      });
       const notApproved = sources.filter((s) => s.status !== 'APPROVED');
       if (notApproved.length > 0 || sources.length !== revision.sourceIds.length) {
         throw new BadRequestException(
@@ -60,7 +73,11 @@ export class ArticleRevisionsService {
           body: t.body,
           translationSource: t.translationSource ?? 'AI_GENERATED',
         },
-        update: { title: t.title, body: t.body, translationSource: t.translationSource ?? 'AI_GENERATED' },
+        update: {
+          title: t.title,
+          body: t.body,
+          translationSource: t.translationSource ?? 'AI_GENERATED',
+        },
       });
     }
 
@@ -94,11 +111,17 @@ export class ArticleRevisionsService {
   }
 
   async reject(articleId: string, revisionId: string, actorId: string) {
-    await assertHumanActor(this.prisma, actorId, 'Odbijanje revizije (M23/article-revision/APPROVE)');
+    await assertHumanActor(
+      this.prisma,
+      actorId,
+      'Odbijanje revizije (M23/article-revision/APPROVE)',
+    );
 
     const revision = await this.prisma.articleRevision.findUnique({ where: { id: revisionId } });
     if (!revision || revision.articleId !== articleId) {
-      throw new NotFoundException(`ArticleRevision ${revisionId} nije pronađena za članak ${articleId}.`);
+      throw new NotFoundException(
+        `ArticleRevision ${revisionId} nije pronađena za članak ${articleId}.`,
+      );
     }
     if (revision.status !== 'PENDING_REVIEW') {
       throw new BadRequestException(`Revizija je već ${revision.status}.`);

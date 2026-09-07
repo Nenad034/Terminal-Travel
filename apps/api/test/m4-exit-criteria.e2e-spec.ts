@@ -31,7 +31,9 @@ describe('M4 — izlazni kriterijum (e2e)', () => {
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
     app = moduleRef.createNestApplication();
     app.setGlobalPrefix('api/v1');
-    app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }));
+    app.useGlobalPipes(
+      new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }),
+    );
     // Isti skup filtera kao main.ts — bez ProviderExceptionFilter-a test ne bi merio ono
     // što produkcija stvarno vraća (zamka 13.4: greška se gubi tačno na granici ka HTTP-u).
     app.useGlobalFilters(new PrismaExceptionFilter(), new ProviderExceptionFilter());
@@ -43,8 +45,12 @@ describe('M4 — izlazni kriterijum (e2e)', () => {
 
   afterAll(async () => {
     if (createdProviderCodes.length) {
-      await prisma.providerCallLog.deleteMany({ where: { providerCode: { in: createdProviderCodes } } });
-      await prisma.providerConfig.deleteMany({ where: { providerCode: { in: createdProviderCodes } } });
+      await prisma.providerCallLog.deleteMany({
+        where: { providerCode: { in: createdProviderCodes } },
+      });
+      await prisma.providerConfig.deleteMany({
+        where: { providerCode: { in: createdProviderCodes } },
+      });
     }
     if (createdUserIds.length) {
       await prisma.userRole.deleteMany({ where: { userId: { in: createdUserIds } } });
@@ -64,7 +70,9 @@ describe('M4 — izlazni kriterijum (e2e)', () => {
     });
     createdUserIds.push(user.id);
     const role = await prisma.role.findUniqueOrThrow({ where: { name: roleName } });
-    await prisma.userRole.create({ data: { userId: user.id, roleId: role.id, assignedBy: user.id } });
+    await prisma.userRole.create({
+      data: { userId: user.id, roleId: role.id, assignedBy: user.id },
+    });
     const accessToken = jwt.sign({ sub: user.id, sessionId: 'e2e-test-session' });
     return { user, accessToken };
   }
@@ -222,7 +230,9 @@ describe('M4 — izlazni kriterijum (e2e)', () => {
         expect(res.body.providerErrorCode).toBe('PROVIDER_UNAVAILABLE');
       }
 
-      const afterThreshold = await prisma.providerConfig.findUniqueOrThrow({ where: { providerCode } });
+      const afterThreshold = await prisma.providerConfig.findUniqueOrThrow({
+        where: { providerCode },
+      });
       expect(afterThreshold.circuitState).toBe('OPEN');
 
       // Kolo OPEN — sledeći poziv se odbija BEZ pozivanja adaptera (adapter.failNextCalls ostaje netaknut).
@@ -249,7 +259,9 @@ describe('M4 — izlazni kriterijum (e2e)', () => {
         .send({ stayFrom: '2027-07-01', stayTo: '2027-07-08', adults: 2 });
       expect(halfOpenRes.status).toBe(201);
 
-      const afterRecovery = await prisma.providerConfig.findUniqueOrThrow({ where: { providerCode } });
+      const afterRecovery = await prisma.providerConfig.findUniqueOrThrow({
+        where: { providerCode },
+      });
       expect(afterRecovery.circuitState).toBe('CLOSED');
       expect(afterRecovery.circuitConsecutiveFailures).toBe(0);
     });
@@ -268,7 +280,10 @@ describe('M4 — izlazni kriterijum (e2e)', () => {
         .set(authed(accessToken))
         .send({ stayFrom: '2027-07-01', stayTo: '2027-07-08', adults: 2 });
 
-      const logs = await prisma.providerCallLog.findMany({ where: { providerCode }, orderBy: { timestamp: 'desc' } });
+      const logs = await prisma.providerCallLog.findMany({
+        where: { providerCode },
+        orderBy: { timestamp: 'desc' },
+      });
       expect(logs[0].errorCode).toBe('RATE_LIMITED');
     });
   });
@@ -330,7 +345,9 @@ describe('M4 — izlazni kriterijum (e2e)', () => {
           idempotencyKey,
         });
 
-      const entry = await prisma.auditLogEntry.findFirst({ where: { action: 'provider_booking.confirmed', resourceId: idempotencyKey } });
+      const entry = await prisma.auditLogEntry.findFirst({
+        where: { action: 'provider_booking.confirmed', resourceId: idempotencyKey },
+      });
       expect(entry).not.toBeNull();
       expect(entry?.module).toBe('M4');
     });
@@ -353,7 +370,9 @@ describe('M4 — izlazni kriterijum (e2e)', () => {
           idempotencyKey: `idem-redact-${testRunId}`,
         });
 
-      const logs = await prisma.providerCallLog.findMany({ where: { providerCode, operation: 'BOOK' } });
+      const logs = await prisma.providerCallLog.findMany({
+        where: { providerCode, operation: 'BOOK' },
+      });
       const raw = JSON.stringify(logs.map((l) => l.requestSummary));
       expect(raw).not.toContain('Osetljivo Ime Gosta');
     });
@@ -363,7 +382,9 @@ describe('M4 — izlazni kriterijum (e2e)', () => {
     it('Sales Manager dobija 403 na GET /integrations/providers', async () => {
       const { accessToken } = await createInternalUser(SYSTEM_ROLES.SALES_MANAGER);
 
-      const res = await request(app.getHttpServer()).get('/api/v1/integrations/providers').set(authed(accessToken));
+      const res = await request(app.getHttpServer())
+        .get('/api/v1/integrations/providers')
+        .set(authed(accessToken));
 
       expect(res.status).toBe(403);
     });

@@ -28,7 +28,9 @@ export interface ChartSeries<T extends ChartRow> {
 }
 
 function formatChartValue(value: number, money?: boolean): string {
-  return money ? (value / 100).toLocaleString('sr-RS', { minimumFractionDigits: 2 }) : value.toLocaleString('sr-RS');
+  return money
+    ? (value / 100).toLocaleString('sr-RS', { minimumFractionDigits: 2 })
+    : value.toLocaleString('sr-RS');
 }
 
 /** Udeo vrednosti u zbiru cele serije, kao procenat — "—" kad je zbir nula. */
@@ -49,7 +51,11 @@ export default function BarChart<T extends ChartRow>({
   limit?: number;
 }) {
   if (rows.length === 0 || series.length === 0) {
-    return <p className="rounded-lg border border-border bg-panel p-4 text-center text-xs text-ink-faint">Nema podataka za zadate filtere.</p>;
+    return (
+      <p className="rounded-lg border border-border bg-panel p-4 text-center text-xs text-ink-faint">
+        Nema podataka za zadate filtere.
+      </p>
+    );
   }
 
   const sorted = [...rows].sort((a, b) => series[0].value(b) - series[0].value(a));
@@ -77,7 +83,10 @@ export default function BarChart<T extends ChartRow>({
 
       <div className="flex flex-col gap-2">
         {shown.map((row) => (
-          <div key={row.key} className="group flex items-center gap-2 rounded px-1 py-0.5 -mx-1 hover:bg-sunken">
+          <div
+            key={row.key}
+            className="group flex items-center gap-2 rounded px-1 py-0.5 -mx-1 hover:bg-sunken"
+          >
             <span className="w-28 flex-none truncate text-xs text-ink-dim" title={row.key}>
               {row.key}
             </span>
@@ -93,7 +102,10 @@ export default function BarChart<T extends ChartRow>({
                     title={`${row.key} — ${s.label}: ${formatChartValue(value, s.money)} (${share})`}
                   >
                     <div className="h-2.5 flex-1 overflow-hidden rounded-r-full bg-sunken">
-                      <div className="h-2.5 rounded-r-full transition-[width]" style={{ width: `${barPct}%`, background: s.color }} />
+                      <div
+                        className="h-2.5 rounded-r-full transition-[width]"
+                        style={{ width: `${barPct}%`, background: s.color }}
+                      />
                     </div>
                     <span className="w-28 flex-none text-right font-mono text-[11px] tabular-nums text-ink-faint">
                       {formatChartValue(value, s.money)} ({share})
@@ -106,7 +118,9 @@ export default function BarChart<T extends ChartRow>({
         ))}
       </div>
 
-      {hiddenCount > 0 && <p className="text-[11px] text-ink-faint">+ još {hiddenCount} — vidi tabelu ispod</p>}
+      {hiddenCount > 0 && (
+        <p className="text-[11px] text-ink-faint">+ još {hiddenCount} — vidi tabelu ispod</p>
+      )}
     </div>
   );
 }

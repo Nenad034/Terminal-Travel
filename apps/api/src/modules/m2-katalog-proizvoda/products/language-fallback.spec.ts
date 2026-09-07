@@ -27,7 +27,9 @@ describe('resolveTranslation (M2 spec §2.2 — traženi jezik → engleski → 
 
 describe('hasRequiredTranslationsForPublish (M2 spec §2.2 — sr+en obavezni pre ACTIVE)', () => {
   it('true kad postoje i sr i en', () => {
-    expect(hasRequiredTranslationsForPublish([{ languageCode: 'sr' }, { languageCode: 'en' }])).toBe(true);
+    expect(
+      hasRequiredTranslationsForPublish([{ languageCode: 'sr' }, { languageCode: 'en' }]),
+    ).toBe(true);
   });
 
   it('false kad nedostaje sr', () => {

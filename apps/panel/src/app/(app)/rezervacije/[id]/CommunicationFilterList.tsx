@@ -37,7 +37,11 @@ export default function CommunicationFilterList({
   return (
     <div className="space-y-3">
       <label className="flex w-fit items-center gap-1.5 text-xs text-ink-dim">
-        <input type="checkbox" checked={onlyThisBooking} onChange={(e) => setOnlyThisBooking(e.target.checked)} />
+        <input
+          type="checkbox"
+          checked={onlyThisBooking}
+          onChange={(e) => setOnlyThisBooking(e.target.checked)}
+        />
         Prikaži samo poruke o ovoj rezervaciji ({matching.length})
         <span
           title={`Prepiska nije povezana sa rezervacijom kao poseban podatak (M6 CommunicationLog nema booking_id) — ovaj filter samo traži broj rezervacije "${bookingNumber}" u tekstu poruke, ne garantovano tačno kao prava veza.`}
@@ -48,7 +52,11 @@ export default function CommunicationFilterList({
       </label>
 
       {shown.length === 0 ? (
-        <p className="text-xs text-ink-faint">{onlyThisBooking ? 'Nijedna poruka ne pominje broj ove rezervacije u tekstu.' : 'Nema zabeležene komunikacije sa ovim nalogodavcem.'}</p>
+        <p className="text-xs text-ink-faint">
+          {onlyThisBooking
+            ? 'Nijedna poruka ne pominje broj ove rezervacije u tekstu.'
+            : 'Nema zabeležene komunikacije sa ovim nalogodavcem.'}
+        </p>
       ) : (
         <ul className="space-y-2">
           {shown.map((c) => (
@@ -58,7 +66,12 @@ export default function CommunicationFilterList({
                 <Badge label={c.direction} />
                 <Badge label={c.category} />
                 <ActorLabel
-                  name={c.sentBy ? (directoryNames[c.sentBy] ?? (c.sentBy === 'SYSTEM_AUTO' ? 'automatski' : null)) : null}
+                  name={
+                    c.sentBy
+                      ? (directoryNames[c.sentBy] ??
+                        (c.sentBy === 'SYSTEM_AUTO' ? 'automatski' : null))
+                      : null
+                  }
                   origin={c.sentBy === 'SYSTEM_AUTO' ? 'SYSTEM' : 'STAFF'}
                   draftedByAi={c.draftedByAi}
                 />
@@ -74,5 +87,9 @@ export default function CommunicationFilterList({
 }
 
 function Badge({ label }: { label: string }) {
-  return <span className="rounded bg-panel2 px-2 py-0.5 text-[11px] font-medium text-ink-faint">{label}</span>;
+  return (
+    <span className="rounded bg-panel2 px-2 py-0.5 text-[11px] font-medium text-ink-faint">
+      {label}
+    </span>
+  );
 }

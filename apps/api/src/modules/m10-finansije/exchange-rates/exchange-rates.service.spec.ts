@@ -5,7 +5,12 @@ import { ExchangeRatesService } from './exchange-rates.service';
 describe('ExchangeRatesService (M10 spec §3.1)', () => {
   function makeService() {
     const prisma: any = {
-      exchangeRateSnapshot: { create: jest.fn(), findMany: jest.fn(), findFirst: jest.fn(), count: jest.fn() },
+      exchangeRateSnapshot: {
+        create: jest.fn(),
+        findMany: jest.fn(),
+        findFirst: jest.fn(),
+        count: jest.fn(),
+      },
       $transaction: jest.fn((o: Promise<unknown>[]) => Promise.all(o)),
     };
     const nbsFetcher: any = { fetchTodaysRates: jest.fn(), fetchRatesForDate: jest.fn() };
@@ -17,7 +22,10 @@ describe('ExchangeRatesService (M10 spec §3.1)', () => {
     const { service, prisma } = makeService();
     prisma.exchangeRateSnapshot.create.mockResolvedValue({ id: 'ex-1' });
 
-    await service.create({ currency: 'EUR', rateDate: '2026-08-12', nbsMiddleRate: 117.25 }, { userId: 'actor-1' });
+    await service.create(
+      { currency: 'EUR', rateDate: '2026-08-12', nbsMiddleRate: 117.25 },
+      { userId: 'actor-1' },
+    );
 
     expect(prisma.exchangeRateSnapshot.create).toHaveBeenCalledWith({
       data: expect.objectContaining({ currency: 'EUR', nbsMiddleRate: 117.25, source: 'MANUAL' }),
@@ -30,11 +38,17 @@ describe('ExchangeRatesService (M10 spec §3.1)', () => {
   it('dupli unos za isti dan i valutu vraća 409 sa objašnjenjem, ne 500', async () => {
     const { service, prisma } = makeService();
     prisma.exchangeRateSnapshot.create.mockRejectedValue(
-      new Prisma.PrismaClientKnownRequestError('duplikat', { code: 'P2002', clientVersion: '5.22.0' }),
+      new Prisma.PrismaClientKnownRequestError('duplikat', {
+        code: 'P2002',
+        clientVersion: '5.22.0',
+      }),
     );
 
     await expect(
-      service.create({ currency: 'EUR', rateDate: '2026-08-28', nbsMiddleRate: 117.37 }, { userId: 'actor-1' }),
+      service.create(
+        { currency: 'EUR', rateDate: '2026-08-28', nbsMiddleRate: 117.37 },
+        { userId: 'actor-1' },
+      ),
     ).rejects.toThrow(ConflictException);
   });
 
@@ -43,13 +57,19 @@ describe('ExchangeRatesService (M10 spec §3.1)', () => {
     prisma.exchangeRateSnapshot.create.mockRejectedValue(new Error('baza nedostupna'));
 
     await expect(
-      service.create({ currency: 'EUR', rateDate: '2026-08-28', nbsMiddleRate: 117.37 }, { userId: 'actor-1' }),
+      service.create(
+        { currency: 'EUR', rateDate: '2026-08-28', nbsMiddleRate: 117.37 },
+        { userId: 'actor-1' },
+      ),
     ).rejects.toThrow('baza nedostupna');
   });
 
   it('vraća najbliži prethodni kurs kad tačan dan ne postoji', async () => {
     const { service, prisma } = makeService();
-    prisma.exchangeRateSnapshot.findFirst.mockResolvedValue({ id: 'ex-2', rateDate: new Date('2026-08-10') });
+    prisma.exchangeRateSnapshot.findFirst.mockResolvedValue({
+      id: 'ex-2',
+      rateDate: new Date('2026-08-10'),
+    });
 
     const result = await service.findForCurrencyOnOrBefore('EUR', new Date('2026-08-12'));
 
@@ -64,7 +84,9 @@ describe('ExchangeRatesService (M10 spec §3.1)', () => {
     const { service, prisma } = makeService();
     prisma.exchangeRateSnapshot.findFirst.mockResolvedValue(null);
 
-    await expect(service.findForCurrencyOnOrBefore('EUR', new Date('2026-08-12'))).rejects.toThrow(NotFoundException);
+    await expect(service.findForCurrencyOnOrBefore('EUR', new Date('2026-08-12'))).rejects.toThrow(
+      NotFoundException,
+    );
   });
 
   describe('importFromNbs (§11 — dnevni automatski uvoz)', () => {
@@ -82,10 +104,20 @@ describe('ExchangeRatesService (M10 spec §3.1)', () => {
       const result = await service.importFromNbs();
 
       expect(prisma.exchangeRateSnapshot.create).toHaveBeenCalledWith({
-        data: { currency: 'EUR', rateDate: new Date('2026-08-14'), nbsMiddleRate: 117.3433, source: 'NBS_API' },
+        data: {
+          currency: 'EUR',
+          rateDate: new Date('2026-08-14'),
+          nbsMiddleRate: 117.3433,
+          source: 'NBS_API',
+        },
       });
       expect(prisma.exchangeRateSnapshot.create).toHaveBeenCalledWith({
-        data: { currency: 'USD', rateDate: new Date('2026-08-14'), nbsMiddleRate: 101.6575, source: 'NBS_API' },
+        data: {
+          currency: 'USD',
+          rateDate: new Date('2026-08-14'),
+          nbsMiddleRate: 101.6575,
+          source: 'NBS_API',
+        },
       });
       expect(result).toEqual({ imported: ['EUR', 'USD'], skipped: [] });
     });
@@ -137,7 +169,11 @@ describe('ExchangeRatesService (M10 spec §3.1)', () => {
 
       expect(r).toEqual({ imported: ['EUR'], skipped: [] });
       expect(prisma.exchangeRateSnapshot.create).toHaveBeenCalledWith({
-        data: expect.objectContaining({ currency: 'EUR', rateDate: dan('2026-08-27'), source: 'NBS_API' }),
+        data: expect.objectContaining({
+          currency: 'EUR',
+          rateDate: dan('2026-08-27'),
+          source: 'NBS_API',
+        }),
       });
     });
 
@@ -163,7 +199,9 @@ describe('ExchangeRatesService (M10 spec §3.1)', () => {
         { rateDate: dan('2026-08-24'), currency: 'USD' },
       ]);
 
-      const r = await service.backfillMissingRates(dan('2026-08-24'), dan('2026-08-24'), { pauseMs: 0 });
+      const r = await service.backfillMissingRates(dan('2026-08-24'), dan('2026-08-24'), {
+        pauseMs: 0,
+      });
 
       expect(nbsFetcher.fetchRatesForDate).not.toHaveBeenCalled();
       expect(r).toEqual({ popunjeno: 1 - 1, preskoceno: 1, neuspelo: 0 });
@@ -172,14 +210,18 @@ describe('ExchangeRatesService (M10 spec §3.1)', () => {
     it('dan kome nedostaje makar JEDNA valuta se ponovo dovlači', async () => {
       const { service, prisma, nbsFetcher } = makeService();
       // EUR postoji, USD ne — dan nije potpun, pa se mora ponoviti.
-      prisma.exchangeRateSnapshot.findMany.mockResolvedValue([{ rateDate: dan('2026-08-24'), currency: 'EUR' }]);
+      prisma.exchangeRateSnapshot.findMany.mockResolvedValue([
+        { rateDate: dan('2026-08-24'), currency: 'EUR' },
+      ]);
       nbsFetcher.fetchRatesForDate.mockResolvedValue({
         rateDate: dan('2026-08-24'),
         rows: [{ currency: 'USD', rate: 100.4622 }],
       });
       prisma.exchangeRateSnapshot.create.mockResolvedValue({ id: 'ex-2' });
 
-      const r = await service.backfillMissingRates(dan('2026-08-24'), dan('2026-08-24'), { pauseMs: 0 });
+      const r = await service.backfillMissingRates(dan('2026-08-24'), dan('2026-08-24'), {
+        pauseMs: 0,
+      });
 
       expect(nbsFetcher.fetchRatesForDate).toHaveBeenCalledTimes(1);
       expect(r.popunjeno).toBe(1);
@@ -190,10 +232,15 @@ describe('ExchangeRatesService (M10 spec §3.1)', () => {
       prisma.exchangeRateSnapshot.findMany.mockResolvedValue([]);
       nbsFetcher.fetchRatesForDate
         .mockRejectedValueOnce(new Error('NBS stranica vratila HTTP 500'))
-        .mockResolvedValue({ rateDate: dan('2026-08-25'), rows: [{ currency: 'EUR', rate: 117.3772 }] });
+        .mockResolvedValue({
+          rateDate: dan('2026-08-25'),
+          rows: [{ currency: 'EUR', rate: 117.3772 }],
+        });
       prisma.exchangeRateSnapshot.create.mockResolvedValue({ id: 'ex-3' });
 
-      const r = await service.backfillMissingRates(dan('2026-08-24'), dan('2026-08-25'), { pauseMs: 0 });
+      const r = await service.backfillMissingRates(dan('2026-08-24'), dan('2026-08-25'), {
+        pauseMs: 0,
+      });
 
       expect(r.neuspelo).toBe(1);
       expect(nbsFetcher.fetchRatesForDate).toHaveBeenCalledTimes(2);

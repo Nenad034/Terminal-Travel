@@ -20,7 +20,10 @@ export class MobilePushStubAdapter implements DistributionChannelAdapter {
     this.logger.warn(
       `[stub] MOBILE_PUSH kanal čeka M9 implementaciju — objava "${content.title}" (ContentPiece ${content.contentPieceId}) NIJE stvarno poslata, samo zabeležena.`,
     );
-    return { externalPostId: `STUB-MOBILE_PUSH-${content.contentPieceId}`, publishedAt: new Date().toISOString() };
+    return {
+      externalPostId: `STUB-MOBILE_PUSH-${content.contentPieceId}`,
+      publishedAt: new Date().toISOString(),
+    };
   }
 
   async unpublish(_externalPostId: string): Promise<void> {

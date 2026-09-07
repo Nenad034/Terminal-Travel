@@ -1,4 +1,10 @@
-import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { HelpQuestion } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
@@ -47,7 +53,9 @@ export class HelpSuggestionsService {
       orderBy: { createdAt: 'asc' },
     });
 
-    const existingSuggestions = await this.prisma.helpArticleSuggestion.findMany({ select: { basedOnQuestionIds: true } });
+    const existingSuggestions = await this.prisma.helpArticleSuggestion.findMany({
+      select: { basedOnQuestionIds: true },
+    });
     const alreadyUsed = new Set(existingSuggestions.flatMap((s) => s.basedOnQuestionIds));
     const pool = candidates.filter((q) => !alreadyUsed.has(q.id));
 
@@ -76,7 +84,9 @@ export class HelpSuggestionsService {
       },
     });
 
-    const agentUser = await this.prisma.aIAgent.findFirst({ where: { agentRole: 'HELP_CENTER_AGENT' } });
+    const agentUser = await this.prisma.aIAgent.findFirst({
+      where: { agentRole: 'HELP_CENTER_AGENT' },
+    });
     await this.auditLog.write({
       actorType: 'AI_AGENT',
       actorId: agentUser?.userId ?? null,
@@ -89,7 +99,9 @@ export class HelpSuggestionsService {
     });
   }
 
-  private async draftFromQuestions(group: HelpQuestion[]): Promise<{ title: string; body: string }> {
+  private async draftFromQuestions(
+    group: HelpQuestion[],
+  ): Promise<{ title: string; body: string }> {
     const questionsList = group.map((q) => `- ${q.questionText}`).join('\n');
 
     if (!this.anthropic.isConfigured()) {
@@ -113,11 +125,14 @@ export class HelpSuggestionsService {
         system: systemPrompt,
         messages: [{ role: 'user', content: `Ponovljena pitanja:\n${questionsList}` }],
       });
-      const textBlock = response.content.find((b: any) => b.type === 'text') as { text: string } | undefined;
+      const textBlock = response.content.find((b: any) => b.type === 'text') as
+        { text: string } | undefined;
       const raw = textBlock?.text?.trim() ?? '';
       const [firstLine, ...rest] = raw.split('\n');
 
-      const agent = await this.prisma.aIAgent.findFirst({ where: { agentRole: 'HELP_CENTER_AGENT' } });
+      const agent = await this.prisma.aIAgent.findFirst({
+        where: { agentRole: 'HELP_CENTER_AGENT' },
+      });
       if (agent) {
         await this.invocationLog.record({
           agentId: agent.id,
@@ -136,7 +151,9 @@ export class HelpSuggestionsService {
         body: rest.join('\n').trim() || questionsList,
       };
     } catch (err) {
-      this.logger.warn(`Anthropic poziv nije uspeo, koristi se prost template: ${(err as Error).message}`);
+      this.logger.warn(
+        `Anthropic poziv nije uspeo, koristi se prost template: ${(err as Error).message}`,
+      );
       return {
         title: `Nedostaje uputstvo: ${group[0].questionText.slice(0, 80)}`,
         body: `Ponovljena pitanja bez dobrog odgovora u bazi znanja (${group.length}):\n\n${questionsList}`,
@@ -148,14 +165,19 @@ export class HelpSuggestionsService {
   // GET /help/suggestions, PATCH /help/suggestions/:id
   // ==========================================================================
   async findPending() {
-    return this.prisma.helpArticleSuggestion.findMany({ where: { status: 'PENDING_APPROVAL' }, orderBy: { createdAt: 'desc' } });
+    return this.prisma.helpArticleSuggestion.findMany({
+      where: { status: 'PENDING_APPROVAL' },
+      orderBy: { createdAt: 'desc' },
+    });
   }
 
   async review(id: string, decision: 'APPROVE' | 'REJECT', actorId: string) {
     const suggestion = await this.prisma.helpArticleSuggestion.findUnique({ where: { id } });
     if (!suggestion) throw new NotFoundException(`HelpArticleSuggestion ${id} nije pronađen.`);
     if (suggestion.status !== 'PENDING_APPROVAL') {
-      throw new BadRequestException(`Predlog u statusu ${suggestion.status} se ne može ponovo odobriti/odbiti.`);
+      throw new BadRequestException(
+        `Predlog u statusu ${suggestion.status} se ne može ponovo odobriti/odbiti.`,
+      );
     }
     if (!(await this.permissions.hasPermission(actorId, 'M21', 'suggestion', 'APPROVE'))) {
       throw new ForbiddenException('Nema M21/suggestion/APPROVE dozvolu.');
@@ -184,7 +206,9 @@ export class HelpSuggestionsService {
     // čeka SOPSTVENI korak objavljivanja (PATCH /help/articles/:id sa PUBLISH dozvolom) — dva
     // odvojena koraka odobrenja, izlazni kriterijum §7 četvrta stavka.
     const slug = await this.buildUniqueSlug(suggestion.draftTitle);
-    const firstQuestion = await this.prisma.helpQuestion.findUnique({ where: { id: suggestion.basedOnQuestionIds[0] } });
+    const firstQuestion = await this.prisma.helpQuestion.findUnique({
+      where: { id: suggestion.basedOnQuestionIds[0] },
+    });
     const audience = firstQuestion ? [firstQuestion.audienceContext] : ['STAFF' as const];
 
     const article = await this.prisma.helpArticle.create({
@@ -193,7 +217,9 @@ export class HelpSuggestionsService {
         audience,
         status: 'PENDING_APPROVAL',
         generatedBy: 'AI',
-        translations: { create: { languageCode: 'sr', title: suggestion.draftTitle, body: suggestion.draftBody } },
+        translations: {
+          create: { languageCode: 'sr', title: suggestion.draftTitle, body: suggestion.draftBody },
+        },
       },
     });
 
@@ -218,13 +244,14 @@ export class HelpSuggestionsService {
   }
 
   private async buildUniqueSlug(title: string): Promise<string> {
-    const base = title
-      .toLowerCase()
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/(^-|-$)/g, '')
-      .slice(0, 60) || 'predlog-clanka';
+    const base =
+      title
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/(^-|-$)/g, '')
+        .slice(0, 60) || 'predlog-clanka';
 
     for (let attempt = 0; attempt < 20; attempt++) {
       const candidate = attempt === 0 ? base : `${base}-${attempt}`;
@@ -236,7 +263,9 @@ export class HelpSuggestionsService {
 }
 
 function significantWords(text: string): string[] {
-  return (text.toLowerCase().match(/[\p{L}\p{N}]{4,}/gu) ?? []).filter((w, i, arr) => arr.indexOf(w) === i);
+  return (text.toLowerCase().match(/[\p{L}\p{N}]{4,}/gu) ?? []).filter(
+    (w, i, arr) => arr.indexOf(w) === i,
+  );
 }
 
 function groupByTopic(pool: HelpQuestion[]): HelpQuestion[][] {
@@ -252,7 +281,9 @@ function groupByTopic(pool: HelpQuestion[]): HelpQuestion[][] {
     for (const other of pool) {
       if (used.has(other.id) || other.audienceContext !== q.audienceContext) continue;
       const sharesArticle = q.matchedArticleIds.some((id) => other.matchedArticleIds.includes(id));
-      const overlapWords = significantWords(other.questionText).filter((w) => qWords.includes(w)).length;
+      const overlapWords = significantWords(other.questionText).filter((w) =>
+        qWords.includes(w),
+      ).length;
       if (sharesArticle || overlapWords >= MIN_WORD_OVERLAP) {
         group.push(other);
         used.add(other.id);

@@ -55,7 +55,10 @@ export class SuppliersService {
 
   // §2.1a
   listContacts(supplierId: string) {
-    return this.prisma.supplierContact.findMany({ where: { supplierId }, orderBy: { createdAt: 'desc' } });
+    return this.prisma.supplierContact.findMany({
+      where: { supplierId },
+      orderBy: { createdAt: 'desc' },
+    });
   }
 
   async createContact(supplierId: string, dto: CreateSupplierContactDto, actorId: string) {
@@ -81,7 +84,9 @@ export class SuppliersService {
 
   // §6 — linked_user_id se namerno ne prima kroz ovaj DTO (samo preko M19 toka).
   async updateContact(contactId: string, dto: UpdateSupplierContactDto, actorId: string) {
-    const before = await this.prisma.supplierContact.findUniqueOrThrow({ where: { id: contactId } });
+    const before = await this.prisma.supplierContact.findUniqueOrThrow({
+      where: { id: contactId },
+    });
     const after = await this.prisma.supplierContact.update({ where: { id: contactId }, data: dto });
     await this.auditLog.write({
       actorType: 'HUMAN',

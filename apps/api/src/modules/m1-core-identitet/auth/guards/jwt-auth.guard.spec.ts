@@ -24,13 +24,15 @@ describe('JwtAuthGuard (M1 spec §3.7 — access token nosi samo user_id/session
   });
 
   it('baca UnauthorizedException kad header ne počinje sa "Bearer "', () => {
-    expect(() => guard.canActivate(makeContext({ authorization: 'Basic xyz' }))).toThrow(UnauthorizedException);
+    expect(() => guard.canActivate(makeContext({ authorization: 'Basic xyz' }))).toThrow(
+      UnauthorizedException,
+    );
   });
 
   it('baca UnauthorizedException za nevažeći/izmenjen token', () => {
-    expect(() => guard.canActivate(makeContext({ authorization: 'Bearer nije-pravi-jwt' }))).toThrow(
-      UnauthorizedException,
-    );
+    expect(() =>
+      guard.canActivate(makeContext({ authorization: 'Bearer nije-pravi-jwt' })),
+    ).toThrow(UnauthorizedException);
   });
 
   it('baca UnauthorizedException za istekao token', () => {

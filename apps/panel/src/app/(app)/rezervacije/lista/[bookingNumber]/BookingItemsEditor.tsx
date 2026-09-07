@@ -6,7 +6,8 @@ import { PRODUCT_ICONS } from '@/lib/search-product-types';
 import type { ItemSourceType, MockBookingItem } from '../mock-data';
 
 const SOURCE_LABEL: Record<ItemSourceType, string> = {
-  CONTRACTED: 'Ručno — biram iz kataloga (država/destinacija/hotel/soba/usluga) + ulazna cena i marža',
+  CONTRACTED:
+    'Ručno — biram iz kataloga (država/destinacija/hotel/soba/usluga) + ulazna cena i marža',
   API: 'Putem API konekcije — cena i uslovi dolaze od dobavljača, unosim samo putnike',
   MANUAL: 'Iz baze već unetih aranžmana — ručno ili uz AI-agent asistirano popunjavanje',
 };
@@ -48,7 +49,9 @@ function toDraft(item: MockBookingItem): Draft {
     marginPercent: item.marginPercent.toString(),
     marginAmount: toUnits(item.marginAmount),
     finalPrice: toUnits(item.finalPrice),
-    supplierOptionDeadline: item.supplierOptionDeadline ? item.supplierOptionDeadline.slice(0, 10) : '',
+    supplierOptionDeadline: item.supplierOptionDeadline
+      ? item.supplierOptionDeadline.slice(0, 10)
+      : '',
   };
 }
 
@@ -57,7 +60,8 @@ const SUPPLIER_OPTION_DEADLINE_WARNING_HOURS = 48;
 
 function isSupplierOptionDeadlineApproaching(item: MockBookingItem): boolean {
   if (!item.supplierOptionDeadline || item.supplierOptionReminderSentAt) return false;
-  const hoursLeft = (new Date(item.supplierOptionDeadline).getTime() - Date.now()) / (60 * 60 * 1000);
+  const hoursLeft =
+    (new Date(item.supplierOptionDeadline).getTime() - Date.now()) / (60 * 60 * 1000);
   return hoursLeft <= SUPPLIER_OPTION_DEADLINE_WARNING_HOURS;
 }
 
@@ -88,7 +92,10 @@ export default function BookingItemsEditor({
     setDraft(null);
   }
 
-  function updatePrice(field: 'baseCost' | 'marginPercent' | 'marginAmount' | 'finalPrice', value: string) {
+  function updatePrice(
+    field: 'baseCost' | 'marginPercent' | 'marginAmount' | 'finalPrice',
+    value: string,
+  ) {
     if (!draft) return;
     const next = { ...draft, [field]: value };
     const base = toCents(next.baseCost);
@@ -128,15 +135,29 @@ export default function BookingItemsEditor({
       supplierOptionDeadline: draft.supplierOptionDeadline || undefined,
     };
     const changes: string[] = [];
-    if (patch.hotelName !== item.hotelName) changes.push(`hotel: "${item.hotelName}" → "${patch.hotelName}"`);
-    if (patch.roomType !== item.roomType) changes.push(`soba/usluga: "${item.roomType}" → "${patch.roomType}"`);
-    if (patch.finalPrice !== item.finalPrice) changes.push(`izlazna cena: ${money(item.finalPrice, item.currency)} → ${money(patch.finalPrice!, item.currency)}`);
-    if (patch.baseCost !== item.baseCost) changes.push(`ulazna cena: ${money(item.baseCost, item.currency)} → ${money(patch.baseCost!, item.currency)}`);
-    if (patch.sourceType !== item.sourceType) changes.push(`način unosa: ${SOURCE_LABEL[item.sourceType]} → ${SOURCE_LABEL[patch.sourceType!]}`);
+    if (patch.hotelName !== item.hotelName)
+      changes.push(`hotel: "${item.hotelName}" → "${patch.hotelName}"`);
+    if (patch.roomType !== item.roomType)
+      changes.push(`soba/usluga: "${item.roomType}" → "${patch.roomType}"`);
+    if (patch.finalPrice !== item.finalPrice)
+      changes.push(
+        `izlazna cena: ${money(item.finalPrice, item.currency)} → ${money(patch.finalPrice!, item.currency)}`,
+      );
+    if (patch.baseCost !== item.baseCost)
+      changes.push(
+        `ulazna cena: ${money(item.baseCost, item.currency)} → ${money(patch.baseCost!, item.currency)}`,
+      );
+    if (patch.sourceType !== item.sourceType)
+      changes.push(
+        `način unosa: ${SOURCE_LABEL[item.sourceType]} → ${SOURCE_LABEL[patch.sourceType!]}`,
+      );
     if (patch.supplierOptionDeadline !== item.supplierOptionDeadline) {
-      changes.push(`rok za opciju kod dobavljača: ${item.supplierOptionDeadline ?? '(nije unet)'} → ${patch.supplierOptionDeadline ?? '(uklonjen)'}`);
+      changes.push(
+        `rok za opciju kod dobavljača: ${item.supplierOptionDeadline ?? '(nije unet)'} → ${patch.supplierOptionDeadline ?? '(uklonjen)'}`,
+      );
     }
-    const summary = changes.length > 0 ? changes.join('; ') : 'izmena sačuvana bez promene vrednosti';
+    const summary =
+      changes.length > 0 ? changes.join('; ') : 'izmena sačuvana bez promene vrednosti';
     onSaveItem(item.id, patch, summary);
     cancelEdit();
   }
@@ -157,7 +178,9 @@ export default function BookingItemsEditor({
                   <span className="text-ink-faint">Način unosa</span>
                   <select
                     value={draft.sourceType}
-                    onChange={(e) => setDraft({ ...draft, sourceType: e.target.value as ItemSourceType })}
+                    onChange={(e) =>
+                      setDraft({ ...draft, sourceType: e.target.value as ItemSourceType })
+                    }
                     className="rounded border border-ink-faint bg-panel px-2 py-1 text-xs text-ink"
                   >
                     {(Object.keys(SOURCE_LABEL) as ItemSourceType[]).map((k) => (
@@ -170,28 +193,76 @@ export default function BookingItemsEditor({
 
                 {draft.sourceType === 'MANUAL' && (
                   <p className="rounded bg-warn-bg px-2 py-1.5 text-[11px] text-warn">
-                    AI-agent asistirano popunjavanje (iz nalepljenog linka/baze aranžmana) čeka poseban prolaz — M15 modul još nije povezan na ovaj mock ekran. Za sada popunite polja ispod ručno.
+                    AI-agent asistirano popunjavanje (iz nalepljenog linka/baze aranžmana) čeka
+                    poseban prolaz — M15 modul još nije povezan na ovaj mock ekran. Za sada popunite
+                    polja ispod ručno.
                   </p>
                 )}
                 {draft.sourceType === 'API' && (
                   <p className="rounded bg-panel px-2 py-1.5 text-[11px] text-ink-faint">
-                    Cena i uslovi dolaze od dobavljača preko API-ja — polja cene ispod su informativna (nisu konačna garancija dok se ne pozove M4 ponovo), agent ovde tipično menja samo opisna polja/putnike.
+                    Cena i uslovi dolaze od dobavljača preko API-ja — polja cene ispod su
+                    informativna (nisu konačna garancija dok se ne pozove M4 ponovo), agent ovde
+                    tipično menja samo opisna polja/putnike.
                   </p>
                 )}
 
                 <div className="grid grid-cols-2 gap-2">
-                  <Field label="Država" value={draft.country} onChange={(v) => setDraft({ ...draft, country: v })} />
-                  <Field label="Destinacija" value={draft.destinationCity} onChange={(v) => setDraft({ ...draft, destinationCity: v })} />
-                  <Field label="Hotel/objekat" value={draft.hotelName} onChange={(v) => setDraft({ ...draft, hotelName: v })} />
-                  <Field label="Vrsta sobe" value={draft.roomType} onChange={(v) => setDraft({ ...draft, roomType: v })} />
-                  <Field label="Usluga" value={draft.serviceType} onChange={(v) => setDraft({ ...draft, serviceType: v })} />
+                  <Field
+                    label="Država"
+                    value={draft.country}
+                    onChange={(v) => setDraft({ ...draft, country: v })}
+                  />
+                  <Field
+                    label="Destinacija"
+                    value={draft.destinationCity}
+                    onChange={(v) => setDraft({ ...draft, destinationCity: v })}
+                  />
+                  <Field
+                    label="Hotel/objekat"
+                    value={draft.hotelName}
+                    onChange={(v) => setDraft({ ...draft, hotelName: v })}
+                  />
+                  <Field
+                    label="Vrsta sobe"
+                    value={draft.roomType}
+                    onChange={(v) => setDraft({ ...draft, roomType: v })}
+                  />
+                  <Field
+                    label="Usluga"
+                    value={draft.serviceType}
+                    onChange={(v) => setDraft({ ...draft, serviceType: v })}
+                  />
                 </div>
 
                 <div className="mt-1 grid grid-cols-4 gap-2 rounded border border-border bg-panel p-2">
-                  <Field label="Ulazna cena" value={draft.baseCost} onChange={(v) => updatePrice('baseCost', v)} disabled={draft.sourceType === 'API'} numeric />
-                  <Field label="Marža %" value={draft.marginPercent} onChange={(v) => updatePrice('marginPercent', v)} disabled={draft.sourceType === 'API'} numeric />
-                  <Field label="Marža iznos" value={draft.marginAmount} onChange={(v) => updatePrice('marginAmount', v)} disabled={draft.sourceType === 'API'} numeric />
-                  <Field label="Izlazna cena" value={draft.finalPrice} onChange={(v) => updatePrice('finalPrice', v)} disabled={draft.sourceType === 'API'} numeric />
+                  <Field
+                    label="Ulazna cena"
+                    value={draft.baseCost}
+                    onChange={(v) => updatePrice('baseCost', v)}
+                    disabled={draft.sourceType === 'API'}
+                    numeric
+                  />
+                  <Field
+                    label="Marža %"
+                    value={draft.marginPercent}
+                    onChange={(v) => updatePrice('marginPercent', v)}
+                    disabled={draft.sourceType === 'API'}
+                    numeric
+                  />
+                  <Field
+                    label="Marža iznos"
+                    value={draft.marginAmount}
+                    onChange={(v) => updatePrice('marginAmount', v)}
+                    disabled={draft.sourceType === 'API'}
+                    numeric
+                  />
+                  <Field
+                    label="Izlazna cena"
+                    value={draft.finalPrice}
+                    onChange={(v) => updatePrice('finalPrice', v)}
+                    disabled={draft.sourceType === 'API'}
+                    numeric
+                  />
                 </div>
 
                 <label className="flex flex-col gap-1">
@@ -203,15 +274,23 @@ export default function BookingItemsEditor({
                     className="rounded border border-ink-faint bg-panel px-2 py-1 text-xs text-ink outline-none focus:border-accent"
                   />
                   <span className="text-[10px] text-ink-faint">
-                    Rok koji je dao dobavljač posle kog sam otkazuje ako ne izdamo vaučer/ne potvrdimo — ne interni prag tima. Gost dobija jedan automatski podsetnik 48h pre ovog roka (M5 spec §6.1b).
+                    Rok koji je dao dobavljač posle kog sam otkazuje ako ne izdamo vaučer/ne
+                    potvrdimo — ne interni prag tima. Gost dobija jedan automatski podsetnik 48h pre
+                    ovog roka (M5 spec §6.1b).
                   </span>
                 </label>
 
                 <div className="mt-1 flex justify-end gap-1.5">
-                  <button onClick={cancelEdit} className="rounded px-2 py-1 text-[11px] text-ink-faint hover:text-ink">
+                  <button
+                    onClick={cancelEdit}
+                    className="rounded px-2 py-1 text-[11px] text-ink-faint hover:text-ink"
+                  >
                     Otkaži
                   </button>
-                  <button onClick={() => save(item)} className="rounded bg-accent px-3 py-1 text-[11px] font-semibold text-accent-ink hover:bg-accent-strong">
+                  <button
+                    onClick={() => save(item)}
+                    className="rounded bg-accent px-3 py-1 text-[11px] font-semibold text-accent-ink hover:bg-accent-strong"
+                  >
                     Sačuvaj izmenu
                   </button>
                 </div>
@@ -220,7 +299,12 @@ export default function BookingItemsEditor({
               <div className="flex items-center justify-between gap-2">
                 <div>
                   <div className="flex items-center gap-1.5 text-ink">
-                    <Icon name={PRODUCT_ICONS.find((p) => p.types.includes(item.productType))?.icon ?? 'question'} />
+                    <Icon
+                      name={
+                        PRODUCT_ICONS.find((p) => p.types.includes(item.productType))?.icon ??
+                        'question'
+                      }
+                    />
                     {item.hotelName} <span className="text-ink-faint">— {item.roomType}</span>
                   </div>
                   <div className="mt-0.5 text-xs text-ink-faint">
@@ -228,16 +312,26 @@ export default function BookingItemsEditor({
                   </div>
                   {isSupplierOptionDeadlineApproaching(item) && (
                     <div className="mt-1 flex items-center gap-1 rounded bg-warn-bg px-1.5 py-0.5 text-[10px] font-semibold text-warn">
-                      <Icon name="warning" /> Rok za opciju kod dobavljača ističe {new Date(item.supplierOptionDeadline!).toLocaleDateString('sr-RS')} — gost dobija automatski podsetnik
+                      <Icon name="warning" /> Rok za opciju kod dobavljača ističe{' '}
+                      {new Date(item.supplierOptionDeadline!).toLocaleDateString('sr-RS')} — gost
+                      dobija automatski podsetnik
                     </div>
                   )}
                 </div>
                 <div className="flex items-center gap-3">
                   <div className="text-right">
-                    <div className="font-mono text-ink">{money(item.finalPrice, item.currency)}</div>
-                    <div className="text-xs text-ink-faint">ulazna {money(item.baseCost, item.currency)} · marža {item.marginPercent}%</div>
+                    <div className="font-mono text-ink">
+                      {money(item.finalPrice, item.currency)}
+                    </div>
+                    <div className="text-xs text-ink-faint">
+                      ulazna {money(item.baseCost, item.currency)} · marža {item.marginPercent}%
+                    </div>
                   </div>
-                  <button onClick={() => startEdit(item)} title="Izmeni stavku" className="flex h-[26px] w-[26px] items-center justify-center rounded text-ink-faint hover:bg-panel hover:text-accent">
+                  <button
+                    onClick={() => startEdit(item)}
+                    title="Izmeni stavku"
+                    className="flex h-[26px] w-[26px] items-center justify-center rounded text-ink-faint hover:bg-panel hover:text-accent"
+                  >
                     <Icon name="edit" />
                   </button>
                 </div>

@@ -13,6 +13,7 @@ Ovaj modul ne pravi nov profil za subagenta — koristi profil koji već postoji
 ## Mreža sa više nivoa — ali svako vidi samo svoj deo
 
 Subagent A može da ima svoje sopstvene subagente (B i C) koji rade preko njega. Svaki nivo vidi tačno onoliko koliko mu treba za posao:
+
 - **Vi (agencija)** vidite ceo lanac — sve nivoe, sve rezervacije, jer vi na kraju snosite rizik ako neko ne plati.
 - **Subagent A** vidi svoj profil, svoje rezervacije, i osnovne podatke o B i C (ime, status, kolika im je provizija/kredit) — dovoljno da upravlja odnosom sa njima.
 - **Subagent A NE vidi** rezervacije ili goste koje su B i C napravili — to je njihov posao, ne njegov.
@@ -43,4 +44,4 @@ Kad krajnji B2C gost kupuje direktno, može imati popust zbog programa lojalnost
 
 ---
 
-*Za tehničke detalje (tačna imena polja, redosled provera, API pozivi) vidi `12-SPECIFIKACIJA-M7-B2B-SUBAGENTI.md` u istom folderu i `docs/api/M7-b2b-subagenti.md` — ovaj dokument je namerno pojednostavljen, ne zamenjuje ih.*
+_Za tehničke detalje (tačna imena polja, redosled provera, API pozivi) vidi `12-SPECIFIKACIJA-M7-B2B-SUBAGENTI.md` u istom folderu i `docs/api/M7-b2b-subagenti.md` — ovaj dokument je namerno pojednostavljen, ne zamenjuje ih._

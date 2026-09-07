@@ -55,7 +55,9 @@ export function parseSoapResponse(xml: string, method: string): unknown {
 
   if (body.Fault) {
     const fault = body.Fault;
-    throw new Error(`Solvex SOAP Fault: ${fault.faultstring ?? fault.Reason?.Text ?? 'nepoznata greška'}`);
+    throw new Error(
+      `Solvex SOAP Fault: ${fault.faultstring ?? fault.Reason?.Text ?? 'nepoznata greška'}`,
+    );
   }
 
   const response = body[`${method}Response`];
@@ -65,7 +67,10 @@ export function parseSoapResponse(xml: string, method: string): unknown {
 }
 
 /** Izvlači redove iz diffgram/DataSet odgovora, probajući poznate putanje (§5a). */
-export function extractDiffgramRows(result: unknown, rowTagCandidates: string[]): Record<string, unknown>[] {
+export function extractDiffgramRows(
+  result: unknown,
+  rowTagCandidates: string[],
+): Record<string, unknown>[] {
   const candidatePaths: unknown[] = [
     result,
     (result as any)?.diffgram?.DocumentElement,
@@ -79,7 +84,9 @@ export function extractDiffgramRows(result: unknown, rowTagCandidates: string[])
     for (const tag of rowTagCandidates) {
       const rows = (candidate as Record<string, unknown>)[tag];
       if (rows === undefined) continue;
-      return Array.isArray(rows) ? (rows as Record<string, unknown>[]) : [rows as Record<string, unknown>];
+      return Array.isArray(rows)
+        ? (rows as Record<string, unknown>[])
+        : [rows as Record<string, unknown>];
     }
   }
   return [];

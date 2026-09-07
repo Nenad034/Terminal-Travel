@@ -14,7 +14,15 @@ const BADGE_TONE_CLASSES: Record<BadgeTone, string> = {
   danger: 'bg-danger-bg text-danger',
 };
 
-function CardLink({ href, children, className }: { href: string; children: React.ReactNode; className: string }) {
+function CardLink({
+  href,
+  children,
+  className,
+}: {
+  href: string;
+  children: React.ReactNode;
+  className: string;
+}) {
   if (href.startsWith('/')) {
     return (
       <Link href={href} className={className}>
@@ -50,13 +58,21 @@ interface ContentCardProps {
 
 // Podforma "naslovni red akcija" — actions dobija strelicu posle teksta.
 // Podforma "lista veza" — links dobija ikonicu ispred i razdelnu liniju između redova.
-export default function ContentCard({ title, badge, description, actions, links }: ContentCardProps) {
+export default function ContentCard({
+  title,
+  badge,
+  description,
+  actions,
+  links,
+}: ContentCardProps) {
   return (
     <div className="rounded-lg border border-border bg-panel p-4 shadow-sm">
       <div className="mb-1 flex items-center gap-2">
         <h3 className="font-medium text-ink">{title}</h3>
         {badge && (
-          <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide ${BADGE_TONE_CLASSES[badge.tone ?? 'neutral']}`}>
+          <span
+            className={`rounded-full px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide ${BADGE_TONE_CLASSES[badge.tone ?? 'neutral']}`}
+          >
             {badge.label}
           </span>
         )}
@@ -66,7 +82,11 @@ export default function ContentCard({ title, badge, description, actions, links 
       {actions && actions.length > 0 && (
         <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
           {actions.map((a) => (
-            <CardLink key={a.href} href={a.href} className="flex items-center gap-1 text-xs font-medium text-accent hover:text-accent-strong">
+            <CardLink
+              key={a.href}
+              href={a.href}
+              className="flex items-center gap-1 text-xs font-medium text-accent hover:text-accent-strong"
+            >
               {a.label} <Icon name="arrow-right" />
             </CardLink>
           ))}

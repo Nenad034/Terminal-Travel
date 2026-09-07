@@ -56,11 +56,20 @@ export default function RegisterForm({
       {error && <p className="rounded-md bg-danger-bg p-3 text-sm text-danger">{error}</p>}
       <label className="text-sm">
         {labels.fullName}
-        <input name="fullName" required className="mt-1 w-full rounded-md border border-border px-3 py-2" />
+        <input
+          name="fullName"
+          required
+          className="mt-1 w-full rounded-md border border-border px-3 py-2"
+        />
       </label>
       <label className="text-sm">
         {labels.email}
-        <input type="email" name="email" required className="mt-1 w-full rounded-md border border-border px-3 py-2" />
+        <input
+          type="email"
+          name="email"
+          required
+          className="mt-1 w-full rounded-md border border-border px-3 py-2"
+        />
       </label>
       <label className="text-sm">
         {labels.phone}
@@ -68,9 +77,19 @@ export default function RegisterForm({
       </label>
       <label className="text-sm">
         {labels.password}
-        <input type="password" name="password" required minLength={12} className="mt-1 w-full rounded-md border border-border px-3 py-2" />
+        <input
+          type="password"
+          name="password"
+          required
+          minLength={12}
+          className="mt-1 w-full rounded-md border border-border px-3 py-2"
+        />
       </label>
-      <button type="submit" disabled={pending} className="rounded-md bg-accent px-4 py-2 font-medium text-accent-ink hover:bg-accent-strong disabled:opacity-50">
+      <button
+        type="submit"
+        disabled={pending}
+        className="rounded-md bg-accent px-4 py-2 font-medium text-accent-ink hover:bg-accent-strong disabled:opacity-50"
+      >
         {labels.submit}
       </button>
       <p className="text-sm text-ink-faint">

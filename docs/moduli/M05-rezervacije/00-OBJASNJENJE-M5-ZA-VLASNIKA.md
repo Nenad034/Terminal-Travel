@@ -23,6 +23,7 @@ Ako gost rezerviše hotel + transfer u jednom paketu, a hotel kaže "da" a trans
 Vaučer se **ne štampa automatski čim se rezerviše** — čeka da gost stvarno plati u celosti. Ovo je namerna zaštita: ne želimo da izdamo dokument koji tvrdi da je nešto plaćeno, a nije.
 
 Postoje dva izuzetka, oba svesno ograničena:
+
 - **Ručni izuzetak** — samo Vlasnik ili Direktor mogu ručno reći "izdaj vaučer i bez pune uplate", uz obavezno obrazloženje koje ostaje trajno zabeleženo (ko je odobrio, kada, zašto). Nikad AI agent, nikad prodajni tim.
 - **Automatski izuzetak za stalne B2B partnere** — ako je partner registrovan i unutar odobrenog kreditnog limita, vaučer izlazi automatski čim se rezervacija potvrdi, bez čekanja na uplatu. Ovo nije rizičnija rupa nego prva tačka — kreditni limit je već proveren pre same rezervacije, pa je ovo samo mehanička posledica odluke koja je već doneta, ne nova.
 
@@ -113,4 +114,4 @@ Neki delovi sistema koji su spomenuti u ovom modulu (garancija putovanja, kredit
 
 ---
 
-*Za tehničke detalje (tačna imena polja, redosled provera, API pozivi) vidi `06-SPECIFIKACIJA-M5-REZERVACIJE.md` u istom folderu i `docs/api/M5-rezervacije.md` — ovaj dokument je namerno pojednostavljen, ne zamenjuje ih.*
+_Za tehničke detalje (tačna imena polja, redosled provera, API pozivi) vidi `06-SPECIFIKACIJA-M5-REZERVACIJE.md` u istom folderu i `docs/api/M5-rezervacije.md` — ovaj dokument je namerno pojednostavljen, ne zamenjuje ih._

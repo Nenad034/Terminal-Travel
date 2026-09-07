@@ -4,7 +4,13 @@ import { ClientContractsService } from './client-contracts.service';
 describe('ClientContractsService (M20 spec §3)', () => {
   function makeService() {
     const prisma: any = {
-      clientContract: { findFirst: jest.fn(), findUnique: jest.fn(), create: jest.fn(), update: jest.fn(), findMany: jest.fn() },
+      clientContract: {
+        findFirst: jest.fn(),
+        findUnique: jest.fn(),
+        create: jest.fn(),
+        update: jest.fn(),
+        findMany: jest.fn(),
+      },
       booking: { findUnique: jest.fn() },
       travelGuarantee: { findFirst: jest.fn() },
       clientPaymentSchedule: { findUnique: jest.fn() },
@@ -22,7 +28,13 @@ describe('ClientContractsService (M20 spec §3)', () => {
     };
     const gateway = { generate: jest.fn() };
     const permissions = { hasPermission: jest.fn().mockResolvedValue(true) };
-    const service = new ClientContractsService(prisma, auditLog as any, agencyConfig as any, gateway as any, permissions as any);
+    const service = new ClientContractsService(
+      prisma,
+      auditLog as any,
+      agencyConfig as any,
+      gateway as any,
+      permissions as any,
+    );
     return { service, prisma, auditLog, agencyConfig, gateway, permissions };
   }
 
@@ -39,7 +51,11 @@ describe('ClientContractsService (M20 spec §3)', () => {
         stayFrom: new Date('2027-06-10'),
         stayTo: new Date('2027-06-17'),
         cancellationPolicySnapshot: null,
-        product: { type: 'ACCOMMODATION', attributes: { stars: 4 }, translations: [{ languageCode: 'sr', name: 'Hotel Test' }] },
+        product: {
+          type: 'ACCOMMODATION',
+          attributes: { stars: 4 },
+          translations: [{ languageCode: 'sr', name: 'Hotel Test' }],
+        },
         rateLine: { boardType: 'HALF_BOARD', contractPeriod: { cancellationRules: [] } },
       },
     ],
@@ -63,25 +79,34 @@ describe('ClientContractsService (M20 spec §3)', () => {
       prisma.travelGuarantee.findFirst.mockResolvedValue({ provider: 'YUTA', policyNumber: 'P-1' });
       prisma.clientPaymentSchedule.findUnique.mockResolvedValue(null);
       gateway.generate.mockResolvedValue({ documentUrl: 'mock://doc.pdf' });
-      prisma.clientContract.create.mockImplementation(({ data }: any) => Promise.resolve({ id: 'cc-1', ...data }));
+      prisma.clientContract.create.mockImplementation(({ data }: any) =>
+        Promise.resolve({ id: 'cc-1', ...data }),
+      );
 
       const result = await service.generateForBooking('booking-1');
 
       expect(result!.status).toBe('GENERATED');
       expect(result!.contractType).toBe('ORGANIZOVANO_PUTOVANJE');
       expect(result!.acceptedAt).toBeNull();
-      expect(auditLog.write).toHaveBeenCalledWith(expect.objectContaining({ actorType: 'SYSTEM', action: 'client_contract.generated' }));
+      expect(auditLog.write).toHaveBeenCalledWith(
+        expect.objectContaining({ actorType: 'SYSTEM', action: 'client_contract.generated' }),
+      );
     });
 
     it('automatski prevodi u ACCEPTED kad je clickwrap pristanak već dat pre potvrde (§3.2)', async () => {
       const { service, prisma, gateway } = makeService();
       const acceptedAt = new Date('2027-01-01T10:00:00Z');
       prisma.clientContract.findFirst.mockResolvedValue(null);
-      prisma.booking.findUnique.mockResolvedValue({ ...bookingFixture, contractTermsAcceptedAt: acceptedAt });
+      prisma.booking.findUnique.mockResolvedValue({
+        ...bookingFixture,
+        contractTermsAcceptedAt: acceptedAt,
+      });
       prisma.travelGuarantee.findFirst.mockResolvedValue(null);
       prisma.clientPaymentSchedule.findUnique.mockResolvedValue(null);
       gateway.generate.mockResolvedValue({ documentUrl: 'mock://doc.pdf' });
-      prisma.clientContract.create.mockImplementation(({ data }: any) => Promise.resolve({ id: 'cc-1', ...data }));
+      prisma.clientContract.create.mockImplementation(({ data }: any) =>
+        Promise.resolve({ id: 'cc-1', ...data }),
+      );
 
       const result = await service.generateForBooking('booking-1');
 
@@ -95,7 +120,12 @@ describe('ClientContractsService (M20 spec §3)', () => {
       prisma.clientContract.findFirst.mockResolvedValue(null);
       prisma.booking.findUnique.mockResolvedValue({
         ...bookingFixture,
-        items: [{ ...bookingFixture.items[0], product: { type: 'INSURANCE', attributes: {}, translations: [] } }],
+        items: [
+          {
+            ...bookingFixture.items[0],
+            product: { type: 'INSURANCE', attributes: {}, translations: [] },
+          },
+        ],
       });
 
       const result = await service.generateForBooking('booking-1');
@@ -121,21 +151,35 @@ describe('ClientContractsService (M20 spec §3)', () => {
       const { service, prisma, gateway, auditLog } = makeService();
       const oldContract = { id: 'cc-old', status: 'ACCEPTED' };
       prisma.clientContract.findFirst.mockResolvedValue(oldContract);
-      prisma.clientContract.update.mockImplementation(({ data }: any) => Promise.resolve({ ...oldContract, ...data }));
+      prisma.clientContract.update.mockImplementation(({ data }: any) =>
+        Promise.resolve({ ...oldContract, ...data }),
+      );
       // ugovor je i dalje ACCEPTED-poreklom (contractTermsAcceptedAt postavljen), ali revizija ipak mora GENERATED
-      prisma.booking.findUnique.mockResolvedValue({ ...bookingFixture, contractTermsAcceptedAt: new Date() });
+      prisma.booking.findUnique.mockResolvedValue({
+        ...bookingFixture,
+        contractTermsAcceptedAt: new Date(),
+      });
       prisma.travelGuarantee.findFirst.mockResolvedValue(null);
       prisma.clientPaymentSchedule.findUnique.mockResolvedValue(null);
       gateway.generate.mockResolvedValue({ documentUrl: 'mock://doc-v2.pdf' });
-      prisma.clientContract.create.mockImplementation(({ data }: any) => Promise.resolve({ id: 'cc-new', ...data }));
+      prisma.clientContract.create.mockImplementation(({ data }: any) =>
+        Promise.resolve({ id: 'cc-new', ...data }),
+      );
 
       const result = await service.voidAndRegenerateForModification('booking-1');
 
-      expect(prisma.clientContract.update).toHaveBeenCalledWith({ where: { id: 'cc-old' }, data: { status: 'VOIDED', voidedBy: null } });
+      expect(prisma.clientContract.update).toHaveBeenCalledWith({
+        where: { id: 'cc-old' },
+        data: { status: 'VOIDED', voidedBy: null },
+      });
       expect(result!.status).toBe('GENERATED'); // nikad automatski ACCEPTED posle revizije
       expect(result!.supersedesContractId).toBe('cc-old');
-      expect(auditLog.write).toHaveBeenCalledWith(expect.objectContaining({ action: 'client_contract.voided_for_modification' }));
-      expect(auditLog.write).toHaveBeenCalledWith(expect.objectContaining({ action: 'client_contract.regenerated' }));
+      expect(auditLog.write).toHaveBeenCalledWith(
+        expect.objectContaining({ action: 'client_contract.voided_for_modification' }),
+      );
+      expect(auditLog.write).toHaveBeenCalledWith(
+        expect.objectContaining({ action: 'client_contract.regenerated' }),
+      );
     });
   });
 
@@ -144,19 +188,29 @@ describe('ClientContractsService (M20 spec §3)', () => {
       const { service, prisma } = makeService();
       prisma.clientContract.findUnique.mockResolvedValue({ id: 'cc-1', status: 'DRAFT' });
 
-      await expect(service.accept('cc-1', { userId: 'actor-1' })).rejects.toThrow(BadRequestException);
+      await expect(service.accept('cc-1', { userId: 'actor-1' })).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('postavlja ACCEPTED/WET_SIGNATURE_SCAN i upisuje HUMAN audit log', async () => {
       const { service, prisma, auditLog } = makeService();
       prisma.clientContract.findUnique.mockResolvedValue({ id: 'cc-1', status: 'GENERATED' });
-      prisma.clientContract.update.mockImplementation(({ data }: any) => Promise.resolve({ id: 'cc-1', ...data }));
+      prisma.clientContract.update.mockImplementation(({ data }: any) =>
+        Promise.resolve({ id: 'cc-1', ...data }),
+      );
 
       const result = await service.accept('cc-1', { userId: 'actor-1' });
 
       expect(result.status).toBe('ACCEPTED');
       expect(result.acceptedMethod).toBe('WET_SIGNATURE_SCAN');
-      expect(auditLog.write).toHaveBeenCalledWith(expect.objectContaining({ actorType: 'HUMAN', actorId: 'actor-1', action: 'client_contract.accepted' }));
+      expect(auditLog.write).toHaveBeenCalledWith(
+        expect.objectContaining({
+          actorType: 'HUMAN',
+          actorId: 'actor-1',
+          action: 'client_contract.accepted',
+        }),
+      );
     });
   });
 
@@ -165,19 +219,29 @@ describe('ClientContractsService (M20 spec §3)', () => {
       const { service, prisma } = makeService();
       prisma.clientContract.findUnique.mockResolvedValue({ id: 'cc-1', status: 'VOIDED' });
 
-      await expect(service.void('cc-1', { userId: 'actor-1' })).rejects.toThrow(BadRequestException);
+      await expect(service.void('cc-1', { userId: 'actor-1' })).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('postavlja VOIDED sa voided_by = actor i upisuje HUMAN audit log', async () => {
       const { service, prisma, auditLog } = makeService();
       prisma.clientContract.findUnique.mockResolvedValue({ id: 'cc-1', status: 'GENERATED' });
-      prisma.clientContract.update.mockImplementation(({ data }: any) => Promise.resolve({ id: 'cc-1', ...data }));
+      prisma.clientContract.update.mockImplementation(({ data }: any) =>
+        Promise.resolve({ id: 'cc-1', ...data }),
+      );
 
       const result = await service.void('cc-1', { userId: 'actor-1' });
 
       expect(result.status).toBe('VOIDED');
       expect(result.voidedBy).toBe('actor-1');
-      expect(auditLog.write).toHaveBeenCalledWith(expect.objectContaining({ actorType: 'HUMAN', actorId: 'actor-1', action: 'client_contract.voided' }));
+      expect(auditLog.write).toHaveBeenCalledWith(
+        expect.objectContaining({
+          actorType: 'HUMAN',
+          actorId: 'actor-1',
+          action: 'client_contract.voided',
+        }),
+      );
     });
   });
 
@@ -203,7 +267,10 @@ describe('ClientContractsService (M20 spec §3)', () => {
   describe('findOne/findMany — ownership (§6 dopuna, priprema za M8)', () => {
     it('gost NE vidi ugovor tuđe rezervacije — 404', async () => {
       const { service, prisma } = makeService();
-      prisma.user.findUnique.mockResolvedValue({ accountType: 'GUEST', linkedProfileId: 'acc-own' });
+      prisma.user.findUnique.mockResolvedValue({
+        accountType: 'GUEST',
+        linkedProfileId: 'acc-own',
+      });
       prisma.clientContract.findUnique.mockResolvedValue({ id: 'cc-1', bookingId: 'booking-1' });
       prisma.booking.findUnique.mockResolvedValue({ id: 'booking-1', clientAccountId: 'acc-tudj' });
 
@@ -212,7 +279,10 @@ describe('ClientContractsService (M20 spec §3)', () => {
 
     it('gost vidi ugovor sopstvene rezervacije', async () => {
       const { service, prisma } = makeService();
-      prisma.user.findUnique.mockResolvedValue({ accountType: 'GUEST', linkedProfileId: 'acc-own' });
+      prisma.user.findUnique.mockResolvedValue({
+        accountType: 'GUEST',
+        linkedProfileId: 'acc-own',
+      });
       prisma.clientContract.findUnique.mockResolvedValue({ id: 'cc-1', bookingId: 'booking-1' });
       prisma.booking.findUnique.mockResolvedValue({ id: 'booking-1', clientAccountId: 'acc-own' });
 
@@ -223,13 +293,18 @@ describe('ClientContractsService (M20 spec §3)', () => {
 
     it('findMany za gosta filtrira po sopstvenom nalogu', async () => {
       const { service, prisma } = makeService();
-      prisma.user.findUnique.mockResolvedValue({ accountType: 'GUEST', linkedProfileId: 'acc-own' });
+      prisma.user.findUnique.mockResolvedValue({
+        accountType: 'GUEST',
+        linkedProfileId: 'acc-own',
+      });
       prisma.clientContract.findMany.mockResolvedValue([]);
 
       await service.findMany({}, 'guest-1');
 
       expect(prisma.clientContract.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({ where: expect.objectContaining({ booking: { clientAccountId: 'acc-own' } }) }),
+        expect.objectContaining({
+          where: expect.objectContaining({ booking: { clientAccountId: 'acc-own' } }),
+        }),
       );
     });
 
@@ -269,7 +344,9 @@ describe('ClientContractsService (M20 spec §3)', () => {
 
       expect(prisma.clientContract.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: expect.objectContaining({ booking: { OR: [{ ownerId: 'staff-1' }, { assignedToId: 'staff-1' }] } }),
+          where: expect.objectContaining({
+            booking: { OR: [{ ownerId: 'staff-1' }, { assignedToId: 'staff-1' }] },
+          }),
         }),
       );
     });
@@ -279,7 +356,11 @@ describe('ClientContractsService (M20 spec §3)', () => {
       prisma.user.findUnique.mockResolvedValue({ accountType: 'STAFF', linkedProfileId: null });
       permissions.hasPermission.mockResolvedValue(false);
       prisma.clientContract.findUnique.mockResolvedValue({ id: 'c1', bookingId: 'b1' });
-      prisma.booking.findUnique.mockResolvedValue({ id: 'b1', ownerId: 'neko-drugi', assignedToId: 'neko-drugi' });
+      prisma.booking.findUnique.mockResolvedValue({
+        id: 'b1',
+        ownerId: 'neko-drugi',
+        assignedToId: 'neko-drugi',
+      });
 
       await expect(service.findOne('c1', 'staff-1')).rejects.toThrow(NotFoundException);
     });
@@ -289,7 +370,11 @@ describe('ClientContractsService (M20 spec §3)', () => {
       prisma.user.findUnique.mockResolvedValue({ accountType: 'STAFF', linkedProfileId: null });
       permissions.hasPermission.mockResolvedValue(false);
       prisma.clientContract.findUnique.mockResolvedValue({ id: 'c1', bookingId: 'b1' });
-      prisma.booking.findUnique.mockResolvedValue({ id: 'b1', ownerId: 'neko-drugi', assignedToId: 'staff-1' });
+      prisma.booking.findUnique.mockResolvedValue({
+        id: 'b1',
+        ownerId: 'neko-drugi',
+        assignedToId: 'staff-1',
+      });
 
       const result = await service.findOne('c1', 'staff-1');
       expect(result).toEqual({ id: 'c1', bookingId: 'b1' });

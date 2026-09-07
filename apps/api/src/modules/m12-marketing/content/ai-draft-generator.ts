@@ -20,7 +20,8 @@ export interface GeneratedDraft {
 export function generateAiDraft(fields: DraftSourceFields): GeneratedDraft {
   const { productName, productDescription, destinationCity, destinationCountry } = fields;
   const title = `Novo u ponudi: ${productName}`;
-  const shortDescription = productDescription.length > 280 ? `${productDescription.slice(0, 277)}...` : productDescription;
+  const shortDescription =
+    productDescription.length > 280 ? `${productDescription.slice(0, 277)}...` : productDescription;
   const body =
     `${productName} (${destinationCity}, ${destinationCountry}) je od sada deo naše ponude.\n\n` +
     `${shortDescription}\n\n` +

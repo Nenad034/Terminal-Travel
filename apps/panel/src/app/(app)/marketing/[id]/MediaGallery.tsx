@@ -20,7 +20,15 @@ function formatFileSize(bytes: number): string {
 // M12 spec §2.5/§7 (23.8.2026, na zahtev vlasnika: "kako dodajemo slike i reels?") — galerija
 // slika/video uz sadržaj. `canEdit` prati isto pravilo kao TranslationsPanel.tsx (izmena
 // zaključana čim sadržaj uđe u APPROVED/PUBLISHED, M12 spec §3 nepovratna granica).
-export default function MediaGallery({ contentId, media, canEdit }: { contentId: string; media: ContentMediaItem[]; canEdit: boolean }) {
+export default function MediaGallery({
+  contentId,
+  media,
+  canEdit,
+}: {
+  contentId: string;
+  media: ContentMediaItem[];
+  canEdit: boolean;
+}) {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -48,7 +56,13 @@ export default function MediaGallery({ contentId, media, canEdit }: { contentId:
         <h2 className="text-sm font-semibold text-ink">Slike i video (reels)</h2>
         {canEdit && (
           <>
-            <input ref={fileInputRef} type="file" accept="image/*,video/*" className="hidden" onChange={handleFileChange} />
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*,video/*"
+              className="hidden"
+              onChange={handleFileChange}
+            />
             <Button
               type="button"
               disabled={uploading}
@@ -57,7 +71,10 @@ export default function MediaGallery({ contentId, media, canEdit }: { contentId:
               size="sm"
               className="h-auto gap-1.5 px-2 py-1 text-[11px]"
             >
-              <Icon name={uploading ? 'loading' : 'cloud-upload'} className={uploading ? 'animate-spin' : ''} />
+              <Icon
+                name={uploading ? 'loading' : 'cloud-upload'}
+                className={uploading ? 'animate-spin' : ''}
+              />
               {uploading ? 'Otpremam…' : 'Dodaj sliku/video'}
             </Button>
           </>
@@ -71,12 +88,23 @@ export default function MediaGallery({ contentId, media, canEdit }: { contentId:
       ) : (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
           {media.map((m) => (
-            <div key={m.id} className="group relative overflow-hidden rounded-lg border border-border bg-panel2">
+            <div
+              key={m.id}
+              className="group relative overflow-hidden rounded-lg border border-border bg-panel2"
+            >
               {m.mediaType === 'IMAGE' ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={`/api/marketing/media/${m.id}`} alt={m.fileName} className="h-32 w-full object-cover" />
+                <img
+                  src={`/api/marketing/media/${m.id}`}
+                  alt={m.fileName}
+                  className="h-32 w-full object-cover"
+                />
               ) : (
-                <video src={`/api/marketing/media/${m.id}`} controls className="h-32 w-full object-cover" />
+                <video
+                  src={`/api/marketing/media/${m.id}`}
+                  controls
+                  className="h-32 w-full object-cover"
+                />
               )}
               <div className="flex items-center justify-between gap-1 px-2 py-1 text-xs text-ink-faint">
                 <span className="truncate" title={m.fileName}>

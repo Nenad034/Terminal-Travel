@@ -5,7 +5,17 @@ import { useActionState } from 'react';
 import { createProduct, FormState } from '../actions';
 import { Button } from '@/components/ui/button';
 
-const PRODUCT_TYPES = ['ACCOMMODATION', 'PACKAGE', 'TRANSFER', 'EXCURSION', 'FLIGHT', 'INSURANCE', 'TRANSPORT', 'TICKET', 'EVENT'];
+const PRODUCT_TYPES = [
+  'ACCOMMODATION',
+  'PACKAGE',
+  'TRANSFER',
+  'EXCURSION',
+  'FLIGHT',
+  'INSURANCE',
+  'TRANSPORT',
+  'TICKET',
+  'EVENT',
+];
 
 const initialState: FormState = { error: null };
 
@@ -13,7 +23,10 @@ export default function NewProductForm() {
   const [state, formAction] = useActionState(createProduct, initialState);
 
   return (
-    <form action={formAction} className="flex flex-col gap-3 rounded-lg border border-border bg-panel p-5">
+    <form
+      action={formAction}
+      className="flex flex-col gap-3 rounded-lg border border-border bg-panel p-5"
+    >
       {state.error && <p className="rounded bg-danger-bg p-3 text-sm text-danger">{state.error}</p>}
 
       <Field label="tip proizvoda">

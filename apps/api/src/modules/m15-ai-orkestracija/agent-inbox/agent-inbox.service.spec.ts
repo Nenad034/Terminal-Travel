@@ -3,7 +3,18 @@ import { AgentInboxService } from './agent-inbox.service';
 // M15 spec §6 v1.10 — svaki izvor se prikazuje SAMO ako pozivalac ima odgovarajuću VIEW
 // dozvolu tog modula (isti princip kao M17 dashboard).
 describe('AgentInboxService', () => {
-  function makePrisma(counts: Partial<Record<'pricelistImportRow' | 'supplierManifest' | 'commissionRebate' | 'contentPiece' | 'ticketMessage', number>>) {
+  function makePrisma(
+    counts: Partial<
+      Record<
+        | 'pricelistImportRow'
+        | 'supplierManifest'
+        | 'commissionRebate'
+        | 'contentPiece'
+        | 'ticketMessage',
+        number
+      >
+    >,
+  ) {
     return {
       pricelistImportRow: { count: jest.fn().mockResolvedValue(counts.pricelistImportRow ?? 0) },
       supplierManifest: { count: jest.fn().mockResolvedValue(counts.supplierManifest ?? 0) },
@@ -27,15 +38,29 @@ describe('AgentInboxService', () => {
   it('uključuje samo izvore za koje pozivalac ima VIEW dozvolu, sa tačnim brojem stavki', async () => {
     const prisma = makePrisma({ supplierManifest: 3, commissionRebate: 1 });
     const permissions = {
-      hasPermission: jest.fn().mockImplementation((_userId: string, moduleCode: string) => Promise.resolve(moduleCode === 'M5' || moduleCode === 'M7')),
+      hasPermission: jest
+        .fn()
+        .mockImplementation((_userId: string, moduleCode: string) =>
+          Promise.resolve(moduleCode === 'M5' || moduleCode === 'M7'),
+        ),
     };
     const service = new AgentInboxService(prisma as any, permissions as any);
 
     const result = await service.get('u1');
 
     expect(result).toEqual([
-      { moduleCode: 'M5', actionCode: 'supplier_manifest.send', label: 'Operativne liste spremne za slanje dobavljaču', count: 3 },
-      { moduleCode: 'M7', actionCode: 'commission_rebate.apply', label: 'Rabati provizije na čekanju odobrenja', count: 1 },
+      {
+        moduleCode: 'M5',
+        actionCode: 'supplier_manifest.send',
+        label: 'Operativne liste spremne za slanje dobavljaču',
+        count: 3,
+      },
+      {
+        moduleCode: 'M7',
+        actionCode: 'commission_rebate.apply',
+        label: 'Rabati provizije na čekanju odobrenja',
+        count: 1,
+      },
     ]);
     expect(prisma.pricelistImportRow.count).not.toHaveBeenCalled();
     expect(prisma.contentPiece.count).not.toHaveBeenCalled();

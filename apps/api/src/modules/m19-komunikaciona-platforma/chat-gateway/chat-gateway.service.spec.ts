@@ -23,7 +23,12 @@ describe('ChatGatewayService', () => {
     const prisma = { conversationParticipant: { findMany: jest.fn().mockResolvedValue([]) } };
     const presence = { setStatus: jest.fn() };
     const conversations = { createMessage: jest.fn() };
-    const gateway = new ChatGatewayService(jwt as any, prisma as any, presence as any, conversations as any);
+    const gateway = new ChatGatewayService(
+      jwt as any,
+      prisma as any,
+      presence as any,
+      conversations as any,
+    );
     gateway.server = { emit: jest.fn(), to: jest.fn().mockReturnValue({ emit: jest.fn() }) } as any;
     return { gateway, jwt, prisma, presence, conversations };
   }
@@ -53,7 +58,10 @@ describe('ChatGatewayService', () => {
     it('pridružuje socket svim ConversationParticipant sobama i postavlja ONLINE', async () => {
       const { gateway, jwt, prisma, presence } = makeGateway();
       jwt.verify.mockReturnValue({ sub: 'staff-1', sessionId: 's1' });
-      prisma.conversationParticipant.findMany.mockResolvedValue([{ conversationId: 'c1' }, { conversationId: 'c2' }]);
+      prisma.conversationParticipant.findMany.mockResolvedValue([
+        { conversationId: 'c1' },
+        { conversationId: 'c2' },
+      ]);
       const socket = makeSocket({ handshake: { auth: { token: 'good-token' }, headers: {} } });
 
       await gateway.handleConnection(socket as any);
@@ -61,14 +69,23 @@ describe('ChatGatewayService', () => {
       expect(socket.join).toHaveBeenCalledWith('c1');
       expect(socket.join).toHaveBeenCalledWith('c2');
       expect(presence.setStatus).toHaveBeenCalledWith('staff-1', 'ONLINE');
-      expect(gateway.server.emit).toHaveBeenCalledWith('presence.updated', { userId: 'staff-1', status: 'ONLINE' });
+      expect(gateway.server.emit).toHaveBeenCalledWith('presence.updated', {
+        userId: 'staff-1',
+        status: 'ONLINE',
+      });
     });
 
     it('drugi tab istog korisnika ne šalje ponovo presence.updated (ostaje ONLINE)', async () => {
       const { gateway, jwt, presence } = makeGateway();
       jwt.verify.mockReturnValue({ sub: 'staff-1', sessionId: 's1' });
-      const firstSocket = makeSocket({ id: 'socket-1', handshake: { auth: { token: 't' }, headers: {} } });
-      const secondSocket = makeSocket({ id: 'socket-2', handshake: { auth: { token: 't' }, headers: {} } });
+      const firstSocket = makeSocket({
+        id: 'socket-1',
+        handshake: { auth: { token: 't' }, headers: {} },
+      });
+      const secondSocket = makeSocket({
+        id: 'socket-2',
+        handshake: { auth: { token: 't' }, headers: {} },
+      });
 
       await gateway.handleConnection(firstSocket as any);
       await gateway.handleConnection(secondSocket as any);
@@ -81,8 +98,14 @@ describe('ChatGatewayService', () => {
     it('postavlja OFFLINE tek kad padne poslednja konekcija korisnika', async () => {
       const { gateway, jwt, presence } = makeGateway();
       jwt.verify.mockReturnValue({ sub: 'staff-1', sessionId: 's1' });
-      const firstSocket = makeSocket({ id: 'socket-1', handshake: { auth: { token: 't' }, headers: {} } });
-      const secondSocket = makeSocket({ id: 'socket-2', handshake: { auth: { token: 't' }, headers: {} } });
+      const firstSocket = makeSocket({
+        id: 'socket-1',
+        handshake: { auth: { token: 't' }, headers: {} },
+      });
+      const secondSocket = makeSocket({
+        id: 'socket-2',
+        handshake: { auth: { token: 't' }, headers: {} },
+      });
       await gateway.handleConnection(firstSocket as any);
       await gateway.handleConnection(secondSocket as any);
 
@@ -117,7 +140,10 @@ describe('ChatGatewayService', () => {
 
       await gateway.handleMessageSend(socket as any, { conversationId: 'c1', body: 'zdravo' });
 
-      expect(socket.emit).toHaveBeenCalledWith('message.error', expect.objectContaining({ conversationId: 'c1' }));
+      expect(socket.emit).toHaveBeenCalledWith(
+        'message.error',
+        expect.objectContaining({ conversationId: 'c1' }),
+      );
     });
   });
 

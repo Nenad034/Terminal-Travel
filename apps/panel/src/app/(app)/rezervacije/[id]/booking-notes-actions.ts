@@ -14,7 +14,11 @@ function extractMessage(err: ApiError): string {
 }
 
 // M5 spec §4.6 — autor se uvek uzima iz tokena na API strani, ovde se ne šalje.
-export async function createBookingNote(bookingId: string, _prev: NoteFormState, formData: FormData): Promise<NoteFormState> {
+export async function createBookingNote(
+  bookingId: string,
+  _prev: NoteFormState,
+  formData: FormData,
+): Promise<NoteFormState> {
   const body = String(formData.get('body') ?? '').trim();
   if (!body) return { error: 'Beleška ne može biti prazna.' };
   if (body.length > 4000) return { error: 'Beleška može imati najviše 4000 znakova.' };
@@ -27,11 +31,18 @@ export async function createBookingNote(bookingId: string, _prev: NoteFormState,
   return { error: null };
 }
 
-export async function deleteBookingNote(bookingId: string, noteId: string, _prev: NoteFormState, _formData: FormData): Promise<NoteFormState> {
+export async function deleteBookingNote(
+  bookingId: string,
+  noteId: string,
+  _prev: NoteFormState,
+  _formData: FormData,
+): Promise<NoteFormState> {
   try {
     await apiFetch(`/sales/bookings/${bookingId}/notes/${noteId}`, { method: 'DELETE' });
   } catch (err) {
-    return { error: err instanceof ApiError ? extractMessage(err) : 'Brisanje beleške nije uspelo.' };
+    return {
+      error: err instanceof ApiError ? extractMessage(err) : 'Brisanje beleške nije uspelo.',
+    };
   }
   revalidatePath(`/rezervacije/${bookingId}`);
   return { error: null };

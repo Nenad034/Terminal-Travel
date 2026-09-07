@@ -12,13 +12,22 @@ export class AiAgentBudgetsService {
   constructor(private readonly prisma: PrismaService) {}
 
   async findAll(filter: { agentId?: string }) {
-    return this.prisma.aIAgentBudget.findMany({ where: { agentId: filter.agentId }, orderBy: { periodStart: 'desc' } });
+    return this.prisma.aIAgentBudget.findMany({
+      where: { agentId: filter.agentId },
+      orderBy: { periodStart: 'desc' },
+    });
   }
 
   async create(dto: CreateAiAgentBudgetDto) {
     const { start, end } = periodBounds(dto.period);
     return this.prisma.aIAgentBudget.create({
-      data: { agentId: dto.agentId, period: dto.period, budgetLimitEur: dto.budgetLimitEur, periodStart: start, periodEnd: end },
+      data: {
+        agentId: dto.agentId,
+        period: dto.period,
+        budgetLimitEur: dto.budgetLimitEur,
+        periodStart: start,
+        periodEnd: end,
+      },
     });
   }
 
@@ -45,12 +54,24 @@ export class AiAgentBudgetsService {
 
       const { start, end } = periodBounds(latest.period, now);
       const alreadyRolled = await this.prisma.aIAgentBudget.findUnique({
-        where: { agentId_period_periodStart: { agentId: latest.agentId, period: latest.period, periodStart: start } },
+        where: {
+          agentId_period_periodStart: {
+            agentId: latest.agentId,
+            period: latest.period,
+            periodStart: start,
+          },
+        },
       });
       if (alreadyRolled) continue;
 
       await this.prisma.aIAgentBudget.create({
-        data: { agentId: latest.agentId, period: latest.period, budgetLimitEur: latest.budgetLimitEur, periodStart: start, periodEnd: end },
+        data: {
+          agentId: latest.agentId,
+          period: latest.period,
+          budgetLimitEur: latest.budgetLimitEur,
+          periodStart: start,
+          periodEnd: end,
+        },
       });
     }
   }

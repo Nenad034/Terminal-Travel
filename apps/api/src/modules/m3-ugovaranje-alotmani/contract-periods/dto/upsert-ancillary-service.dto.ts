@@ -1,5 +1,18 @@
-import { IsBoolean, IsEnum, IsInt, IsNumber, IsOptional, IsString, ValidateIf } from 'class-validator';
-import { AncillaryKind, AncillaryPayable, AncillaryPriceBasis, AncillaryPricingMode } from '@prisma/client';
+import {
+  IsBoolean,
+  IsEnum,
+  IsInt,
+  IsNumber,
+  IsOptional,
+  IsString,
+  ValidateIf,
+} from 'class-validator';
+import {
+  AncillaryKind,
+  AncillaryPayable,
+  AncillaryPriceBasis,
+  AncillaryPricingMode,
+} from '@prisma/client';
 
 // M3 spec §2.6 — dopuna v1.12, prošireno v1.13 (3.9.2026, vlasnikova dopuna uz M5 §6.7a).
 // `PUT` uvek KREIRA novi red (isti obrazac kao UpsertRateLineDto).

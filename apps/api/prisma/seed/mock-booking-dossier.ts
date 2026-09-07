@@ -57,7 +57,9 @@ async function main() {
       data: { email: GUIDE_EMAIL, fullName: 'Ana Vodić', accountType: 'STAFF', status: 'ACTIVE' },
     });
     const vodicRole = await prisma.role.findFirstOrThrow({ where: { name: 'VODIC' } });
-    await prisma.userRole.create({ data: { userId: guide.id, roleId: vodicRole.id, assignedBy: marko?.id ?? guide.id } });
+    await prisma.userRole.create({
+      data: { userId: guide.id, roleId: vodicRole.id, assignedBy: marko?.id ?? guide.id },
+    });
   }
 
   // --- Proizvodi (M2) — hotel + transfer, da Aranžman ima dve stavke ---
@@ -73,7 +75,11 @@ async function main() {
       area: 'Sitonija, Halkidiki',
       name: 'Hotel Alexander The Great 4*',
       desc: 'Hotel na prvoj liniji, privatna plaža, dva bazena, polupansion.',
-      attributes: { stars: 4, board: 'polupansion', room_type: 'Superior soba sa pogledom na more' },
+      attributes: {
+        stars: 4,
+        board: 'polupansion',
+        room_type: 'Superior soba sa pogledom na more',
+      },
     },
     {
       slug: 'mock-dossier-transfer-solun-sitonija',
@@ -88,7 +94,9 @@ async function main() {
   ];
   const products: Record<string, Awaited<ReturnType<typeof prisma.product.create>>> = {};
   for (const def of productDefs) {
-    let product = await prisma.product.findFirst({ where: { translations: { some: { slug: def.slug } } } });
+    let product = await prisma.product.findFirst({
+      where: { translations: { some: { slug: def.slug } } },
+    });
     if (!product) {
       product = await prisma.product.create({
         data: {
@@ -100,7 +108,9 @@ async function main() {
           status: 'ACTIVE',
           visibleChannels: ['B2C_SITE'],
           attributes: def.attributes,
-          translations: { create: { languageCode: 'sr', name: def.name, description: def.desc, slug: def.slug } },
+          translations: {
+            create: { languageCode: 'sr', name: def.name, description: def.desc, slug: def.slug },
+          },
         },
       });
     } else {
@@ -111,7 +121,11 @@ async function main() {
       // ovde u `productDefs`. Osvežava se pri svakom pokretanju, ne samo pri prvom.
       product = await prisma.product.update({
         where: { id: product.id },
-        data: { destinationCountry: def.country, destinationCity: def.city, destinationArea: def.area },
+        data: {
+          destinationCountry: def.country,
+          destinationCity: def.city,
+          destinationArea: def.area,
+        },
       });
     }
     products[def.slug] = product;
@@ -120,9 +134,13 @@ async function main() {
   const transferProduct = products['mock-dossier-transfer-solun-sitonija'];
 
   // --- Markup pravilo (obavezan FK na BookingItem) ---
-  let markupRule = await prisma.markupRule.findFirst({ where: { scopeId: hotelProduct.id, scopeType: 'M2_PRODUCT' } });
+  let markupRule = await prisma.markupRule.findFirst({
+    where: { scopeId: hotelProduct.id, scopeType: 'M2_PRODUCT' },
+  });
   if (!markupRule) {
-    markupRule = await prisma.markupRule.create({ data: { scopeId: hotelProduct.id, scopeType: 'M2_PRODUCT', percentage: 20 } });
+    markupRule = await prisma.markupRule.create({
+      data: { scopeId: hotelProduct.id, scopeType: 'M2_PRODUCT', percentage: 20 },
+    });
   }
 
   const stayFrom = new Date('2026-08-10T14:00:00Z');
@@ -134,7 +152,9 @@ async function main() {
   await prisma.payment.deleteMany({ where: { bookingId: TARGET_BOOKING_ID } });
   await prisma.communicationLog.deleteMany({ where: { clientAccountId: clientAccount.id } });
   await prisma.clientContract.deleteMany({ where: { bookingId: TARGET_BOOKING_ID } });
-  await prisma.ticketMessage.deleteMany({ where: { ticket: { relatedBookingId: TARGET_BOOKING_ID } } });
+  await prisma.ticketMessage.deleteMany({
+    where: { ticket: { relatedBookingId: TARGET_BOOKING_ID } },
+  });
   await prisma.ticket.deleteMany({ where: { relatedBookingId: TARGET_BOOKING_ID } });
 
   const hotelItem = await prisma.bookingItem.create({
@@ -222,8 +242,14 @@ async function main() {
     },
   });
   for (const item of [hotelItem, transferItem]) {
-    await prisma.bookingItemGuest.updateMany({ where: { bookingItemId: item.id, guestFirstName: 'Jovana' }, data: { guestProfileId: guest1.id } });
-    await prisma.bookingItemGuest.updateMany({ where: { bookingItemId: item.id, guestFirstName: 'Petar' }, data: { guestProfileId: guest2.id } });
+    await prisma.bookingItemGuest.updateMany({
+      where: { bookingItemId: item.id, guestFirstName: 'Jovana' },
+      data: { guestProfileId: guest1.id },
+    });
+    await prisma.bookingItemGuest.updateMany({
+      where: { bookingItemId: item.id, guestFirstName: 'Petar' },
+      data: { guestProfileId: guest2.id },
+    });
   }
 
   // --- Rezervacija sama — glavna polja + vlasništvo ---
@@ -355,7 +381,11 @@ async function main() {
   // --- Garancija putovanja (M11) ---
   await prisma.travelGuaranteeRegistration.upsert({
     where: { bookingId: TARGET_BOOKING_ID },
-    update: { status: 'REGISTERED', cisRegistrationNumber: 'CIS-2026-0088341', registeredAt: new Date('2026-06-05T15:09:00Z') },
+    update: {
+      status: 'REGISTERED',
+      cisRegistrationNumber: 'CIS-2026-0088341',
+      registeredAt: new Date('2026-06-05T15:09:00Z'),
+    },
     create: {
       bookingId: TARGET_BOOKING_ID,
       status: 'REGISTERED',
@@ -401,7 +431,9 @@ async function main() {
   });
 
   // --- Predstavnik na terenu (M9) — prijave za oba gosta na hotelskoj stavci ---
-  await prisma.fieldCheckIn.deleteMany({ where: { bookingItemGuestId: { in: hotelItem.guests.map((g) => g.id) } } });
+  await prisma.fieldCheckIn.deleteMany({
+    where: { bookingItemGuestId: { in: hotelItem.guests.map((g) => g.id) } },
+  });
   for (const g of hotelItem.guests) {
     await prisma.fieldCheckIn.create({
       data: {
@@ -421,7 +453,13 @@ async function main() {
   // create-grane iznad — `upsert`/`findFirst`). Iste `action` vrednosti kao stvarni servisni
   // pozivi (BookingsService.confirm/updatePaymentStatus) da modal ne pokazuje ništa što stvaran
   // tok nikad ne bi proizveo.
-  const timelineDefs: { action: string; timestamp: Date; beforeState?: object; afterState?: object; context: object }[] = [
+  const timelineDefs: {
+    action: string;
+    timestamp: Date;
+    beforeState?: object;
+    afterState?: object;
+    context: object;
+  }[] = [
     {
       action: 'booking.confirmed',
       timestamp: new Date('2026-06-05T15:05:00Z'),

@@ -13,7 +13,9 @@ export function classifyByDay(stayFrom: Date, stayTo: Date, day: Date): Calendar
   if (to === d && from < d) return 'DEPARTURE';
   if (from < d && d < to) return 'STAYOVER';
 
-  throw new Error(`Dan ${day.toISOString()} ne pripada opsegu [${stayFrom.toISOString()}, ${stayTo.toISOString()}]`);
+  throw new Error(
+    `Dan ${day.toISOString()} ne pripada opsegu [${stayFrom.toISOString()}, ${stayTo.toISOString()}]`,
+  );
 }
 
 export function toMidnightUtc(date: Date): Date {

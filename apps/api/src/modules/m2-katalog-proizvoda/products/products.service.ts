@@ -1,4 +1,8 @@
-import { PaginationQueryDto, paginated, paginationArgs } from '../../../common/pagination/pagination';
+import {
+  PaginationQueryDto,
+  paginated,
+  paginationArgs,
+} from '../../../common/pagination/pagination';
 import { BadRequestException, Injectable, NotImplementedException } from '@nestjs/common';
 import { LanguageCode, Prisma, ProductStatus, ProductType, VisibleChannel } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
@@ -30,18 +34,24 @@ export class ProductsService {
     if (!Array.isArray(attrs.room_types)) return product;
     return {
       ...product,
-      attributes: { ...attrs, room_types: applyDefaultAgePolicyToRoomTypes(attrs.room_types as any[]) },
+      attributes: {
+        ...attrs,
+        room_types: applyDefaultAgePolicyToRoomTypes(attrs.room_types as any[]),
+      },
     };
   }
 
   // Internal (M17) — pun oblik, uključuje source_* polja (M2 spec §5.1, izuzetak za interni kanal).
-  async findAll(filters: {
-    type?: ProductType;
-    destinationCountry?: string;
-    status?: ProductStatus;
-    channel?: VisibleChannel;
-    lang?: LanguageCode;
-  }, pagination?: PaginationQueryDto) {
+  async findAll(
+    filters: {
+      type?: ProductType;
+      destinationCountry?: string;
+      status?: ProductStatus;
+      channel?: VisibleChannel;
+      lang?: LanguageCode;
+    },
+    pagination?: PaginationQueryDto,
+  ) {
     // Straničenje (5.9.2026, dok. 39 nalaz 2.2) je ovde NAMERNO OPCIONO, ne podrazumevano.
     //
     // Razlog je vlasnikova odluka već upisana u `apps/panel/.../katalog/page.tsx`: filteri
@@ -202,7 +212,10 @@ export class ProductsService {
   }
 
   async listTranslations(productId: string) {
-    return this.prisma.productTranslation.findMany({ where: { productId }, orderBy: { languageCode: 'asc' } });
+    return this.prisma.productTranslation.findMany({
+      where: { productId },
+      orderBy: { languageCode: 'asc' },
+    });
   }
 
   async upsertTranslation(productId: string, dto: UpsertTranslationDto, actorId: string) {
@@ -295,11 +308,15 @@ export class ProductsService {
   async createPackageDeparture(productId: string, dto: CreatePackageDepartureDto, actorId: string) {
     const product = await this.prisma.product.findUniqueOrThrow({ where: { id: productId } });
     if (product.type !== 'PACKAGE') {
-      throw new BadRequestException('Termini polaska postoje samo za PACKAGE proizvode (M5 spec §3.0d.6)');
+      throw new BadRequestException(
+        'Termini polaska postoje samo za PACKAGE proizvode (M5 spec §3.0d.6)',
+      );
     }
     const durationDays = (product.attributes as any)?.duration_days;
     if (typeof durationDays !== 'number' || durationDays <= 0) {
-      throw new BadRequestException('Proizvod mora imati attributes.duration_days pre dodavanja termina (M5 spec §3.0d.6)');
+      throw new BadRequestException(
+        'Proizvod mora imati attributes.duration_days pre dodavanja termina (M5 spec §3.0d.6)',
+      );
     }
     const departureDate = new Date(dto.departureDate);
     const returnDate = new Date(departureDate.getTime() + durationDays * 86_400_000);
@@ -321,7 +338,9 @@ export class ProductsService {
   }
 
   async cancelPackageDeparture(productId: string, departureId: string, actorId: string) {
-    const before = await this.prisma.packageDeparture.findFirstOrThrow({ where: { id: departureId, productId } });
+    const before = await this.prisma.packageDeparture.findFirstOrThrow({
+      where: { id: departureId, productId },
+    });
     const after = await this.prisma.packageDeparture.update({
       where: { id: departureId },
       data: { status: 'CANCELLED' },
@@ -346,7 +365,9 @@ export class ProductsService {
   async syncCache(id: string) {
     const product = await this.prisma.product.findUniqueOrThrow({ where: { id } });
     if (product.sourceType === 'CONTRACTED') {
-      throw new BadRequestException('CONTRACTED proizvod nema keširan sadržaj — sinhronizacija se ne primenjuje (M2 spec §3.1)');
+      throw new BadRequestException(
+        'CONTRACTED proizvod nema keširan sadržaj — sinhronizacija se ne primenjuje (M2 spec §3.1)',
+      );
     }
     throw new NotImplementedException(
       'Sinhronizacija API-sourced sadržaja zahteva M4 (Integracije API), koji još nije implementiran (M2 spec §3.2)',

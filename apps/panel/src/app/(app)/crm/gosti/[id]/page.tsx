@@ -7,7 +7,6 @@ import EditGuestProfileForm from './EditGuestProfileForm';
 import CommunicationLogPanel from '../../CommunicationLogPanel';
 import { Badge } from '@/components/ui/badge';
 
-
 interface GuestProfile {
   id: string;
   fullName: string;
@@ -61,15 +60,28 @@ export default async function GuestProfileDetailPage(props: { params: Promise<{ 
   try {
     guest = await apiFetch<GuestProfile>(`/crm/guest-profiles/${params.id}`);
   } catch (err) {
-    error = err instanceof ApiError && err.status === 404 ? 'Profil gosta nije pronađen.' : 'Profil gosta trenutno nije dostupan.';
+    error =
+      err instanceof ApiError && err.status === 404
+        ? 'Profil gosta nije pronađen.'
+        : 'Profil gosta trenutno nije dostupan.';
   }
 
   const [linkedAccount, history, log] = await Promise.all([
     guest?.linkedClientAccountId && canViewLinkedAccount
-      ? apiFetch<ClientAccount>(`/crm/client-accounts/${guest.linkedClientAccountId}`).catch(() => null)
+      ? apiFetch<ClientAccount>(`/crm/client-accounts/${guest.linkedClientAccountId}`).catch(
+          () => null,
+        )
       : Promise.resolve(null),
-    guest ? apiFetch<TravelHistoryItem[]>(`/crm/guest-profiles/${guest.id}/travel-history`).catch(() => []) : Promise.resolve([]),
-    guest && canViewLog ? apiFetch<CommunicationLog[]>(`/crm/communication-log?guestProfileId=${guest.id}`).catch(() => []) : Promise.resolve([]),
+    guest
+      ? apiFetch<TravelHistoryItem[]>(`/crm/guest-profiles/${guest.id}/travel-history`).catch(
+          () => [],
+        )
+      : Promise.resolve([]),
+    guest && canViewLog
+      ? apiFetch<CommunicationLog[]>(`/crm/communication-log?guestProfileId=${guest.id}`).catch(
+          () => [],
+        )
+      : Promise.resolve([]),
   ]);
 
   return (
@@ -88,21 +100,27 @@ export default async function GuestProfileDetailPage(props: { params: Promise<{ 
 
           <div className="mb-4 rounded-lg border border-border bg-panel p-4 text-xs text-ink-dim">
             <p>Državljanstvo: {guest.nationality}</p>
-            <p className="mt-1">Datum rođenja: {new Date(guest.dateOfBirth).toLocaleDateString('sr-RS')}</p>
+            <p className="mt-1">
+              Datum rođenja: {new Date(guest.dateOfBirth).toLocaleDateString('sr-RS')}
+            </p>
             <p className="mt-1">Email: {guest.email ?? '—'}</p>
             <p className="mt-1">Telefon: {guest.phone ?? '—'}</p>
             {linkedAccount && (
               <p className="mt-1">
                 Nalogodavac:{' '}
                 <Link href={`/crm/${linkedAccount.id}`} className="text-accent hover:underline">
-                  {linkedAccount.accountType === 'LEGAL_ENTITY' ? linkedAccount.companyName : linkedAccount.fullName}
+                  {linkedAccount.accountType === 'LEGAL_ENTITY'
+                    ? linkedAccount.companyName
+                    : linkedAccount.fullName}
                 </Link>
               </p>
             )}
             {guest.preferences && Object.keys(guest.preferences).length > 0 && (
               <details className="mt-2">
                 <summary className="cursor-pointer text-ink">preference</summary>
-                <pre className="mt-1 overflow-x-auto whitespace-pre-wrap text-[11px] text-ink-faint">{JSON.stringify(guest.preferences, null, 2)}</pre>
+                <pre className="mt-1 overflow-x-auto whitespace-pre-wrap text-[11px] text-ink-faint">
+                  {JSON.stringify(guest.preferences, null, 2)}
+                </pre>
               </details>
             )}
           </div>
@@ -132,7 +150,8 @@ export default async function GuestProfileDetailPage(props: { params: Promise<{ 
                   >
                     <span>{item.booking?.bookingNumber ?? item.id.slice(0, 8)}</span>
                     <span className="text-ink-faint">
-                      {new Date(item.stayFrom).toLocaleDateString('sr-RS')} – {new Date(item.stayTo).toLocaleDateString('sr-RS')}
+                      {new Date(item.stayFrom).toLocaleDateString('sr-RS')} –{' '}
+                      {new Date(item.stayTo).toLocaleDateString('sr-RS')}
                     </span>
                     <StatusBadge status={item.itemStatus} />
                   </Link>
@@ -141,7 +160,13 @@ export default async function GuestProfileDetailPage(props: { params: Promise<{ 
             )}
           </div>
 
-          {canViewLog && <CommunicationLogPanel target={{ guestProfileId: guest.id }} entries={log} canCreate={canCreateLog} />}
+          {canViewLog && (
+            <CommunicationLogPanel
+              target={{ guestProfileId: guest.id }}
+              entries={log}
+              canCreate={canCreateLog}
+            />
+          )}
         </>
       )}
     </div>

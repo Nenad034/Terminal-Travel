@@ -18,13 +18,32 @@ describe('Slanje dobavljaču ne sme da tvrdi isporuku koje nije bilo (M5 §8.4)'
       items: [{ bookingItemId: 'bi-1' }, { bookingItemId: 'bi-2' }],
     };
     const prisma: any = {
-      supplierManifest: { findUnique: jest.fn().mockResolvedValue(manifest), update: jest.fn(async ({ data }: any) => ({ ...manifest, ...data })) },
-      supplier: { findUniqueOrThrow: jest.fn().mockResolvedValue({ id: 'sup-1', name: 'Hotel Vila', contactEmail: 'hotel@example.com' }) },
+      supplierManifest: {
+        findUnique: jest.fn().mockResolvedValue(manifest),
+        update: jest.fn(async ({ data }: any) => ({ ...manifest, ...data })),
+      },
+      supplier: {
+        findUniqueOrThrow: jest
+          .fn()
+          .mockResolvedValue({
+            id: 'sup-1',
+            name: 'Hotel Vila',
+            contactEmail: 'hotel@example.com',
+          }),
+      },
       bookingItem: { updateMany: jest.fn() },
       $transaction: jest.fn(async (ops: any[]) => Promise.all(ops)),
     };
     const auditLog = { write: jest.fn() };
-    const mailbox = { sendViaSharedMailbox: jest.fn().mockResolvedValue({ delivered, reason: delivered ? undefined : 'nema sandučeta', emailThreadId: null }) };
+    const mailbox = {
+      sendViaSharedMailbox: jest
+        .fn()
+        .mockResolvedValue({
+          delivered,
+          reason: delivered ? undefined : 'nema sandučeta',
+          emailThreadId: null,
+        }),
+    };
     const service = new SupplierManifestsService(prisma, auditLog as any, mailbox as any);
     jest.spyOn(service, 'findOne').mockResolvedValue(manifest as any);
     return { service, prisma, auditLog };
@@ -61,26 +80,52 @@ describe('Slanje dobavljaču ne sme da tvrdi isporuku koje nije bilo (M5 §8.4)'
   it('lista u PENDING_SEND sme da se pošalje ponovo (kad provajder proradi), SENT ne sme', async () => {
     const { service } = makeManifestService(true);
     jest.spyOn(service, 'findOne').mockResolvedValue({
-      id: 'man-1', status: 'PENDING_SEND', supplierId: 'sup-1', referenceCode: 'TT-000123', documentUrl: null, items: [],
+      id: 'man-1',
+      status: 'PENDING_SEND',
+      supplierId: 'sup-1',
+      referenceCode: 'TT-000123',
+      documentUrl: null,
+      items: [],
     } as any);
     await expect(service.send('man-1', 'user-1')).resolves.toBeDefined();
 
     jest.spyOn(service, 'findOne').mockResolvedValue({
-      id: 'man-1', status: 'SENT', supplierId: 'sup-1', referenceCode: 'TT-000123', documentUrl: null, items: [],
+      id: 'man-1',
+      status: 'SENT',
+      supplierId: 'sup-1',
+      referenceCode: 'TT-000123',
+      documentUrl: null,
+      items: [],
     } as any);
-    await expect(service.send('man-1', 'user-1')).rejects.toThrow(/nije u statusu DRAFT ni PENDING_SEND/);
+    await expect(service.send('man-1', 'user-1')).rejects.toThrow(
+      /nije u statusu DRAFT ni PENDING_SEND/,
+    );
   });
 });
 
 describe('SupplierChangeNotice — isto pravilo (M5 §8.4/§8.8)', () => {
   function makeNoticeService(delivered: boolean) {
-    const notice = { id: 'notice-1', status: 'DRAFT', referenceCode: 'TT-000456', noticeType: 'CANCELLATION' };
+    const notice = {
+      id: 'notice-1',
+      status: 'DRAFT',
+      referenceCode: 'TT-000456',
+      noticeType: 'CANCELLATION',
+    };
     const prisma: any = {
-      supplierChangeNotice: { findUnique: jest.fn().mockResolvedValue(notice), update: jest.fn(async ({ data }: any) => ({ ...notice, ...data })) },
+      supplierChangeNotice: {
+        findUnique: jest.fn().mockResolvedValue(notice),
+        update: jest.fn(async ({ data }: any) => ({ ...notice, ...data })),
+      },
     };
     const auditLog = { write: jest.fn() };
-    const mailbox = { sendViaSharedMailbox: jest.fn().mockResolvedValue({ delivered, emailThreadId: null }) };
-    return { service: new SupplierChangeNoticesService(prisma, auditLog as any, mailbox as any), prisma, auditLog };
+    const mailbox = {
+      sendViaSharedMailbox: jest.fn().mockResolvedValue({ delivered, emailThreadId: null }),
+    };
+    return {
+      service: new SupplierChangeNoticesService(prisma, auditLog as any, mailbox as any),
+      prisma,
+      auditLog,
+    };
   }
 
   it('neisporučen storno ostaje PENDING_SEND bez sentAt — pa ga §8.6 ne može ni greškom „potvrditi"', async () => {

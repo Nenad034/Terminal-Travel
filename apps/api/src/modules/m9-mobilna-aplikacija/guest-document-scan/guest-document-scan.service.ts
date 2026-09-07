@@ -69,10 +69,16 @@ export class GuestDocumentScanService {
 
   private async extract(file: Express.Multer.File): Promise<ScannedDocumentFields> {
     if (!ALLOWED_DOCUMENT_IMAGE_MIME_TYPES.has(file.mimetype)) {
-      return { ...UNREADABLE_RESULT, warning: 'Nepodržan format slike — koristite JPEG, PNG ili WEBP.' };
+      return {
+        ...UNREADABLE_RESULT,
+        warning: 'Nepodržan format slike — koristite JPEG, PNG ili WEBP.',
+      };
     }
     if (!this.anthropic.isConfigured()) {
-      return { ...UNREADABLE_RESULT, warning: 'Skeniranje trenutno nije dostupno — unesite podatke ručno.' };
+      return {
+        ...UNREADABLE_RESULT,
+        warning: 'Skeniranje trenutno nije dostupno — unesite podatke ručno.',
+      };
     }
 
     try {
@@ -93,15 +99,21 @@ export class GuestDocumentScanService {
                   data: file.buffer.toString('base64'),
                 },
               },
-              { type: 'text', text: 'Izvuci podatke iz ovog putnog dokumenta i vrati isključivo JSON po zadatoj šemi.' },
+              {
+                type: 'text',
+                text: 'Izvuci podatke iz ovog putnog dokumenta i vrati isključivo JSON po zadatoj šemi.',
+              },
             ],
           },
         ],
       });
-      const textBlock = response.content.find((b: any) => b.type === 'text') as { text: string } | undefined;
+      const textBlock = response.content.find((b: any) => b.type === 'text') as
+        { text: string } | undefined;
       return this.parseAndValidate(textBlock?.text);
     } catch (err) {
-      this.logger.warn(`Skeniranje putnog dokumenta nije uspelo: ${err instanceof Error ? err.message : String(err)}`);
+      this.logger.warn(
+        `Skeniranje putnog dokumenta nije uspelo: ${err instanceof Error ? err.message : String(err)}`,
+      );
       return UNREADABLE_RESULT;
     }
   }
@@ -112,23 +124,33 @@ export class GuestDocumentScanService {
     let parsed: Record<string, unknown>;
     try {
       // Model ponekad omota JSON u ```json blok i pored eksplicitnog uputstva da ne sme.
-      const cleaned = rawText.trim().replace(/^```json\s*/i, '').replace(/```\s*$/, '');
+      const cleaned = rawText
+        .trim()
+        .replace(/^```json\s*/i, '')
+        .replace(/```\s*$/, '');
       parsed = JSON.parse(cleaned);
     } catch {
       return UNREADABLE_RESULT;
     }
 
     if (parsed.documentDetected !== true) {
-      return { ...UNREADABLE_RESULT, warning: 'Fotografija ne izgleda kao čitljiv putni dokument — unesite podatke ručno.' };
+      return {
+        ...UNREADABLE_RESULT,
+        warning: 'Fotografija ne izgleda kao čitljiv putni dokument — unesite podatke ručno.',
+      };
     }
 
     const fullName = this.cleanString(parsed.fullName);
-    const documentType = parsed.documentType === 'PASSPORT' || parsed.documentType === 'LICNA_KARTA' ? parsed.documentType : null;
+    const documentType =
+      parsed.documentType === 'PASSPORT' || parsed.documentType === 'LICNA_KARTA'
+        ? parsed.documentType
+        : null;
     const documentNumber = this.cleanString(parsed.documentNumber);
     const nationality = this.cleanString(parsed.nationality);
     const dateOfBirth = this.cleanDate(parsed.dateOfBirth);
 
-    const missingSomething = !fullName || !documentType || !documentNumber || !nationality || !dateOfBirth;
+    const missingSomething =
+      !fullName || !documentType || !documentNumber || !nationality || !dateOfBirth;
 
     return {
       documentDetected: true,
@@ -137,7 +159,9 @@ export class GuestDocumentScanService {
       documentNumber,
       nationality,
       dateOfBirth,
-      warning: missingSomething ? 'Neka polja nisu pouzdano pročitana — proverite i dopunite pre čuvanja.' : undefined,
+      warning: missingSomething
+        ? 'Neka polja nisu pouzdano pročitana — proverite i dopunite pre čuvanja.'
+        : undefined,
     };
   }
 

@@ -57,7 +57,10 @@ describe('AuditLogService', () => {
     it('bez parametara vraća prvu stranu od 50, ne sve i ne 200', async () => {
       const { service, prisma } = makeService(1240, [{ id: 'a' }]);
       const r = await service.find({});
-      expect((prisma.auditLogEntry.findMany as jest.Mock).mock.calls[0][0]).toMatchObject({ skip: 0, take: 50 });
+      expect((prisma.auditLogEntry.findMany as jest.Mock).mock.calls[0][0]).toMatchObject({
+        skip: 0,
+        take: 50,
+      });
       expect(r.page).toBe(1);
       expect(r.limit).toBe(50);
     });
@@ -74,7 +77,10 @@ describe('AuditLogService', () => {
     it('tražena strana preskače tačno prethodne strane', async () => {
       const { service, prisma } = makeService(1240, []);
       await service.find({}, { page: 3, limit: 20 });
-      expect((prisma.auditLogEntry.findMany as jest.Mock).mock.calls[0][0]).toMatchObject({ skip: 40, take: 20 });
+      expect((prisma.auditLogEntry.findMany as jest.Mock).mock.calls[0][0]).toMatchObject({
+        skip: 40,
+        take: 20,
+      });
     });
 
     it('broj i redovi dolaze iz ISTE transakcije (ne iz dva odvojena trenutka)', async () => {

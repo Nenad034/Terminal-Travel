@@ -1,4 +1,13 @@
-import { ArrayMinSize, IsArray, IsEnum, IsOptional, IsString, IsUUID, ValidateIf, ValidateNested } from 'class-validator';
+import {
+  ArrayMinSize,
+  IsArray,
+  IsEnum,
+  IsOptional,
+  IsString,
+  IsUUID,
+  ValidateIf,
+  ValidateNested,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 import { ArticleSourceType, ArticleSubjectType } from '@prisma/client';
 import { UpsertArticleTranslationDto } from './upsert-article-translation.dto';
@@ -27,7 +36,9 @@ export class CreateArticleDto {
   @IsUUID()
   productId?: string;
 
-  @ValidateIf((o: CreateArticleDto) => o.subjectType === 'DESTINATION' || o.subjectType === 'COUNTRY')
+  @ValidateIf(
+    (o: CreateArticleDto) => o.subjectType === 'DESTINATION' || o.subjectType === 'COUNTRY',
+  )
   @IsString()
   destinationCountry?: string;
 

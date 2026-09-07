@@ -1,4 +1,13 @@
-import { IsEnum, IsInt, IsNumber, IsOptional, IsPositive, IsString, Max, Min } from 'class-validator';
+import {
+  IsEnum,
+  IsInt,
+  IsNumber,
+  IsOptional,
+  IsPositive,
+  IsString,
+  Max,
+  Min,
+} from 'class-validator';
 import { QuotaPeriod } from '@prisma/client';
 
 // M18 spec §6.4/§6.5/§9 — POST /ai-provider-quota. quota_limit/budget_limit_eur su namerno

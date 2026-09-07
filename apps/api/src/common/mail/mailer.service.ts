@@ -61,7 +61,10 @@ export class MailerService {
 
   /** Osnova za linkove u porukama (aktivacija, reset) — panel, ne API. */
   panelBaseUrl(): string {
-    return (this.config.get<string>('PANEL_BASE_URL') ?? 'http://localhost:3100').replace(/\/+$/, '');
+    return (this.config.get<string>('PANEL_BASE_URL') ?? 'http://localhost:3100').replace(
+      /\/+$/,
+      '',
+    );
   }
 
   private getTransporter(): Transporter | null {
@@ -74,7 +77,8 @@ export class MailerService {
     // `SMTP_SECURE` je izričit jer se ne može pouzdano izvesti iz porta: 465 je uvek TLS od
     // prvog bajta, 587 i 1025 kreću kao čist tekst pa idu na STARTTLS. Lokalni mailpit
     // (docker-compose) nema ni TLS ni nalog — zato su i `auth` i `secure` uslovni.
-    const secure = (this.config.get<string>('SMTP_SECURE') ?? '').toLowerCase() === 'true' || port === 465;
+    const secure =
+      (this.config.get<string>('SMTP_SECURE') ?? '').toLowerCase() === 'true' || port === 465;
 
     this.transporter = createTransport({
       host: this.config.get<string>('SMTP_HOST'),
@@ -111,7 +115,9 @@ export class MailerService {
       const message = err instanceof Error ? err.message : String(err);
       // Namerno `error` nivo a ne bacanje: neuspela pošta je vidljiv kvar, ali ne sme da
       // sruši radnju koja ju je izazvala (poglavlje pravila iznad).
-      this.logger.error(`Slanje email-a ka ${recipients} nije uspelo ("${mail.subject}"): ${message}`);
+      this.logger.error(
+        `Slanje email-a ka ${recipients} nije uspelo ("${mail.subject}"): ${message}`,
+      );
       return { delivered: false, error: message };
     }
   }

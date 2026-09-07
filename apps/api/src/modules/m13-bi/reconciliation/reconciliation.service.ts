@@ -69,14 +69,18 @@ export class ReconciliationService {
 
       const ids = batch.map((i) => i.id);
       // JEDAN upit za celu seriju umesto jednog po stavci (ranije: `findUnique` u petlji).
-      const beforeRows = await this.prisma.factBooking.findMany({ where: { bookingItemId: { in: ids } } });
+      const beforeRows = await this.prisma.factBooking.findMany({
+        where: { bookingItemId: { in: ids } },
+      });
       const before = new Map(beforeRows.map((f) => [f.bookingItemId, f]));
 
       for (const id of ids) {
         await this.factSync.syncBookingItem(id, cache);
       }
 
-      const afterRows = await this.prisma.factBooking.findMany({ where: { bookingItemId: { in: ids } } });
+      const afterRows = await this.prisma.factBooking.findMany({
+        where: { bookingItemId: { in: ids } },
+      });
       const after = new Map(afterRows.map((f) => [f.bookingItemId, f]));
 
       for (const id of ids) {

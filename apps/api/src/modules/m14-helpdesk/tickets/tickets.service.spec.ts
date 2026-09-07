@@ -7,7 +7,9 @@ describe('TicketsService — findMany/findOne VIEW_ALL za interni tim (§6 dopun
   function makeService() {
     const prisma: any = {
       ticket: { findMany: jest.fn(), findUnique: jest.fn() },
-      user: { findUnique: jest.fn().mockResolvedValue({ accountType: 'STAFF', linkedProfileId: null }) },
+      user: {
+        findUnique: jest.fn().mockResolvedValue({ accountType: 'STAFF', linkedProfileId: null }),
+      },
       subagent: { findUnique: jest.fn() },
       booking: { findUnique: jest.fn() },
     };
@@ -34,7 +36,9 @@ describe('TicketsService — findMany/findOne VIEW_ALL za interni tim (§6 dopun
 
     await service.findMany('staff-1', { relatedBookingId: 'b1' });
 
-    expect(prisma.ticket.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: { relatedBookingId: 'b1' } }));
+    expect(prisma.ticket.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { relatedBookingId: 'b1' } }),
+    );
   });
 
   it('STAFF sužen (VIEW_ALL=false) vidi samo tikete gde je assigned_to = pozivalac', async () => {
@@ -44,13 +48,20 @@ describe('TicketsService — findMany/findOne VIEW_ALL za interni tim (§6 dopun
 
     await service.findMany('staff-1');
 
-    expect(prisma.ticket.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: { assignedTo: 'staff-1' } }));
+    expect(prisma.ticket.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { assignedTo: 'staff-1' } }),
+    );
   });
 
   it('findOne — sužen STAFF ne vidi tiket dodeljen nekom drugom, vraća 404', async () => {
     const { service, prisma, permissions } = makeService();
     permissions.hasPermission.mockResolvedValue(false);
-    prisma.ticket.findUnique.mockResolvedValue({ id: 't1', requesterClientAccountId: null, assignedTo: 'neko-drugi', relatedBookingId: null });
+    prisma.ticket.findUnique.mockResolvedValue({
+      id: 't1',
+      requesterClientAccountId: null,
+      assignedTo: 'neko-drugi',
+      relatedBookingId: null,
+    });
 
     await expect(service.findOne('t1', 'staff-1')).rejects.toThrow(NotFoundException);
   });
@@ -58,7 +69,12 @@ describe('TicketsService — findMany/findOne VIEW_ALL za interni tim (§6 dopun
   it('findOne — sužen STAFF vidi tiket na kome je zadužen', async () => {
     const { service, prisma, permissions } = makeService();
     permissions.hasPermission.mockResolvedValue(false);
-    prisma.ticket.findUnique.mockResolvedValue({ id: 't1', requesterClientAccountId: null, assignedTo: 'staff-1', relatedBookingId: null });
+    prisma.ticket.findUnique.mockResolvedValue({
+      id: 't1',
+      requesterClientAccountId: null,
+      assignedTo: 'staff-1',
+      relatedBookingId: null,
+    });
 
     const result = await service.findOne('t1', 'staff-1');
     expect(result.id).toBe('t1');

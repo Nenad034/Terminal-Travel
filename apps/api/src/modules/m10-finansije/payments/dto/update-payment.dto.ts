@@ -1,5 +1,15 @@
 import { Type } from 'class-transformer';
-import { ArrayMinSize, IsArray, IsIn, IsInt, IsOptional, IsString, Min, ValidateIf, ValidateNested } from 'class-validator';
+import {
+  ArrayMinSize,
+  IsArray,
+  IsIn,
+  IsInt,
+  IsOptional,
+  IsString,
+  Min,
+  ValidateIf,
+  ValidateNested,
+} from 'class-validator';
 import { CheckDetailDto } from './check-detail.dto';
 
 // M10 spec §5.2 dopuna (2.9.2026, na zahtev vlasnika: "prilikom kucanja specifikacije čekova
@@ -22,7 +32,9 @@ export class UpdatePaymentDto {
   @IsOptional()
   reference?: string;
 
-  @ValidateIf((dto: UpdatePaymentDto) => dto.method === 'BANK_TRANSFER' || dto.method === 'CARD_MANUAL')
+  @ValidateIf(
+    (dto: UpdatePaymentDto) => dto.method === 'BANK_TRANSFER' || dto.method === 'CARD_MANUAL',
+  )
   @IsString()
   bankId?: string;
 

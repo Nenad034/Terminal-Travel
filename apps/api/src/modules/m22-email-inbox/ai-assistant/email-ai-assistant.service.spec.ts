@@ -4,7 +4,11 @@ describe('EmailAiAssistantService (M22 spec §4)', () => {
   function makeService(anthropicConfigured: boolean, mockResponseText: string) {
     const prisma = {
       emailMessage: { update: jest.fn(), create: jest.fn() },
-      aIAgent: { findFirst: jest.fn().mockResolvedValue({ id: 'agent-1', userId: 'agent-user-1', modelTier: 'LIGHT' }) },
+      aIAgent: {
+        findFirst: jest
+          .fn()
+          .mockResolvedValue({ id: 'agent-1', userId: 'agent-user-1', modelTier: 'LIGHT' }),
+      },
     };
     const auditLog = { write: jest.fn() };
     const anthropic = {
@@ -19,11 +23,22 @@ describe('EmailAiAssistantService (M22 spec §4)', () => {
       }),
     };
     const invocationLog = { record: jest.fn() };
-    const service = new EmailAiAssistantService(prisma as any, auditLog as any, anthropic as any, invocationLog as any);
+    const service = new EmailAiAssistantService(
+      prisma as any,
+      auditLog as any,
+      anthropic as any,
+      invocationLog as any,
+    );
     return { service, prisma, auditLog, anthropic, invocationLog };
   }
 
-  const inboundMessage = { id: 'msg-1', threadId: 'thread-1', body: '', toAddresses: ['rezervacije@tt.rs'], fromAddress: 'gost@primer.rs' } as any;
+  const inboundMessage = {
+    id: 'msg-1',
+    threadId: 'thread-1',
+    body: '',
+    toAddresses: ['rezervacije@tt.rs'],
+    fromAddress: 'gost@primer.rs',
+  } as any;
 
   it('nacrt koji model vrati kao "spreman za slanje" ali pominje cenu OSTAJE sentBy=null (odbrambeni sloj na nivou koda, ne samo prompt)', async () => {
     const { service, prisma } = makeService(
@@ -46,18 +61,26 @@ describe('EmailAiAssistantService (M22 spec §4)', () => {
   });
 
   it('nacrt bez osetljivih pojmova i dalje ostaje sentBy=null pri kreiranju (jedini put ka sentBy je ljudski klik)', async () => {
-    const { service, prisma } = makeService(true, 'SAŽETAK: Gost pozdravlja tim.\nNACRT: Poštovani, hvala na poruci.');
+    const { service, prisma } = makeService(
+      true,
+      'SAŽETAK: Gost pozdravlja tim.\nNACRT: Poštovani, hvala na poruci.',
+    );
     const message = { ...inboundMessage, body: 'Samo pozdrav timu.' };
 
     await service.processInboundMessage(message);
 
     expect(prisma.emailMessage.create).toHaveBeenCalledWith(
-      expect.objectContaining({ data: expect.objectContaining({ senderType: 'AI_DRAFT', sentBy: null }) }),
+      expect.objectContaining({
+        data: expect.objectContaining({ senderType: 'AI_DRAFT', sentBy: null }),
+      }),
     );
   });
 
   it('uvek upisuje aiSummary na originalnu INBOUND poruku kad je model konfigurisan', async () => {
-    const { service, prisma } = makeService(true, 'SAŽETAK: Kratak sažetak.\nNACRT: Nacrt odgovora.');
+    const { service, prisma } = makeService(
+      true,
+      'SAŽETAK: Kratak sažetak.\nNACRT: Nacrt odgovora.',
+    );
     const message = { ...inboundMessage, body: 'Neki tekst.' };
 
     await service.processInboundMessage(message);
@@ -85,7 +108,11 @@ describe('EmailAiAssistantService (M22 spec §4)', () => {
     await service.processInboundMessage(message);
 
     expect(auditLog.write).toHaveBeenCalledWith(
-      expect.objectContaining({ actorType: 'AI_AGENT', module: 'M22', action: 'email.summarize-draft' }),
+      expect.objectContaining({
+        actorType: 'AI_AGENT',
+        module: 'M22',
+        action: 'email.summarize-draft',
+      }),
     );
   });
 });

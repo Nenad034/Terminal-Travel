@@ -4,7 +4,6 @@ import RegisterTab from '@/components/RegisterTab';
 import { Badge } from '@/components/ui/badge';
 import PeriodsPanel, { type ContractPeriod } from './PeriodsPanel';
 
-
 interface Contract {
   id: string;
   supplierId: string;
@@ -52,7 +51,9 @@ export default async function ContractDetailPage(props: { params: Promise<{ id: 
         <div>
           <h1 className="text-lg font-semibold text-ink">{contract.contractNumber}</h1>
           <p className="text-xs text-ink-faint">
-            {supplierName} · {contract.currency} · {new Date(contract.validFrom).toLocaleDateString('sr-RS')} – {new Date(contract.validTo).toLocaleDateString('sr-RS')}
+            {supplierName} · {contract.currency} ·{' '}
+            {new Date(contract.validFrom).toLocaleDateString('sr-RS')} –{' '}
+            {new Date(contract.validTo).toLocaleDateString('sr-RS')}
           </p>
         </div>
         <StatusBadge status={contract.status} />
@@ -66,7 +67,10 @@ export default async function ContractDetailPage(props: { params: Promise<{ id: 
           </div>
           <div>
             <dt className="text-ink-faint">Podrazumevani tip nastupanja</dt>
-            <dd className="mt-0.5 text-ink">{contract.defaultTipNastupanja ?? '— nije postavljen (obavezno pre ACTIVE, M3 spec §2.2) —'}</dd>
+            <dd className="mt-0.5 text-ink">
+              {contract.defaultTipNastupanja ??
+                '— nije postavljen (obavezno pre ACTIVE, M3 spec §2.2) —'}
+            </dd>
           </div>
           <div>
             <dt className="text-ink-faint">Model provizije</dt>
@@ -81,7 +85,12 @@ export default async function ContractDetailPage(props: { params: Promise<{ id: 
           <div>
             <dt className="text-ink-faint">Dokument ugovora</dt>
             <dd className="mt-0.5">
-              <a href={contract.documentUrl} target="_blank" rel="noreferrer" className="text-accent hover:underline">
+              <a
+                href={contract.documentUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="text-accent hover:underline"
+              >
                 otvori
               </a>
             </dd>
@@ -95,5 +104,17 @@ export default async function ContractDetailPage(props: { params: Promise<{ id: 
 }
 
 function StatusBadge({ status }: { status: string }) {
-  return <Badge variant={status === 'ACTIVE' ? 'ok' : status === 'EXPIRED' || status === 'TERMINATED' ? 'danger' : 'secondary'}>{status}</Badge>;
+  return (
+    <Badge
+      variant={
+        status === 'ACTIVE'
+          ? 'ok'
+          : status === 'EXPIRED' || status === 'TERMINATED'
+            ? 'danger'
+            : 'secondary'
+      }
+    >
+      {status}
+    </Badge>
+  );
 }

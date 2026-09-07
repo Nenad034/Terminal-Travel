@@ -24,7 +24,9 @@ export interface DateMismatchWarning {
  * BORAVAK stavki — prazan niz kad provera nije primenjiva ili nema neusklađenosti. */
 export function findSelectionDateMismatches(items: DateMismatchCandidate[]): DateMismatchWarning[] {
   const stayItems = items.filter((i) => STAY_TYPES.has(i.productType) && i.stayFrom && i.stayTo);
-  const transitItems = items.filter((i) => TRANSIT_TYPES.has(i.productType) && i.stayFrom && i.stayTo);
+  const transitItems = items.filter(
+    (i) => TRANSIT_TYPES.has(i.productType) && i.stayFrom && i.stayTo,
+  );
   if (stayItems.length === 0 || transitItems.length === 0) return [];
 
   const stayFromMs = Math.min(...stayItems.map((i) => new Date(i.stayFrom!).getTime()));

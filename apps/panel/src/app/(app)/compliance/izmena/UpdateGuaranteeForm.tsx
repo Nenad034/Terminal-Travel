@@ -27,11 +27,19 @@ export default function UpdateGuaranteeForm({ guarantee }: { guarantee: TravelGu
   const [state, formAction] = useActionState(updateGuarantee, initialState);
 
   return (
-    <form action={formAction} className="flex flex-col gap-3 rounded-lg border border-border bg-panel p-5">
+    <form
+      action={formAction}
+      className="flex flex-col gap-3 rounded-lg border border-border bg-panel p-5"
+    >
       {state.error && <p className="rounded bg-danger-bg p-3 text-sm text-danger">{state.error}</p>}
 
       <label className="flex items-center gap-2 text-xs text-ink-faint">
-        <input type="checkbox" name="createNew" defaultChecked={!guarantee} className="h-3.5 w-3.5" />
+        <input
+          type="checkbox"
+          name="createNew"
+          defaultChecked={!guarantee}
+          className="h-3.5 w-3.5"
+        />
         unesi novu godišnju polisu (umesto izmene postojeće)
       </label>
 
@@ -39,13 +47,30 @@ export default function UpdateGuaranteeForm({ guarantee }: { guarantee: TravelGu
         <input name="provider" defaultValue={guarantee?.provider} required className="input" />
       </Field>
       <Field label="broj polise">
-        <input name="policyNumber" defaultValue={guarantee?.policyNumber} required className="input" />
+        <input
+          name="policyNumber"
+          defaultValue={guarantee?.policyNumber}
+          required
+          className="input"
+        />
       </Field>
       <Field label="pokriće (u celim jedinicama valute, npr. 5000000)">
-        <input name="coverageAmount" type="number" min={0} defaultValue={guarantee ? guarantee.coverageAmount / 100 : undefined} required className="input" />
+        <input
+          name="coverageAmount"
+          type="number"
+          min={0}
+          defaultValue={guarantee ? guarantee.coverageAmount / 100 : undefined}
+          required
+          className="input"
+        />
       </Field>
       <Field label="valuta">
-        <select name="currency" defaultValue={guarantee?.currency ?? 'RSD'} required className="input">
+        <select
+          name="currency"
+          defaultValue={guarantee?.currency ?? 'RSD'}
+          required
+          className="input"
+        >
           <option value="RSD">RSD</option>
           <option value="EUR">EUR</option>
         </select>
@@ -57,7 +82,12 @@ export default function UpdateGuaranteeForm({ guarantee }: { guarantee: TravelGu
         <DateField name="validTo" defaultValue={guarantee?.validTo?.slice(0, 10)} required />
       </Field>
       <Field label="link ka skeniranom sertifikatu">
-        <input name="documentUrl" defaultValue={guarantee?.documentUrl ?? ''} className="input" placeholder="https://…" />
+        <input
+          name="documentUrl"
+          defaultValue={guarantee?.documentUrl ?? ''}
+          className="input"
+          placeholder="https://…"
+        />
       </Field>
       <Field label="status">
         <select name="status" defaultValue={guarantee?.status ?? 'ACTIVE'} className="input">

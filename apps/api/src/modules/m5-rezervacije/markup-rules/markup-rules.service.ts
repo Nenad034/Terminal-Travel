@@ -26,7 +26,10 @@ export class MarkupRulesService {
   ) {}
 
   findAll(scopeType?: MarkupScopeType, scopeId?: string) {
-    return this.prisma.markupRule.findMany({ where: { scopeType, scopeId }, orderBy: { createdAt: 'desc' } });
+    return this.prisma.markupRule.findMany({
+      where: { scopeType, scopeId },
+      orderBy: { createdAt: 'desc' },
+    });
   }
 
   findOne(id: string) {
@@ -34,8 +37,15 @@ export class MarkupRulesService {
   }
 
   async create(dto: CreateMarkupRuleDto, actorId: string) {
-    if (!isValidMarkupRule({ percentage: dto.percentage ?? null, fixedAmount: dto.fixedAmount ?? null })) {
-      throw new BadRequestException('Bar jedno od percentage/fixedAmount mora biti postavljeno (M5 spec §2.1).');
+    if (
+      !isValidMarkupRule({
+        percentage: dto.percentage ?? null,
+        fixedAmount: dto.fixedAmount ?? null,
+      })
+    ) {
+      throw new BadRequestException(
+        'Bar jedno od percentage/fixedAmount mora biti postavljeno (M5 spec §2.1).',
+      );
     }
     const rule = await this.prisma.markupRule.create({
       data: {
@@ -68,8 +78,15 @@ export class MarkupRulesService {
       percentage: dto.percentage ?? Number(before.percentage ?? NaN),
       fixedAmount: dto.fixedAmount ?? before.fixedAmount,
     };
-    if (!isValidMarkupRule({ percentage: dto.percentage !== undefined ? dto.percentage : before.percentage, fixedAmount: merged.fixedAmount })) {
-      throw new BadRequestException('Bar jedno od percentage/fixedAmount mora ostati postavljeno (M5 spec §2.1).');
+    if (
+      !isValidMarkupRule({
+        percentage: dto.percentage !== undefined ? dto.percentage : before.percentage,
+        fixedAmount: merged.fixedAmount,
+      })
+    ) {
+      throw new BadRequestException(
+        'Bar jedno od percentage/fixedAmount mora ostati postavljeno (M5 spec §2.1).',
+      );
     }
     const after = await this.prisma.markupRule.update({
       where: { id },
@@ -101,14 +118,21 @@ export class MarkupRulesService {
     return true;
   }
 
-  private async firstActiveRule(scopeType: MarkupScopeType, scopeId: string, at: Date): Promise<MarkupRule | null> {
+  private async firstActiveRule(
+    scopeType: MarkupScopeType,
+    scopeId: string,
+    at: Date,
+  ): Promise<MarkupRule | null> {
     const rules = await this.prisma.markupRule.findMany({ where: { scopeType, scopeId } });
     return rules.find((r) => this.isActiveNow(r, at)) ?? null;
   }
 
   // M5 spec §2.2 — "Za proizvod iz M3 (ugovoren): M2_PRODUCT → M3_CONTRACT_PERIOD →
   // M3_CONTRACT → M3_SUPPLIER (podrazumevano)." Najspecifičnije pobeđuje.
-  async resolveForContracted(ctx: ContractedResolutionContext, at: Date = new Date()): Promise<MarkupRule> {
+  async resolveForContracted(
+    ctx: ContractedResolutionContext,
+    at: Date = new Date(),
+  ): Promise<MarkupRule> {
     const order: [MarkupScopeType, string][] = [
       ['M2_PRODUCT', ctx.productId],
       ['M3_CONTRACT_PERIOD', ctx.contractPeriodId],

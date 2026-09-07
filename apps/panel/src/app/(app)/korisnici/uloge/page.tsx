@@ -6,7 +6,6 @@ import Icon from '@/components/Icon';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
-
 interface RoleRow {
   id: string;
   name: string;
@@ -41,7 +40,10 @@ export default async function UlogePage() {
         <div>
           <h1 className="text-lg font-semibold text-ink">Uloge</h1>
         </div>
-        <Link href="/korisnici" className="flex items-center gap-1.5 text-xs text-ink-faint hover:text-ink">
+        <Link
+          href="/korisnici"
+          className="flex items-center gap-1.5 text-xs text-ink-faint hover:text-ink"
+        >
           <Icon name="arrow-left" /> nazad na korisnike
         </Link>
       </div>
@@ -53,23 +55,23 @@ export default async function UlogePage() {
           {roles.map((r) => (
             // Dopuna 4.9.2026 — kartica vodi na uređivanje dozvola te uloge (M1 spec §7).
             <Link key={r.id} href={`/korisnici/uloge/${r.id}`} className="block focus:outline-none">
-            <Card className="h-full transition-colors hover:border-accent">
-              <CardHeader className="flex-row items-center justify-between gap-2 space-y-0">
-                <CardTitle>{r.name}</CardTitle>
-                {r.isSystemRole && (
-                  <Badge variant="secondary" className="text-ink-faint">
-                    sistemska
-                  </Badge>
-                )}
-              </CardHeader>
-              <CardContent className="p-4 pt-3">
-                <p className="text-xs text-ink-dim">{r.description}</p>
-                <p className="mt-2 text-[11px] text-ink-faint">
-                  {r._count.userRoles} {r._count.userRoles === 1 ? 'nosilac' : 'nosilaca'}
-                </p>
-                <p className="mt-2 text-[11px] text-accent">uredi dozvole →</p>
-              </CardContent>
-            </Card>
+              <Card className="h-full transition-colors hover:border-accent">
+                <CardHeader className="flex-row items-center justify-between gap-2 space-y-0">
+                  <CardTitle>{r.name}</CardTitle>
+                  {r.isSystemRole && (
+                    <Badge variant="secondary" className="text-ink-faint">
+                      sistemska
+                    </Badge>
+                  )}
+                </CardHeader>
+                <CardContent className="p-4 pt-3">
+                  <p className="text-xs text-ink-dim">{r.description}</p>
+                  <p className="mt-2 text-[11px] text-ink-faint">
+                    {r._count.userRoles} {r._count.userRoles === 1 ? 'nosilac' : 'nosilaca'}
+                  </p>
+                  <p className="mt-2 text-[11px] text-accent">uredi dozvole →</p>
+                </CardContent>
+              </Card>
             </Link>
           ))}
         </div>

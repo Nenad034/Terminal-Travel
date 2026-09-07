@@ -56,7 +56,11 @@ export class PricelistImportsController {
 
   @Post(':id/rows/:rowId/reject')
   @RequirePermission('M3', 'pricelist-import', 'APPROVE_ROW')
-  reject(@Param('id') id: string, @Param('rowId') rowId: string, @CurrentUser() actor: { userId: string }) {
+  reject(
+    @Param('id') id: string,
+    @Param('rowId') rowId: string,
+    @CurrentUser() actor: { userId: string },
+  ) {
     return this.imports.reviewRow(id, rowId, { decision: 'REJECTED' }, actor.userId);
   }
 }

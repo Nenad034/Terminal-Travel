@@ -21,9 +21,13 @@ const EMAIL = process.env.QA_EMAIL ?? 'qa.pretraga@tt-test.local';
 const PASSWORD = process.env.QA_PASSWORD ?? 'QaPretraga123!';
 const SECRET = process.env.QA_TOTP_SECRET ?? 'GVOWG4JTJNSVGYYB';
 
-const browser = await chromium.launch(existsSync(SANDBOX_CHROMIUM) ? { executablePath: SANDBOX_CHROMIUM } : {});
+const browser = await chromium.launch(
+  existsSync(SANDBOX_CHROMIUM) ? { executablePath: SANDBOX_CHROMIUM } : {},
+);
 const context = await browser.newContext({ viewport: { width: 1600, height: 1000 } });
-const login = await context.request.post(`${PANEL}/api/session/login`, { data: { email: EMAIL, password: PASSWORD } });
+const login = await context.request.post(`${PANEL}/api/session/login`, {
+  data: { email: EMAIL, password: PASSWORD },
+});
 const loginBody = await login.json().catch(() => ({}));
 if (loginBody.requiresMfa) {
   await context.request.post(`${PANEL}/api/session/mfa`, {
@@ -39,16 +43,23 @@ const page = await context.newPage();
 await page.goto(`${PANEL}/rezervacije/lista`, { waitUntil: 'domcontentloaded', timeout: 120_000 });
 await page.waitForTimeout(5000);
 
-const sirina = () => page.evaluate(() => {
-  const rucka = document.querySelector('[class*="cursor-col-resize"]');
-  return rucka?.parentElement ? Math.round(rucka.parentElement.getBoundingClientRect().width) : null;
-});
-const rucka = async () => (await page.locator('[class*="cursor-col-resize"]').first().boundingBox());
+const sirina = () =>
+  page.evaluate(() => {
+    const rucka = document.querySelector('[class*="cursor-col-resize"]');
+    return rucka?.parentElement
+      ? Math.round(rucka.parentElement.getBoundingClientRect().width)
+      : null;
+  });
+const rucka = async () => await page.locator('[class*="cursor-col-resize"]').first().boundingBox();
 
 /** Pomeri miš na nekoliko mesta BEZ pritiska i vrati true ako se širina promenila. */
 async function menjaSeBezPritiska() {
   const pre = await sirina();
-  for (const [x, y] of [[500, 300], [900, 600], [150, 400]]) {
+  for (const [x, y] of [
+    [500, 300],
+    [900, 600],
+    [150, 400],
+  ]) {
     await page.mouse.move(x, y, { steps: 8 });
     await page.waitForTimeout(250);
     if ((await sirina()) !== pre) return true;
@@ -96,13 +107,18 @@ const proveri = (naziv, uslov, detalj = '') => {
   await page.mouse.move(1599, 999, { steps: 5 });
   await page.mouse.up();
   await page.waitForTimeout(400);
-  proveri('otpuštanje na ivici prozora ne ostavlja prevlačenje upaljeno', !(await menjaSeBezPritiska()));
+  proveri(
+    'otpuštanje na ivici prozora ne ostavlja prevlačenje upaljeno',
+    !(await menjaSeBezPritiska()),
+  );
 }
 
 await browser.close();
 
 const pali = nalazi.filter((n) => !n.ok);
-console.log(pali.length === 0
-  ? `\nSve ${nalazi.length} provere prevlačenja prolaze.`
-  : `\nPalo provera: ${pali.length} od ${nalazi.length}.`);
+console.log(
+  pali.length === 0
+    ? `\nSve ${nalazi.length} provere prevlačenja prolaze.`
+    : `\nPalo provera: ${pali.length} od ${nalazi.length}.`,
+);
 process.exit(pali.length > 0 ? 1 : 0);

@@ -17,7 +17,16 @@ import Icon from './Icon';
 // tabovi nisu imali eksplicitnu visinu nego su je nasleđivali od `<header>` reda preko
 // `items-center`/padding-a).
 export default function TabBar() {
-  const { tabs, activeTabId, setActiveTab, openTab, closeTab, closeAllTabs, togglePin, reorderTabs } = useTabs();
+  const {
+    tabs,
+    activeTabId,
+    setActiveTab,
+    openTab,
+    closeTab,
+    closeAllTabs,
+    togglePin,
+    reorderTabs,
+  } = useTabs();
   // Ručno premeštanje tabova (26.8.2026, na zahtev vlasnika: "omogućite ručno menjanje
   // pozicije tabova u centralnom panelu, horizontalno") — nativan HTML5 drag-and-drop (bez
   // nove biblioteke — `docs/00-MASTER-ARHITEKTURA.md` poglavlje 6 nema DnD paket, a nativan
@@ -93,10 +102,17 @@ export default function TabBar() {
               // ostaju nepromenjeni (`bg-accent-soft`/`text-ink`) — zahtev se odnosi na LINIJE, ne
               // na popunu.
               className={`group flex h-[29px] w-[20ch] flex-shrink-0 cursor-grab items-center gap-1.5 rounded border px-2 text-[11px] transition-colors active:cursor-grabbing ${
-                active ? 'border-tabline-strong bg-accent-soft text-ink' : 'border-tabline text-ink-faint hover:border-tabline-strong hover:text-ink'
+                active
+                  ? 'border-tabline-strong bg-accent-soft text-ink'
+                  : 'border-tabline text-ink-faint hover:border-tabline-strong hover:text-ink'
               } ${draggedId === tab.id ? 'opacity-40' : ''} ${dragOverId === tab.id ? 'border-tabline-strong border-2' : ''}`}
             >
-              {tab.dirty && <span className="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-accent" title="Nesačuvane izmene" />}
+              {tab.dirty && (
+                <span
+                  className="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-accent"
+                  title="Nesačuvane izmene"
+                />
+              )}
               {/* `flex-1` (dopuna 25.8.2026, na zahtev vlasnika: "x za zatvaranje tabova stavite u
                   desni kraj a ne iza teksta odmah") — ranije je labela zauzimala samo sopstvenu
                   prirodnu širinu, pa je "x" kod kratkih naziva sedeo odmah uz tekst sa praznim

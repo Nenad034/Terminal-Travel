@@ -1,6 +1,9 @@
 import { BadRequestException } from '@nestjs/common';
 import { AgeCategory } from '@prisma/client';
-import { resolveAgePricing, AgePricingCandidate } from '../../m3-ugovaranje-alotmani/contract-periods/age-pricing-resolution';
+import {
+  resolveAgePricing,
+  AgePricingCandidate,
+} from '../../m3-ugovaranje-alotmani/contract-periods/age-pricing-resolution';
 
 // M5 spec §3.2a — jedna stavka u occupancy.room_config[].
 export interface RoomConfigEntry {
@@ -37,14 +40,40 @@ export interface RoomTypeDefinition {
 // M2 spec §2.3b — "podrazumevana politika (fallback)" kad room_types[] stavka nema
 // eksplicitno postavljen age_policy[].
 export const DEFAULT_AGE_POLICY: AgePolicyEntry[] = [
-  { category: 'ADULT', ageFrom: 12, ageTo: null, countsTowardCapacity: true, maxCount: null, requiresCrib: false, cribIncluded: null },
-  { category: 'CHILD', ageFrom: 2, ageTo: 11.99, countsTowardCapacity: true, maxCount: null, requiresCrib: false, cribIncluded: null },
-  { category: 'INFANT', ageFrom: 0, ageTo: 1.99, countsTowardCapacity: false, maxCount: null, requiresCrib: true, cribIncluded: null },
+  {
+    category: 'ADULT',
+    ageFrom: 12,
+    ageTo: null,
+    countsTowardCapacity: true,
+    maxCount: null,
+    requiresCrib: false,
+    cribIncluded: null,
+  },
+  {
+    category: 'CHILD',
+    ageFrom: 2,
+    ageTo: 11.99,
+    countsTowardCapacity: true,
+    maxCount: null,
+    requiresCrib: false,
+    cribIncluded: null,
+  },
+  {
+    category: 'INFANT',
+    ageFrom: 0,
+    ageTo: 1.99,
+    countsTowardCapacity: false,
+    maxCount: null,
+    requiresCrib: true,
+    cribIncluded: null,
+  },
 ];
 
 // M2 spec §2.3b — svrstavanje uzrasta u kategoriju po age_from/age_to (age_to = null znači "i više").
 export function classifyAge(ageYears: number, agePolicy: AgePolicyEntry[]): AgePolicyEntry {
-  const match = agePolicy.find((p) => ageYears >= p.ageFrom && (p.ageTo === null || ageYears <= p.ageTo));
+  const match = agePolicy.find(
+    (p) => ageYears >= p.ageFrom && (p.ageTo === null || ageYears <= p.ageTo),
+  );
   if (!match) {
     throw new BadRequestException(
       `Uzrast ${ageYears} ne odgovara nijednoj kategoriji age_policy ove sobe (M2 spec §2.3b) — dopunite politiku pre nastavka.`,
@@ -61,7 +90,10 @@ export interface ClassifiedGuest {
 
 // M5 spec §3.2b, korak 1 — svrstaj svakog gosta jedne sobe u kategoriju, dodeli occupant_index
 // po redosledu unutar kategorije (odrasli su uvek ADULT; deca se svrstavaju preko children_ages[]).
-export function classifyRoomGuests(room: RoomConfigEntry, agePolicy: AgePolicyEntry[]): ClassifiedGuest[] {
+export function classifyRoomGuests(
+  room: RoomConfigEntry,
+  agePolicy: AgePolicyEntry[],
+): ClassifiedGuest[] {
   const guests: ClassifiedGuest[] = [];
   for (let i = 0; i < room.adults; i++) {
     guests.push({ category: 'ADULT', occupantIndex: i + 1, requiresCrib: false });
@@ -71,7 +103,11 @@ export function classifyRoomGuests(room: RoomConfigEntry, agePolicy: AgePolicyEn
     const policy = classifyAge(age, agePolicy);
     const next = (perCategoryCounter.get(policy.category) ?? 0) + 1;
     perCategoryCounter.set(policy.category, next);
-    guests.push({ category: policy.category, occupantIndex: next, requiresCrib: policy.requiresCrib });
+    guests.push({
+      category: policy.category,
+      occupantIndex: next,
+      requiresCrib: policy.requiresCrib,
+    });
   }
   return guests;
 }
@@ -82,7 +118,14 @@ export function assertRoomConfigMatchesTotals(occupancy: OccupancyInput): RoomCo
   const roomConfig: RoomConfigEntry[] =
     occupancy.roomConfig && occupancy.roomConfig.length > 0
       ? occupancy.roomConfig
-      : [{ roomTypeCode: null, adults: occupancy.adults, children: occupancy.children, childrenAges: null }];
+      : [
+          {
+            roomTypeCode: null,
+            adults: occupancy.adults,
+            children: occupancy.children,
+            childrenAges: null,
+          },
+        ];
 
   const sumAdults = roomConfig.reduce((s, r) => s + r.adults, 0);
   const sumChildren = roomConfig.reduce((s, r) => s + r.children, 0);
@@ -97,11 +140,13 @@ export function assertRoomConfigMatchesTotals(occupancy: OccupancyInput): RoomCo
 // M5 spec §3.2a — validacija kapaciteta po uzrastu. Samo kategorije sa counts_toward_capacity=true
 // se broje protiv capacity_adults/capacity_children; max_count po kategoriji se sprovodi nezavisno.
 export function assertRoomCapacity(room: RoomConfigEntry, roomType: RoomTypeDefinition): void {
-  const agePolicy = roomType.agePolicy && roomType.agePolicy.length > 0 ? roomType.agePolicy : DEFAULT_AGE_POLICY;
+  const agePolicy =
+    roomType.agePolicy && roomType.agePolicy.length > 0 ? roomType.agePolicy : DEFAULT_AGE_POLICY;
   const guests = classifyRoomGuests(room, agePolicy);
 
   const perCategoryCount = new Map<AgeCategory, number>();
-  for (const g of guests) perCategoryCount.set(g.category, (perCategoryCount.get(g.category) ?? 0) + 1);
+  for (const g of guests)
+    perCategoryCount.set(g.category, (perCategoryCount.get(g.category) ?? 0) + 1);
 
   for (const policy of agePolicy) {
     const count = perCategoryCount.get(policy.category) ?? 0;
@@ -112,7 +157,10 @@ export function assertRoomCapacity(room: RoomConfigEntry, roomType: RoomTypeDefi
     }
   }
 
-  const countingAdults = guests.filter((g) => g.category === 'ADULT' && agePolicy.find((p) => p.category === 'ADULT')?.countsTowardCapacity).length;
+  const countingAdults = guests.filter(
+    (g) =>
+      g.category === 'ADULT' && agePolicy.find((p) => p.category === 'ADULT')?.countsTowardCapacity,
+  ).length;
   const countingChildren = guests.filter((g) => {
     if (g.category === 'ADULT') return false;
     const policy = agePolicy.find((p) => p.category === g.category);
@@ -136,10 +184,22 @@ export function assertRoomCapacity(room: RoomConfigEntry, roomType: RoomTypeDefi
 // se i dalje uvek naplaćuju preko age_pricing[] (korak 4), bez obzira na ovu pretpostavku.
 export function resolveBaseAdultsCovered(occupancyText: string, adultsInRoom: number): number {
   const normalized = occupancyText.toLowerCase();
-  if (normalized.includes('jednokrevetn') || normalized.includes('single')) return Math.min(1, adultsInRoom);
-  if (normalized.includes('dvokrevetn') || normalized.includes('double') || normalized.includes('twin')) return Math.min(2, adultsInRoom);
-  if (normalized.includes('trokrevetn') || normalized.includes('triple')) return Math.min(3, adultsInRoom);
-  if (normalized.includes('četvorokrevetn') || normalized.includes('cetvorokrevetn') || normalized.includes('quad')) return Math.min(4, adultsInRoom);
+  if (normalized.includes('jednokrevetn') || normalized.includes('single'))
+    return Math.min(1, adultsInRoom);
+  if (
+    normalized.includes('dvokrevetn') ||
+    normalized.includes('double') ||
+    normalized.includes('twin')
+  )
+    return Math.min(2, adultsInRoom);
+  if (normalized.includes('trokrevetn') || normalized.includes('triple'))
+    return Math.min(3, adultsInRoom);
+  if (
+    normalized.includes('četvorokrevetn') ||
+    normalized.includes('cetvorokrevetn') ||
+    normalized.includes('quad')
+  )
+    return Math.min(4, adultsInRoom);
   const numericMatch = normalized.match(/\d+/);
   if (numericMatch) return Math.min(parseInt(numericMatch[0], 10), adultsInRoom);
   return adultsInRoom;
@@ -184,7 +244,9 @@ export function computeRoomBaseCost(params: {
   // korak 2/3 — osnovna popunjenost i osnovna cena.
   const baseAdultsCovered = resolveBaseAdultsCovered(rateLine.occupancy, room.adults);
   const basePricePerNight =
-    rateLine.priceBasis === 'PER_ROOM_PER_NIGHT' ? rateLine.price : rateLine.price * baseAdultsCovered;
+    rateLine.priceBasis === 'PER_ROOM_PER_NIGHT'
+      ? rateLine.price
+      : rateLine.price * baseAdultsCovered;
 
   // korak 4 — svaki gost iznad osnovne popunjenosti (dodatni ADULT, i svaki CHILD/TEEN/INFANT).
   let extraPerNight = 0;
@@ -194,7 +256,12 @@ export function computeRoomBaseCost(params: {
       adultsCounted++;
       if (adultsCounted <= baseAdultsCovered) continue; // pokriven osnovnom cenom, ne obračunava se posebno
     }
-    const resolved = resolveAgePricing(agePricingCandidates, guest.category, guest.occupantIndex, adultsPresent);
+    const resolved = resolveAgePricing(
+      agePricingCandidates,
+      guest.category,
+      guest.occupantIndex,
+      adultsPresent,
+    );
     if (!resolved) {
       throw new BadRequestException(
         `Nema odgovarajućeg age_pricing reda za gosta kategorije ${guest.category} (M3 spec §2.4a) — cena se ne pretpostavlja, kreiranje Ponude se odbija (M5 spec §3.2b).`,
@@ -208,7 +275,8 @@ export function computeRoomBaseCost(params: {
 
   // korak 5 — krevetac, jednom po traženom krevetcu.
   const cribGuests = guests.filter((g) => g.requiresCrib).length;
-  const cribFeePerNight = rateLine.cribFeePerNight != null ? rateLine.cribFeePerNight * cribGuests : 0;
+  const cribFeePerNight =
+    rateLine.cribFeePerNight != null ? rateLine.cribFeePerNight * cribGuests : 0;
 
   const perNight = basePricePerNight + extraPerNight + cribFeePerNight;
   return perNight * nights;

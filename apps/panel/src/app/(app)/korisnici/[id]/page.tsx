@@ -10,7 +10,6 @@ import RoleAssignment from './RoleAssignment';
 import PermissionOverrides from './PermissionOverrides';
 import SuspendUserButton from './SuspendUserButton';
 
-
 interface UserDetail {
   id: string;
   fullName: string;
@@ -63,7 +62,9 @@ export default async function KorisnikDetailPage(props: { params: Promise<{ id: 
     return (
       <div className="p-6">
         <RegisterTab label="Korisnik" />
-        <p className="rounded bg-danger-bg p-3 text-sm text-danger">Nemate dozvolu za uvid u korisnike (M1/user/VIEW).</p>
+        <p className="rounded bg-danger-bg p-3 text-sm text-danger">
+          Nemate dozvolu za uvid u korisnike (M1/user/VIEW).
+        </p>
       </div>
     );
   }
@@ -77,10 +78,20 @@ export default async function KorisnikDetailPage(props: { params: Promise<{ id: 
   }
 
   const [allRoles, overrides, allPermissions, branches] = await Promise.all([
-    canEdit ? apiFetch<RoleOption[]>('/iam/roles').catch(() => []) : Promise.resolve<RoleOption[]>([]),
-    canViewOverrides ? apiFetch<PermissionOverrideRow[]>(`/iam/users/${params.id}/permission-overrides`).catch(() => []) : Promise.resolve<PermissionOverrideRow[]>([]),
-    canCreateOverride ? apiFetch<PermissionOption[]>('/iam/permissions').catch(() => []) : Promise.resolve<PermissionOption[]>([]),
-    canEdit ? apiFetch<{ id: string; name: string }[]>('/iam/branches').catch(() => []) : Promise.resolve<{ id: string; name: string }[]>([]),
+    canEdit
+      ? apiFetch<RoleOption[]>('/iam/roles').catch(() => [])
+      : Promise.resolve<RoleOption[]>([]),
+    canViewOverrides
+      ? apiFetch<PermissionOverrideRow[]>(`/iam/users/${params.id}/permission-overrides`).catch(
+          () => [],
+        )
+      : Promise.resolve<PermissionOverrideRow[]>([]),
+    canCreateOverride
+      ? apiFetch<PermissionOption[]>('/iam/permissions').catch(() => [])
+      : Promise.resolve<PermissionOption[]>([]),
+    canEdit
+      ? apiFetch<{ id: string; name: string }[]>('/iam/branches').catch(() => [])
+      : Promise.resolve<{ id: string; name: string }[]>([]),
   ]);
 
   const assignedRoleIds = new Set(user.roles.map((r) => r.roleId));
@@ -89,7 +100,10 @@ export default async function KorisnikDetailPage(props: { params: Promise<{ id: 
   return (
     <div className="p-6">
       <RegisterTab label={user.fullName} />
-      <Link href="/korisnici" className="mb-3 inline-flex items-center gap-1 text-xs text-ink-faint hover:text-ink">
+      <Link
+        href="/korisnici"
+        className="mb-3 inline-flex items-center gap-1 text-xs text-ink-faint hover:text-ink"
+      >
         <Icon name="arrow-left" /> nazad na korisnike
       </Link>
 
@@ -100,7 +114,11 @@ export default async function KorisnikDetailPage(props: { params: Promise<{ id: 
         </div>
         <div className="flex items-center gap-2">
           <StatusBadge status={user.status} />
-          {user.mfaEnabled ? <Badge variant="ok">2FA uključeno</Badge> : <Badge variant="warn">2FA isključeno</Badge>}
+          {user.mfaEnabled ? (
+            <Badge variant="ok">2FA uključeno</Badge>
+          ) : (
+            <Badge variant="warn">2FA isključeno</Badge>
+          )}
         </div>
       </div>
 
@@ -110,10 +128,17 @@ export default async function KorisnikDetailPage(props: { params: Promise<{ id: 
           <p className="mb-3 text-xs text-ink-faint">
             registrovan {new Date(user.createdAt).toLocaleDateString('sr-RS')}
             {' · '}
-            poslednja prijava {user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleString('sr-RS') : 'nikad'}
+            poslednja prijava{' '}
+            {user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleString('sr-RS') : 'nikad'}
           </p>
           {canEdit ? (
-            <EditUserForm id={user.id} fullName={user.fullName} phone={user.phone} branchId={user.branchId} branches={branches} />
+            <EditUserForm
+              id={user.id}
+              fullName={user.fullName}
+              phone={user.phone}
+              branchId={user.branchId}
+              branches={branches}
+            />
           ) : (
             <p className="text-xs text-ink-faint">telefon: {user.phone ?? '—'}</p>
           )}
@@ -126,14 +151,24 @@ export default async function KorisnikDetailPage(props: { params: Promise<{ id: 
 
         <div className="rounded-lg border border-border bg-panel p-4">
           <h2 className="mb-2 text-sm font-semibold text-ink">Uloge</h2>
-          <RoleAssignment userId={user.id} assignedRoles={user.roles.map((r) => r.role)} availableRoles={availableRoles} canEdit={canEdit} />
+          <RoleAssignment
+            userId={user.id}
+            assignedRoles={user.roles.map((r) => r.role)}
+            availableRoles={availableRoles}
+            canEdit={canEdit}
+          />
         </div>
       </div>
 
       {canViewOverrides && (
         <div className="rounded-lg border border-border bg-panel p-4">
           <h2 className="mb-2 text-sm font-semibold text-ink">Pojedinačni izuzeci od dozvola</h2>
-          <PermissionOverrides userId={user.id} overrides={overrides} permissions={allPermissions} canCreate={canCreateOverride} />
+          <PermissionOverrides
+            userId={user.id}
+            overrides={overrides}
+            permissions={allPermissions}
+            canCreate={canCreateOverride}
+          />
         </div>
       )}
     </div>

@@ -43,7 +43,10 @@ export interface AncillaryService {
   notes: string | null;
 }
 
-const PRICING_MODE_LABELS: Record<AncillaryPricingMode, string> = { FLAT_PER_UNIT: 'Fiksna cena', PERCENTAGE_OF_NIGHTLY_RATE: '% od cene noćenja' };
+const PRICING_MODE_LABELS: Record<AncillaryPricingMode, string> = {
+  FLAT_PER_UNIT: 'Fiksna cena',
+  PERCENTAGE_OF_NIGHTLY_RATE: '% od cene noćenja',
+};
 const BASIS_LABELS: Record<AncillaryPriceBasis, string> = {
   PER_PERSON_PER_NIGHT: 'po osobi i danu',
   PER_ROOM_PER_NIGHT: 'po sobi i danu',
@@ -53,7 +56,10 @@ const BASIS_LABELS: Record<AncillaryPriceBasis, string> = {
   PER_PET_PER_STAY: 'po ljubimcu i periodu',
 };
 const KIND_LABELS: Record<AncillaryKind, string> = { SURCHARGE: 'Doplata', DISCOUNT: 'Popust' };
-const PAYABLE_LABELS: Record<AncillaryPayable, string> = { AGENCY: 'Plaća se u agenciji', ON_SITE: 'Plaća se na licu mesta' };
+const PAYABLE_LABELS: Record<AncillaryPayable, string> = {
+  AGENCY: 'Plaća se u agenciji',
+  ON_SITE: 'Plaća se na licu mesta',
+};
 
 // M3 spec §2.6 dopuna v1.12 — pomoćni troškovi/usluge po periodu (npr. parking, ljubimac,
 // klima). Isti obrazac kao RateLinesPanel/CancellationRulesPanel — backend PUT uvek KREIRA
@@ -93,7 +99,9 @@ export default function AncillaryServicesPanel({
         )}
       </div>
 
-      {services.length === 0 && <p className="text-xs text-ink-faint">Nijedna dodatna usluga još nije uneta.</p>}
+      {services.length === 0 && (
+        <p className="text-xs text-ink-faint">Nijedna dodatna usluga još nije uneta.</p>
+      )}
 
       <div className="flex flex-col gap-1.5 text-xs">
         {services.map((s) => (
@@ -108,7 +116,9 @@ export default function AncillaryServicesPanel({
               </div>
             </div>
             <div className="mt-0.5 text-ink-faint">
-              {s.pricingMode === 'FLAT_PER_UNIT' ? `${s.flatAmount}` : `${s.percentageOfNightlyRate}% od cene noćenja`}
+              {s.pricingMode === 'FLAT_PER_UNIT'
+                ? `${s.flatAmount}`
+                : `${s.percentageOfNightlyRate}% od cene noćenja`}
               {s.isRefundable && ' · povratno'}
               {s.coversPersons != null && ` · za ${s.coversPersons} os.`}
               {s.maxAdults != null && ` · max ${s.maxAdults} odr.`}
@@ -123,11 +133,19 @@ export default function AncillaryServicesPanel({
       </div>
 
       {showForm && canEdit && (
-        <form action={formAction} className="mt-4 flex flex-col gap-3 border-t border-border pt-4 text-xs">
+        <form
+          action={formAction}
+          className="mt-4 flex flex-col gap-3 border-t border-border pt-4 text-xs"
+        >
           {state.error && <p className="rounded bg-danger-bg p-2 text-danger">{state.error}</p>}
 
           <Field label="Naziv usluge">
-            <input name="name" required className="input" placeholder="npr. parking, ljubimac, klima" />
+            <input
+              name="name"
+              required
+              className="input"
+              placeholder="npr. parking, ljubimac, klima"
+            />
           </Field>
 
           <Field label="Način obračuna">
@@ -135,7 +153,10 @@ export default function AncillaryServicesPanel({
             <ButtonGroup
               value={pricingMode}
               onChange={setPricingMode}
-              options={(Object.keys(PRICING_MODE_LABELS) as AncillaryPricingMode[]).map((v) => ({ value: v, label: PRICING_MODE_LABELS[v] }))}
+              options={(Object.keys(PRICING_MODE_LABELS) as AncillaryPricingMode[]).map((v) => ({
+                value: v,
+                label: PRICING_MODE_LABELS[v],
+              }))}
             />
           </Field>
 
@@ -145,13 +166,28 @@ export default function AncillaryServicesPanel({
             </Field>
           ) : (
             <Field label="Procenat od cene noćenja">
-              <input name="percentageOfNightlyRate" type="number" min={0} max={100} step="0.01" required className="input w-32" />
+              <input
+                name="percentageOfNightlyRate"
+                type="number"
+                min={0}
+                max={100}
+                step="0.01"
+                required
+                className="input w-32"
+              />
             </Field>
           )}
 
           <Field label="Doplata ili popust">
             <input type="hidden" name="kind" value={kind} />
-            <ButtonGroup value={kind} onChange={setKind} options={(Object.keys(KIND_LABELS) as AncillaryKind[]).map((v) => ({ value: v, label: KIND_LABELS[v] }))} />
+            <ButtonGroup
+              value={kind}
+              onChange={setKind}
+              options={(Object.keys(KIND_LABELS) as AncillaryKind[]).map((v) => ({
+                value: v,
+                label: KIND_LABELS[v],
+              }))}
+            />
           </Field>
 
           <Field label="Osnova obračuna">
@@ -159,7 +195,10 @@ export default function AncillaryServicesPanel({
             <ButtonGroup
               value={priceBasis}
               onChange={setPriceBasis}
-              options={(Object.keys(BASIS_LABELS) as AncillaryPriceBasis[]).map((v) => ({ value: v, label: BASIS_LABELS[v] }))}
+              options={(Object.keys(BASIS_LABELS) as AncillaryPriceBasis[]).map((v) => ({
+                value: v,
+                label: BASIS_LABELS[v],
+              }))}
             />
           </Field>
 
@@ -185,20 +224,32 @@ export default function AncillaryServicesPanel({
             <ButtonGroup
               value={payable}
               onChange={setPayable}
-              options={(Object.keys(PAYABLE_LABELS) as AncillaryPayable[]).map((v) => ({ value: v, label: PAYABLE_LABELS[v] }))}
+              options={(Object.keys(PAYABLE_LABELS) as AncillaryPayable[]).map((v) => ({
+                value: v,
+                label: PAYABLE_LABELS[v],
+              }))}
             />
             {payable === 'ON_SITE' && (
               <span className="mt-1 text-[11px] text-ink-faint">
-                Ne ulazi u ukupnu cenu aranžmana (agencija je ne naplaćuje), ali se štampa u ugovoru sa klijentom i na vaučeru — M5 spec §6.7a.
+                Ne ulazi u ukupnu cenu aranžmana (agencija je ne naplaćuje), ali se štampa u ugovoru
+                sa klijentom i na vaučeru — M5 spec §6.7a.
               </span>
             )}
           </Field>
 
           <div className="flex gap-2">
             <input type="hidden" name="isMandatory" value={isMandatory ? 'true' : 'false'} />
-            <ToggleButton active={isMandatory} onToggle={() => setIsMandatory((v) => !v)} label="obavezno" />
+            <ToggleButton
+              active={isMandatory}
+              onToggle={() => setIsMandatory((v) => !v)}
+              label="obavezno"
+            />
             <input type="hidden" name="isRefundable" value={isRefundable ? 'true' : 'false'} />
-            <ToggleButton active={isRefundable} onToggle={() => setIsRefundable((v) => !v)} label="povratno" />
+            <ToggleButton
+              active={isRefundable}
+              onToggle={() => setIsRefundable((v) => !v)}
+              label="povratno"
+            />
           </div>
 
           <div className="grid grid-cols-2 gap-3">

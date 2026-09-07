@@ -11,9 +11,15 @@ import { PrismaService } from '../../prisma/prisma.service';
  *
  * Baca ForbiddenException ako je `actorId` M1 User povezan sa AIAgent zapisom (account_type=AI_AGENT).
  */
-export async function assertHumanActor(prisma: PrismaService, actorId: string, action: string): Promise<void> {
+export async function assertHumanActor(
+  prisma: PrismaService,
+  actorId: string,
+  action: string,
+): Promise<void> {
   const agent = await prisma.aIAgent.findUnique({ where: { userId: actorId } });
   if (agent) {
-    throw new ForbiddenException(`${action} nikad ne sme izvršiti AI agent (M23 spec poglavlje 6/9) — nalog ${actorId} je AI_AGENT.`);
+    throw new ForbiddenException(
+      `${action} nikad ne sme izvršiti AI agent (M23 spec poglavlje 6/9) — nalog ${actorId} je AI_AGENT.`,
+    );
   }
 }

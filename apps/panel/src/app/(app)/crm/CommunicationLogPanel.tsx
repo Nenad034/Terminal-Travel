@@ -64,7 +64,8 @@ export default function CommunicationLogPanel({
                   <ActorLabel name="AI agent" origin="AI_AGENT" />
                 )}
                 <span>
-                  {e.channel} · {e.direction === 'OUTBOUND' ? 'poslato' : 'primljeno'} · {new Date(e.createdAt).toLocaleString('sr-RS')}
+                  {e.channel} · {e.direction === 'OUTBOUND' ? 'poslato' : 'primljeno'} ·{' '}
+                  {new Date(e.createdAt).toLocaleString('sr-RS')}
                 </span>
               </div>
               <p className="mt-1 text-ink-dim">{e.summary}</p>
@@ -89,7 +90,9 @@ function NewCommunicationLogForm({ target }: { target: Target }) {
 
   return (
     <form action={formAction} className="flex flex-col gap-2 border-t border-border pt-3">
-      {state.error && <p className="rounded bg-danger-bg p-2 text-[11px] text-danger">{state.error}</p>}
+      {state.error && (
+        <p className="rounded bg-danger-bg p-2 text-[11px] text-danger">{state.error}</p>
+      )}
       <div className="flex gap-2">
         <select name="channel" required className="input" defaultValue="PHONE">
           {CHANNELS.map((c) => (
@@ -103,7 +106,13 @@ function NewCommunicationLogForm({ target }: { target: Target }) {
           <option value="INBOUND">primljeno</option>
         </select>
       </div>
-      <textarea name="summary" required rows={2} placeholder="sažetak razgovora/poruke" className="input" />
+      <textarea
+        name="summary"
+        required
+        rows={2}
+        placeholder="sažetak razgovora/poruke"
+        className="input"
+      />
       <SubmitButton />
     </form>
   );
@@ -132,7 +141,13 @@ function MarkSentButton({ id, target }: { id: string; target: Target }) {
 function MarkSentSubmit() {
   const { pending } = useFormStatus();
   return (
-    <Button type="submit" disabled={pending} variant="outline" size="sm" className="h-auto border-accent px-2 py-0.5 text-accent-strong hover:bg-accent-soft">
+    <Button
+      type="submit"
+      disabled={pending}
+      variant="outline"
+      size="sm"
+      className="h-auto border-accent px-2 py-0.5 text-accent-strong hover:bg-accent-soft"
+    >
       {pending ? 'Označavam…' : 'označi kao poslato'}
     </Button>
   );

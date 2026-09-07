@@ -5,7 +5,6 @@ import { getSession } from '@/lib/session';
 import type { ClientAccount } from '@/lib/types';
 import { updateProfileAction } from './actions';
 
-
 // M6 spec §7 dopuna — GET /crm/client-accounts vraća samo [sopstveni nalog] za Gosta
 // (ClientAccountsService.findMany ownership, avgust 2026).
 export default async function ProfilePage({ params }: { params: Promise<{ locale: string }> }) {
@@ -15,7 +14,9 @@ export default async function ProfilePage({ params }: { params: Promise<{ locale
   const session = await getSession();
   if (!session) redirect(`/${locale}/nalog/prijava`);
 
-  const accounts = await apiFetch<ClientAccount[]>('/crm/client-accounts', { requireAuth: true }).catch(() => []);
+  const accounts = await apiFetch<ClientAccount[]>('/crm/client-accounts', {
+    requireAuth: true,
+  }).catch(() => []);
   const account = accounts[0];
 
   return (
@@ -27,21 +28,40 @@ export default async function ProfilePage({ params }: { params: Promise<{ locale
           <input type="hidden" name="accountId" value={account.id} />
           <label className="text-sm">
             {t('fullName')}
-            <input name="fullName" defaultValue={account.fullName ?? ''} className="mt-1 w-full rounded-md border border-border px-3 py-2" />
+            <input
+              name="fullName"
+              defaultValue={account.fullName ?? ''}
+              className="mt-1 w-full rounded-md border border-border px-3 py-2"
+            />
           </label>
           <label className="text-sm">
             {t('email')}
-            <input name="email" defaultValue={account.email ?? ''} className="mt-1 w-full rounded-md border border-border px-3 py-2" />
+            <input
+              name="email"
+              defaultValue={account.email ?? ''}
+              className="mt-1 w-full rounded-md border border-border px-3 py-2"
+            />
           </label>
           <label className="text-sm">
             {t('phone')}
-            <input name="phone" defaultValue={account.phone ?? ''} className="mt-1 w-full rounded-md border border-border px-3 py-2" />
+            <input
+              name="phone"
+              defaultValue={account.phone ?? ''}
+              className="mt-1 w-full rounded-md border border-border px-3 py-2"
+            />
           </label>
           <label className="flex items-center gap-2 text-sm">
-            <input type="checkbox" name="marketingConsent" defaultChecked={account.marketingConsent} />
+            <input
+              type="checkbox"
+              name="marketingConsent"
+              defaultChecked={account.marketingConsent}
+            />
             {t('marketingConsent')}
           </label>
-          <button type="submit" className="rounded-md bg-accent px-4 py-2 font-medium text-accent-ink hover:bg-accent-strong">
+          <button
+            type="submit"
+            className="rounded-md bg-accent px-4 py-2 font-medium text-accent-ink hover:bg-accent-strong"
+          >
             {t('save')}
           </button>
         </form>

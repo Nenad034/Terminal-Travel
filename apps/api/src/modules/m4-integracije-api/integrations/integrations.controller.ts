@@ -61,7 +61,12 @@ export class IntegrationsController {
   @RequirePermission('M4', 'provider-config', 'EDIT')
   confirmBooking(@Param('code') code: string, @Body() dto: ConfirmBookingDto) {
     return this.integrations.confirmBooking(code, dto.externalId, {
-      stay: { stayFrom: dto.stayFrom, stayTo: dto.stayTo, adults: dto.adults, children: dto.children },
+      stay: {
+        stayFrom: dto.stayFrom,
+        stayTo: dto.stayTo,
+        adults: dto.adults,
+        children: dto.children,
+      },
       guestName: dto.guestName,
       idempotencyKey: dto.idempotencyKey,
     });

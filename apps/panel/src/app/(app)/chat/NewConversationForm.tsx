@@ -27,22 +27,44 @@ export default function NewConversationForm({ staffUsers }: { staffUsers: StaffU
 
   if (!open) {
     return (
-      <Button type="button" onClick={() => setOpen(true)} size="sm" className="flex items-center gap-1.5">
+      <Button
+        type="button"
+        onClick={() => setOpen(true)}
+        size="sm"
+        className="flex items-center gap-1.5"
+      >
         <Icon name="add" /> novi razgovor
       </Button>
     );
   }
 
   return (
-    <form action={formAction} className="flex flex-col gap-3 rounded-lg border border-border bg-panel p-4">
+    <form
+      action={formAction}
+      className="flex flex-col gap-3 rounded-lg border border-border bg-panel p-4"
+    >
       {state.error && <p className="rounded bg-danger-bg p-2 text-xs text-danger">{state.error}</p>}
 
       <div className="flex gap-3 text-xs">
         <label className="flex items-center gap-1.5">
-          <input type="radio" name="type" value="DIRECT" checked={type === 'DIRECT'} onChange={() => setType('DIRECT')} /> direktna poruka
+          <input
+            type="radio"
+            name="type"
+            value="DIRECT"
+            checked={type === 'DIRECT'}
+            onChange={() => setType('DIRECT')}
+          />{' '}
+          direktna poruka
         </label>
         <label className="flex items-center gap-1.5">
-          <input type="radio" name="type" value="GROUP" checked={type === 'GROUP'} onChange={() => setType('GROUP')} /> grupa
+          <input
+            type="radio"
+            name="type"
+            value="GROUP"
+            checked={type === 'GROUP'}
+            onChange={() => setType('GROUP')}
+          />{' '}
+          grupa
         </label>
       </div>
 
@@ -54,10 +76,17 @@ export default function NewConversationForm({ staffUsers }: { staffUsers: StaffU
       )}
 
       <div className="max-h-40 overflow-y-auto rounded border border-border p-2 text-xs">
-        {staffUsers.length === 0 && <p className="text-ink-faint">Nema drugih dostupnih korisnika.</p>}
+        {staffUsers.length === 0 && (
+          <p className="text-ink-faint">Nema drugih dostupnih korisnika.</p>
+        )}
         {staffUsers.map((u) => (
           <label key={u.id} className="flex items-center gap-2 py-1">
-            <input type={type === 'DIRECT' ? 'radio' : 'checkbox'} name="participantUserIds" value={u.id} required />
+            <input
+              type={type === 'DIRECT' ? 'radio' : 'checkbox'}
+              name="participantUserIds"
+              value={u.id}
+              required
+            />
             {u.fullName}
           </label>
         ))}

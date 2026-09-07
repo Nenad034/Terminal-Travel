@@ -25,12 +25,25 @@ export class InspectionExportService {
     const from = new Date(dto.periodFrom);
     const to = new Date(dto.periodTo);
 
-    const [auditLogEntries, bookings, fiscalDocuments, travelGuaranteeRegistrations] = await Promise.all([
-      this.prisma.auditLogEntry.findMany({ where: { timestamp: { gte: from, lte: to } }, orderBy: { timestamp: 'asc' } }),
-      this.prisma.booking.findMany({ where: { createdAt: { gte: from, lte: to } }, orderBy: { createdAt: 'asc' } }),
-      this.prisma.fiscalDocument.findMany({ where: { createdAt: { gte: from, lte: to } }, orderBy: { createdAt: 'asc' } }),
-      this.prisma.travelGuaranteeRegistration.findMany({ where: { createdAt: { gte: from, lte: to } }, orderBy: { createdAt: 'asc' } }),
-    ]);
+    const [auditLogEntries, bookings, fiscalDocuments, travelGuaranteeRegistrations] =
+      await Promise.all([
+        this.prisma.auditLogEntry.findMany({
+          where: { timestamp: { gte: from, lte: to } },
+          orderBy: { timestamp: 'asc' },
+        }),
+        this.prisma.booking.findMany({
+          where: { createdAt: { gte: from, lte: to } },
+          orderBy: { createdAt: 'asc' },
+        }),
+        this.prisma.fiscalDocument.findMany({
+          where: { createdAt: { gte: from, lte: to } },
+          orderBy: { createdAt: 'asc' },
+        }),
+        this.prisma.travelGuaranteeRegistration.findMany({
+          where: { createdAt: { gte: from, lte: to } },
+          orderBy: { createdAt: 'asc' },
+        }),
+      ]);
 
     return {
       periodFrom: dto.periodFrom,
@@ -45,21 +58,38 @@ export class InspectionExportService {
   }
 
   private toCsv(
-    bookings: { bookingNumber: string; status: string; tipNastupanja: string; totalPrice: number; currency: string; createdAt: Date }[],
-    fiscalDocuments: { id: string; documentType: string; status: string; externalReference: string | null; amountRsd: number }[],
+    bookings: {
+      bookingNumber: string;
+      status: string;
+      tipNastupanja: string;
+      totalPrice: number;
+      currency: string;
+      createdAt: Date;
+    }[],
+    fiscalDocuments: {
+      id: string;
+      documentType: string;
+      status: string;
+      externalReference: string | null;
+      amountRsd: number;
+    }[],
     registrations: { bookingId: string; status: string; cisRegistrationNumber: string | null }[],
   ): string {
     const lines: string[] = [];
     lines.push('== Rezervacije ==');
     lines.push('booking_number,status,tip_nastupanja,total_price,currency,created_at');
     for (const b of bookings) {
-      lines.push(`${b.bookingNumber},${b.status},${b.tipNastupanja},${b.totalPrice},${b.currency},${b.createdAt.toISOString()}`);
+      lines.push(
+        `${b.bookingNumber},${b.status},${b.tipNastupanja},${b.totalPrice},${b.currency},${b.createdAt.toISOString()}`,
+      );
     }
     lines.push('');
     lines.push('== Fiskalni dokumenti ==');
     lines.push('id,document_type,status,external_reference,amount_rsd');
     for (const f of fiscalDocuments) {
-      lines.push(`${f.id},${f.documentType},${f.status},${f.externalReference ?? ''},${f.amountRsd}`);
+      lines.push(
+        `${f.id},${f.documentType},${f.status},${f.externalReference ?? ''},${f.amountRsd}`,
+      );
     }
     lines.push('');
     lines.push('== Registracije garancije putovanja (CIS) ==');

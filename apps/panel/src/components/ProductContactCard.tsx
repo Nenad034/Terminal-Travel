@@ -66,8 +66,12 @@ export default function ProductContactCard({ productId }: { productId: string })
               // obrazac kao RealFilterBar (ponovljen `status=` parametar).
               const params = new URLSearchParams();
               params.set('productId', detail.id);
-              for (const s of ['PENDING_SUPPLIER_CONFIRMATION', 'CONFIRMED', 'MODIFIED']) params.append('status', s);
-              openTab(`/rezervacije/lista?${params.toString()}`, `Rezervacije — ${detail.name ?? ''}`);
+              for (const s of ['PENDING_SUPPLIER_CONFIRMATION', 'CONFIRMED', 'MODIFIED'])
+                params.append('status', s);
+              openTab(
+                `/rezervacije/lista?${params.toString()}`,
+                `Rezervacije — ${detail.name ?? ''}`,
+              );
             }}
             className="flex w-full items-center justify-center gap-1.5 rounded border border-accent px-2 py-1.5 text-[11px] font-semibold text-accent hover:bg-accent-soft"
           >

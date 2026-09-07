@@ -22,7 +22,15 @@ interface Translation {
 // preko forme ovde jer approve()/publish() su nepovratna granica (§3) — servis bi ionako odbio
 // PATCH, ali PUT translations backend ne blokira eksplicitno, pa UI ostaje otvoren za dodavanje
 // jezika i posle objave (ne menja već objavljeni sadržaj, samo proširuje pokrivenost jezika).
-export default function TranslationsPanel({ contentId, translations, canEdit }: { contentId: string; translations: Translation[]; canEdit: boolean }) {
+export default function TranslationsPanel({
+  contentId,
+  translations,
+  canEdit,
+}: {
+  contentId: string;
+  translations: Translation[];
+  canEdit: boolean;
+}) {
   const [editingLang, setEditingLang] = useState<string | null>(null);
 
   return (
@@ -31,17 +39,26 @@ export default function TranslationsPanel({ contentId, translations, canEdit }: 
         <Icon name="globe" className="text-accent" /> Prevodi
       </div>
 
-      {translations.length === 0 && <p className="mb-2 text-xs text-ink-faint">Nema unetih prevoda.</p>}
+      {translations.length === 0 && (
+        <p className="mb-2 text-xs text-ink-faint">Nema unetih prevoda.</p>
+      )}
 
       <div className="mb-3 flex flex-col gap-2">
         {translations.map((t) => (
           <div key={t.languageCode} className="rounded border border-border bg-panel2 p-2 text-xs">
             <div className="flex items-center justify-between">
               <span className="font-semibold text-ink">
-                {t.languageCode} {t.isReviewed && <span className="ml-1 text-[11px] text-ok">pregledano</span>}
+                {t.languageCode}{' '}
+                {t.isReviewed && <span className="ml-1 text-[11px] text-ok">pregledano</span>}
               </span>
               {canEdit && (
-                <Button type="button" onClick={() => setEditingLang(t.languageCode)} variant="link" size="sm" className="h-auto p-0 text-[11px]">
+                <Button
+                  type="button"
+                  onClick={() => setEditingLang(t.languageCode)}
+                  variant="link"
+                  size="sm"
+                  className="h-auto p-0 text-[11px]"
+                >
                   izmeni
                 </Button>
               )}
@@ -88,7 +105,9 @@ function TranslationForm({
 
   return (
     <form action={formAction} className="mt-2 flex flex-col gap-2 border-t border-border pt-3">
-      {state.error && <p className="rounded bg-danger-bg p-2 text-[11px] text-danger">{state.error}</p>}
+      {state.error && (
+        <p className="rounded bg-danger-bg p-2 text-[11px] text-danger">{state.error}</p>
+      )}
       <select name="languageCode" defaultValue={initialLang} className="input">
         {LANGUAGES.map((l) => (
           <option key={l} value={l}>
@@ -96,10 +115,28 @@ function TranslationForm({
           </option>
         ))}
       </select>
-      <input name="title" required defaultValue={existing?.title ?? ''} placeholder="naslov" className="input" />
-      <textarea name="body" required rows={5} defaultValue={existing?.body ?? ''} placeholder="tekst — za AI vizual dodati vidljivu napomenu (M12 spec §3c)" className="input" />
+      <input
+        name="title"
+        required
+        defaultValue={existing?.title ?? ''}
+        placeholder="naslov"
+        className="input"
+      />
+      <textarea
+        name="body"
+        required
+        rows={5}
+        defaultValue={existing?.body ?? ''}
+        placeholder="tekst — za AI vizual dodati vidljivu napomenu (M12 spec §3c)"
+        className="input"
+      />
       <label className="flex items-center gap-2 text-[11px] text-ink-dim">
-        <input type="checkbox" name="isReviewed" defaultChecked={existing?.isReviewed ?? false} className="h-3.5 w-3.5" />
+        <input
+          type="checkbox"
+          name="isReviewed"
+          defaultChecked={existing?.isReviewed ?? false}
+          className="h-3.5 w-3.5"
+        />
         pregledano
       </label>
       <div className="flex gap-2">

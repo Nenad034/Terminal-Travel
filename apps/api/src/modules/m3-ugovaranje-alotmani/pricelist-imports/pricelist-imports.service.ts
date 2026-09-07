@@ -18,7 +18,10 @@ export class PricelistImportsService {
   }
 
   findOne(id: string) {
-    return this.prisma.pricelistImport.findUniqueOrThrow({ where: { id }, include: { rows: true } });
+    return this.prisma.pricelistImport.findUniqueOrThrow({
+      where: { id },
+      include: { rows: true },
+    });
   }
 
   listRows(importId: string) {
@@ -81,11 +84,17 @@ export class PricelistImportsService {
 
     const matchedProductId = dto.matchedProductId ?? row.matchedProductId;
     if (!matchedProductId) {
-      throw new BadRequestException('Red mora imati matched_product_id pre odobrenja (M3 spec §4.2.3/§4.2.4)');
+      throw new BadRequestException(
+        'Red mora imati matched_product_id pre odobrenja (M3 spec §4.2.3/§4.2.4)',
+      );
     }
-    const product = await this.prisma.product.findUniqueOrThrow({ where: { id: matchedProductId } });
+    const product = await this.prisma.product.findUniqueOrThrow({
+      where: { id: matchedProductId },
+    });
     if (!product.sourceContractId) {
-      throw new BadRequestException('Poklopljeni proizvod nema source_contract_id — nije CONTRACTED proizvod');
+      throw new BadRequestException(
+        'Poklopljeni proizvod nema source_contract_id — nije CONTRACTED proizvod',
+      );
     }
     if (!row.extractedPriceBasis) {
       throw new BadRequestException(
@@ -188,7 +197,10 @@ export class PricelistImportsService {
       where: { pricelistImportId: importId, reviewStatus: 'PENDING' },
     });
     if (pending === 0) {
-      await this.prisma.pricelistImport.update({ where: { id: importId }, data: { status: 'COMPLETED' } });
+      await this.prisma.pricelistImport.update({
+        where: { id: importId },
+        data: { status: 'COMPLETED' },
+      });
     }
   }
 }

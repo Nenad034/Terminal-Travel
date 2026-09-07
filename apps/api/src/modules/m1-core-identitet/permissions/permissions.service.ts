@@ -16,7 +16,12 @@ import { PrismaService } from '../../../prisma/prisma.service';
 export class PermissionsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async hasPermission(userId: string, moduleCode: string, resource: string, action: string): Promise<boolean> {
+  async hasPermission(
+    userId: string,
+    moduleCode: string,
+    resource: string,
+    action: string,
+  ): Promise<boolean> {
     const permission = await this.prisma.permission.findUnique({
       where: { module_resource_action: { module: moduleCode, resource, action } },
     });
@@ -59,7 +64,9 @@ export class PermissionsService {
   }
 
   async catalog() {
-    return this.prisma.permission.findMany({ orderBy: [{ module: 'asc' }, { resource: 'asc' }, { action: 'asc' }] });
+    return this.prisma.permission.findMany({
+      orderBy: [{ module: 'asc' }, { resource: 'asc' }, { action: 'asc' }],
+    });
   }
 
   /**
@@ -70,7 +77,9 @@ export class PermissionsService {
    * pojedinačno. Koristi ga isključivo `GET /iam/auth/me` (samo za sopstveni nalog,
    * nema poseban ključ dozvole — svaki prijavljeni korisnik sme da vidi SVOJA prava).
    */
-  async effectivePermissions(userId: string): Promise<{ module: string; resource: string; action: string }[]> {
+  async effectivePermissions(
+    userId: string,
+  ): Promise<{ module: string; resource: string; action: string }[]> {
     const now = new Date();
 
     const rolePerms = await this.prisma.permission.findMany({
@@ -86,12 +95,14 @@ export class PermissionsService {
       include: { permission: true },
     });
 
-    const key = (p: { module: string; resource: string; action: string }) => `${p.module}/${p.resource}/${p.action}`;
+    const key = (p: { module: string; resource: string; action: string }) =>
+      `${p.module}/${p.resource}/${p.action}`;
     const denySet = new Set(denies.map((d) => key(d.permission)));
 
     const result = new Map<string, { module: string; resource: string; action: string }>();
     for (const p of rolePerms) if (!denySet.has(key(p))) result.set(key(p), p);
-    for (const a of allows) if (!denySet.has(key(a.permission))) result.set(key(a.permission), a.permission);
+    for (const a of allows)
+      if (!denySet.has(key(a.permission))) result.set(key(a.permission), a.permission);
 
     return [...result.values()];
   }
@@ -102,7 +113,13 @@ export class PermissionsService {
   ) {
     for (const entry of entries) {
       await this.prisma.permission.upsert({
-        where: { module_resource_action: { module: entry.module, resource: entry.resource, action: entry.action } },
+        where: {
+          module_resource_action: {
+            module: entry.module,
+            resource: entry.resource,
+            action: entry.action,
+          },
+        },
         update: { description: entry.description },
         create: entry,
       });

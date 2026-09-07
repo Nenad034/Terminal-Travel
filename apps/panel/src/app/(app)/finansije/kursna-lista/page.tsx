@@ -95,7 +95,11 @@ export default async function KursnaListaPage(props: {
         <>
           <div className="mb-3 flex flex-wrap items-center gap-2 text-xs">
             <span className="text-ink-faint">valuta:</span>
-            <FilterLink label="sve" href="/finansije/kursna-lista" active={!searchParams?.currency} />
+            <FilterLink
+              label="sve"
+              href="/finansije/kursna-lista"
+              active={!searchParams?.currency}
+            />
             <FilterLink
               label="EUR"
               href="/finansije/kursna-lista?currency=EUR"
@@ -130,7 +134,9 @@ export default async function KursnaListaPage(props: {
                 <tbody>
                   {rates.map((r) => (
                     <tr key={r.id} className="border-b border-border bg-panel last:border-b-0">
-                      <td className="px-4 py-2 font-mono text-ink">{formatirajDatum(r.rateDate)}</td>
+                      <td className="px-4 py-2 font-mono text-ink">
+                        {formatirajDatum(r.rateDate)}
+                      </td>
                       <td className="px-4 py-2 text-ink">{r.currency}</td>
                       {/* `nbsMiddleRate` je STRING (Prisma Decimal kroz JSON, zamka 10.1) —
                           prikazuje se kakav jeste, bez pretvaranja u broj koje bi izgubilo
@@ -173,7 +179,9 @@ function FilterLink({ label, href, active }: { label: string; href: string; acti
     <Link
       href={href}
       className={`rounded border px-2 py-0.5 ${
-        active ? 'border-accent bg-accent-soft text-accent' : 'border-border text-ink-faint hover:text-accent'
+        active
+          ? 'border-accent bg-accent-soft text-accent'
+          : 'border-border text-ink-faint hover:text-accent'
       }`}
     >
       {label}
@@ -182,7 +190,11 @@ function FilterLink({ label, href, active }: { label: string; href: string; acti
 }
 
 function formatirajDatum(iso: string): string {
-  return new Date(iso).toLocaleDateString('sr-RS', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  return new Date(iso).toLocaleDateString('sr-RS', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  });
 }
 
 function danaOd(iso: string): number {

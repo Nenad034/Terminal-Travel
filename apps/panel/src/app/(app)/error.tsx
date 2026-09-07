@@ -27,7 +27,13 @@ import { Button } from '@/components/ui/button';
 // spaja ono što korisnik vidi sa onim što piše u logu. Slanje greške u M18 nadzor traži nov
 // endpoint (`HealthSignal` danas ima samo `GET`) i dopunu M18 spec-a — svesno van ovog
 // prolaza, zavedeno kao poznat nedostatak.
-export default function AppError({ error, retry }: { error: Error & { digest?: string }; retry: () => void }) {
+export default function AppError({
+  error,
+  retry,
+}: {
+  error: Error & { digest?: string };
+  retry: () => void;
+}) {
   useEffect(() => {
     // Vidljivo u konzoli browsera pri dijagnostici; sam Next već loguje serversku stranu.
     console.error('[panel] greška na ekranu:', error);
@@ -42,8 +48,9 @@ export default function AppError({ error, retry }: { error: Error & { digest?: s
         </div>
 
         <p className="mb-4 text-sm text-ink-dim">
-          Greška je zabeležena. Vaši podaci nisu izgubljeni — ništa nije upisano niti obrisano zbog ovoga.
-          Pokušajte ponovo; ako se ponovi, pošaljite oznaku ispod da bismo tačno znali šta se desilo.
+          Greška je zabeležena. Vaši podaci nisu izgubljeni — ništa nije upisano niti obrisano zbog
+          ovoga. Pokušajte ponovo; ako se ponovi, pošaljite oznaku ispod da bismo tačno znali šta se
+          desilo.
         </p>
 
         <div className="mb-4 flex flex-wrap gap-2">
@@ -61,11 +68,15 @@ export default function AppError({ error, retry }: { error: Error & { digest?: s
             Bez nje prijava glasi „nešto je puklo negde", što ne pomaže nikome. */}
         <div className="rounded border border-border bg-panel2 p-3 text-xs">
           <div className="mb-1 text-ink-faint">Oznaka za prijavu:</div>
-          <code className="font-mono text-ink">{error.digest ?? 'nije dodeljena (greška u browseru, ne na serveru)'}</code>
+          <code className="font-mono text-ink">
+            {error.digest ?? 'nije dodeljena (greška u browseru, ne na serveru)'}
+          </code>
           {error.message && (
             <>
               <div className="mb-1 mt-2 text-ink-faint">Tehnički opis:</div>
-              <code className="block whitespace-pre-wrap break-words font-mono text-ink-dim">{error.message}</code>
+              <code className="block whitespace-pre-wrap break-words font-mono text-ink-dim">
+                {error.message}
+              </code>
             </>
           )}
         </div>

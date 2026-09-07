@@ -20,7 +20,8 @@ export class ClientContractsService {
     private readonly prisma: PrismaService,
     private readonly auditLog: AuditLogService,
     private readonly agencyConfig: AgencyStaticConfigService,
-    @Inject(CONTRACT_DOCUMENT_GENERATOR_ADAPTER) private readonly gateway: ContractDocumentGeneratorAdapter,
+    @Inject(CONTRACT_DOCUMENT_GENERATOR_ADAPTER)
+    private readonly gateway: ContractDocumentGeneratorAdapter,
     private readonly permissions: PermissionsService,
   ) {}
 
@@ -31,13 +32,21 @@ export class ClientContractsService {
   // ime/adresu/cenu nalogodavca) prostim nagađanjem ID-a.
   // Dopuna 31.8.2026 (M1 §3.9a konvencija) — STAFF bez `M20/client-contract/VIEW_ALL` sužava
   // se analogno, na ugovore rezervacija u sopstvenom vlasništvu/zaduženju (M5 §6.6).
-  async findMany(filter: { bookingId?: string; status?: ClientContract['status'] }, actorUserId?: string) {
+  async findMany(
+    filter: { bookingId?: string; status?: ClientContract['status'] },
+    actorUserId?: string,
+  ) {
     const ownAccountId = await this.ownAccountIdIfGuest(actorUserId);
     if (ownAccountId === null) return []; // gost bez sopstvenog naloga (još) — nema šta da vidi
 
     let scopedToOwnBooking = false;
     if (ownAccountId === undefined && actorUserId) {
-      const hasViewAll = await this.permissions.hasPermission(actorUserId, 'M20', 'client-contract', 'VIEW_ALL');
+      const hasViewAll = await this.permissions.hasPermission(
+        actorUserId,
+        'M20',
+        'client-contract',
+        'VIEW_ALL',
+      );
       scopedToOwnBooking = !hasViewAll;
     }
 
@@ -65,9 +74,15 @@ export class ClientContractsService {
       // Odvojen upit (ne include) — sprečava da booking (sa internim poljima poput
       // supplier_reference) slučajno ispadne u odgovor gostu.
       const booking = await this.prisma.booking.findUnique({ where: { id: contract.bookingId } });
-      if (booking?.clientAccountId !== ownAccountId) throw new NotFoundException(`ClientContract ${id} nije pronađen.`);
+      if (booking?.clientAccountId !== ownAccountId)
+        throw new NotFoundException(`ClientContract ${id} nije pronađen.`);
     } else if (actorUserId) {
-      const hasViewAll = await this.permissions.hasPermission(actorUserId, 'M20', 'client-contract', 'VIEW_ALL');
+      const hasViewAll = await this.permissions.hasPermission(
+        actorUserId,
+        'M20',
+        'client-contract',
+        'VIEW_ALL',
+      );
       if (!hasViewAll) {
         const booking = await this.prisma.booking.findUnique({ where: { id: contract.bookingId } });
         if (booking?.ownerId !== actorUserId && booking?.assignedToId !== actorUserId) {
@@ -79,7 +94,9 @@ export class ClientContractsService {
   }
 
   /** `undefined` = pozivalac nije Gost (nema ownership restrikciju); `string | null` = Gost, sopstveni nalog (ili null ako ga još nema). */
-  private async ownAccountIdIfGuest(actorUserId: string | undefined): Promise<string | null | undefined> {
+  private async ownAccountIdIfGuest(
+    actorUserId: string | undefined,
+  ): Promise<string | null | undefined> {
     if (!actorUserId) return undefined;
     const identity = await resolveCallerIdentity(this.prisma, actorUserId);
     return identity.accountType === 'GUEST' ? identity.ownProfileId : undefined;
@@ -88,7 +105,9 @@ export class ClientContractsService {
   // §3.1 — poziva se na M5 booking.confirmed. Idempotentno: ako AKTIVAN (ne-VOIDED) ugovor za
   // ovaj booking već postoji, vraća ga bez ponovnog generisanja.
   async generateForBooking(bookingId: string): Promise<ClientContract | null> {
-    const existing = await this.prisma.clientContract.findFirst({ where: { bookingId, status: { not: 'VOIDED' } } });
+    const existing = await this.prisma.clientContract.findFirst({
+      where: { bookingId, status: { not: 'VOIDED' } },
+    });
     if (existing) return existing;
 
     return this.generate(bookingId, null);
@@ -97,7 +116,9 @@ export class ClientContractsService {
   // §3.4 — poziva se na M5 booking.modified. Poništava aktivan ugovor (sistemski) i generiše
   // novu verziju koja UVEK zahteva ponovno prihvatanje, čak i ako je prethodna bila ACCEPTED.
   async voidAndRegenerateForModification(bookingId: string): Promise<ClientContract | null> {
-    const current = await this.prisma.clientContract.findFirst({ where: { bookingId, status: { not: 'VOIDED' } } });
+    const current = await this.prisma.clientContract.findFirst({
+      where: { bookingId, status: { not: 'VOIDED' } },
+    });
     if (!current) return null; // nema aktivnog ugovora (npr. samo-INSURANCE rezervacija) — ništa za revidovati
 
     const voided = await this.prisma.clientContract.update({
@@ -116,7 +137,10 @@ export class ClientContractsService {
     return this.generate(bookingId, current.id);
   }
 
-  private async generate(bookingId: string, supersedesContractId: string | null): Promise<ClientContract | null> {
+  private async generate(
+    bookingId: string,
+    supersedesContractId: string | null,
+  ): Promise<ClientContract | null> {
     const booking = await this.prisma.booking.findUnique({
       where: { id: bookingId },
       include: {
@@ -132,7 +156,9 @@ export class ClientContractsService {
 
     const contractType = determineContractType(booking as any);
     if (!contractType) {
-      this.logger.warn(`Booking ${bookingId} nema podržan contract_type za automatsko generisanje (M20 spec §2.2/§8) — preskočeno.`);
+      this.logger.warn(
+        `Booking ${bookingId} nema podržan contract_type za automatsko generisanje (M20 spec §2.2/§8) — preskočeno.`,
+      );
       return null;
     }
 
@@ -191,7 +217,9 @@ export class ClientContractsService {
   async accept(id: string, actor: { userId: string }): Promise<ClientContract> {
     const contract = await this.findOne(id);
     if (contract.status !== 'GENERATED') {
-      throw new BadRequestException(`ClientContract ${id} nije u statusu GENERATED (status: ${contract.status}).`);
+      throw new BadRequestException(
+        `ClientContract ${id} nije u statusu GENERATED (status: ${contract.status}).`,
+      );
     }
 
     const updated = await this.prisma.clientContract.update({

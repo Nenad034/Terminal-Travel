@@ -118,7 +118,12 @@ export class HealthDetectorsService {
     const since = this.since();
     const failures = await this.prisma.auditLogEntry.groupBy({
       by: ['actorId'],
-      where: { module: 'M1', action: 'auth.login_failed', timestamp: { gte: since }, actorId: { not: null } },
+      where: {
+        module: 'M1',
+        action: 'auth.login_failed',
+        timestamp: { gte: since },
+        actorId: { not: null },
+      },
       _count: { _all: true },
     });
 

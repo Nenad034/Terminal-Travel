@@ -22,36 +22,38 @@ M14 je tiketing sistem za goste (preko M8 sajta ili M9 aplikacije) i subagente (
 ## 2. Model podataka
 
 ### 2.1 `Ticket`
-| Polje | Tip | Napomena |
-| :---- | :---- | :---- |
-| id | UUID (PK) | |
-| ticket_number | string, unique | čitljiva oznaka |
-| requester_client_account_id | UUID, nullable (FK → M6) | popunjeno za goste/subagente |
-| requester_type | enum: `GUEST`, `SUBAGENT`, `STAFF_ON_BEHALF` | poslednje — kad tim unese tiket u ime gosta koji je zvao telefonom |
-| related_booking_id | UUID, nullable (FK → M5) | kontekst, ako se tiče konkretne rezervacije |
-| subject | string | |
-| category | enum: `REZERVACIJA`, `PLACANJE`, `TEHNICKI_PROBLEM`, `REKLAMACIJA`, `DRUGO` | `REKLAMACIJA` je pravno posebna kategorija — vidi poglavlje 3.1 |
-| priority | enum: `LOW`, `NORMAL`, `HIGH`, `URGENT` | |
-| status | enum: `OPEN`, `IN_PROGRESS`, `RESOLVED`, `CLOSED` | |
-| channel | enum: `SITE_FORM`, `B2B_PORTAL`, `EMAIL`, `PHONE`, `HELP_CENTER` *(dodato pri specifikaciji M21)* | `HELP_CENTER` — tiket kreiran eskalacijom iz AI asistenta (M21 poglavlje 5.3), prva poruka već sadrži tekst pitanja |
-| source_email_thread_id | UUID, nullable (FK → M22 `EmailThread`) *(dodato pri specifikaciji M22, avgust 2026)* | popunjeno kad je tiket nastao konverzijom mejl niti (M22 poglavlje 5) — `null` za tikete kreirane bilo kojim drugim kanalom |
-| assigned_to | UUID, nullable (FK → M1 User) | |
-| zzp_response_deadline | date, nullable | **samo za `category = REKLAMACIJA`** — `created_at + 8 dana` (poglavlje 3.1), popunjava se automatski pri kreiranju |
-| zzp_escalated_at | timestamp, nullable | **samo za `category = REKLAMACIJA`** — popunjava se automatski ako tiket ostane bez odgovora tima 5 dana od `created_at` |
-| refund_decision | boolean, default `false` | *(dodato pri implementaciji, avgust 2026 — zatvara §8 otvoreno pitanje)* mehanizam kojim se formalno beleži odluka o povraćaju: `PATCH /tickets/:id` sa `status=RESOLVED` i `refund_decision=true` okida `ticket.resolved_with_refund` (§3.2) |
-| created_at / updated_at / resolved_at | timestamp | |
+
+| Polje                                 | Tip                                                                                               | Napomena                                                                                                                                                                                                                                      |
+| :------------------------------------ | :------------------------------------------------------------------------------------------------ | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| id                                    | UUID (PK)                                                                                         |                                                                                                                                                                                                                                               |
+| ticket_number                         | string, unique                                                                                    | čitljiva oznaka                                                                                                                                                                                                                               |
+| requester_client_account_id           | UUID, nullable (FK → M6)                                                                          | popunjeno za goste/subagente                                                                                                                                                                                                                  |
+| requester_type                        | enum: `GUEST`, `SUBAGENT`, `STAFF_ON_BEHALF`                                                      | poslednje — kad tim unese tiket u ime gosta koji je zvao telefonom                                                                                                                                                                            |
+| related_booking_id                    | UUID, nullable (FK → M5)                                                                          | kontekst, ako se tiče konkretne rezervacije                                                                                                                                                                                                   |
+| subject                               | string                                                                                            |                                                                                                                                                                                                                                               |
+| category                              | enum: `REZERVACIJA`, `PLACANJE`, `TEHNICKI_PROBLEM`, `REKLAMACIJA`, `DRUGO`                       | `REKLAMACIJA` je pravno posebna kategorija — vidi poglavlje 3.1                                                                                                                                                                               |
+| priority                              | enum: `LOW`, `NORMAL`, `HIGH`, `URGENT`                                                           |                                                                                                                                                                                                                                               |
+| status                                | enum: `OPEN`, `IN_PROGRESS`, `RESOLVED`, `CLOSED`                                                 |                                                                                                                                                                                                                                               |
+| channel                               | enum: `SITE_FORM`, `B2B_PORTAL`, `EMAIL`, `PHONE`, `HELP_CENTER` _(dodato pri specifikaciji M21)_ | `HELP_CENTER` — tiket kreiran eskalacijom iz AI asistenta (M21 poglavlje 5.3), prva poruka već sadrži tekst pitanja                                                                                                                           |
+| source_email_thread_id                | UUID, nullable (FK → M22 `EmailThread`) _(dodato pri specifikaciji M22, avgust 2026)_             | popunjeno kad je tiket nastao konverzijom mejl niti (M22 poglavlje 5) — `null` za tikete kreirane bilo kojim drugim kanalom                                                                                                                   |
+| assigned_to                           | UUID, nullable (FK → M1 User)                                                                     |                                                                                                                                                                                                                                               |
+| zzp_response_deadline                 | date, nullable                                                                                    | **samo za `category = REKLAMACIJA`** — `created_at + 8 dana` (poglavlje 3.1), popunjava se automatski pri kreiranju                                                                                                                           |
+| zzp_escalated_at                      | timestamp, nullable                                                                               | **samo za `category = REKLAMACIJA`** — popunjava se automatski ako tiket ostane bez odgovora tima 5 dana od `created_at`                                                                                                                      |
+| refund_decision                       | boolean, default `false`                                                                          | _(dodato pri implementaciji, avgust 2026 — zatvara §8 otvoreno pitanje)_ mehanizam kojim se formalno beleži odluka o povraćaju: `PATCH /tickets/:id` sa `status=RESOLVED` i `refund_decision=true` okida `ticket.resolved_with_refund` (§3.2) |
+| created_at / updated_at / resolved_at | timestamp                                                                                         |                                                                                                                                                                                                                                               |
 
 ### 2.2 `TicketMessage`
-| Polje | Tip | Napomena |
-| :---- | :---- | :---- |
-| id | UUID (PK) | |
-| ticket_id | UUID (FK) | |
-| sender_type | enum: `REQUESTER`, `STAFF`, `AI_DRAFT` | |
-| sender_id | UUID, nullable | M1 User ili M6 ClientAccount/GuestProfile |
-| body | text | |
-| is_internal_note | boolean | interna beleška tima, nikad vidljiva gostu/subagentu |
-| sent_by | UUID, nullable (FK → M1 User) | popunjeno kad je poruka stvarno poslata (vidi poglavlje 3) |
-| created_at | timestamp | |
+
+| Polje            | Tip                                    | Napomena                                                   |
+| :--------------- | :------------------------------------- | :--------------------------------------------------------- |
+| id               | UUID (PK)                              |                                                            |
+| ticket_id        | UUID (FK)                              |                                                            |
+| sender_type      | enum: `REQUESTER`, `STAFF`, `AI_DRAFT` |                                                            |
+| sender_id        | UUID, nullable                         | M1 User ili M6 ClientAccount/GuestProfile                  |
+| body             | text                                   |                                                            |
+| is_internal_note | boolean                                | interna beleška tima, nikad vidljiva gostu/subagentu       |
+| sent_by          | UUID, nullable (FK → M1 User)          | popunjeno kad je poruka stvarno poslata (vidi poglavlje 3) |
+| created_at       | timestamp                              |                                                            |
 
 ---
 
@@ -60,6 +62,7 @@ M14 je tiketing sistem za goste (preko M8 sajta ili M9 aplikacije) i subagente (
 ### 3.1 Rok od 8 dana i eskalacija posle 5
 
 Za tiket sa `category = REKLAMACIJA`, agencija je zakonski obavezna da odgovori na pisanu reklamaciju u roku od **8 dana** od prijema (`zzp_response_deadline = created_at + 8 dana`). Ako reklamacija ostane bez odgovora tima (nijedna `TicketMessage` sa `sender_type = STAFF` i popunjenim `sent_by`) **5 dana** od `created_at`, sistem automatski:
+
 1. Popunjava `zzp_escalated_at`.
 2. Obaveštava Vlasnika/Direktora (interni panel + email) — nivo **"Autonomno"** iz poglavlja 7 Master dokumenta, čisto informativna eskalacija, ne izvršenje.
 
@@ -81,10 +84,10 @@ AI agent sme samostalno (nivo "Autonomno") da sažme upit gosta i pripremi nacrt
 
 ## 5. Dozvole (registruju se u M1 katalog dozvola)
 
-| Dozvola | Podrazumevana dodela po ulozi |
-| :---- | :---- |
-| `M14/ticket/VIEW`, `CREATE`, `RESPOND` | Vlasnik, Direktor, Sales Manager, Prodajni agent (svi tiketi podrazumevano — isti `VIEW_ALL` obrazac kao M5 poglavlje 6.6/M1 §3.9a, izmenjeno 31.8.2026; sužavanje na sopstvene je pojedinačna opcija, ne podrazumevana); Gost i `SUBAGENT_ADMIN` (isto `CREATE`/`VIEW`, ali obim ograničen na sopstvene tikete na nivou API-ja, ne poseban ključ dozvole) |
-| Interne beleške (`is_internal_note = true`) | Vidljivo samo ulogama sa `M14/ticket/VIEW` iz internog tima — **nikad** Gostu/Subagentu, bez obzira na to što oni imaju `VIEW` nad samim tiketom |
+| Dozvola                                     | Podrazumevana dodela po ulozi                                                                                                                                                                                                                                                                                                                              |
+| :------------------------------------------ | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `M14/ticket/VIEW`, `CREATE`, `RESPOND`      | Vlasnik, Direktor, Sales Manager, Prodajni agent (svi tiketi podrazumevano — isti `VIEW_ALL` obrazac kao M5 poglavlje 6.6/M1 §3.9a, izmenjeno 31.8.2026; sužavanje na sopstvene je pojedinačna opcija, ne podrazumevana); Gost i `SUBAGENT_ADMIN` (isto `CREATE`/`VIEW`, ali obim ograničen na sopstvene tikete na nivou API-ja, ne poseban ključ dozvole) |
+| Interne beleške (`is_internal_note = true`) | Vidljivo samo ulogama sa `M14/ticket/VIEW` iz internog tima — **nikad** Gostu/Subagentu, bez obzira na to što oni imaju `VIEW` nad samim tiketom                                                                                                                                                                                                           |
 
 ---
 
@@ -92,12 +95,12 @@ AI agent sme samostalno (nivo "Autonomno") da sažme upit gosta i pripremi nacrt
 
 Prefiks: `/api/v1/helpdesk`
 
-| Endpoint | Metod | Opis |
-| :---- | :---- | :---- |
-| `/tickets` | GET / POST | lista (prava po ulozi) / kreiranje |
-| `/tickets/:id` | GET / PATCH | detalji, izmena statusa/prioriteta |
-| `/tickets/:id/messages` | GET / POST | pregled niti / dodavanje poruke (nacrt ili poslato) |
-| `/tickets/:id/messages/:messageId/send` | POST | ljudska potvrda slanja AI nacrta |
+| Endpoint                                | Metod       | Opis                                                |
+| :-------------------------------------- | :---------- | :-------------------------------------------------- |
+| `/tickets`                              | GET / POST  | lista (prava po ulozi) / kreiranje                  |
+| `/tickets/:id`                          | GET / PATCH | detalji, izmena statusa/prioriteta                  |
+| `/tickets/:id/messages`                 | GET / POST  | pregled niti / dodavanje poruke (nacrt ili poslato) |
+| `/tickets/:id/messages/:messageId/send` | POST        | ljudska potvrda slanja AI nacrta                    |
 
 ---
 

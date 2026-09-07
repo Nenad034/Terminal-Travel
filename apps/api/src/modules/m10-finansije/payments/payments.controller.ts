@@ -1,4 +1,15 @@
-import { Body, Controller, Get, Headers, Param, Patch, Post, Query, UnauthorizedException, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Headers,
+  Param,
+  Patch,
+  Post,
+  Query,
+  UnauthorizedException,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { ConfigService } from '@nestjs/config';
 import { PaymentsService } from './payments.service';
@@ -49,7 +60,11 @@ export class PaymentsController {
   @Patch(':id')
   @UseGuards(JwtAuthGuard, PermissionsGuard)
   @RequirePermission('M10', 'payment', 'RECORD')
-  updateManualPayment(@Param('id') id: string, @Body() dto: UpdatePaymentDto, @CurrentUser() actor: { userId: string }) {
+  updateManualPayment(
+    @Param('id') id: string,
+    @Body() dto: UpdatePaymentDto,
+    @CurrentUser() actor: { userId: string },
+  ) {
     return this.payments.updateManualPayment(id, dto, actor);
   }
 
@@ -68,7 +83,10 @@ export class PaymentsController {
   // `gatewayTransactionId` mogao da potvrdi rezervaciju kao plaćenu bez ijednog dinara.
   @Post('card/webhook')
   @Public()
-  handleCardWebhook(@Body() dto: CardPaymentWebhookDto, @Headers('x-payment-webhook-signature') signature?: string) {
+  handleCardWebhook(
+    @Body() dto: CardPaymentWebhookDto,
+    @Headers('x-payment-webhook-signature') signature?: string,
+  ) {
     const secret = this.config.getOrThrow<string>('PAYMENT_WEBHOOK_SECRET');
     if (!verifyPaymentWebhookSignature(dto.gatewayTransactionId, signature, secret)) {
       throw new UnauthorizedException('Nevažeći ili nedostajući potpis webhook poziva.');

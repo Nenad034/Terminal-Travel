@@ -15,14 +15,23 @@ describe('QuotesService', () => {
       getEffectiveCommissionPercentageForClientAccount: jest.fn().mockResolvedValue(null),
     };
     const auditLog = { write: jest.fn() };
-    const service = new QuotesService(prisma, builder as any, loyalty as any, subagentBridge as any, auditLog as any);
+    const service = new QuotesService(
+      prisma,
+      builder as any,
+      loyalty as any,
+      subagentBridge as any,
+      auditLog as any,
+    );
     return { service, prisma, builder, loyalty, subagentBridge, auditLog };
   }
 
   describe('create — client_account_id se ne uzima slepo iz tela zahteva za gosta', () => {
     it('gost NE može da pripiše Ponudu tuđem nalogu — server prisilno koristi sopstveni', async () => {
       const { service, prisma, builder } = makeService();
-      prisma.user.findUnique.mockResolvedValue({ accountType: 'GUEST', linkedProfileId: 'acc-own' });
+      prisma.user.findUnique.mockResolvedValue({
+        accountType: 'GUEST',
+        linkedProfileId: 'acc-own',
+      });
       builder.build.mockResolvedValue({
         productId: 'p1',
         sourceType: 'CONTRACTED',
@@ -79,7 +88,9 @@ describe('QuotesService', () => {
       );
 
       expect(prisma.quote.create).toHaveBeenCalledWith(
-        expect.objectContaining({ data: expect.objectContaining({ clientAccountId: 'acc-bilo-koji' }) }),
+        expect.objectContaining({
+          data: expect.objectContaining({ clientAccountId: 'acc-bilo-koji' }),
+        }),
       );
     });
   });
@@ -135,7 +146,10 @@ describe('QuotesService', () => {
 
       await expect(
         service.create(
-          { channel: 'INTERNAL_PANEL', items: [{ productId: 'flight-1' }, { productId: 'hotel-1' }] } as any,
+          {
+            channel: 'INTERNAL_PANEL',
+            items: [{ productId: 'flight-1' }, { productId: 'hotel-1' }],
+          } as any,
           { userId: 'staff-1' },
         ),
       ).rejects.toThrow(BadRequestException);
@@ -160,7 +174,11 @@ describe('QuotesService', () => {
 
       expect((result as unknown as { id: string }).id).toBe('q-mismatch');
       expect(auditLog.write).toHaveBeenCalledWith(
-        expect.objectContaining({ action: 'quote.date_mismatch_override', resourceType: 'Quote', resourceId: 'q-mismatch' }),
+        expect.objectContaining({
+          action: 'quote.date_mismatch_override',
+          resourceType: 'Quote',
+          resourceId: 'q-mismatch',
+        }),
       );
     });
 
@@ -210,7 +228,10 @@ describe('QuotesService', () => {
       prisma.quote.create.mockResolvedValue({ id: 'q-ok', items: [] });
 
       const result = await service.create(
-        { channel: 'INTERNAL_PANEL', items: [{ productId: 'flight-1' }, { productId: 'hotel-1' }] } as any,
+        {
+          channel: 'INTERNAL_PANEL',
+          items: [{ productId: 'flight-1' }, { productId: 'hotel-1' }],
+        } as any,
         { userId: 'staff-1' },
       );
 
@@ -222,16 +243,34 @@ describe('QuotesService', () => {
   describe('findOne — ownership', () => {
     it('gost NE vidi tuđu Ponudu — 404', async () => {
       const { service, prisma } = makeService();
-      prisma.user.findUnique.mockResolvedValue({ accountType: 'GUEST', linkedProfileId: 'acc-own' });
-      prisma.quote.findUnique.mockResolvedValue({ id: 'q1', clientAccountId: 'acc-tudj', status: 'DRAFT', expiresAt: new Date(), items: [] });
+      prisma.user.findUnique.mockResolvedValue({
+        accountType: 'GUEST',
+        linkedProfileId: 'acc-own',
+      });
+      prisma.quote.findUnique.mockResolvedValue({
+        id: 'q1',
+        clientAccountId: 'acc-tudj',
+        status: 'DRAFT',
+        expiresAt: new Date(),
+        items: [],
+      });
 
       await expect(service.findOne('q1', 'guest-1')).rejects.toThrow(NotFoundException);
     });
 
     it('gost vidi sopstvenu Ponudu', async () => {
       const { service, prisma } = makeService();
-      prisma.user.findUnique.mockResolvedValue({ accountType: 'GUEST', linkedProfileId: 'acc-own' });
-      prisma.quote.findUnique.mockResolvedValue({ id: 'q1', clientAccountId: 'acc-own', status: 'DRAFT', expiresAt: new Date(), items: [] });
+      prisma.user.findUnique.mockResolvedValue({
+        accountType: 'GUEST',
+        linkedProfileId: 'acc-own',
+      });
+      prisma.quote.findUnique.mockResolvedValue({
+        id: 'q1',
+        clientAccountId: 'acc-own',
+        status: 'DRAFT',
+        expiresAt: new Date(),
+        items: [],
+      });
 
       const result = await service.findOne('q1', 'guest-1');
 
@@ -240,16 +279,28 @@ describe('QuotesService', () => {
 
     it('subagent NE vidi tuđu Ponudu — 404 (IDOR, bezbednosni nalaz 28.8.2026)', async () => {
       const { service, prisma, subagentBridge } = makeService();
-      prisma.user.findUnique.mockResolvedValue({ accountType: 'SUBAGENT_CONTACT', linkedProfileId: 'subagent-1' });
+      prisma.user.findUnique.mockResolvedValue({
+        accountType: 'SUBAGENT_CONTACT',
+        linkedProfileId: 'subagent-1',
+      });
       subagentBridge.resolveClientAccountIdForSubagentContact.mockResolvedValue('acc-own-sub');
-      prisma.quote.findUnique.mockResolvedValue({ id: 'q2', clientAccountId: 'acc-tudj', status: 'DRAFT', expiresAt: new Date(), items: [] });
+      prisma.quote.findUnique.mockResolvedValue({
+        id: 'q2',
+        clientAccountId: 'acc-tudj',
+        status: 'DRAFT',
+        expiresAt: new Date(),
+        items: [],
+      });
 
       await expect(service.findOne('q2', 'subagent-user-1')).rejects.toThrow(NotFoundException);
     });
 
     it('B2B/MCP pozivalac ne vidi baseCost/markupRuleId/providerQuoteReference (M2 spec §5.1)', async () => {
       const { service, prisma, subagentBridge } = makeService();
-      prisma.user.findUnique.mockResolvedValue({ accountType: 'SUBAGENT_CONTACT', linkedProfileId: 'subagent-1' });
+      prisma.user.findUnique.mockResolvedValue({
+        accountType: 'SUBAGENT_CONTACT',
+        linkedProfileId: 'subagent-1',
+      });
       subagentBridge.resolveClientAccountIdForSubagentContact.mockResolvedValue('acc-own-sub');
       prisma.quote.findUnique.mockResolvedValue({
         id: 'q3',

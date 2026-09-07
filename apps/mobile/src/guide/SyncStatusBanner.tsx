@@ -30,7 +30,12 @@ export function SyncStatusBanner() {
 }
 
 const styles = StyleSheet.create({
-  banner: { padding: 8, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  banner: {
+    padding: 8,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
   online: { backgroundColor: '#fff3cd' },
   offline: { backgroundColor: '#f8d7da' },
   text: { flexShrink: 1 },

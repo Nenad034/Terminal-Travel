@@ -4,8 +4,18 @@ import { PricelistImportsService } from './pricelist-imports.service';
 describe('PricelistImportsService (M3 spec §4.2)', () => {
   function makeService() {
     const prisma = {
-      pricelistImport: { findMany: jest.fn(), findUniqueOrThrow: jest.fn(), create: jest.fn(), update: jest.fn() },
-      pricelistImportRow: { findMany: jest.fn(), findUniqueOrThrow: jest.fn(), update: jest.fn(), count: jest.fn().mockResolvedValue(0) },
+      pricelistImport: {
+        findMany: jest.fn(),
+        findUniqueOrThrow: jest.fn(),
+        create: jest.fn(),
+        update: jest.fn(),
+      },
+      pricelistImportRow: {
+        findMany: jest.fn(),
+        findUniqueOrThrow: jest.fn(),
+        update: jest.fn(),
+        count: jest.fn().mockResolvedValue(0),
+      },
       product: { findUniqueOrThrow: jest.fn() },
       contractPeriod: { findFirst: jest.fn().mockResolvedValue(null), create: jest.fn() },
       rateLine: { create: jest.fn() },
@@ -22,14 +32,20 @@ describe('PricelistImportsService (M3 spec §4.2)', () => {
       prisma.pricelistImport.create.mockResolvedValue({ id: 'imp-1', status: 'PROCESSING' });
 
       const result = await service.create(
-        { supplierId: 's1', sourceFileUrl: 'https://x.com/cenovnik.pdf', sourceFormat: 'PDF' as any },
+        {
+          supplierId: 's1',
+          sourceFileUrl: 'https://x.com/cenovnik.pdf',
+          sourceFormat: 'PDF' as any,
+        },
         'actor-1',
       );
 
       expect(prisma.pricelistImport.create).toHaveBeenCalledWith(
         expect.objectContaining({ data: expect.objectContaining({ status: 'PROCESSING' }) }),
       );
-      expect(auditLog.write).toHaveBeenCalledWith(expect.objectContaining({ action: 'pricelist_import.created' }));
+      expect(auditLog.write).toHaveBeenCalledWith(
+        expect.objectContaining({ action: 'pricelist_import.created' }),
+      );
       expect(result.status).toBe('PROCESSING');
     });
   });
@@ -53,11 +69,14 @@ describe('PricelistImportsService (M3 spec §4.2)', () => {
   describe('reviewRow — bezbednosna provera', () => {
     it('odbija kad red ne pripada navedenom uvozu', async () => {
       const { service, prisma } = makeService();
-      prisma.pricelistImportRow.findUniqueOrThrow.mockResolvedValue({ id: 'row-1', import: { id: 'drugi-uvoz' } });
+      prisma.pricelistImportRow.findUniqueOrThrow.mockResolvedValue({
+        id: 'row-1',
+        import: { id: 'drugi-uvoz' },
+      });
 
-      await expect(service.reviewRow('imp-1', 'row-1', { decision: 'REJECTED' }, 'actor-1')).rejects.toThrow(
-        BadRequestException,
-      );
+      await expect(
+        service.reviewRow('imp-1', 'row-1', { decision: 'REJECTED' }, 'actor-1'),
+      ).rejects.toThrow(BadRequestException);
     });
   });
 
@@ -70,9 +89,9 @@ describe('PricelistImportsService (M3 spec §4.2)', () => {
         import: { id: 'imp-1', supplierId: 's1' },
       });
 
-      await expect(service.reviewRow('imp-1', 'row-1', { decision: 'CONFIRMED' }, 'actor-1')).rejects.toThrow(
-        BadRequestException,
-      );
+      await expect(
+        service.reviewRow('imp-1', 'row-1', { decision: 'CONFIRMED' }, 'actor-1'),
+      ).rejects.toThrow(BadRequestException);
     });
 
     it('odbija kad poklopljeni proizvod nema source_contract_id (nije CONTRACTED)', async () => {
@@ -84,9 +103,9 @@ describe('PricelistImportsService (M3 spec §4.2)', () => {
       });
       prisma.product.findUniqueOrThrow.mockResolvedValue({ id: 'prod-1', sourceContractId: null });
 
-      await expect(service.reviewRow('imp-1', 'row-1', { decision: 'CONFIRMED' }, 'actor-1')).rejects.toThrow(
-        BadRequestException,
-      );
+      await expect(
+        service.reviewRow('imp-1', 'row-1', { decision: 'CONFIRMED' }, 'actor-1'),
+      ).rejects.toThrow(BadRequestException);
     });
 
     it('odbija kad extracted_price_basis nije prepoznat (null) — ne pretpostavlja PER_ROOM/PER_PERSON', async () => {
@@ -97,11 +116,14 @@ describe('PricelistImportsService (M3 spec §4.2)', () => {
         extractedPriceBasis: null,
         import: { id: 'imp-1', supplierId: 's1' },
       });
-      prisma.product.findUniqueOrThrow.mockResolvedValue({ id: 'prod-1', sourceContractId: 'contract-1' });
+      prisma.product.findUniqueOrThrow.mockResolvedValue({
+        id: 'prod-1',
+        sourceContractId: 'contract-1',
+      });
 
-      await expect(service.reviewRow('imp-1', 'row-1', { decision: 'CONFIRMED' }, 'actor-1')).rejects.toThrow(
-        BadRequestException,
-      );
+      await expect(
+        service.reviewRow('imp-1', 'row-1', { decision: 'CONFIRMED' }, 'actor-1'),
+      ).rejects.toThrow(BadRequestException);
     });
   });
 
@@ -127,16 +149,26 @@ describe('PricelistImportsService (M3 spec §4.2)', () => {
     it('kreira ContractPeriod kao ON_REQUEST (cenovnik ne nosi kapacitet) i RateLine sa ekstraktovanim vrednostima', async () => {
       const { service, prisma } = makeService();
       prisma.pricelistImportRow.findUniqueOrThrow.mockResolvedValue(fullRow());
-      prisma.product.findUniqueOrThrow.mockResolvedValue({ id: 'prod-1', sourceContractId: 'contract-1' });
+      prisma.product.findUniqueOrThrow.mockResolvedValue({
+        id: 'prod-1',
+        sourceContractId: 'contract-1',
+      });
       prisma.contractPeriod.create.mockResolvedValue({ id: 'period-1' });
       prisma.rateLine.create.mockResolvedValue({ id: 'rate-1' });
-      prisma.pricelistImportRow.update.mockResolvedValue({ id: 'row-1', reviewStatus: 'CONFIRMED' });
+      prisma.pricelistImportRow.update.mockResolvedValue({
+        id: 'row-1',
+        reviewStatus: 'CONFIRMED',
+      });
 
       await service.reviewRow('imp-1', 'row-1', { decision: 'CONFIRMED' }, 'actor-1');
 
       expect(prisma.contractPeriod.create).toHaveBeenCalledWith(
         expect.objectContaining({
-          data: expect.objectContaining({ contractId: 'contract-1', roomType: 'DELUXE', allotmentMode: 'ON_REQUEST' }),
+          data: expect.objectContaining({
+            contractId: 'contract-1',
+            roomType: 'DELUXE',
+            allotmentMode: 'ON_REQUEST',
+          }),
         }),
       );
       expect(prisma.rateLine.create).toHaveBeenCalledWith(
@@ -154,23 +186,29 @@ describe('PricelistImportsService (M3 spec §4.2)', () => {
     it('proverava preklapanje perioda pre kreiranja (§2.3b)', async () => {
       const { service, prisma } = makeService();
       prisma.pricelistImportRow.findUniqueOrThrow.mockResolvedValue(fullRow());
-      prisma.product.findUniqueOrThrow.mockResolvedValue({ id: 'prod-1', sourceContractId: 'contract-1' });
+      prisma.product.findUniqueOrThrow.mockResolvedValue({
+        id: 'prod-1',
+        sourceContractId: 'contract-1',
+      });
       prisma.contractPeriod.findFirst.mockResolvedValue({
         id: 'existing',
         stayFrom: new Date('2027-07-01'),
         stayTo: new Date('2027-07-31'),
       });
 
-      await expect(service.reviewRow('imp-1', 'row-1', { decision: 'CONFIRMED' }, 'actor-1')).rejects.toThrow(
-        BadRequestException,
-      );
+      await expect(
+        service.reviewRow('imp-1', 'row-1', { decision: 'CONFIRMED' }, 'actor-1'),
+      ).rejects.toThrow(BadRequestException);
       expect(prisma.contractPeriod.create).not.toHaveBeenCalled();
     });
 
     it('ažurira SupplierExtractionProfile dobavljača posle odobrenja (§4.2.5)', async () => {
       const { service, prisma } = makeService();
       prisma.pricelistImportRow.findUniqueOrThrow.mockResolvedValue(fullRow());
-      prisma.product.findUniqueOrThrow.mockResolvedValue({ id: 'prod-1', sourceContractId: 'contract-1' });
+      prisma.product.findUniqueOrThrow.mockResolvedValue({
+        id: 'prod-1',
+        sourceContractId: 'contract-1',
+      });
       prisma.contractPeriod.create.mockResolvedValue({ id: 'period-1' });
       prisma.rateLine.create.mockResolvedValue({ id: 'rate-1' });
       prisma.pricelistImportRow.update.mockResolvedValue({ id: 'row-1' });
@@ -184,8 +222,13 @@ describe('PricelistImportsService (M3 spec §4.2)', () => {
 
     it('MANUALLY_MATCHED sa matchedProductId u zahtevu koristi taj proizvod (ignoriše AI predlog)', async () => {
       const { service, prisma } = makeService();
-      prisma.pricelistImportRow.findUniqueOrThrow.mockResolvedValue(fullRow({ matchedProductId: 'ai-predlog' }));
-      prisma.product.findUniqueOrThrow.mockResolvedValue({ id: 'rucno-izabran', sourceContractId: 'contract-2' });
+      prisma.pricelistImportRow.findUniqueOrThrow.mockResolvedValue(
+        fullRow({ matchedProductId: 'ai-predlog' }),
+      );
+      prisma.product.findUniqueOrThrow.mockResolvedValue({
+        id: 'rucno-izabran',
+        sourceContractId: 'contract-2',
+      });
       prisma.contractPeriod.create.mockResolvedValue({ id: 'period-1' });
       prisma.rateLine.create.mockResolvedValue({ id: 'rate-1' });
       prisma.pricelistImportRow.update.mockResolvedValue({ id: 'row-1' });
@@ -197,9 +240,13 @@ describe('PricelistImportsService (M3 spec §4.2)', () => {
         'actor-1',
       );
 
-      expect(prisma.product.findUniqueOrThrow).toHaveBeenCalledWith({ where: { id: 'rucno-izabran' } });
+      expect(prisma.product.findUniqueOrThrow).toHaveBeenCalledWith({
+        where: { id: 'rucno-izabran' },
+      });
       expect(prisma.pricelistImportRow.update).toHaveBeenCalledWith(
-        expect.objectContaining({ data: expect.objectContaining({ matchedProductId: 'rucno-izabran' }) }),
+        expect.objectContaining({
+          data: expect.objectContaining({ matchedProductId: 'rucno-izabran' }),
+        }),
       );
     });
 
@@ -212,7 +259,10 @@ describe('PricelistImportsService (M3 spec §4.2)', () => {
           ],
         }),
       );
-      prisma.product.findUniqueOrThrow.mockResolvedValue({ id: 'prod-1', sourceContractId: 'contract-1' });
+      prisma.product.findUniqueOrThrow.mockResolvedValue({
+        id: 'prod-1',
+        sourceContractId: 'contract-1',
+      });
       prisma.contractPeriod.create.mockResolvedValue({ id: 'period-1' });
       prisma.rateLine.create.mockResolvedValue({ id: 'rate-1' });
       prisma.pricelistImportRow.update.mockResolvedValue({ id: 'row-1' });
@@ -221,7 +271,11 @@ describe('PricelistImportsService (M3 spec §4.2)', () => {
 
       const rateLineCall = prisma.rateLine.create.mock.calls[0][0];
       expect(rateLineCall.data.agePricing.create).toEqual([
-        expect.objectContaining({ ageCategory: 'CHILD', pricingMode: 'PERCENTAGE_OF_BASE_PRICE', percentage: 50 }),
+        expect.objectContaining({
+          ageCategory: 'CHILD',
+          pricingMode: 'PERCENTAGE_OF_BASE_PRICE',
+          percentage: 50,
+        }),
       ]);
     });
   });
@@ -238,7 +292,10 @@ describe('PricelistImportsService (M3 spec §4.2)', () => {
 
       await service.reviewRow('imp-1', 'row-1', { decision: 'REJECTED' }, 'actor-1');
 
-      expect(prisma.pricelistImport.update).toHaveBeenCalledWith({ where: { id: 'imp-1' }, data: { status: 'COMPLETED' } });
+      expect(prisma.pricelistImport.update).toHaveBeenCalledWith({
+        where: { id: 'imp-1' },
+        data: { status: 'COMPLETED' },
+      });
     });
   });
 });

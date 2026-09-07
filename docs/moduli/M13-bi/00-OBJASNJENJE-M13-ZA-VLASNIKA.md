@@ -36,4 +36,4 @@ Svaki izveštaj u gornjem uglu pokazuje kada je poslednji put osvežen — da ti
 
 ---
 
-*Za tehničke detalje (tačna imena polja, redosled provera, API pozivi) vidi `13-SPECIFIKACIJA-M13-BI.md` u istom folderu i `docs/api/M13-bi.md` — ovaj dokument je namerno pojednostavljen, ne zamenjuje ih.*
+_Za tehničke detalje (tačna imena polja, redosled provera, API pozivi) vidi `13-SPECIFIKACIJA-M13-BI.md` u istom folderu i `docs/api/M13-bi.md` — ovaj dokument je namerno pojednostavljen, ne zamenjuje ih._

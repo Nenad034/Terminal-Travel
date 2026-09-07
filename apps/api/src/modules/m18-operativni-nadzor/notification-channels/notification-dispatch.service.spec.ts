@@ -27,17 +27,26 @@ describe('NotificationDispatchService (M18 spec §2.2, §3)', () => {
     };
     const telegram = { send: jest.fn().mockResolvedValue(undefined) };
     const email = { send: jest.fn().mockResolvedValue(undefined) };
-    return { service: new NotificationDispatchService(prisma as any, telegram as any, email as any), prisma, telegram, email };
+    return {
+      service: new NotificationDispatchService(prisma as any, telegram as any, email as any),
+      prisma,
+      telegram,
+      email,
+    };
   }
 
   it('poziva TelegramClientService.send za svaki ACTIVE TELEGRAM kanal, sa dekriptovanim chatId', async () => {
-    const { service, telegram } = makeService([{ channelType: 'TELEGRAM', config: { chatId: '12345' } }]);
+    const { service, telegram } = makeService([
+      { channelType: 'TELEGRAM', config: { chatId: '12345' } },
+    ]);
     await service.dispatchText('test poruka');
     expect(telegram.send).toHaveBeenCalledWith('12345', 'test poruka');
   });
 
   it('poziva EmailClientService.send za svaki ACTIVE EMAIL kanal, sa dekriptovanim email-om', async () => {
-    const { service, email } = makeService([{ channelType: 'EMAIL', config: { email: 'vlasnik@primer.rs' } }]);
+    const { service, email } = makeService([
+      { channelType: 'EMAIL', config: { email: 'vlasnik@primer.rs' } },
+    ]);
     await service.dispatchText('test poruka');
     expect(email.send).toHaveBeenCalledWith('vlasnik@primer.rs', expect.any(String), 'test poruka');
   });
@@ -54,8 +63,17 @@ describe('NotificationDispatchService (M18 spec §2.2, §3)', () => {
 
   it('dispatch(signal) upisuje notifiedAt na signal posle isporuke', async () => {
     const { service, prisma } = makeService([]);
-    await service.dispatch({ id: 'sig-1', sourceModule: 'M4', signalType: 'PROVIDER_DEGRADED', severity: 'CRITICAL', details: {} } as any);
-    expect(prisma.healthSignal.update).toHaveBeenCalledWith({ where: { id: 'sig-1' }, data: { notifiedAt: expect.any(Date) } });
+    await service.dispatch({
+      id: 'sig-1',
+      sourceModule: 'M4',
+      signalType: 'PROVIDER_DEGRADED',
+      severity: 'CRITICAL',
+      details: {},
+    } as any);
+    expect(prisma.healthSignal.update).toHaveBeenCalledWith({
+      where: { id: 'sig-1' },
+      data: { notifiedAt: expect.any(Date) },
+    });
   });
 
   it('IN_APP kanal ne baca grešku (čist stub dok M19 ne postoji)', async () => {

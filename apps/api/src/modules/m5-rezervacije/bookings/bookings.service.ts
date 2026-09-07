@@ -1,6 +1,22 @@
-import { PaginationQueryDto, paginated, paginationArgs } from '../../../common/pagination/pagination';
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
-import { Booking, BookingItem, PaymentStatus, Prisma, QuoteItem, TipNastupanja } from '@prisma/client';
+import {
+  PaginationQueryDto,
+  paginated,
+  paginationArgs,
+} from '../../../common/pagination/pagination';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import {
+  Booking,
+  BookingItem,
+  PaymentStatus,
+  Prisma,
+  QuoteItem,
+  TipNastupanja,
+} from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { AuditLogService } from '../../m1-core-identitet/audit-log/audit-log.service';
 import { EventBusService } from '../../../common/events/event-bus.service';
@@ -12,7 +28,11 @@ import { ClientContractBridgeService } from '../common/client-contract-bridge.se
 import { generateBookingNumber } from '../common/booking-number';
 import { classifyByDay, toMidnightUtc } from '../common/calendar-classification';
 import { namesMatch } from '../common/fuzzy-match';
-import { isSelfServiceChannel, resolveTipNastupanja, M5Channel as M5ChannelType } from '../common/tip-nastupanja';
+import {
+  isSelfServiceChannel,
+  resolveTipNastupanja,
+  M5Channel as M5ChannelType,
+} from '../common/tip-nastupanja';
 import { ConfirmQuoteDto } from './dto/confirm-quote.dto';
 import { CancelBookingDto } from './dto/cancel-booking.dto';
 import { ModifyBookingDto } from './dto/modify-booking.dto';
@@ -20,7 +40,12 @@ import { AddBookingItemDto } from './dto/add-booking-item.dto';
 import { AddAncillaryItemDto } from './dto/add-ancillary-item.dto';
 import { AddManualItemDto } from './dto/add-manual-item.dto';
 import { applyMarkup } from '../common/markup-formula';
-import { checkAncillaryOccupancy, computeAncillaryAmount, signedAncillaryAmount, type AncillaryServiceLike } from '../common/ancillary-pricing';
+import {
+  checkAncillaryOccupancy,
+  computeAncillaryAmount,
+  signedAncillaryAmount,
+  type AncillaryServiceLike,
+} from '../common/ancillary-pricing';
 import { SupplierChangeNoticesService } from '../supplier-manifests/supplier-change-notices.service';
 import { SupplierManifestsService } from '../supplier-manifests/supplier-manifests.service';
 import { resolveCallerIdentity } from '../../../common/auth/resolve-caller-identity';
@@ -114,8 +139,18 @@ export class BookingsService {
   // učitavale direktno po ID-u bez ikakve provere konteksta, pa je gost/subagent/Prodajni agent
   // bez VIEW_ALL mogao pogađanjem/enumeracijom ID-a da izmeni/otkaže TUĐU rezervaciju. Izvučeno
   // u deljeni proverivač da svaki put koji menja stanje rezervacije prođe kroz isto pravilo.
-  private async assertBookingAccessible(booking: { id?: string; clientAccountId: string; franchiseSubagentId: string | null; ownerId: string | null; assignedToId: string | null }, actorUserId: string): Promise<void> {
-    const { context, ownClientAccountId, franchiseSubagentId } = await this.resolveApiContext(actorUserId);
+  private async assertBookingAccessible(
+    booking: {
+      id?: string;
+      clientAccountId: string;
+      franchiseSubagentId: string | null;
+      ownerId: string | null;
+      assignedToId: string | null;
+    },
+    actorUserId: string,
+  ): Promise<void> {
+    const { context, ownClientAccountId, franchiseSubagentId } =
+      await this.resolveApiContext(actorUserId);
     if (context !== 'INTERNAL_PANEL') {
       if (booking.clientAccountId !== ownClientAccountId) {
         // Ne otkrivati postojanje tuđe rezervacije — ista "ne otkrivati" filozofija
@@ -127,7 +162,12 @@ export class BookingsService {
     if (franchiseSubagentId && booking.franchiseSubagentId !== franchiseSubagentId) {
       throw new NotFoundException('Rezervacija nije pronađena.');
     }
-    const hasViewAll = await this.permissions.hasPermission(actorUserId, 'M5', 'booking', 'VIEW_ALL');
+    const hasViewAll = await this.permissions.hasPermission(
+      actorUserId,
+      'M5',
+      'booking',
+      'VIEW_ALL',
+    );
     if (!hasViewAll && booking.ownerId !== actorUserId && booking.assignedToId !== actorUserId) {
       // §4.6/§6.6 dopuna (1.9.2026) — predstavnik na destinaciji (VODIC) nije ni `owner_id` ni
       // `assigned_to_id` (to su prodajne uloge), pa bi bez ovog izuzetka video 404 na rezervaciju
@@ -137,7 +177,9 @@ export class BookingsService {
       // Provera oblika `=== 0` bi propustila svaku vrednost koja nije broj (npr. greška upita),
       // što je za proveru pristupa pogrešan smer greške.
       const guidesThisBooking = booking.id
-        ? await this.prisma.bookingItem.count({ where: { bookingId: booking.id, assignedGuideId: actorUserId } })
+        ? await this.prisma.bookingItem.count({
+            where: { bookingId: booking.id, assignedGuideId: actorUserId },
+          })
         : 0;
       if (!(guidesThisBooking > 0)) {
         throw new NotFoundException('Rezervacija nije pronađena.');
@@ -149,19 +191,26 @@ export class BookingsService {
   // M5 spec §4 — Quote → Booking
   // ==========================================================================
   async confirmQuote(quoteId: string, dto: ConfirmQuoteDto, actor: { userId: string }) {
-    let quote = await this.prisma.quote.findUnique({ where: { id: quoteId }, include: { items: true } });
+    let quote = await this.prisma.quote.findUnique({
+      where: { id: quoteId },
+      include: { items: true },
+    });
     if (!quote) throw new NotFoundException(`Ponuda ${quoteId} nije pronađena.`);
 
     // §6.2 obrazac dopune — gost sme da potvrdi isključivo sopstvenu Ponudu (client_account_id
     // je već primorano na sopstveni nalog pri POST /quotes, ova provera zatvara pokušaj
     // potvrde TUĐE ponude pogađanjem/enumeracijom quoteId).
-    const { context, ownClientAccountId, franchiseSubagentId } = await this.resolveApiContext(actor.userId);
+    const { context, ownClientAccountId, franchiseSubagentId } = await this.resolveApiContext(
+      actor.userId,
+    );
     if (context !== 'INTERNAL_PANEL' && quote.clientAccountId !== ownClientAccountId) {
       throw new NotFoundException(`Ponuda ${quoteId} nije pronađena.`);
     }
 
     if (quote.status !== 'DRAFT') {
-      throw new BadRequestException(`Ponuda ${quoteId} nije u statusu DRAFT (status: ${quote.status}).`);
+      throw new BadRequestException(
+        `Ponuda ${quoteId} nije u statusu DRAFT (status: ${quote.status}).`,
+      );
     }
 
     // korak 1 — istekla ponuda: ponovo izračunaj CENU/dostupnost pre nastavka.
@@ -177,13 +226,17 @@ export class BookingsService {
     }
 
     if (!quote.clientAccountId) {
-      throw new BadRequestException('Ponuda nema povezan client_account_id — gost mora biti identifikovan pre potvrde rezervacije.');
+      throw new BadRequestException(
+        'Ponuda nema povezan client_account_id — gost mora biti identifikovan pre potvrde rezervacije.',
+      );
     }
 
     // §4.1 dopuna (v1.17) — buyer_tax_id obavezan kad je buyer_type = PRAVNO_LICE (odbrana u dubinu,
     // pored @ValidateIf u ConfirmQuoteDto).
     if (dto.buyerType === 'PRAVNO_LICE' && !dto.buyerTaxId) {
-      throw new BadRequestException('buyerTaxId je obavezan kad je buyerType PRAVNO_LICE (M5 spec §4.1).');
+      throw new BadRequestException(
+        'buyerTaxId je obavezan kad je buyerType PRAVNO_LICE (M5 spec §4.1).',
+      );
     }
 
     // §4.0a — određivanje tip_nastupanja.
@@ -194,10 +247,14 @@ export class BookingsService {
 
     // korak 1a/1b — redosled FIKSAN: garancija putovanja (M11) pa kreditni limit (M7).
     if (tipNastupanja === 'ORGANIZATOR') {
-      const guarantee = await this.compliance.checkTravelGuaranteeUtilization({ bookingTotalPrice: totalPrice, currency });
+      const guarantee = await this.compliance.checkTravelGuaranteeUtilization({
+        bookingTotalPrice: totalPrice,
+        currency,
+      });
       if (!guarantee.allowed) {
         throw new BadRequestException(
-          guarantee.reason ?? 'Potvrda odbijena — prekoračenje limita garancije putovanja (M11, M5 spec §4 korak 1a).',
+          guarantee.reason ??
+            'Potvrda odbijena — prekoračenje limita garancije putovanja (M11, M5 spec §4 korak 1a).',
         );
       }
     }
@@ -208,7 +265,9 @@ export class BookingsService {
         currency,
       });
       if (credit.isSubagent && !credit.allowed) {
-        throw new BadRequestException('Potvrda odbijena — prekoračenje kreditnog limita subagenta (M7, M5 spec §4 korak 1b).');
+        throw new BadRequestException(
+          'Potvrda odbijena — prekoračenje kreditnog limita subagenta (M7, M5 spec §4 korak 1b).',
+        );
       }
     }
 
@@ -240,7 +299,10 @@ export class BookingsService {
     // SNAPSHOT poslovnice zaposlenog u trenutku kreiranja (vidi komentar uz Booking.branch_id u
     // schema.prisma). Za GOST_SELF kanale `actor.userId` je sam gost (GUEST nalog, bez
     // poslovnice) — ostaje `null`, što je tačno (samouslužna rezervacija nema poslovnicu).
-    const creator = await this.prisma.user.findUnique({ where: { id: actor.userId }, select: { branchId: true } });
+    const creator = await this.prisma.user.findUnique({
+      where: { id: actor.userId },
+      select: { branchId: true },
+    });
 
     const booking = await this.prisma.booking.create({
       data: {
@@ -291,7 +353,11 @@ export class BookingsService {
               announcedAt: isApi ? now : null,
               supplierConfirmedAt: isApi ? now : null,
               guests: guestsByIndex.get(idx)
-                ? { create: guestsByIndex.get(idx)!.map((g) => ({ guestFirstName: g.firstName, guestLastName: g.lastName })) }
+                ? {
+                    create: guestsByIndex
+                      .get(idx)!
+                      .map((g) => ({ guestFirstName: g.firstName, guestLastName: g.lastName })),
+                  }
                 : undefined,
             };
           }),
@@ -327,10 +393,14 @@ export class BookingsService {
       context: { quoteId },
     });
 
-    await this.eventBus.emit('M5', bookingStatus === 'CONFIRMED' ? 'booking.confirmed' : 'booking.pending_supplier_confirmation', {
-      bookingId: booking.id,
-      bookingNumber: booking.bookingNumber,
-    });
+    await this.eventBus.emit(
+      'M5',
+      bookingStatus === 'CONFIRMED' ? 'booking.confirmed' : 'booking.pending_supplier_confirmation',
+      {
+        bookingId: booking.id,
+        bookingNumber: booking.bookingNumber,
+      },
+    );
 
     // §6.3 — sistemski izuzetak: subagent ACTIVE unutar kredita dobija vaučer automatski
     // čim Booking.status = CONFIRMED, nezavisno od payment_status.
@@ -365,7 +435,10 @@ export class BookingsService {
       }),
     );
     const apiExpiries = rebuilt.map((b) => b.quoteExpiresAt).filter((v): v is string => v != null);
-    const newExpiresAt = apiExpiries.length > 0 ? new Date(Math.min(...apiExpiries.map((v) => new Date(v).getTime()))) : new Date(Date.now() + 30 * 60_000);
+    const newExpiresAt =
+      apiExpiries.length > 0
+        ? new Date(Math.min(...apiExpiries.map((v) => new Date(v).getTime())))
+        : new Date(Date.now() + 30 * 60_000);
 
     await this.prisma.$transaction([
       ...rebuilt.map((b, idx) =>
@@ -387,7 +460,10 @@ export class BookingsService {
       this.prisma.quote.update({ where: { id: quote.id }, data: { expiresAt: newExpiresAt } }),
     ]);
 
-    return this.prisma.quote.findUniqueOrThrow({ where: { id: quote.id }, include: { items: true } });
+    return this.prisma.quote.findUniqueOrThrow({
+      where: { id: quote.id },
+      include: { items: true },
+    });
   }
 
   // §4.0a — automatsko izvođenje za samouslužne kanale; ručni izbor kao podrazumevana
@@ -406,7 +482,9 @@ export class BookingsService {
           return product.sourceContract?.defaultTipNastupanja ?? null;
         }
         if (!product.sourceProvider) return null;
-        const config = await this.prisma.providerConfig.findUnique({ where: { providerCode: product.sourceProvider } });
+        const config = await this.prisma.providerConfig.findUnique({
+          where: { providerCode: product.sourceProvider },
+        });
         return config?.defaultTipNastupanja ?? null;
       }),
     );
@@ -431,19 +509,32 @@ export class BookingsService {
     );
   }
 
-  private async reserveQuoteItem(item: QuoteItem, actorId: string): Promise<ItemReservationOutcome> {
+  private async reserveQuoteItem(
+    item: QuoteItem,
+    actorId: string,
+  ): Promise<ItemReservationOutcome> {
     if (item.sourceType === 'CONTRACTED') {
-      if (!item.rateLineId) throw new BadRequestException(`QuoteItem ${item.id} (CONTRACTED) nema rate_line_id.`);
-      const rateLine = await this.prisma.rateLine.findUniqueOrThrow({ where: { id: item.rateLineId }, include: { contractPeriod: true } });
+      if (!item.rateLineId)
+        throw new BadRequestException(`QuoteItem ${item.id} (CONTRACTED) nema rate_line_id.`);
+      const rateLine = await this.prisma.rateLine.findUniqueOrThrow({
+        where: { id: item.rateLineId },
+        include: { contractPeriod: true },
+      });
       const units = item.unitCount; // §4.2 dopuna v1.14 — izvedeno jednom u builderu iz room_config.length
 
       const result = await this.contractPeriods.reserve(rateLine.contractPeriodId, units, actorId);
-      const itemStatus = 'requiresSupplierConfirmation' in result && result.requiresSupplierConfirmation ? 'PENDING_SUPPLIER_CONFIRMATION' : 'CONFIRMED';
+      const itemStatus =
+        'requiresSupplierConfirmation' in result && result.requiresSupplierConfirmation
+          ? 'PENDING_SUPPLIER_CONFIRMATION'
+          : 'CONFIRMED';
       return {
         quoteItemId: item.id,
         itemStatus,
         supplierReference: rateLine.contractPeriodId,
-        releaseHandle: () => this.contractPeriods.release(rateLine.contractPeriodId, units, actorId).then(() => undefined),
+        releaseHandle: () =>
+          this.contractPeriods
+            .release(rateLine.contractPeriodId, units, actorId)
+            .then(() => undefined),
       };
     }
 
@@ -453,19 +544,33 @@ export class BookingsService {
       throw new BadRequestException(`Proizvod ${item.productId} nema povezanog API provajdera.`);
     }
     const occupancy = item.occupancy as { adults: number; children: number };
-    const confirmation = await this.integrations.confirmBooking(product.sourceProvider, product.sourceExternalId, {
-      stay: { stayFrom: item.stayFrom.toISOString().slice(0, 10), stayTo: item.stayTo.toISOString().slice(0, 10), adults: occupancy.adults, children: occupancy.children },
-      guestName: 'TBD', // M5 spec §4.2/§4.3 — ime gosta se vezuje preko BookingItemGuest posle kreiranja stavke, ne pre
-      idempotencyKey: `quoteitem-${item.id}`,
-    });
+    const confirmation = await this.integrations.confirmBooking(
+      product.sourceProvider,
+      product.sourceExternalId,
+      {
+        stay: {
+          stayFrom: item.stayFrom.toISOString().slice(0, 10),
+          stayTo: item.stayTo.toISOString().slice(0, 10),
+          adults: occupancy.adults,
+          children: occupancy.children,
+        },
+        guestName: 'TBD', // M5 spec §4.2/§4.3 — ime gosta se vezuje preko BookingItemGuest posle kreiranja stavke, ne pre
+        idempotencyKey: `quoteitem-${item.id}`,
+      },
+    );
     if (confirmation.status === 'FAILED') {
-      throw new BadRequestException(`Provajder je odbio rezervaciju za stavku ${item.id} (M5 spec §4 korak 2).`);
+      throw new BadRequestException(
+        `Provajder je odbio rezervaciju za stavku ${item.id} (M5 spec §4 korak 2).`,
+      );
     }
     return {
       quoteItemId: item.id,
       itemStatus: confirmation.status,
       supplierReference: confirmation.providerBookingReference,
-      releaseHandle: () => this.integrations.cancelBooking(product.sourceProvider!, confirmation.providerBookingReference).then(() => undefined),
+      releaseHandle: () =>
+        this.integrations
+          .cancelBooking(product.sourceProvider!, confirmation.providerBookingReference)
+          .then(() => undefined),
     };
   }
 
@@ -478,12 +583,16 @@ export class BookingsService {
   private async nextBookingNumber(): Promise<string> {
     const year = new Date().getFullYear();
     for (let attempt = 0; attempt < 5; attempt++) {
-      const count = await this.prisma.booking.count({ where: { bookingNumber: { startsWith: `TT-${year}-` } } });
+      const count = await this.prisma.booking.count({
+        where: { bookingNumber: { startsWith: `TT-${year}-` } },
+      });
       const candidate = generateBookingNumber(year, count + 1 + attempt);
       const exists = await this.prisma.booking.findUnique({ where: { bookingNumber: candidate } });
       if (!exists) return candidate;
     }
-    throw new BadRequestException('Nije moguće generisati jedinstven booking_number, pokušajte ponovo.');
+    throw new BadRequestException(
+      'Nije moguće generisati jedinstven booking_number, pokušajte ponovo.',
+    );
   }
 
   // ==========================================================================
@@ -502,7 +611,11 @@ export class BookingsService {
   // (`common/resolve-api-context.ts`) — svaki naredni M5 servis je uvozi, ne prepisuje.
   private async resolveApiContext(
     userId: string,
-  ): Promise<{ context: 'INTERNAL_PANEL' | 'B2C' | 'B2B'; ownClientAccountId: string | null; franchiseSubagentId: string | null }> {
+  ): Promise<{
+    context: 'INTERNAL_PANEL' | 'B2C' | 'B2B';
+    ownClientAccountId: string | null;
+    franchiseSubagentId: string | null;
+  }> {
     return resolveApiContext(this.prisma, this.subagentBridge, userId);
   }
 
@@ -553,11 +666,14 @@ export class BookingsService {
     actor: { userId: string },
     pagination?: PaginationQueryDto,
   ) {
-    const { context, ownClientAccountId, franchiseSubagentId } = await this.resolveApiContext(actor.userId);
+    const { context, ownClientAccountId, franchiseSubagentId } = await this.resolveApiContext(
+      actor.userId,
+    );
     // Gost/B2B kontekst: ownership se NAMEĆE (ownClientAccountId), klijentski
     // clientAccountId parametar se ignoriše — sprečava da gost sam sebi zatraži
     // tuđe rezervacije menjajući query parametar.
-    const clientAccountId = context === 'INTERNAL_PANEL' ? filters.clientAccountId : (ownClientAccountId ?? undefined);
+    const clientAccountId =
+      context === 'INTERNAL_PANEL' ? filters.clientAccountId : (ownClientAccountId ?? undefined);
     const isInternal = context === 'INTERNAL_PANEL';
 
     // Multiselect (24.8.2026, na zahtev vlasnika: "u svakom polju filtera gde je to moguce
@@ -573,10 +689,13 @@ export class BookingsService {
     if (filters.status && filters.status.length > 0) where.status = { in: filters.status as any };
 
     if (isInternal) {
-      if (filters.paymentStatus && filters.paymentStatus.length > 0) where.paymentStatus = { in: filters.paymentStatus as PaymentStatus[] };
-      if (filters.tipNastupanja && filters.tipNastupanja.length > 0) where.tipNastupanja = { in: filters.tipNastupanja as TipNastupanja[] };
+      if (filters.paymentStatus && filters.paymentStatus.length > 0)
+        where.paymentStatus = { in: filters.paymentStatus as PaymentStatus[] };
+      if (filters.tipNastupanja && filters.tipNastupanja.length > 0)
+        where.tipNastupanja = { in: filters.tipNastupanja as TipNastupanja[] };
       if (filters.buyerName) where.buyerName = { contains: filters.buyerName, mode: 'insensitive' };
-      if (filters.bookingNumber) where.bookingNumber = { contains: filters.bookingNumber, mode: 'insensitive' };
+      if (filters.bookingNumber)
+        where.bookingNumber = { contains: filters.bookingNumber, mode: 'insensitive' };
       if (filters.currency) where.currency = filters.currency;
       if (filters.createdFrom || filters.createdTo) {
         where.createdAt = {
@@ -584,7 +703,8 @@ export class BookingsService {
           ...(filters.createdTo ? { lte: new Date(`${filters.createdTo}T23:59:59.999Z`) } : {}),
         };
       }
-      if (filters.hasTravelGuarantee === 'true') where.travelGuaranteeRegistration = { isNot: null };
+      if (filters.hasTravelGuarantee === 'true')
+        where.travelGuaranteeRegistration = { isNot: null };
       if (filters.hasTravelGuarantee === 'false') where.travelGuaranteeRegistration = { is: null };
       if (filters.branchId) where.branchId = filters.branchId;
       if (filters.ownerId) where.ownerId = filters.ownerId;
@@ -609,11 +729,19 @@ export class BookingsService {
       // inače bi "Dobavljač" tiho propuštao sve CONTRACTED stavke (velika većina rezervacija).
       const supplierConditions: Prisma.ProductWhereInput[] = [];
       if (filters.supplierId) {
-        supplierConditions.push({ OR: [{ supplierId: filters.supplierId }, { sourceContract: { supplierId: filters.supplierId } }] });
+        supplierConditions.push({
+          OR: [
+            { supplierId: filters.supplierId },
+            { sourceContract: { supplierId: filters.supplierId } },
+          ],
+        });
       }
       if (filters.supplierType) {
         supplierConditions.push({
-          OR: [{ supplier: { type: filters.supplierType as any } }, { sourceContract: { supplier: { type: filters.supplierType as any } } }],
+          OR: [
+            { supplier: { type: filters.supplierType as any } },
+            { sourceContract: { supplier: { type: filters.supplierType as any } } },
+          ],
         });
       }
       if (
@@ -625,15 +753,25 @@ export class BookingsService {
         supplierConditions.length > 0
       ) {
         itemWhere.product = {
-          ...(filters.productType && filters.productType.length > 0 ? { type: { in: filters.productType as any } } : {}),
+          ...(filters.productType && filters.productType.length > 0
+            ? { type: { in: filters.productType as any } }
+            : {}),
           ...(filters.destinationCity ? { destinationCity: filters.destinationCity } : {}),
           ...(filters.destinationCountry ? { destinationCountry: filters.destinationCountry } : {}),
           // Isti obrazac kao `buildCalendarItemWhere` — naziv je jezički zavisan (M2 §2.2
           // `ProductTranslation`), pretražuje se preko SVIH prevoda odjednom.
-          ...(filters.productName ? { translations: { some: { name: { contains: filters.productName, mode: 'insensitive' } } } } : {}),
+          ...(filters.productName
+            ? {
+                translations: {
+                  some: { name: { contains: filters.productName, mode: 'insensitive' } },
+                },
+              }
+            : {}),
           // Vrsta objekta (6.9.2026 dopuna) — M2 §2.3 konvencija, `accommodation_type` živi u
           // `Product.attributes` JSON-u (samo `type=ACCOMMODATION`), nema sopstvenu kolonu.
-          ...(filters.accommodationType ? { attributes: { path: ['accommodation_type'], equals: filters.accommodationType } } : {}),
+          ...(filters.accommodationType
+            ? { attributes: { path: ['accommodation_type'], equals: filters.accommodationType } }
+            : {}),
           ...(supplierConditions.length > 0 ? { AND: supplierConditions } : {}),
         };
       }
@@ -648,7 +786,12 @@ export class BookingsService {
       // Franšizna granica (§6.6/M7 §2.0.7) važi UVEK za franšizne naloge, nezavisno od
       // VIEW_ALL — franšiza nikad ne vidi tuđu franšizu ili matičnu agenciju ovim putem.
       if (franchiseSubagentId) where.franchiseSubagentId = franchiseSubagentId;
-      const hasViewAll = await this.permissions.hasPermission(actor.userId, 'M5', 'booking', 'VIEW_ALL');
+      const hasViewAll = await this.permissions.hasPermission(
+        actor.userId,
+        'M5',
+        'booking',
+        'VIEW_ALL',
+      );
       if (!hasViewAll) where.OR = [{ ownerId: actor.userId }, { assignedToId: actor.userId }];
     }
 
@@ -662,7 +805,11 @@ export class BookingsService {
       this.prisma.booking.findMany({
         where,
         include: {
-          items: { include: { product: { select: { destinationCountry: true, destinationCity: true, type: true } } } },
+          items: {
+            include: {
+              product: { select: { destinationCountry: true, destinationCity: true, type: true } },
+            },
+          },
         },
         orderBy: { createdAt: 'desc' },
         skip,
@@ -688,7 +835,9 @@ export class BookingsService {
       include: {
         items: {
           include: {
-            guests: { select: { id: true, guestFirstName: true, guestLastName: true, guestProfileId: true } },
+            guests: {
+              select: { id: true, guestFirstName: true, guestLastName: true, guestProfileId: true },
+            },
             // §4.5 dopuna (2.9.2026, na zahtev vlasnika: "kod aranžmana treba da se navede i tip
             // smeštajne jedinice i usluga koja je uplaćena") — tip sobe i usluga (pansion) NISU
             // polja na `BookingItem`, nego žive u ugovoru: `RateLine.boardType` i
@@ -737,7 +886,11 @@ export class BookingsService {
         // pozivalac (panel, M7 portal, spoljni integrator) ne treba da poznaje strukturu M3
         // ugovora da bi prikazao "dvokrevetna soba, polupansion".
         const { rateLine, ...itemWithoutRateLine } = item as typeof item & {
-          rateLine?: { boardType: string; occupancy: string; contractPeriod: { roomType: string } } | null;
+          rateLine?: {
+            boardType: string;
+            occupancy: string;
+            contractPeriod: { roomType: string };
+          } | null;
         };
         const contracted = {
           roomType: rateLine?.contractPeriod?.roomType ?? null,
@@ -768,9 +921,14 @@ export class BookingsService {
     const booking = await this.findOneRaw(bookingId);
     const bypass = await this.isVlasnikOrDirektor(actor.userId);
     if (!bypass && booking.ownerId !== actor.userId) {
-      throw new ForbiddenException('Samo trenutni vlasnik rezervacije ili Vlasnik/Direktor mogu preneti vlasništvo (M5 spec §6.5).');
+      throw new ForbiddenException(
+        'Samo trenutni vlasnik rezervacije ili Vlasnik/Direktor mogu preneti vlasništvo (M5 spec §6.5).',
+      );
     }
-    const updated = await this.prisma.booking.update({ where: { id: bookingId }, data: { ownerId: newOwnerId } });
+    const updated = await this.prisma.booking.update({
+      where: { id: bookingId },
+      data: { ownerId: newOwnerId },
+    });
     await this.auditLog.write({
       actorType: 'HUMAN',
       actorId: actor.userId,
@@ -799,9 +957,13 @@ export class BookingsService {
     // drugi bi ostao zbunjujuće visio). Vlasnik/Direktor put ne prolazi kroz ovo — direktno
     // izvršava, ne dodaje PENDING stanje.
     if (!bypass) {
-      const existingPending = await this.prisma.bookingHandoffRequest.findFirst({ where: { bookingId, status: 'PENDING' } });
+      const existingPending = await this.prisma.bookingHandoffRequest.findFirst({
+        where: { bookingId, status: 'PENDING' },
+      });
       if (existingPending) {
-        throw new BadRequestException('Već postoji predlog predaje na čekanju za ovu rezervaciju — otkažite ga pre novog predloga (M5 spec §6.5).');
+        throw new BadRequestException(
+          'Već postoji predlog predaje na čekanju za ovu rezervaciju — otkažite ga pre novog predloga (M5 spec §6.5).',
+        );
       }
     }
 
@@ -816,7 +978,10 @@ export class BookingsService {
     });
 
     if (bypass) {
-      await this.prisma.booking.update({ where: { id: bookingId }, data: { assignedToId: toUserId } });
+      await this.prisma.booking.update({
+        where: { id: bookingId },
+        data: { assignedToId: toUserId },
+      });
     }
 
     await this.auditLog.write({
@@ -843,7 +1008,10 @@ export class BookingsService {
       where: { id: handoffId },
       data: { status: 'ACCEPTED', resolvedAt: now },
     });
-    await this.prisma.booking.update({ where: { id: request.bookingId }, data: { assignedToId: request.toUserId } });
+    await this.prisma.booking.update({
+      where: { id: request.bookingId },
+      data: { assignedToId: request.toUserId },
+    });
     await this.auditLog.write({
       actorType: 'HUMAN',
       actorId: actor.userId,
@@ -881,7 +1049,9 @@ export class BookingsService {
     const request = await this.getPendingHandoffOrThrow(handoffId);
     const bypass = await this.isVlasnikOrDirektor(actor.userId);
     if (request.fromUserId !== actor.userId && !bypass) {
-      throw new ForbiddenException('Samo predlagač (ili Vlasnik/Direktor) sme da otkaže predlog (M5 spec §6.5).');
+      throw new ForbiddenException(
+        'Samo predlagač (ili Vlasnik/Direktor) sme da otkaže predlog (M5 spec §6.5).',
+      );
     }
     const updated = await this.prisma.bookingHandoffRequest.update({
       where: { id: handoffId },
@@ -903,14 +1073,21 @@ export class BookingsService {
    * istu vidljivost kao findOne (§6.6) da se ne otkrije postojanje tuđe rezervacije. */
   async listHandoffRequests(bookingId: string, actorUserId: string) {
     await this.findOne(bookingId, actorUserId);
-    return this.prisma.bookingHandoffRequest.findMany({ where: { bookingId }, orderBy: { createdAt: 'desc' } });
+    return this.prisma.bookingHandoffRequest.findMany({
+      where: { bookingId },
+      orderBy: { createdAt: 'desc' },
+    });
   }
 
   private async getPendingHandoffOrThrow(handoffId: string) {
-    const request = await this.prisma.bookingHandoffRequest.findUnique({ where: { id: handoffId } });
+    const request = await this.prisma.bookingHandoffRequest.findUnique({
+      where: { id: handoffId },
+    });
     if (!request) throw new NotFoundException(`Predlog predaje ${handoffId} nije pronađen.`);
     if (request.status !== 'PENDING') {
-      throw new BadRequestException(`Predlog predaje ${handoffId} više nije na čekanju (status: ${request.status}).`);
+      throw new BadRequestException(
+        `Predlog predaje ${handoffId} više nije na čekanju (status: ${request.status}).`,
+      );
     }
     return request;
   }
@@ -932,8 +1109,16 @@ export class BookingsService {
     // Ista provera vidljivosti kao findOne — istorija tuđe rezervacije se ne otkriva.
     await this.findOne(id, actorUserId);
     const entries = await this.auditLog.findByResource('Booking', id);
-    const actorIds = [...new Set(entries.map((e) => e.actorId).filter((v): v is string => Boolean(v)))];
-    const actors = actorIds.length > 0 ? await this.prisma.user.findMany({ where: { id: { in: actorIds } }, select: { id: true, fullName: true } }) : [];
+    const actorIds = [
+      ...new Set(entries.map((e) => e.actorId).filter((v): v is string => Boolean(v))),
+    ];
+    const actors =
+      actorIds.length > 0
+        ? await this.prisma.user.findMany({
+            where: { id: { in: actorIds } },
+            select: { id: true, fullName: true },
+          })
+        : [];
     const nameById = new Map(actors.map((a) => [a.id, a.fullName]));
     return entries.map((e) => ({
       timestamp: e.timestamp,
@@ -947,8 +1132,12 @@ export class BookingsService {
   // ==========================================================================
   // M5 spec §6.4 — provera duplikata pre otkazivanja
   // ==========================================================================
-  private async findDuplicateConflict(item: BookingItem): Promise<{ conflictItem: BookingItem; conflictBookingNumber: string } | null> {
-    const guests = await this.prisma.bookingItemGuest.findMany({ where: { bookingItemId: item.id } });
+  private async findDuplicateConflict(
+    item: BookingItem,
+  ): Promise<{ conflictItem: BookingItem; conflictBookingNumber: string } | null> {
+    const guests = await this.prisma.bookingItemGuest.findMany({
+      where: { bookingItemId: item.id },
+    });
     if (guests.length === 0) return null;
 
     const candidates = await this.prisma.bookingItem.findMany({
@@ -965,8 +1154,13 @@ export class BookingsService {
     for (const candidate of candidates) {
       for (const g1 of guests) {
         for (const g2 of candidate.guests) {
-          if (namesMatch(g1.guestFirstName, g1.guestLastName, g2.guestFirstName, g2.guestLastName)) {
-            return { conflictItem: candidate, conflictBookingNumber: candidate.booking.bookingNumber };
+          if (
+            namesMatch(g1.guestFirstName, g1.guestLastName, g2.guestFirstName, g2.guestLastName)
+          ) {
+            return {
+              conflictItem: candidate,
+              conflictBookingNumber: candidate.booking.bookingNumber,
+            };
           }
         }
       }
@@ -978,7 +1172,10 @@ export class BookingsService {
   // M5 spec §6 — otkazivanje
   // ==========================================================================
   async cancel(bookingId: string, dto: CancelBookingDto, actor: { userId: string }) {
-    const booking = await this.prisma.booking.findUnique({ where: { id: bookingId }, include: { items: true } });
+    const booking = await this.prisma.booking.findUnique({
+      where: { id: bookingId },
+      include: { items: true },
+    });
     if (!booking) throw new NotFoundException(`Rezervacija ${bookingId} nije pronađena.`);
     await this.assertBookingAccessible(booking, actor.userId);
 
@@ -991,7 +1188,11 @@ export class BookingsService {
     // zahteva nego njegova posledica.
     const selectedIds = new Set(selected.map((i) => i.id));
     const linkedChildren = booking.items.filter(
-      (i) => i.parentItemId && selectedIds.has(i.parentItemId) && i.itemStatus !== 'CANCELLED' && !selectedIds.has(i.id),
+      (i) =>
+        i.parentItemId &&
+        selectedIds.has(i.parentItemId) &&
+        i.itemStatus !== 'CANCELLED' &&
+        !selectedIds.has(i.id),
     );
     const targetItems = [...selected, ...linkedChildren];
     if (targetItems.length === 0) {
@@ -1019,8 +1220,13 @@ export class BookingsService {
             bookingItemId: item.id,
             conflictItemId: conflict.conflictItem.id,
             conflictBookingNumber: conflict.conflictBookingNumber,
-            conflictPaymentStatus: (await this.prisma.booking.findUnique({ where: { id: conflict.conflictItem.bookingId } }))?.paymentStatus,
-            message: 'Moguć duplikat rezervacije (M5 spec §6.4) — ponovite poziv sa confirm_duplicate_override: true da nastavite.',
+            conflictPaymentStatus: (
+              await this.prisma.booking.findUnique({
+                where: { id: conflict.conflictItem.bookingId },
+              })
+            )?.paymentStatus,
+            message:
+              'Moguć duplikat rezervacije (M5 spec §6.4) — ponovite poziv sa confirm_duplicate_override: true da nastavite.',
           };
         }
       }
@@ -1050,7 +1256,9 @@ export class BookingsService {
       }
     }
 
-    const remaining = await this.prisma.bookingItem.count({ where: { bookingId, itemStatus: { not: 'CANCELLED' } } });
+    const remaining = await this.prisma.bookingItem.count({
+      where: { bookingId, itemStatus: { not: 'CANCELLED' } },
+    });
     const newStatus = remaining === 0 ? 'CANCELLED' : 'MODIFIED';
     const updated = await this.prisma.booking.update({
       where: { id: bookingId },
@@ -1075,7 +1283,10 @@ export class BookingsService {
       afterState: updated,
       context: { itemIds: targetItems.map((i) => i.id) },
     });
-    await this.eventBus.emit('M5', 'booking.cancelled', { bookingId, itemIds: targetItems.map((i) => i.id) });
+    await this.eventBus.emit('M5', 'booking.cancelled', {
+      bookingId,
+      itemIds: targetItems.map((i) => i.id),
+    });
 
     return updated;
   }
@@ -1085,7 +1296,8 @@ export class BookingsService {
       const rateLine = await this.prisma.rateLine.findUnique({ where: { id: item.rateLineId } });
       // §4.2 dopuna v1.14 — oslobodi TAČAN broj rezervisanih jedinica, ne uvek 1 (bio je bug:
       // višesobna rezervacija je pri otkazivanju oslobađala samo jednu sobu nazad u M3 alotman).
-      if (rateLine) await this.contractPeriods.release(rateLine.contractPeriodId, item.unitCount, actorId);
+      if (rateLine)
+        await this.contractPeriods.release(rateLine.contractPeriodId, item.unitCount, actorId);
     } else if (item.sourceType === 'API') {
       const product = await this.prisma.product.findUnique({ where: { id: item.productId } });
       if (product?.sourceProvider) {
@@ -1101,18 +1313,29 @@ export class BookingsService {
       // §4.2 dopuna v1.14 — API stavke: isti deterministički algoritam (najspecifičniji
       // daysBeforeStay koji je <= daysUntilStay pobeđuje), primenjen na snimljenu M4 polisu
       // umesto na M3 CancellationRule. Bez snimka (starije stavke pre ove dopune) ostaje null.
-      const snapshot = item.cancellationPolicySnapshot as { daysBeforeStay: number; refundPercentage: number }[] | null;
+      const snapshot = item.cancellationPolicySnapshot as
+        { daysBeforeStay: number; refundPercentage: number }[] | null;
       if (!snapshot || snapshot.length === 0) return null;
-      const applicable = snapshot.filter((r) => r.daysBeforeStay <= daysUntilStay).sort((a, b) => b.daysBeforeStay - a.daysBeforeStay)[0];
+      const applicable = snapshot
+        .filter((r) => r.daysBeforeStay <= daysUntilStay)
+        .sort((a, b) => b.daysBeforeStay - a.daysBeforeStay)[0];
       return applicable?.refundPercentage ?? 0;
     }
 
-    const rateLine = await this.prisma.rateLine.findUnique({ where: { id: item.rateLineId }, include: { contractPeriod: { include: { cancellationRules: true } } } });
+    const rateLine = await this.prisma.rateLine.findUnique({
+      where: { id: item.rateLineId },
+      include: { contractPeriod: { include: { cancellationRules: true } } },
+    });
     if (!rateLine) return null;
     // M3 spec §2.5 dopuna v1.12 — cancellationRules sad sadrži i EARLY_DEPARTURE pravila
     // (bez daysBeforeStay); ovaj obračun (otkazivanje pre dolaska) gleda isključivo PRE_ARRIVAL.
     const applicable = rateLine.contractPeriod.cancellationRules
-      .filter((r): r is typeof r & { daysBeforeStay: number; refundPercentage: number } => r.ruleType === 'PRE_ARRIVAL' && r.daysBeforeStay !== null && r.daysBeforeStay <= daysUntilStay)
+      .filter(
+        (r): r is typeof r & { daysBeforeStay: number; refundPercentage: number } =>
+          r.ruleType === 'PRE_ARRIVAL' &&
+          r.daysBeforeStay !== null &&
+          r.daysBeforeStay <= daysUntilStay,
+      )
       .sort((a, b) => b.daysBeforeStay - a.daysBeforeStay)[0];
     return applicable?.refundPercentage ?? 0;
   }
@@ -1130,8 +1353,12 @@ export class BookingsService {
     dto: ModifyBookingDto,
   ): Promise<{ oldItem: BookingItem; built: BuiltQuoteItemData }> {
     const oldItem = booking.items.find((i) => i.id === dto.bookingItemId);
-    if (!oldItem) throw new NotFoundException(`Stavka ${dto.bookingItemId} ne pripada rezervaciji ${booking.id}.`);
-    if (oldItem.itemStatus === 'CANCELLED') throw new BadRequestException('Stavka je već otkazana.');
+    if (!oldItem)
+      throw new NotFoundException(
+        `Stavka ${dto.bookingItemId} ne pripada rezervaciji ${booking.id}.`,
+      );
+    if (oldItem.itemStatus === 'CANCELLED')
+      throw new BadRequestException('Stavka je već otkazana.');
 
     const targetProductId = dto.productId ?? oldItem.productId;
     if (dto.productId && dto.productId !== oldItem.productId) {
@@ -1157,7 +1384,9 @@ export class BookingsService {
       occupancy: dto.occupancy,
     });
     if (builtItems.length !== 1) {
-      throw new BadRequestException('Izmena PACKAGE proizvoda (grupni paket) nije podržana kroz izmenu pojedinačne stavke (M5 spec §6).');
+      throw new BadRequestException(
+        'Izmena PACKAGE proizvoda (grupni paket) nije podržana kroz izmenu pojedinačne stavke (M5 spec §6).',
+      );
     }
     return { oldItem, built: builtItems[0] };
   }
@@ -1165,7 +1394,10 @@ export class BookingsService {
   /** Dopuna (2.9.2026) — "provera cene" PRE nego što se izmena stvarno izvrši: poziva isti
    *  builder kao `modify`, ali ništa ne rezerviše niti upisuje — čist izračun za prikaz. */
   async previewModify(bookingId: string, dto: ModifyBookingDto, actor: { userId: string }) {
-    const booking = await this.prisma.booking.findUnique({ where: { id: bookingId }, include: { items: true } });
+    const booking = await this.prisma.booking.findUnique({
+      where: { id: bookingId },
+      include: { items: true },
+    });
     if (!booking) throw new NotFoundException(`Rezervacija ${bookingId} nije pronađena.`);
     await this.assertBookingAccessible(booking, actor.userId);
     const { oldItem, built } = await this.resolveModifiedItem(booking, dto);
@@ -1180,7 +1412,10 @@ export class BookingsService {
   }
 
   async modify(bookingId: string, dto: ModifyBookingDto, actor: { userId: string }) {
-    const booking = await this.prisma.booking.findUnique({ where: { id: bookingId }, include: { items: true } });
+    const booking = await this.prisma.booking.findUnique({
+      where: { id: bookingId },
+      include: { items: true },
+    });
     if (!booking) throw new NotFoundException(`Rezervacija ${bookingId} nije pronađena.`);
     await this.assertBookingAccessible(booking, actor.userId);
     const { oldItem, built } = await this.resolveModifiedItem(booking, dto);
@@ -1190,7 +1425,10 @@ export class BookingsService {
     const outcome = await this.reserveBuiltItem(built, actor.userId);
 
     await this.releaseItemCapacity(oldItem, actor.userId);
-    await this.prisma.bookingItem.update({ where: { id: oldItem.id }, data: { itemStatus: 'CANCELLED' } });
+    await this.prisma.bookingItem.update({
+      where: { id: oldItem.id },
+      data: { itemStatus: 'CANCELLED' },
+    });
     if (oldItem.sourceType === 'CONTRACTED') {
       await this.changeNotices.prepareDraft(oldItem.id, 'MODIFICATION');
       await this.supplierManifests.supersedeIfOnSentManifest(oldItem.id, actor.userId);
@@ -1234,7 +1472,11 @@ export class BookingsService {
       afterState: updated,
       context: { oldItemId: oldItem.id, newItemId: newItem.id },
     });
-    await this.eventBus.emit('M5', 'booking.modified', { bookingId, oldItemId: oldItem.id, newItemId: newItem.id });
+    await this.eventBus.emit('M5', 'booking.modified', {
+      bookingId,
+      oldItemId: oldItem.id,
+      newItemId: newItem.id,
+    });
 
     return updated;
   }
@@ -1290,7 +1532,10 @@ export class BookingsService {
 
   /** §6.7 korak 2 — „proveri cenu": gradi stavku i vraća razliku, ali NIŠTA ne rezerviše. */
   async previewAddItem(bookingId: string, dto: AddBookingItemDto, actor: { userId: string }) {
-    const booking = await this.prisma.booking.findUnique({ where: { id: bookingId }, include: { items: true } });
+    const booking = await this.prisma.booking.findUnique({
+      where: { id: bookingId },
+      include: { items: true },
+    });
     if (!booking) throw new NotFoundException(`Rezervacija ${bookingId} nije pronađena.`);
     await this.assertBookingAccessible(booking, actor.userId);
     await this.assertInternalPanelOnly(actor.userId);
@@ -1307,7 +1552,10 @@ export class BookingsService {
 
   /** §6.7 korak 3 — stvarno dodavanje. */
   async addItem(bookingId: string, dto: AddBookingItemDto, actor: { userId: string }) {
-    const booking = await this.prisma.booking.findUnique({ where: { id: bookingId }, include: { items: true } });
+    const booking = await this.prisma.booking.findUnique({
+      where: { id: bookingId },
+      include: { items: true },
+    });
     if (!booking) throw new NotFoundException(`Rezervacija ${bookingId} nije pronađena.`);
     await this.assertBookingAccessible(booking, actor.userId);
     await this.assertInternalPanelOnly(actor.userId);
@@ -1396,7 +1644,10 @@ export class BookingsService {
   }
 
   /** Kontekst obračuna doplate iz matične stavke — noći, sobe, osobe. */
-  private ancillaryContextFor(parent: BookingItem & { guests?: { id: string }[] }, quantity: number) {
+  private ancillaryContextFor(
+    parent: BookingItem & { guests?: { id: string }[] },
+    quantity: number,
+  ) {
     const nights = Math.max(
       Math.round((parent.stayTo.getTime() - parent.stayFrom.getTime()) / 86_400_000),
       1,
@@ -1419,12 +1670,16 @@ export class BookingsService {
 
   /** Doplate/popusti ugovoreni za period matične stavke, sa već izračunatom cenom za ovu stavku. */
   async listAncillariesForItem(bookingId: string, itemId: string, actor: { userId: string }) {
-    const booking = await this.prisma.booking.findUnique({ where: { id: bookingId }, include: { items: { include: { guests: true } } } });
+    const booking = await this.prisma.booking.findUnique({
+      where: { id: bookingId },
+      include: { items: { include: { guests: true } } },
+    });
     if (!booking) throw new NotFoundException(`Rezervacija ${bookingId} nije pronađena.`);
     await this.assertBookingAccessible(booking, actor.userId);
 
     const parent = booking.items.find((i) => i.id === itemId);
-    if (!parent) throw new NotFoundException(`Stavka ${itemId} ne pripada rezervaciji ${bookingId}.`);
+    if (!parent)
+      throw new NotFoundException(`Stavka ${itemId} ne pripada rezervaciji ${bookingId}.`);
 
     // Doplate su ugovorna kategorija (M3 §2.6) — API stavka nema ugovorni period, pa ni spisak.
     // Prazna lista, ne greška: to je tačno stanje, ne kvar.
@@ -1436,7 +1691,9 @@ export class BookingsService {
     if (!rateLine) return [];
 
     const alreadyAdded = new Set(
-      booking.items.filter((i) => i.parentItemId === parent.id && i.itemStatus !== 'CANCELLED').map((i) => i.ancillaryServiceId),
+      booking.items
+        .filter((i) => i.parentItemId === parent.id && i.itemStatus !== 'CANCELLED')
+        .map((i) => i.ancillaryServiceId),
     );
     const ctx = this.ancillaryContextFor(parent, 1);
 
@@ -1455,7 +1712,10 @@ export class BookingsService {
       currency: parent.finalPriceCurrency,
       alreadyAdded: alreadyAdded.has(svc.id),
       /** Razlog zašto se ne može dodati (sastav gostiju), ili `null`. */
-      blockedReason: checkAncillaryOccupancy(svc as unknown as AncillaryServiceLike, { adults: ctx.adults, children: ctx.children }),
+      blockedReason: checkAncillaryOccupancy(svc as unknown as AncillaryServiceLike, {
+        adults: ctx.adults,
+        children: ctx.children,
+      }),
     }));
   }
 
@@ -1530,11 +1790,16 @@ export class BookingsService {
    * nekome ispadne iz cene, a to se otkriva tek na licu mesta, kad je već reklamacija.
    */
   private async attachMandatoryAncillaries(parentId: string): Promise<number> {
-    const parent = await this.prisma.bookingItem.findUnique({ where: { id: parentId }, include: { guests: true } });
+    const parent = await this.prisma.bookingItem.findUnique({
+      where: { id: parentId },
+      include: { guests: true },
+    });
     if (!parent?.rateLineId) return 0;
     const rateLine = await this.prisma.rateLine.findUnique({
       where: { id: parent.rateLineId },
-      include: { contractPeriod: { include: { ancillaryServices: { where: { isMandatory: true } } } } },
+      include: {
+        contractPeriod: { include: { ancillaryServices: { where: { isMandatory: true } } } },
+      },
     });
     if (!rateLine) return 0;
 
@@ -1543,7 +1808,13 @@ export class BookingsService {
       // Sastav gostiju koji ne staje u granice obavezne doplate se PRESKAČE, ne ruši dodavanje
       // stavke: bolje stavka bez doplate koju čovek vidi i doda ručno, nego odbijena rezervacija
       // zbog cenovnika dobavljača.
-      if (checkAncillaryOccupancy(svc as unknown as AncillaryServiceLike, { adults: Math.max(parent.guests.length, 1), children: 0 })) continue;
+      if (
+        checkAncillaryOccupancy(svc as unknown as AncillaryServiceLike, {
+          adults: Math.max(parent.guests.length, 1),
+          children: 0,
+        })
+      )
+        continue;
       await this.createAncillaryItem(parent, svc as any, 1);
       added++;
     }
@@ -1551,24 +1822,46 @@ export class BookingsService {
   }
 
   /** §6.7a — agent dodaje OPCIONU doplatu/popust na postojeću stavku. */
-  async addAncillaryToItem(bookingId: string, itemId: string, dto: AddAncillaryItemDto, actor: { userId: string }) {
-    const booking = await this.prisma.booking.findUnique({ where: { id: bookingId }, include: { items: { include: { guests: true } } } });
+  async addAncillaryToItem(
+    bookingId: string,
+    itemId: string,
+    dto: AddAncillaryItemDto,
+    actor: { userId: string },
+  ) {
+    const booking = await this.prisma.booking.findUnique({
+      where: { id: bookingId },
+      include: { items: { include: { guests: true } } },
+    });
     if (!booking) throw new NotFoundException(`Rezervacija ${bookingId} nije pronađena.`);
     await this.assertBookingAccessible(booking, actor.userId);
     await this.assertInternalPanelOnly(actor.userId);
-    if (booking.status === 'CANCELLED') throw new BadRequestException('Na otkazanu rezervaciju se ne dodaje doplata (M5 spec §6.7a).');
+    if (booking.status === 'CANCELLED')
+      throw new BadRequestException(
+        'Na otkazanu rezervaciju se ne dodaje doplata (M5 spec §6.7a).',
+      );
 
     const parent = booking.items.find((i) => i.id === itemId);
-    if (!parent) throw new NotFoundException(`Stavka ${itemId} ne pripada rezervaciji ${bookingId}.`);
-    if (parent.itemStatus === 'CANCELLED') throw new BadRequestException('Stavka je otkazana — doplata se ne dodaje na otkazanu stavku.');
-    if (parent.parentItemId) throw new BadRequestException('Doplata se dodaje na uslugu, ne na drugu doplatu (M5 spec §6.7a).');
+    if (!parent)
+      throw new NotFoundException(`Stavka ${itemId} ne pripada rezervaciji ${bookingId}.`);
+    if (parent.itemStatus === 'CANCELLED')
+      throw new BadRequestException(
+        'Stavka je otkazana — doplata se ne dodaje na otkazanu stavku.',
+      );
+    if (parent.parentItemId)
+      throw new BadRequestException(
+        'Doplata se dodaje na uslugu, ne na drugu doplatu (M5 spec §6.7a).',
+      );
 
-    const svc = await this.prisma.ancillaryService.findUnique({ where: { id: dto.ancillaryServiceId } });
+    const svc = await this.prisma.ancillaryService.findUnique({
+      where: { id: dto.ancillaryServiceId },
+    });
     if (!svc) throw new NotFoundException(`Doplata ${dto.ancillaryServiceId} nije pronađena.`);
 
     const quantity = dto.quantity ?? 1;
     if (svc.maxQuantity != null && quantity > svc.maxQuantity) {
-      throw new BadRequestException(`Najviše ${svc.maxQuantity} kom. za „${svc.name}" (M3 spec §2.6).`);
+      throw new BadRequestException(
+        `Najviše ${svc.maxQuantity} kom. za „${svc.name}" (M3 spec §2.6).`,
+      );
     }
     const blocked = checkAncillaryOccupancy(svc as unknown as AncillaryServiceLike, {
       adults: Math.max(parent.guests.length, 1),
@@ -1592,9 +1885,18 @@ export class BookingsService {
       resourceType: 'Booking',
       resourceId: bookingId,
       afterState: updated,
-      context: { parentItemId: parent.id, ancillaryServiceId: svc.id, itemId: item.id, payable: svc.payable },
+      context: {
+        parentItemId: parent.id,
+        ancillaryServiceId: svc.id,
+        itemId: item.id,
+        payable: svc.payable,
+      },
     });
-    await this.eventBus.emit('M5', 'booking.ancillary_added', { bookingId, itemId: item.id, parentItemId: parent.id });
+    await this.eventBus.emit('M5', 'booking.ancillary_added', {
+      bookingId,
+      itemId: item.id,
+      parentItemId: parent.id,
+    });
 
     return updated;
   }
@@ -1615,22 +1917,29 @@ export class BookingsService {
    * učestvovalo u ceni.
    */
   async addManualItem(bookingId: string, dto: AddManualItemDto, actor: { userId: string }) {
-    const booking = await this.prisma.booking.findUnique({ where: { id: bookingId }, include: { items: true } });
+    const booking = await this.prisma.booking.findUnique({
+      where: { id: bookingId },
+      include: { items: true },
+    });
     if (!booking) throw new NotFoundException(`Rezervacija ${bookingId} nije pronađena.`);
     await this.assertBookingAccessible(booking, actor.userId);
     await this.assertInternalPanelOnly(actor.userId);
-    if (booking.status === 'CANCELLED') throw new BadRequestException('Na otkazanu rezervaciju se ne dodaje usluga (M5 spec §6.7).');
+    if (booking.status === 'CANCELLED')
+      throw new BadRequestException('Na otkazanu rezervaciju se ne dodaje usluga (M5 spec §6.7).');
 
     const supplier = await this.prisma.supplier.findUnique({ where: { id: dto.supplierId } });
     if (!supplier) throw new NotFoundException(`Dobavljač ${dto.supplierId} nije pronađen.`);
     if (dto.finalPrice < dto.baseCost) {
       // Nije zabrana prodaje ispod nabavne cene nego zaštita od zamenjenih polja: agent koji
       // greškom upiše izlaznu u polje nabavne pravi negativnu maržu na celoj rezervaciji.
-      throw new BadRequestException('Izlazna cena ne sme biti manja od nabavne — proverite da polja nisu zamenjena (M5 spec §6.7b).');
+      throw new BadRequestException(
+        'Izlazna cena ne sme biti manja od nabavne — proverite da polja nisu zamenjena (M5 spec §6.7b).',
+      );
     }
     const stayFrom = new Date(dto.stayFrom);
     const stayTo = new Date(dto.stayTo);
-    if (stayTo <= stayFrom) throw new BadRequestException('Datum završetka mora biti posle datuma početka.');
+    if (stayTo <= stayFrom)
+      throw new BadRequestException('Datum završetka mora biti posle datuma početka.');
 
     const product = await this.prisma.product.create({
       data: {
@@ -1654,7 +1963,14 @@ export class BookingsService {
               languageCode: 'sr' as const,
               name: dto.name,
               description: dto.description ?? '',
-              slug: `${dto.name.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'usluga'}-${Date.now().toString(36)}`,
+              slug: `${
+                dto.name
+                  .toLowerCase()
+                  .normalize('NFD')
+                  .replace(/[̀-ͯ]/g, '')
+                  .replace(/[^a-z0-9]+/g, '-')
+                  .replace(/^-|-$/g, '') || 'usluga'
+              }-${Date.now().toString(36)}`,
             },
           ],
         },
@@ -1705,7 +2021,11 @@ export class BookingsService {
         finalPrice: dto.finalPrice,
       },
     });
-    await this.eventBus.emit('M5', 'booking.manual_item_added', { bookingId, itemId: item.id, productId: product.id });
+    await this.eventBus.emit('M5', 'booking.manual_item_added', {
+      bookingId,
+      itemId: item.id,
+      productId: product.id,
+    });
 
     return updated;
   }
@@ -1722,33 +2042,67 @@ export class BookingsService {
   private async reserveBuiltItem(
     built: BuiltQuoteItemData,
     actorId: string,
-  ): Promise<{ itemStatus: 'CONFIRMED' | 'PENDING_SUPPLIER_CONFIRMATION'; supplierReference: string }> {
+  ): Promise<{
+    itemStatus: 'CONFIRMED' | 'PENDING_SUPPLIER_CONFIRMATION';
+    supplierReference: string;
+  }> {
     if (built.sourceType === 'CONTRACTED') {
-      if (!built.rateLineId) throw new BadRequestException('Nova stavka (CONTRACTED) nema rate_line_id.');
-      const rateLine = await this.prisma.rateLine.findUniqueOrThrow({ where: { id: built.rateLineId } });
-      const result = await this.contractPeriods.reserve(rateLine.contractPeriodId, built.unitCount, actorId);
-      const pending = 'requiresSupplierConfirmation' in result && result.requiresSupplierConfirmation;
-      return { itemStatus: pending ? 'PENDING_SUPPLIER_CONFIRMATION' : 'CONFIRMED', supplierReference: rateLine.contractPeriodId };
+      if (!built.rateLineId)
+        throw new BadRequestException('Nova stavka (CONTRACTED) nema rate_line_id.');
+      const rateLine = await this.prisma.rateLine.findUniqueOrThrow({
+        where: { id: built.rateLineId },
+      });
+      const result = await this.contractPeriods.reserve(
+        rateLine.contractPeriodId,
+        built.unitCount,
+        actorId,
+      );
+      const pending =
+        'requiresSupplierConfirmation' in result && result.requiresSupplierConfirmation;
+      return {
+        itemStatus: pending ? 'PENDING_SUPPLIER_CONFIRMATION' : 'CONFIRMED',
+        supplierReference: rateLine.contractPeriodId,
+      };
     }
     const product = await this.prisma.product.findUniqueOrThrow({ where: { id: built.productId } });
-    const confirmation = await this.integrations.confirmBooking(product.sourceProvider!, product.sourceExternalId!, {
-      stay: { stayFrom: built.stayFrom.toISOString().slice(0, 10), stayTo: built.stayTo.toISOString().slice(0, 10), adults: (built.occupancy as any).adults, children: (built.occupancy as any).children },
-      guestName: 'TBD',
-      idempotencyKey: `modify-${built.productId}-${Date.now()}`,
-    });
-    if (confirmation.status === 'FAILED') throw new BadRequestException('Provajder je odbio novu rezervaciju za izmenjenu stavku.');
-    return { itemStatus: confirmation.status, supplierReference: confirmation.providerBookingReference };
+    const confirmation = await this.integrations.confirmBooking(
+      product.sourceProvider!,
+      product.sourceExternalId!,
+      {
+        stay: {
+          stayFrom: built.stayFrom.toISOString().slice(0, 10),
+          stayTo: built.stayTo.toISOString().slice(0, 10),
+          adults: (built.occupancy as any).adults,
+          children: (built.occupancy as any).children,
+        },
+        guestName: 'TBD',
+        idempotencyKey: `modify-${built.productId}-${Date.now()}`,
+      },
+    );
+    if (confirmation.status === 'FAILED')
+      throw new BadRequestException('Provajder je odbio novu rezervaciju za izmenjenu stavku.');
+    return {
+      itemStatus: confirmation.status,
+      supplierReference: confirmation.providerBookingReference,
+    };
   }
 
   // ==========================================================================
   // M5 spec §5/§6 — payment-status + generisanje vaučera
   // ==========================================================================
-  async updatePaymentStatus(bookingId: string, paymentStatus: PaymentStatus, actor: { userId: string }) {
+  async updatePaymentStatus(
+    bookingId: string,
+    paymentStatus: PaymentStatus,
+    actor: { userId: string },
+  ) {
     const before = await this.prisma.booking.findUnique({ where: { id: bookingId } });
     if (!before) throw new NotFoundException(`Rezervacija ${bookingId} nije pronađena.`);
     await this.assertBookingAccessible(before, actor.userId);
 
-    const updated = await this.prisma.booking.update({ where: { id: bookingId }, data: { paymentStatus } });
+    const updated = await this.prisma.booking.update({
+      where: { id: bookingId },
+      data: { paymentStatus },
+    });
 
     await this.auditLog.write({
       actorType: 'HUMAN',
@@ -1765,7 +2119,10 @@ export class BookingsService {
     if (paymentStatus === 'PAID') {
       await this.maybeIssueVoucher(bookingId);
     }
-    return this.prisma.booking.findUniqueOrThrow({ where: { id: bookingId }, include: { items: true } });
+    return this.prisma.booking.findUniqueOrThrow({
+      where: { id: bookingId },
+      include: { items: true },
+    });
   }
 
   // §6 — generisanje vaučera kad su uslovi ispunjeni (PAID, ili izuzetak §6.3).
@@ -1789,7 +2146,10 @@ export class BookingsService {
   }
 
   private async issueVoucher(bookingId: string) {
-    await this.prisma.booking.update({ where: { id: bookingId }, data: { voucherUrl: buildVoucherUrl(bookingId) } });
+    await this.prisma.booking.update({
+      where: { id: bookingId },
+      data: { voucherUrl: buildVoucherUrl(bookingId) },
+    });
   }
 
   // M5 spec §6/§4.1/§11 — POST /bookings/:id/voucher/override, zahteva M5/voucher/OVERRIDE_ISSUE
@@ -1831,7 +2191,7 @@ export class BookingsService {
   // base_cost/markup_rule_id/rate_line_id), i SAMO kad je vaučer stvarno izdat (voucher_url
   // postavljen) — rezervacija pre toga nema šta da pokaže kao "dokument".
   // ==========================================================================
-/**
+  /**
    * §6 dopuna (3.9.2026, vlasnikova odluka) — **jedan vaučer po DOBAVLJAČU je podrazumevani**,
    * pojedinačni po usluzi je opcija. Kad rezervacija ima više stavki istog dobavljača (soba +
    * parking + spa u istom hotelu), one idu na JEDAN dokument: tri odvojena vaučera za istu
@@ -1876,10 +2236,21 @@ export class BookingsService {
         },
       },
     });
-    if (!booking || !booking.voucherUrl) throw new NotFoundException('Vaučer nije pronađen ili još nije izdat.');
+    if (!booking || !booking.voucherUrl)
+      throw new NotFoundException('Vaučer nije pronađen ili još nije izdat.');
 
-    const guideIds = [...new Set(booking.items.map((i) => i.assignedGuideId).filter((id): id is string => Boolean(id)))];
-    const guides = guideIds.length > 0 ? await this.prisma.user.findMany({ where: { id: { in: guideIds } }, select: { id: true, fullName: true, phone: true, email: true } }) : [];
+    const guideIds = [
+      ...new Set(
+        booking.items.map((i) => i.assignedGuideId).filter((id): id is string => Boolean(id)),
+      ),
+    ];
+    const guides =
+      guideIds.length > 0
+        ? await this.prisma.user.findMany({
+            where: { id: { in: guideIds } },
+            select: { id: true, fullName: true, phone: true, email: true },
+          })
+        : [];
     const guidesById = new Map(guides.map((g) => [g.id, g]));
 
     const toVoucherItem = (item: (typeof booking.items)[number]) => {
@@ -1887,7 +2258,10 @@ export class BookingsService {
       return {
         // Vezana doplata/popust (§6.7a) nema sopstven proizvod — nosi naziv iz ugovora, inače bi
         // se na vaučeru pojavila kao još jedan red sa imenom hotela.
-        productName: item.ancillaryService?.name ?? resolveTranslation(item.product?.translations ?? [], 'sr')?.name ?? null,
+        productName:
+          item.ancillaryService?.name ??
+          resolveTranslation(item.product?.translations ?? [], 'sr')?.name ??
+          null,
         productType: item.product?.type ?? null,
         destinationCity: item.product?.destinationCity ?? null,
         destinationArea: item.product?.destinationArea ?? null,
@@ -1900,8 +2274,13 @@ export class BookingsService {
         payable: item.payable,
         price: item.finalPrice,
         currency: item.finalPriceCurrency,
-        guests: item.guests.map((g) => ({ guestFirstName: g.guestFirstName, guestLastName: g.guestLastName })),
-        representative: guide ? { fullName: guide.fullName, phone: guide.phone, email: guide.email } : null,
+        guests: item.guests.map((g) => ({
+          guestFirstName: g.guestFirstName,
+          guestLastName: g.guestLastName,
+        })),
+        representative: guide
+          ? { fullName: guide.fullName, phone: guide.phone, email: guide.email }
+          : null,
       };
     };
 
@@ -1914,7 +2293,9 @@ export class BookingsService {
       return (
         root.product?.sourceContract?.supplierId ??
         root.product?.supplierId ??
-        (root.product?.sourceProvider ? `provider:${root.product.sourceProvider}` : `item:${root.id}`)
+        (root.product?.sourceProvider
+          ? `provider:${root.product.sourceProvider}`
+          : `item:${root.id}`)
       );
     };
 
@@ -1933,24 +2314,38 @@ export class BookingsService {
       const items = buckets.get(key)!;
       // Naziv vaučera su USLUGE koje nosi, nikad ime dobavljača (§6.2) — a to je ionako ono što
       // gost prepoznaje: „Hotel Avala Resort, Budva".
-      const label = [...new Set(items.filter((i) => !i.parentItemId).map((i) => resolveTranslation(i.product?.translations ?? [], 'sr')?.name).filter(Boolean))].join(', ');
+      const label = [
+        ...new Set(
+          items
+            .filter((i) => !i.parentItemId)
+            .map((i) => resolveTranslation(i.product?.translations ?? [], 'sr')?.name)
+            .filter(Boolean),
+        ),
+      ].join(', ');
       return {
         index: idx + 1,
         label: label || 'Usluge',
         items: items.map(toVoucherItem),
-        onSiteTotal: items.filter((i) => i.payable === 'ON_SITE').reduce((sum, i) => sum + i.finalPrice, 0),
+        onSiteTotal: items
+          .filter((i) => i.payable === 'ON_SITE')
+          .reduce((sum, i) => sum + i.finalPrice, 0),
       };
     });
 
     if (opts.groupIndex != null) {
       groups = groups.filter((g) => g.index === opts.groupIndex);
-      if (groups.length === 0) throw new NotFoundException('Traženi vaučer ne postoji na ovoj rezervaciji.');
+      if (groups.length === 0)
+        throw new NotFoundException('Traženi vaučer ne postoji na ovoj rezervaciji.');
     }
     if (opts.itemId) {
       groups = groups
-        .map((g) => ({ ...g, items: g.items.filter((_, i) => buckets.get(order[g.index - 1])![i].id === opts.itemId) }))
+        .map((g) => ({
+          ...g,
+          items: g.items.filter((_, i) => buckets.get(order[g.index - 1])![i].id === opts.itemId),
+        }))
         .filter((g) => g.items.length > 0);
-      if (groups.length === 0) throw new NotFoundException('Tražena usluga ne postoji na ovoj rezervaciji.');
+      if (groups.length === 0)
+        throw new NotFoundException('Tražena usluga ne postoji na ovoj rezervaciji.');
     }
 
     return {
@@ -1967,10 +2362,16 @@ export class BookingsService {
   // ==========================================================================
   // M5 spec §4.2 dopuna (M9 spec §4) — dodela vodiča na terenu za stavku rezervacije.
   // ==========================================================================
-  async assignGuide(bookingItemId: string, assignedGuideId: string | null, actor: { userId: string }) {
+  async assignGuide(
+    bookingItemId: string,
+    assignedGuideId: string | null,
+    actor: { userId: string },
+  ) {
     const before = await this.prisma.bookingItem.findUnique({ where: { id: bookingItemId } });
     if (!before) throw new NotFoundException(`Stavka rezervacije ${bookingItemId} nije pronađena.`);
-    const parentBooking = await this.prisma.booking.findUniqueOrThrow({ where: { id: before.bookingId } });
+    const parentBooking = await this.prisma.booking.findUniqueOrThrow({
+      where: { id: before.bookingId },
+    });
     await this.assertBookingAccessible(parentBooking, actor.userId);
 
     const updated = await this.prisma.bookingItem.update({
@@ -2000,16 +2401,29 @@ export class BookingsService {
   // polju, nikad `guestProfileId`/M6 `GuestProfile` — isti IDOR obrazac kao `assignGuide`
   // iznad (učitaj stavku → učitaj roditeljsku rezervaciju → assertBookingAccessible).
   // ==========================================================================
-  async addGuest(bookingItemId: string, dto: { guestFirstName: string; guestLastName: string }, actor: { userId: string }) {
+  async addGuest(
+    bookingItemId: string,
+    dto: { guestFirstName: string; guestLastName: string },
+    actor: { userId: string },
+  ) {
     const item = await this.prisma.bookingItem.findUnique({ where: { id: bookingItemId } });
     if (!item) throw new NotFoundException(`Stavka rezervacije ${bookingItemId} nije pronađena.`);
-    const parentBooking = await this.prisma.booking.findUniqueOrThrow({ where: { id: item.bookingId } });
+    const parentBooking = await this.prisma.booking.findUniqueOrThrow({
+      where: { id: item.bookingId },
+    });
     await this.assertBookingAccessible(parentBooking, actor.userId);
 
     const duplicate = await this.prisma.bookingItemGuest.findFirst({
-      where: { bookingItemId, guestFirstName: dto.guestFirstName, guestLastName: dto.guestLastName },
+      where: {
+        bookingItemId,
+        guestFirstName: dto.guestFirstName,
+        guestLastName: dto.guestLastName,
+      },
     });
-    if (duplicate) throw new BadRequestException('Putnik sa tim imenom i prezimenom već postoji na ovoj stavci.');
+    if (duplicate)
+      throw new BadRequestException(
+        'Putnik sa tim imenom i prezimenom već postoji na ovoj stavci.',
+      );
 
     const guest = await this.prisma.bookingItemGuest.create({
       data: { bookingItemId, guestFirstName: dto.guestFirstName, guestLastName: dto.guestLastName },
@@ -2029,14 +2443,22 @@ export class BookingsService {
     return guest;
   }
 
-  async updateGuest(bookingItemId: string, guestId: string, dto: { guestFirstName: string; guestLastName: string }, actor: { userId: string }) {
+  async updateGuest(
+    bookingItemId: string,
+    guestId: string,
+    dto: { guestFirstName: string; guestLastName: string },
+    actor: { userId: string },
+  ) {
     const item = await this.prisma.bookingItem.findUnique({ where: { id: bookingItemId } });
     if (!item) throw new NotFoundException(`Stavka rezervacije ${bookingItemId} nije pronađena.`);
-    const parentBooking = await this.prisma.booking.findUniqueOrThrow({ where: { id: item.bookingId } });
+    const parentBooking = await this.prisma.booking.findUniqueOrThrow({
+      where: { id: item.bookingId },
+    });
     await this.assertBookingAccessible(parentBooking, actor.userId);
 
     const before = await this.prisma.bookingItemGuest.findUnique({ where: { id: guestId } });
-    if (!before || before.bookingItemId !== bookingItemId) throw new NotFoundException(`Putnik ${guestId} ne pripada stavci ${bookingItemId}.`);
+    if (!before || before.bookingItemId !== bookingItemId)
+      throw new NotFoundException(`Putnik ${guestId} ne pripada stavci ${bookingItemId}.`);
 
     const updated = await this.prisma.bookingItemGuest.update({
       where: { id: guestId },
@@ -2061,11 +2483,14 @@ export class BookingsService {
   async removeGuest(bookingItemId: string, guestId: string, actor: { userId: string }) {
     const item = await this.prisma.bookingItem.findUnique({ where: { id: bookingItemId } });
     if (!item) throw new NotFoundException(`Stavka rezervacije ${bookingItemId} nije pronađena.`);
-    const parentBooking = await this.prisma.booking.findUniqueOrThrow({ where: { id: item.bookingId } });
+    const parentBooking = await this.prisma.booking.findUniqueOrThrow({
+      where: { id: item.bookingId },
+    });
     await this.assertBookingAccessible(parentBooking, actor.userId);
 
     const before = await this.prisma.bookingItemGuest.findUnique({ where: { id: guestId } });
-    if (!before || before.bookingItemId !== bookingItemId) throw new NotFoundException(`Putnik ${guestId} ne pripada stavci ${bookingItemId}.`);
+    if (!before || before.bookingItemId !== bookingItemId)
+      throw new NotFoundException(`Putnik ${guestId} ne pripada stavci ${bookingItemId}.`);
 
     await this.prisma.bookingItemGuest.delete({ where: { id: guestId } });
 
@@ -2095,11 +2520,16 @@ export class BookingsService {
   // drugo (`{...a, ...b}` bi tiho izgubio prozor kad bi oba pisala isti ključ).
   private buildCalendarItemWhere(filters: CalendarFilters): Prisma.BookingItemWhereInput {
     const bookingWhere: Prisma.BookingWhereInput = {};
-    if (filters.status && filters.status.length > 0) bookingWhere.status = { in: filters.status as any };
-    if (filters.paymentStatus && filters.paymentStatus.length > 0) bookingWhere.paymentStatus = { in: filters.paymentStatus as PaymentStatus[] };
-    if (filters.tipNastupanja && filters.tipNastupanja.length > 0) bookingWhere.tipNastupanja = { in: filters.tipNastupanja as TipNastupanja[] };
-    if (filters.buyerName) bookingWhere.buyerName = { contains: filters.buyerName, mode: 'insensitive' };
-    if (filters.bookingNumber) bookingWhere.bookingNumber = { contains: filters.bookingNumber, mode: 'insensitive' };
+    if (filters.status && filters.status.length > 0)
+      bookingWhere.status = { in: filters.status as any };
+    if (filters.paymentStatus && filters.paymentStatus.length > 0)
+      bookingWhere.paymentStatus = { in: filters.paymentStatus as PaymentStatus[] };
+    if (filters.tipNastupanja && filters.tipNastupanja.length > 0)
+      bookingWhere.tipNastupanja = { in: filters.tipNastupanja as TipNastupanja[] };
+    if (filters.buyerName)
+      bookingWhere.buyerName = { contains: filters.buyerName, mode: 'insensitive' };
+    if (filters.bookingNumber)
+      bookingWhere.bookingNumber = { contains: filters.bookingNumber, mode: 'insensitive' };
     if (filters.currency) bookingWhere.currency = filters.currency;
     if (filters.createdFrom || filters.createdTo) {
       bookingWhere.createdAt = {
@@ -2107,19 +2537,34 @@ export class BookingsService {
         ...(filters.createdTo ? { lte: new Date(`${filters.createdTo}T23:59:59.999Z`) } : {}),
       };
     }
-    if (filters.hasTravelGuarantee === 'true') bookingWhere.travelGuaranteeRegistration = { isNot: null };
-    if (filters.hasTravelGuarantee === 'false') bookingWhere.travelGuaranteeRegistration = { is: null };
+    if (filters.hasTravelGuarantee === 'true')
+      bookingWhere.travelGuaranteeRegistration = { isNot: null };
+    if (filters.hasTravelGuarantee === 'false')
+      bookingWhere.travelGuaranteeRegistration = { is: null };
 
     const itemWhere: Prisma.BookingItemWhereInput = {};
-    if ((filters.productType && filters.productType.length > 0) || filters.destinationCity || filters.destinationCountry || filters.productName) {
+    if (
+      (filters.productType && filters.productType.length > 0) ||
+      filters.destinationCity ||
+      filters.destinationCountry ||
+      filters.productName
+    ) {
       itemWhere.product = {
-        ...(filters.productType && filters.productType.length > 0 ? { type: { in: filters.productType as any } } : {}),
+        ...(filters.productType && filters.productType.length > 0
+          ? { type: { in: filters.productType as any } }
+          : {}),
         ...(filters.destinationCity ? { destinationCity: filters.destinationCity } : {}),
         ...(filters.destinationCountry ? { destinationCountry: filters.destinationCountry } : {}),
         // Naziv je jezički zavisan (M2 spec §2.2 `ProductTranslation`), ne postoji na `Product`
         // samom — pretražuje se preko SVIH prevoda odjednom (`some`), ne samo trenutnog jezika
         // panela, jer agent traži hotel po nazivu koji zna, ne po prevodu za taj dan.
-        ...(filters.productName ? { translations: { some: { name: { contains: filters.productName, mode: 'insensitive' } } } } : {}),
+        ...(filters.productName
+          ? {
+              translations: {
+                some: { name: { contains: filters.productName, mode: 'insensitive' } },
+              },
+            }
+          : {}),
       };
     }
     if (filters.productId) itemWhere.productId = filters.productId;
@@ -2142,24 +2587,50 @@ export class BookingsService {
   }
 
   async calendarSummary(from: Date, to: Date, filters: CalendarFilters = {}) {
-    const arrivalGte = BookingsService.tighterGte(undefined, filters.stayFrom ? new Date(filters.stayFrom) : undefined);
-    const arrivalLte = BookingsService.tighterLte(to, filters.stayTo ? new Date(`${filters.stayTo}T23:59:59.999Z`) : undefined);
-    const departureGte = BookingsService.tighterGte(from, filters.returnFrom ? new Date(filters.returnFrom) : undefined);
-    const departureLte = BookingsService.tighterLte(undefined, filters.returnTo ? new Date(`${filters.returnTo}T23:59:59.999Z`) : undefined);
+    const arrivalGte = BookingsService.tighterGte(
+      undefined,
+      filters.stayFrom ? new Date(filters.stayFrom) : undefined,
+    );
+    const arrivalLte = BookingsService.tighterLte(
+      to,
+      filters.stayTo ? new Date(`${filters.stayTo}T23:59:59.999Z`) : undefined,
+    );
+    const departureGte = BookingsService.tighterGte(
+      from,
+      filters.returnFrom ? new Date(filters.returnFrom) : undefined,
+    );
+    const departureLte = BookingsService.tighterLte(
+      undefined,
+      filters.returnTo ? new Date(`${filters.returnTo}T23:59:59.999Z`) : undefined,
+    );
 
     const items = await this.prisma.bookingItem.findMany({
       where: {
         itemStatus: { in: ['CONFIRMED', 'PENDING_SUPPLIER_CONFIRMATION'] },
-        stayFrom: { ...(arrivalGte ? { gte: arrivalGte } : {}), ...(arrivalLte ? { lte: arrivalLte } : {}) },
-        stayTo: { ...(departureGte ? { gte: departureGte } : {}), ...(departureLte ? { lte: departureLte } : {}) },
+        stayFrom: {
+          ...(arrivalGte ? { gte: arrivalGte } : {}),
+          ...(arrivalLte ? { lte: arrivalLte } : {}),
+        },
+        stayTo: {
+          ...(departureGte ? { gte: departureGte } : {}),
+          ...(departureLte ? { lte: departureLte } : {}),
+        },
         ...this.buildCalendarItemWhere(filters),
       },
       select: { stayFrom: true, stayTo: true },
     });
 
-    const perDay = new Map<string, { arrivals: number; departures: number; stayovers: number; singleDay: number }>();
+    const perDay = new Map<
+      string,
+      { arrivals: number; departures: number; stayovers: number; singleDay: number }
+    >();
     for (let d = new Date(from); d <= to; d.setUTCDate(d.getUTCDate() + 1)) {
-      perDay.set(toMidnightUtc(d).toISOString().slice(0, 10), { arrivals: 0, departures: 0, stayovers: 0, singleDay: 0 });
+      perDay.set(toMidnightUtc(d).toISOString().slice(0, 10), {
+        arrivals: 0,
+        departures: 0,
+        stayovers: 0,
+        singleDay: 0,
+      });
     }
 
     for (const item of items) {
@@ -2188,18 +2659,36 @@ export class BookingsService {
   async calendarDay(date: Date, filters: CalendarFilters = {}) {
     const day = toMidnightUtc(date);
     const arrivalGte = filters.stayFrom ? new Date(filters.stayFrom) : undefined;
-    const arrivalLte = BookingsService.tighterLte(day, filters.stayTo ? new Date(`${filters.stayTo}T23:59:59.999Z`) : undefined);
-    const departureGte = BookingsService.tighterGte(day, filters.returnFrom ? new Date(filters.returnFrom) : undefined);
-    const departureLte = filters.returnTo ? new Date(`${filters.returnTo}T23:59:59.999Z`) : undefined;
+    const arrivalLte = BookingsService.tighterLte(
+      day,
+      filters.stayTo ? new Date(`${filters.stayTo}T23:59:59.999Z`) : undefined,
+    );
+    const departureGte = BookingsService.tighterGte(
+      day,
+      filters.returnFrom ? new Date(filters.returnFrom) : undefined,
+    );
+    const departureLte = filters.returnTo
+      ? new Date(`${filters.returnTo}T23:59:59.999Z`)
+      : undefined;
 
     const items = await this.prisma.bookingItem.findMany({
       where: {
         itemStatus: { in: ['CONFIRMED', 'PENDING_SUPPLIER_CONFIRMATION'] },
-        stayFrom: { ...(arrivalGte ? { gte: arrivalGte } : {}), ...(arrivalLte ? { lte: arrivalLte } : {}) },
-        stayTo: { ...(departureGte ? { gte: departureGte } : {}), ...(departureLte ? { lte: departureLte } : {}) },
+        stayFrom: {
+          ...(arrivalGte ? { gte: arrivalGte } : {}),
+          ...(arrivalLte ? { lte: arrivalLte } : {}),
+        },
+        stayTo: {
+          ...(departureGte ? { gte: departureGte } : {}),
+          ...(departureLte ? { lte: departureLte } : {}),
+        },
         ...this.buildCalendarItemWhere(filters),
       },
-      include: { booking: true, guests: true, product: { select: { type: true, destinationCity: true, destinationCountry: true } } },
+      include: {
+        booking: true,
+        guests: true,
+        product: { select: { type: true, destinationCity: true, destinationCountry: true } },
+      },
     });
 
     const groups: Record<'ARRIVAL' | 'DEPARTURE' | 'STAYOVER' | 'SINGLE_DAY', unknown[]> = {
