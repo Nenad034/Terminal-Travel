@@ -9,6 +9,7 @@ import { JwtAuthGuard } from '../../m1-core-identitet/auth/guards/jwt-auth.guard
 import { PermissionsGuard } from '../../../common/guards/permissions.guard';
 import { RequirePermission } from '../../../common/decorators/require-permission.decorator';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
+import { Public } from '../../../common/decorators/public.decorator';
 import { verifyPaymentWebhookSignature } from './payment-webhook-signature';
 
 // M10 spec §10, prefiks /api/v1/finance
@@ -55,6 +56,7 @@ export class PaymentsController {
   // §7.2 korak 1 — pokreće gost, samostalno na sajtu (isti autentikacioni nivo kao ostatak M8/M5
   // samouslužnog toka, ne zahteva internu M1/M10 dozvolu).
   @Post('card/initiate')
+  @Public()
   initiateCardPayment(@Body() dto: InitiateCardPaymentDto) {
     return this.payments.initiateCardPayment(dto.quoteId, dto.idempotencyKey);
   }
@@ -65,6 +67,7 @@ export class PaymentsController {
   // 28.8.2026, pre lansiranja pregled) — bez ovoga bi bilo ko ko sazna/izračuna
   // `gatewayTransactionId` mogao da potvrdi rezervaciju kao plaćenu bez ijednog dinara.
   @Post('card/webhook')
+  @Public()
   handleCardWebhook(@Body() dto: CardPaymentWebhookDto, @Headers('x-payment-webhook-signature') signature?: string) {
     const secret = this.config.getOrThrow<string>('PAYMENT_WEBHOOK_SECRET');
     if (!verifyPaymentWebhookSignature(dto.gatewayTransactionId, signature, secret)) {

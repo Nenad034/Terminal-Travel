@@ -291,7 +291,7 @@ Posledica: svaka greška u renderu — kao ona sa `base_beds` — daje golu Next
 
 ## 3. Srednje — nije hitno, ali se plaća kasnije
 
-### 3.1 Zaštita endpointa se dodaje ručno, umesto da bude podrazumevana
+### 3.1 Zaštita endpointa se dodaje ručno, umesto da bude podrazumevana — REŠENO 7.9.2026
 
 Od 86 kontrolera, 81 ima `@UseGuards(JwtAuthGuard)` **ručno napisan**. Pet koji ga nemaju jesu namerno javni. Danas je stanje ispravno — proveravao sam svih pet.
 
@@ -299,6 +299,23 @@ Problem je smer greške: ako sledeći kontroler zaboravi guard, endpoint je **ti
 
 **Predlog:** globalni `JwtAuthGuard` u `app.module.ts` + `@Public()` dekorator na onih pet javnih. To je standardan NestJS obrazac i posle njega zaboravljen guard znači „zaključano", ne „otvoreno".
 **Procena:** 2–3 sata + prolaz kroz e2e testove.
+
+---
+
+**REŠENO 7.9.2026.**
+
+**Ispravka brojke iz prvobitnog nalaza:** nije bilo pet namerno javnih kontrolera nego **osam**, plus pojedinačne metode unutar tri dodatna kontrolera koji su mešoviti (deo metoda zaključan, deo javan) — `AuthController` (registracija/prijava/2FA-setup/refresh/logout/aktivacija/reset lozinke, 10 metoda), `PaymentsController` (`card/initiate`, `card/webhook`) i `OmnisearchController` (`search()`, koji sam grana po kanalu). Prvobitna brojka je izbrojala samo kontrolere bez ijednog pojavljivanja guard-a u fajlu, ne i pojedinačne javne metode unutar guardovanih kontrolera — ista klasa greške kao 8.4/2.3 (obim procenjen, ne prebrojan).
+
+**Šta je urađeno:**
+1. **`@Public()` dekorator** (`common/decorators/public.decorator.ts`) — `SetMetadata(IS_PUBLIC_KEY, true)`, isti obrazac kao postojeći `@RequirePermission`.
+2. **`JwtAuthGuard`** sad koristi `Reflector.getAllAndOverride(IS_PUBLIC_KEY, [handler, class])` — `@Public()` na metodi ili na celoj klasi propušta zahtev bez provere tokena.
+3. **Globalna registracija** u `app.module.ts` (`APP_GUARD`, posle `ThrottlerGuard`) — svaki endpoint je od sada zaključan **podrazumevano**, bez ijednog izuzetka koji nije eksplicitno označen.
+4. **`@Public()` primenjen** na: 8 potpuno javnih kontrolera (`PublicContentController`, `PublicProductsController`, `PublicKnowledgeController`, `PublicVoucherController`, `PublicPostTripSurveysController`, `GuestCheckoutController`, `SearchController` M5, `McpController` M16 — poslednji ima sopstvenu šemu autentikacije, ne interni JWT) i na 13 pojedinačnih javnih metoda unutar tri mešovita kontrolera nabrojana gore.
+5. **Postojeći `@UseGuards(JwtAuthGuard)` po 81 kontroleru namerno NIJE uklonjen** — sad je redundantan (guard se izvršava dva puta, isti rezultat), ali uklanjanje 81 fajla nije bilo neophodno za bezbednosni cilj nalaza i nosi nepotreban rizik od greške u mehaničkom prolazu. Čišćenje ostaje kao kozmetički sledeći korak, ne bezbednosni.
+
+**Pokušaj obaranja (pravilo 5, dok. 40): „nalaz bi bio netačan ako postoji kontroler koji radi bez ijednog guard-a a NIJE namerno javan."** Provereno — prošao sam kroz svih 8 kontrolera bez `UseGuards(JwtAuthGuard` u fajlu i sve tri mešovite kontrolere red po red; svaki javan endpoint ima pisano obrazloženje u komentaru zašto sme da bude otvoren (anoniman gost na M8 toku, PSP webhook sa sopstvenim potpisom, MCP sa sopstvenim bearer tokenom, itd.). Nalaz opstaje u širem obimu nego prvobitno prijavljeno.
+
+**Provereno:** `tsc --noEmit` ne prijavljuje nijednu novu grešku u izmenjenim fajlovima (ostale, nepovezane greške potiču od needregenisanog Prisma klijenta posle paralelnog `git pull`-a, van obima ovog nalaza). DI graf potvrđen podizanjem cele Nest aplikacije (`NestFactory.create(AppModule).init()`) — prolazi bez greške sa globalnim guard-om. `JwtAuthGuard` unit testovi (7/7) prolaze, uz nov test koji dokazuje da `@Public()` stvarno propušta zahtev bez ijednog headera — bez toga bi tvrdnja „radi" počivala samo na čitanju koda, ne na dokazu (dok. 40, pravilo 3).
 
 ### 3.2 `apps/api` nema ESLint
 
@@ -388,7 +405,7 @@ Ako se ide redom po odnosu „koliko boli" naspram „koliko traje":
 
 **Prvo (par dana):** ~~1.1 klik na rezervaciju~~ · ~~1.2 lažno „poslato" dobavljaču~~ · ~~2.1 indeksi~~ · ~~2.2 straničenje~~ · ~~2.3 N+1~~ · ~~2.4a `tsc`+`build` u CI~~ · ~~2.5 stranice greške~~ (sve urađeno 5.9.2026, osim 404) · 2.4a `tsc`+`build` u CI · 2.5 stranice greške
 
-**Zatim (nedelja):** 2.2 paginacija · 3.1 globalni guard · 3.2 ESLint za API · 2.3 N+1 · 3.4 preimenovanje „Stub"
+**Zatim (nedelja):** ~~3.1 globalni guard~~ (urađeno 7.9.2026) · 3.2 ESLint za API · 3.4 preimenovanje „Stub"
 
 **Pred lansiranje (uz hosting):** sve iz poglavlja 6 (nadogradnje, CORS, login limit, RLS) · 5.3 merenje na velikoj bazi
 

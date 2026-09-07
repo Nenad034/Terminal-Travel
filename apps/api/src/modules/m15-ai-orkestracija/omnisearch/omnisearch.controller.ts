@@ -9,6 +9,7 @@ import { ExtractFileService } from './extract-file.service';
 import { OmnisearchQueryDto } from './dto/omnisearch-query.dto';
 import { AccessTokenPayload, JwtAuthGuard, assertAccessTokenPayload } from '../../m1-core-identitet/auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
+import { Public } from '../../../common/decorators/public.decorator';
 
 // M15 spec §6.5.4.3 dopuna v1.43 — gornja granica veličine priloženog dokumenta (odbrana u
 // dubinu, isti princip kao MAX_ATTACHMENT_BYTES u M19) — fajl se NIKAD ne piše na disk
@@ -34,6 +35,7 @@ export class OmnisearchController {
   ) {}
 
   @Post()
+  @Public()
   async search(@Body() dto: OmnisearchQueryDto, @Req() req: Request) {
     const actorUserId = await this.resolveActor(dto.channel, req);
     return this.omnisearch.search({

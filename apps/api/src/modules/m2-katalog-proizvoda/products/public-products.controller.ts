@@ -2,6 +2,7 @@ import { BadRequestException, Controller, Get, Param, ParseEnumPipe, Query } fro
 import { ApiTags } from '@nestjs/swagger';
 import { LanguageCode, VisibleChannel } from '@prisma/client';
 import { ProductsService } from './products.service';
+import { Public } from '../../../common/decorators/public.decorator';
 
 /**
  * M2 spec §5.1 — javni kanal (buduće M7/M8/M9-gost). Bez autentikacije (isti nivo
@@ -43,6 +44,7 @@ const LANG_PIPE = new ParseEnumPipe(LanguageCode, {
 });
 
 @ApiTags('catalog-public')
+@Public()
 @Controller('catalog/public/products')
 export class PublicProductsController {
   constructor(private readonly products: ProductsService) {}

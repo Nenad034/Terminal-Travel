@@ -6,6 +6,7 @@ import { SearchService } from './search.service';
 import { SearchQueryDto } from './dto/search-query.dto';
 import { PermissionsService } from '../../m1-core-identitet/permissions/permissions.service';
 import { AccessTokenPayload, assertAccessTokenPayload } from '../../m1-core-identitet/auth/guards/jwt-auth.guard';
+import { Public } from '../../../common/decorators/public.decorator';
 
 // M5 spec §11 dopuna (avgust 2026, priprema za M8) — pretraga je JAVNA, bez guard-a.
 // M8 spec poglavlje 3 korak 1 zahteva anonimnu pretragu (gost bez naloga); ranija verzija
@@ -13,6 +14,7 @@ import { AccessTokenPayload, assertAccessTokenPayload } from '../../m1-core-iden
 // isti princip kao M2 PublicProductsController (poglavlje 5.1: identitet dobavljača se
 // ionako nikad ne izlaže ka B2C/B2B, nema osetljivog podatka koji bi guard štitio ovde).
 @ApiTags('sales-search')
+@Public()
 @Controller('sales/search')
 export class SearchController {
   constructor(

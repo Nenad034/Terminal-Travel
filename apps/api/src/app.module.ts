@@ -26,6 +26,8 @@ import { M21CentarZaPomocModule } from './modules/m21-centar-za-pomoc/m21-centar
 import { M22EmailInboxModule } from './modules/m22-email-inbox/m22-email-inbox.module';
 import { M23ZnanjeModule } from './modules/m23-znanje/m23-znanje.module';
 import { MailModule } from './common/mail/mail.module';
+import { AuthSharedModule } from './common/auth-shared.module';
+import { JwtAuthGuard } from './modules/m1-core-identitet/auth/guards/jwt-auth.guard';
 
 @Module({
   imports: [
@@ -33,6 +35,7 @@ import { MailModule } from './common/mail/mail.module';
     ThrottlerModule.forRoot([{ ttl: 60_000, limit: 100 }]),
     ScheduleModule.forRoot(), // M5 spec §6.1 — podsetnici/alarmi (RemindersService, @Cron)
     PrismaModule,
+    AuthSharedModule, // JwtAuthGuard/JwtService za globalni APP_GUARD ispod (nalaz 3.1, dok. 39)
     MailModule, // slanje sistemske poste (M1 pozivnica/reset, M18 uzbune) — @Global()
     M1CoreIdentitetModule,
     M2KatalogProizvodaModule,
@@ -56,6 +59,11 @@ import { MailModule } from './common/mail/mail.module';
     M22EmailInboxModule,
     M23ZnanjeModule,
   ],
-  providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
+  providers: [
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
+    // Nalaz 3.1 (dok. 39) — globalna zaštita umesto ručnog @UseGuards po kontroleru;
+    // `@Public()` (common/decorators/public.decorator.ts) je jedini izuzetak.
+    { provide: APP_GUARD, useClass: JwtAuthGuard },
+  ],
 })
 export class AppModule {}

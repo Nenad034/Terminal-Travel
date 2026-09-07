@@ -6,6 +6,7 @@ import { toNodeHandler } from '@modelcontextprotocol/node';
 import { McpAuthService } from './mcp-auth.service';
 import { McpRateLimiterService } from './mcp-rate-limiter.service';
 import { McpServerFactoryService } from './mcp-server.factory';
+import { Public } from '../../../common/decorators/public.decorator';
 
 /**
  * M16 spec §8 — sam MCP server, protokol verzije 2026-07-28 (stateless, JSON-RPC preko
@@ -14,7 +15,10 @@ import { McpServerFactoryService } from './mcp-server.factory';
  * (createMcpHandler dokumentacija), pass-through dizajn, isti obrazac kao svaki drugi
  * OAuthTokenVerifier korisnik.
  */
+// Sopstvena šema autentikacije (McpAuthService, ne interni JWT) — izuzet iz globalnog
+// JwtAuthGuard-a (nalaz 3.1, dok. 39) istim putem kao svaki drugi javan kontroler.
 @ApiExcludeController()
+@Public()
 @Controller('mcp')
 export class McpController {
   private readonly handler: McpHttpHandler;

@@ -2,6 +2,7 @@ import { Controller, Get, Query } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { ContentPieceType, LanguageCode } from '@prisma/client';
 import { ContentService } from './content.service';
+import { Public } from '../../../common/decorators/public.decorator';
 
 /**
  * M12 spec §3b/§7 — javan kanal (M8 sajt). Bez autentikacije, isto opravdanje kao
@@ -12,6 +13,7 @@ import { ContentService } from './content.service';
  * fizički nikad ne učitava ništa osim objavljenog.
  */
 @ApiTags('marketing-public-content')
+@Public()
 @Controller('marketing/public/content')
 export class PublicContentController {
   constructor(private readonly content: ContentService) {}

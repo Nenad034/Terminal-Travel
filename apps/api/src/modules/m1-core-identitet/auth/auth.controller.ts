@@ -9,6 +9,7 @@ import { MfaVerifyDto } from './dto/mfa-verify.dto';
 import { ConfirmMfaSetupDto, StartMfaSetupDto } from './dto/mfa-setup.dto';
 import { RegisterDto } from './dto/register.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { Public } from '../../../common/decorators/public.decorator';
 
 // M1 spec §6, prefiks /api/v1/iam (postavljen globalno u main.ts kao /api/v1)
 @ApiTags('auth')
@@ -21,16 +22,19 @@ export class AuthController {
   ) {}
 
   @Post('register')
+  @Public()
   register(@Body() dto: RegisterDto) {
     return this.auth.register(dto);
   }
 
   @Post('login')
+  @Public()
   login(@Body() dto: LoginDto, @Req() req: Request) {
     return this.auth.login(dto.email, dto.password, req.ip ?? null);
   }
 
   @Post('mfa/verify')
+  @Public()
   verifyMfa(@Body() dto: MfaVerifyDto, @Req() req: Request) {
     return this.auth.verifyMfa(dto.mfaToken, dto.code, req.ip ?? null, req.headers['user-agent'] ?? null);
   }
@@ -40,36 +44,43 @@ export class AuthController {
   // može postojati. Ogradu nosi sam `setupToken` (izdaje ga login tek posle tačne lozinke,
   // traje 10 min, i nijedan drugi guard ga ne prihvata) — vidi AuthService.verifyMfaSetupToken.
   @Post('mfa/setup/start')
+  @Public()
   startMfaSetup(@Body() dto: StartMfaSetupDto) {
     return this.auth.startMfaSetup(dto.setupToken);
   }
 
   @Post('mfa/setup/confirm')
+  @Public()
   confirmMfaSetup(@Body() dto: ConfirmMfaSetupDto, @Req() req: Request) {
     return this.auth.confirmMfaSetup(dto.setupToken, dto.code, req.ip ?? null, req.headers['user-agent'] ?? null);
   }
 
   @Post('refresh')
+  @Public()
   refresh(@Body('refreshToken') refreshToken: string, @Req() req: Request) {
     return this.auth.refresh(refreshToken, req.ip ?? null, req.headers['user-agent'] ?? null);
   }
 
   @Post('logout')
+  @Public()
   logout(@Body('refreshToken') refreshToken: string, @Body('allDevices') allDevices?: boolean) {
     return this.auth.logout(refreshToken, Boolean(allDevices));
   }
 
   @Post('activate')
+  @Public()
   activateAccount(@Body('token') token: string, @Body('newPassword') newPassword: string) {
     return this.auth.activateAccount(token, newPassword).then(() => ({ ok: true }));
   }
 
   @Post('password/forgot')
+  @Public()
   forgotPassword(@Body('email') email: string) {
     return this.auth.requestPasswordReset(email).then(() => ({ ok: true }));
   }
 
   @Post('password/reset')
+  @Public()
   resetPassword(@Body('token') token: string, @Body('newPassword') newPassword: string) {
     return this.auth.resetPassword(token, newPassword).then(() => ({ ok: true }));
   }

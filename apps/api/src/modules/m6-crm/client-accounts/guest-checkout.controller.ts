@@ -3,6 +3,7 @@ import { Throttle } from '@nestjs/throttler';
 import { ApiTags } from '@nestjs/swagger';
 import { GuestCheckoutService } from './guest-checkout.service';
 import { GuestCheckoutDto } from './dto/guest-checkout.dto';
+import { Public } from '../../../common/decorators/public.decorator';
 
 // M8 spec poglavlje 3, korak 3 (dopuna avgust 2026) — namerno BEZ JwtAuthGuard/
 // PermissionsGuard, isti autentikacioni nivo kao M10 PaymentsController
@@ -13,6 +14,7 @@ import { GuestCheckoutDto } from './dto/guest-checkout.dto';
 // Poseban kontroler (ne metoda u ClientAccountsController) da izbegne class-level
 // JwtAuthGuard/PermissionsGuard tog kontrolera.
 @ApiTags('crm-client-accounts')
+@Public()
 @Controller('crm/client-accounts')
 export class GuestCheckoutController {
   constructor(private readonly guestCheckout: GuestCheckoutService) {}

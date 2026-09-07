@@ -2,6 +2,7 @@ import { Controller, Get, NotFoundException, Param, Query } from '@nestjs/common
 import { ApiTags } from '@nestjs/swagger';
 import { LanguageCode } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
+import { Public } from '../../../common/decorators/public.decorator';
 
 /**
  * M23 spec §5/§8/§9 — javni, neautentifikovan kanal (poziva ga M8 `/znanje/:share_token` ruta,
@@ -12,6 +13,7 @@ import { PrismaService } from '../../../prisma/prisma.service';
  * sadržaj jer kontroler fizički ne učitava ništa van PUBLISHED).
  */
 @ApiTags('knowledge-public')
+@Public()
 @Controller('knowledge/public')
 export class PublicKnowledgeController {
   constructor(private readonly prisma: PrismaService) {}

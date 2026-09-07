@@ -1,6 +1,7 @@
 import { BadRequestException, Controller, Get, Param, Query } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { BookingsService } from './bookings.service';
+import { Public } from '../../../common/decorators/public.decorator';
 
 /**
  * M5 spec §6 dopuna (2.9.2026, na zahtev vlasnika) — javan, neautentifikovan sadržaj vaučera.
@@ -10,6 +11,7 @@ import { BookingsService } from './bookings.service';
  * dodat guard ovde ne bi mogao slučajno izložiti nešto van toga.
  */
 @ApiTags('sales-bookings-public')
+@Public()
 @Controller('sales/bookings/public')
 export class PublicVoucherController {
   constructor(private readonly bookings: BookingsService) {}

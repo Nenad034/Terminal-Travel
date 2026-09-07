@@ -1,5 +1,7 @@
 import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
 import { JwtService } from '@nestjs/jwt';
+import { IS_PUBLIC_KEY } from '../../../../common/decorators/public.decorator';
 
 export interface AccessTokenPayload {
   sub: string; // user_id — access token nosi SAMO user_id i session_id (M1 spec §3.7), ništa o pravima
@@ -27,12 +29,26 @@ export function assertAccessTokenPayload(payload: AccessTokenPayload & { type?: 
 /**
  * Access token je kratkotrajan JWT (15 min), bez ijednog podatka o pravima —
  * prava se uvek proveravaju uživo u PermissionsGuard/PermissionsService.
+ *
+ * Registrovan globalno (app.module.ts, `APP_GUARD`) — nalaz 3.1 (dok. 39): dodavanje
+ * zaštite ručno, po kontroleru, znači da zaboravljen `@UseGuards` tiho ostavlja endpoint
+ * otvoren. `@Public()` je jedini izuzetak; postojeći `@UseGuards(JwtAuthGuard)` po
+ * kontrolerima ostaje (redundantan, bezopasan) dok se mehanički ne počisti.
  */
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
-  constructor(private readonly jwt: JwtService) {}
+  constructor(
+    private readonly jwt: JwtService,
+    private readonly reflector: Reflector,
+  ) {}
 
   canActivate(context: ExecutionContext): boolean {
+    const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
+    if (isPublic) return true;
+
     const request = context.switchToHttp().getRequest();
     const authHeader: string | undefined = request.headers['authorization'];
     if (!authHeader?.startsWith('Bearer ')) {
