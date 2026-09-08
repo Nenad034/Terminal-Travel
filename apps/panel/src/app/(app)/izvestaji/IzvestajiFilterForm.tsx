@@ -132,9 +132,10 @@ export default function IzvestajiFilterForm({
           sirina") — eksplicitan red (ne opšti flex-wrap sa ostatkom forme, koji zavisi od širine
           ekrana i broja ostalih polja) garantuje ova tri UVEK zajedno, ravnomerno. */}
       {tab === 'vremenski' ? (
-        // M13 spec §4.4 — "odnosi se na"/"segment" nisu primenjivi ovde (backend `dimension`
+        // M13 spec §4.4 — "odnosi se na" (dateField) nije primenjivo ovde (backend `dimension`
         // sam bira relevantan timestamp: trenutak upita/rezervacije/otkazivanja, ne termin
-        // boravka) — prikazivanje kontrola koje bi tiho ništa ne radile bi bila zamka (dok. 40).
+        // boravka), ali "segment" JESTE (dopuna istog dana) — SUBAGENT se za "upite" tiho ne
+        // primenjuje (SearchLog nema tu vezu, objašnjeno u `ReportsService.temporal`).
         <div className="flex w-full gap-2">
           <div className="min-w-0 flex-1">
             <PeriodRangeField
@@ -152,6 +153,24 @@ export default function IzvestajiFilterForm({
                 {TEMPORAL_DIMENSION_OPTIONS.map((d) => (
                   <option key={d} value={d} className={optionClassName}>
                     {TEMPORAL_DIMENSION_LABELS[d]}
+                  </option>
+                ))}
+              </select>
+            </FieldInline>
+          </div>
+          <div className="min-w-0 flex-1">
+            <FieldInline label="segment">
+              <select
+                name="segment"
+                defaultValue={searchParams?.segment ?? ''}
+                className={selectClassName}
+              >
+                <option value="" className={optionClassName}>
+                  svi
+                </option>
+                {SEGMENT_OPTIONS.map((s) => (
+                  <option key={s} value={s} className={optionClassName}>
+                    {SEGMENT_LABELS[s]}
                   </option>
                 ))}
               </select>

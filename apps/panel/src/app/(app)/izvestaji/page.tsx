@@ -19,6 +19,7 @@ import {
   DYNAMIC_OTHER_PRESETS,
   type SearchParams,
   TEMPORAL_DIMENSION_LABELS,
+  TEMPORAL_DESTINATION_DIMENSIONS,
   DAY_OF_WEEK_LABELS,
   type TemporalDimension,
 } from './constants';
@@ -76,9 +77,14 @@ interface LeadTimeBucket {
   key: '48h+' | '24-48h' | '<24h';
   count: number;
 }
+interface TemporalDestinationBucket {
+  key: string;
+  count: number;
+}
 interface TemporalReport {
   byHour?: HourDayBucket[];
   leadTime?: LeadTimeBucket[];
+  byDestination?: TemporalDestinationBucket[];
 }
 
 interface MarketingReport {
@@ -313,6 +319,7 @@ export default async function IzvestajiPage(props: { searchParams: Promise<Searc
       tqs.set('dimension', searchParams?.dimension || 'inquiries_by_hour');
       if (searchParams?.from) tqs.set('from', searchParams.from);
       if (searchParams?.to) tqs.set('to', searchParams.to);
+      if (searchParams?.segment) tqs.set('segment', searchParams.segment);
       temporal = await apiFetch<TemporalReport>(`/bi/reports/temporal?${tqs.toString()}`);
     }
   } catch {
@@ -921,6 +928,50 @@ function TemporalReportBlock({
   report: TemporalReport;
   dimension: TemporalDimension;
 }) {
+  if (TEMPORAL_DESTINATION_DIMENSIONS.includes(dimension)) {
+    const rows = report.byDestination ?? [];
+    const total = rows.reduce((sum, r) => sum + r.count, 0);
+    return (
+      <div>
+        <div className="mb-2 text-sm font-semibold text-ink">
+          {TEMPORAL_DIMENSION_LABELS[dimension]}
+        </div>
+        {rows.length === 0 ? (
+          <p className="rounded-lg border border-border bg-panel p-4 text-center text-xs text-ink-faint">
+            Nema podataka za zadati period.
+          </p>
+        ) : (
+          <div className="overflow-hidden overflow-x-auto rounded-lg border border-border">
+            <table className="w-full border-collapse text-xs">
+              <thead>
+                <tr className="bg-sunken text-[11px] uppercase tracking-wide text-ink-faint">
+                  <th className="px-4 py-2 text-left font-medium">destinacija</th>
+                  <th className="px-4 py-2 text-right font-medium">broj</th>
+                  <th className="px-4 py-2 text-right font-medium">udeo</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((r, i) => (
+                  <tr key={r.key} className={i % 2 === 1 ? 'bg-panel2/40' : undefined}>
+                    <td className="border-t border-border px-4 py-2 font-medium text-ink">
+                      {r.key}
+                    </td>
+                    <td className="border-t border-border px-4 py-2 text-right font-mono text-ink-dim">
+                      {r.count.toLocaleString('sr-RS')}
+                    </td>
+                    <td className="border-t border-border px-4 py-2 text-right">
+                      <PctBadge value={formatPct(r.count, total)} />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    );
+  }
+
   if (dimension === 'cancellation_lead_time') {
     const rows = report.leadTime ?? [];
     const total = rows.reduce((sum, r) => sum + r.count, 0);

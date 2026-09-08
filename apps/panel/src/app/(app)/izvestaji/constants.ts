@@ -22,7 +22,16 @@ export const TEMPORAL_DIMENSION_LABELS = {
   bookings_by_hour: 'Rezervacije po satu/danu',
   cancellations_by_hour: 'Otkazivanja po satu/danu',
   cancellation_lead_time: 'Koliko unapred se otkazuje',
+  inquiries_by_destination: 'Upiti po destinaciji',
+  bookings_by_destination: 'Rezervacije po destinaciji',
+  cancellations_by_destination: 'Otkazivanja po destinaciji',
 } as const;
+// Dimenzije koje vraćaju `byDestination` (isti oblik prikaza — dvo-kolonska tabela sa udelom).
+export const TEMPORAL_DESTINATION_DIMENSIONS: TemporalDimension[] = [
+  'inquiries_by_destination',
+  'bookings_by_destination',
+  'cancellations_by_destination',
+];
 export type TemporalDimension = keyof typeof TEMPORAL_DIMENSION_LABELS;
 export const TEMPORAL_DIMENSION_OPTIONS = Object.keys(
   TEMPORAL_DIMENSION_LABELS,

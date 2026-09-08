@@ -89,12 +89,18 @@ export const DYNAMIC_DIMENSIONS = [
 ] as const;
 export type DynamicDimension = (typeof DYNAMIC_DIMENSIONS)[number];
 
-// M13 spec §4.4 (dopuna 8.9.2026) — "Vremenski obrasci".
+// M13 spec §4.4 (dopuna 8.9.2026, prošireno istog dana — vlasnikov zahtev: "šta se to od
+// destinacija otkazalo, imalo upit, rezervisalo... na nivou B2B/B2C/subagenti") — "Vremenski
+// obrasci". `_by_destination` varijante daju isti oblik kao ostali M13 izveštaji (Bucket-lika
+// lista), radi jednostavnog poređenja upit↔rezervacija↔otkazivanje po istoj destinaciji.
 export const TEMPORAL_DIMENSIONS = [
   'inquiries_by_hour',
   'bookings_by_hour',
   'cancellations_by_hour',
   'cancellation_lead_time',
+  'inquiries_by_destination',
+  'bookings_by_destination',
+  'cancellations_by_destination',
 ] as const;
 export type TemporalDimension = (typeof TEMPORAL_DIMENSIONS)[number];
 
@@ -363,26 +369,57 @@ export class ReportsService {
   }
 
   // ==========================================================================
-  // §4.4 — Vremenski obrasci (dopuna 8.9.2026, vlasnikov zahtev)
+  // §4.4 — Vremenski obrasci (dopuna 8.9.2026, vlasnikov zahtev; prošireno istog dana sa
+  // destinacijom i segmentom — "šta se to od destinacija otkazalo, imalo upit, rezervisalo...
+  // na nivou B2B, B2C i subagenti")
   // ==========================================================================
-  async temporal(filters: { dimension: TemporalDimension; from?: string; to?: string }) {
+  async temporal(filters: {
+    dimension: TemporalDimension;
+    from?: string;
+    to?: string;
+    segment?: ReportSegment;
+  }) {
     const range = {
       ...(filters.from ? { gte: new Date(filters.from) } : {}),
       ...(filters.to ? { lte: new Date(`${filters.to}T23:59:59.999Z`) } : {}),
     };
+    // SearchLog nema `subagentName` (samo M5 Booking/FactBooking zna da li je subagent) — segment
+    // SUBAGENT se za upite ne može primeniti (poznato, eksplicitno ograničenje, M13 spec §4.4),
+    // B2B/B2C se mapiraju na isti `channel` kao ostatak modula.
+    const searchLogSegmentWhere: { channel?: string } =
+      filters.segment === 'B2B'
+        ? { channel: 'B2B_PORTAL' }
+        : filters.segment === 'B2C'
+          ? { channel: 'B2C_SITE' }
+          : {};
 
     if (filters.dimension === 'inquiries_by_hour') {
       const rows = await this.prisma.searchLog.findMany({
-        where: Object.keys(range).length ? { occurredAt: range } : {},
+        where: {
+          ...searchLogSegmentWhere,
+          ...(Object.keys(range).length ? { occurredAt: range } : {}),
+        },
         select: { occurredAt: true },
       });
       return { byHour: this.hourDayBuckets(rows.map((r) => r.occurredAt)) };
+    }
+
+    if (filters.dimension === 'inquiries_by_destination') {
+      const rows = await this.prisma.searchLog.findMany({
+        where: {
+          ...searchLogSegmentWhere,
+          ...(Object.keys(range).length ? { occurredAt: range } : {}),
+        },
+        select: { destinationCountry: true, destinationCity: true },
+      });
+      return { byDestination: this.countByDestination(rows) };
     }
 
     if (filters.dimension === 'bookings_by_hour') {
       const rows = await this.prisma.factBooking.findMany({
         where: {
           status: { not: 'CANCELLED' },
+          ...this.segmentWhere(filters.segment),
           ...(Object.keys(range).length ? { bookingDate: range } : {}),
         },
         select: { bookingDate: true },
@@ -390,17 +427,37 @@ export class ReportsService {
       return { byHour: this.hourDayBuckets(rows.map((r) => r.bookingDate)) };
     }
 
+    if (filters.dimension === 'bookings_by_destination') {
+      const rows = await this.prisma.factBooking.findMany({
+        where: {
+          status: { not: 'CANCELLED' },
+          ...this.segmentWhere(filters.segment),
+          ...(Object.keys(range).length ? { bookingDate: range } : {}),
+        },
+        select: { destinationCountry: true, destinationCity: true },
+      });
+      return { byDestination: this.countByDestination(rows) };
+    }
+
     if (filters.dimension === 'cancellations_by_hour') {
       const rows = await this.prisma.factBooking.findMany({
-        where: { cancelledAt: { not: null, ...range } },
+        where: { cancelledAt: { not: null, ...range }, ...this.segmentWhere(filters.segment) },
         select: { cancelledAt: true },
       });
       return { byHour: this.hourDayBuckets(rows.map((r) => r.cancelledAt as Date)) };
     }
 
+    if (filters.dimension === 'cancellations_by_destination') {
+      const rows = await this.prisma.factBooking.findMany({
+        where: { cancelledAt: { not: null, ...range }, ...this.segmentWhere(filters.segment) },
+        select: { destinationCountry: true, destinationCity: true },
+      });
+      return { byDestination: this.countByDestination(rows) };
+    }
+
     // cancellation_lead_time — kategorije, ne prosek (dok. 40 pravilo 4, M13 spec §4.4).
     const rows = await this.prisma.factBooking.findMany({
-      where: { cancelledAt: { not: null, ...range } },
+      where: { cancelledAt: { not: null, ...range }, ...this.segmentWhere(filters.segment) },
       select: { cancelledAt: true, stayFrom: true },
     });
     const buckets: Record<'48h+' | '24-48h' | '<24h', number> = {
@@ -421,6 +478,24 @@ export class ReportsService {
         count: buckets[key],
       })),
     };
+  }
+
+  /** Broj po "država / grad", opadajuće — isti oblik ključa kao `profitability.byDestination`
+   * (poglavlje 4), da se upit/rezervacija/otkazivanje za istu destinaciju lako uporede. */
+  private countByDestination(
+    rows: { destinationCountry: string | null; destinationCity: string | null }[],
+  ): { key: string; count: number }[] {
+    const map = new Map<string, number>();
+    for (const r of rows) {
+      const key =
+        r.destinationCountry || r.destinationCity
+          ? `${r.destinationCountry ?? '(nepoznato)'} / ${r.destinationCity ?? '(nepoznato)'}`
+          : '(bez destinacije u upitu)';
+      map.set(key, (map.get(key) ?? 0) + 1);
+    }
+    return [...map.entries()]
+      .map(([key, count]) => ({ key, count }))
+      .sort((a, b) => b.count - a.count);
   }
 
   /** Broj događaja po satu (0–23) i danu u nedelji (0=nedelja...6=subota, `Date.getDay()`). */

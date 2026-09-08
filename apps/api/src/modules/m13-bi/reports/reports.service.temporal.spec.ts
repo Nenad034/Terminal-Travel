@@ -82,4 +82,58 @@ describe('ReportsService.temporal (M13 spec §4.4)', () => {
       { key: '<24h', count: 1 },
     ]);
   });
+
+  // Dopuna istog dana — destinacija + segment (vlasnikov zahtev: "šta se to od destinacija
+  // otkazalo, imalo upit, rezervisalo... na nivou B2B, B2C i subagenti").
+  it('bookings_by_destination broji po "država / grad", opadajuće', async () => {
+    const { service, prisma } = makeService();
+    prisma.factBooking.findMany.mockResolvedValue([
+      { destinationCountry: 'Grčka', destinationCity: 'Halkidiki' },
+      { destinationCountry: 'Grčka', destinationCity: 'Halkidiki' },
+      { destinationCountry: 'Crna Gora', destinationCity: 'Budva' },
+    ]);
+
+    const result = await service.temporal({ dimension: 'bookings_by_destination' });
+
+    expect(result.byDestination).toEqual([
+      { key: 'Grčka / Halkidiki', count: 2 },
+      { key: 'Crna Gora / Budva', count: 1 },
+    ]);
+  });
+
+  it('segment=B2B se za upite mapira na channel (SearchLog nema subagentName)', async () => {
+    const { service, prisma } = makeService();
+    prisma.searchLog.findMany.mockResolvedValue([]);
+
+    await service.temporal({ dimension: 'inquiries_by_destination', segment: 'B2B' });
+
+    expect(prisma.searchLog.findMany).toHaveBeenCalledWith({
+      where: { channel: 'B2B_PORTAL' },
+      select: { destinationCountry: true, destinationCity: true },
+    });
+  });
+
+  it('segment=SUBAGENT za upite se tiho ne primenjuje (nema polje za to u SearchLog)', async () => {
+    const { service, prisma } = makeService();
+    prisma.searchLog.findMany.mockResolvedValue([]);
+
+    await service.temporal({ dimension: 'inquiries_by_hour', segment: 'SUBAGENT' });
+
+    expect(prisma.searchLog.findMany).toHaveBeenCalledWith({
+      where: {},
+      select: { occurredAt: true },
+    });
+  });
+
+  it('segment=SUBAGENT za rezervacije koristi subagentName (isti obrazac kao ostali izveštaji)', async () => {
+    const { service, prisma } = makeService();
+    prisma.factBooking.findMany.mockResolvedValue([]);
+
+    await service.temporal({ dimension: 'cancellations_by_destination', segment: 'SUBAGENT' });
+
+    expect(prisma.factBooking.findMany).toHaveBeenCalledWith({
+      where: { cancelledAt: { not: null }, subagentName: { not: null } },
+      select: { destinationCountry: true, destinationCity: true },
+    });
+  });
 });

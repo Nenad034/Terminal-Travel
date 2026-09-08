@@ -139,7 +139,7 @@ Marketing performanse — atribucija rezervacije ka M12 sadržaju (poglavlje 4.3
 
 ### GET /bi/reports/temporal
 
-Vremenski obrasci (poglavlje 4.4, dopuna 8.9.2026) — doba dana/nedelje upita/rezervacija/otkazivanja, i lead-time do otkazivanja. Query: `dimension` (obavezno, jedno od `inquiries_by_hour`/`bookings_by_hour`/`cancellations_by_hour`/`cancellation_lead_time`), `from`, `to` — **bez** `dateField`/`segment` (period se odnosi na trenutak samog događaja, ne na termin boravka).
+Vremenski obrasci (poglavlje 4.4, dopuna 8.9.2026) — doba dana/nedelje i destinacija upita/rezervacija/otkazivanja, i lead-time do otkazivanja. Query: `dimension` (obavezno, jedno od `inquiries_by_hour`/`bookings_by_hour`/`cancellations_by_hour`/`cancellation_lead_time`/`inquiries_by_destination`/`bookings_by_destination`/`cancellations_by_destination`), `from`, `to`, `segment` (opciono, `B2B`/`B2C`/`SUBAGENT` — **`SUBAGENT` se za `inquiries_*` tiho ne primenjuje**, `SearchLog` nema tu vezu) — **bez** `dateField` (period se odnosi na trenutak samog događaja, ne na termin boravka).
 
 **Odgovor `200` (`dimension=bookings_by_hour`, isti oblik za `inquiries_by_hour`/`cancellations_by_hour`):**
 
@@ -167,6 +167,19 @@ Vremenski obrasci (poglavlje 4.4, dopuna 8.9.2026) — doba dana/nedelje upita/r
 ```
 
 Kategorije, ne prosek — nepoznato/nedostajuće `dimension` → `400`.
+
+**Odgovor `200` (`dimension=bookings_by_destination`, isti oblik za `inquiries_by_destination`/`cancellations_by_destination`):**
+
+```json
+{
+  "byDestination": [
+    { "key": "Grčka / Halkidiki", "count": 14 },
+    { "key": "Crna Gora / Budva", "count": 9 }
+  ]
+}
+```
+
+Isti oblik ključa ("država / grad") kao `profitability.byDestination` — poredi se upit↔rezervacija↔otkazivanje za istu destinaciju pozivom sa različitim `dimension` vrednostima.
 
 ---
 

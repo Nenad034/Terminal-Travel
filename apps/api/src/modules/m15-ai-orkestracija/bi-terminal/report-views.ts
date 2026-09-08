@@ -239,10 +239,15 @@ export class ReportViewsService {
         error: `filters.dimension mora biti jedno od: ${TEMPORAL_DIMENSIONS.join(', ')}.`,
       };
     }
+    const segment =
+      filters.segment === 'B2B' || filters.segment === 'B2C' || filters.segment === 'SUBAGENT'
+        ? filters.segment
+        : undefined;
     return this.reports.temporal({
       dimension: dimension as TemporalDimension,
       from: args.dateFrom,
       to: args.dateTo,
+      segment,
     });
   }
 }

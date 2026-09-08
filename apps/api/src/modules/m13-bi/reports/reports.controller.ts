@@ -198,19 +198,29 @@ export class ReportsController {
 
   // §4.4 dopuna (8.9.2026) — `from`/`to` se odnose na TRENUTAK samog događaja (upit/rezervacija/
   // otkazivanje), ne na termin boravka — zato bez `dateField`, za razliku od ostalih ruta iznad.
+  // `segment` prošireno istog dana (destinacija/B2B/B2C/subagenti) — SUBAGENT segment se za
+  // `inquiries_*` dimenzije tiho ne primenjuje (SearchLog nema tu vezu, `ReportsService.temporal`
+  // obrazloženje).
   @Get('temporal')
   @RequirePermission('M13', 'report:temporal', 'VIEW')
   temporal(
     @Query('dimension') dimension: string,
     @Query('from') from?: string,
     @Query('to') to?: string,
+    @Query('segment') segment?: string,
   ) {
     if (!TEMPORAL_DIMENSIONS.includes(dimension as TemporalDimension)) {
       throw new BadRequestException(
         `dimension mora biti jedno od: ${TEMPORAL_DIMENSIONS.join(', ')} (M13 spec §7).`,
       );
     }
-    return this.reports.temporal({ dimension: dimension as TemporalDimension, from, to });
+    this.assertValidSegment(segment);
+    return this.reports.temporal({
+      dimension: dimension as TemporalDimension,
+      from,
+      to,
+      segment: segment as ReportSegment | undefined,
+    });
   }
 
   // §7 (v1.5 dopuna) — BEZ @RequirePermission na ove tri rute: dozvola zavisi od `reportKind` u
