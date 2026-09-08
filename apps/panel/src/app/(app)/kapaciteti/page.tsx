@@ -2,6 +2,7 @@ import { apiFetch } from '@/lib/api-client';
 import { getMe, hasPermission } from '@/lib/me';
 import RegisterTab from '@/components/RegisterTab';
 import Icon from '@/components/Icon';
+import Link from 'next/link';
 import CapacityScreen from './CapacityScreen';
 import type { CapacityGridRow } from './CapacityGrid';
 
@@ -94,6 +95,16 @@ export default async function KapacitetiPage(props: {
           <h1 className="text-lg font-semibold text-ink">Kapaciteti</h1>
           <p className="text-xs text-ink-faint">
             <Icon name="calendar" /> stanje po danima — ugovoreno, prodato, blokirano, slobodno
+          </p>
+        </div>
+        {/* 8.9.2026 — vlasnikovo pitanje "gde se definišu kapaciteti": mreža ih samo PRIKAZUJE,
+            unose se na ugovoru (period → "Ukupan kapacitet"). Veza stoji ovde da se to ne traži. */}
+        <div className="text-right text-xs">
+          <Link href="/ugovori" className="text-accent-strong hover:underline">
+            Kapacitet se unosi na ugovoru →
+          </Link>
+          <p className="text-[11px] text-ink-faint">
+            Ugovori i kapaciteti → otvori ugovor → Periodi → polje &bdquo;Ukupan kapacitet&ldquo;
           </p>
         </div>
       </div>

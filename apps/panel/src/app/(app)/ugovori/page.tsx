@@ -62,10 +62,20 @@ export default async function ContractsPage(props: { searchParams: Promise<{ pag
 
   return (
     <div className="p-6">
-      <RegisterTab label="Ugovori" />
+      <RegisterTab label="Ugovori i kapaciteti" />
       <div className="mb-4 flex items-center justify-between">
         <div>
-          <h1 className="text-lg font-semibold text-ink">Ugovori</h1>
+          <h1 className="text-lg font-semibold text-ink">Ugovori i kapaciteti</h1>
+          {/* 8.9.2026 — vlasnikovo pitanje "gde se definišu kapaciteti". Ekran je postojao, ali
+              ni naziv ni navigacija nisu odavali da se kapacitet unosi baš ovde. */}
+          <p className="text-xs text-ink-faint">
+            Kapacitet se unosi unutar ugovora: otvori ugovor → &bdquo;Periodi / sezone&ldquo; →
+            &bdquo;Ukupan kapacitet&ldquo;. Dnevno stanje se posle gleda na ekranu{' '}
+            <Link href="/kapaciteti" className="text-accent-strong hover:underline">
+              Kapaciteti
+            </Link>
+            .
+          </p>
         </div>
         <div className="flex gap-2">
           <Link

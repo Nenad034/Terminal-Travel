@@ -115,6 +115,20 @@ export const NAV_ITEMS: NavItem[] = [
     implemented: true,
   },
   {
+    // 8.9.2026 — ekran ugovora je postojao od Faze 1, ali NIJE bio u navigaciji: do njega se
+    // stizalo samo preko dugmeta "ugovori" na ekranu Dobavljači. Vlasnik ga zato nije mogao
+    // naći kad je tražio gde se definišu kapaciteti (zamka 7.6 — ekran koji radi, a nevidljiv
+    // je, praktično ne postoji). Kapacitet se unosi upravo ovde: ugovor → period → "Ukupan
+    // kapacitet".
+    id: 'ugovori',
+    label: 'Ugovori i kapaciteti',
+    icon: 'file-text',
+    href: '/ugovori',
+    permission: { module: 'M3', resource: 'contract', action: 'VIEW' },
+    phase: 1,
+    implemented: true,
+  },
+  {
     // M17 spec §4b (8.9.2026) — mreža kapaciteta po danima nad M3 §2.8.
     id: 'kapaciteti',
     label: 'Kapaciteti',
@@ -347,7 +361,7 @@ export const NAV_GROUPS: NavGroup[] = [
     id: 'katalog-nabavka',
     label: 'Katalog i nabavka',
     icon: 'package',
-    itemIds: ['katalog', 'destinacije', 'dobavljaci', 'kapaciteti'],
+    itemIds: ['katalog', 'destinacije', 'dobavljaci', 'ugovori', 'kapaciteti'],
   },
   {
     id: 'klijenti-partneri',

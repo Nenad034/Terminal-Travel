@@ -1179,6 +1179,8 @@ Preuzeto i razrađeno iz tabele u poglavlju 8:
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje
 
+**Verzija:** 2.66 — **ekran ugovora dodat u navigaciju i preimenovan u "Ugovori i kapaciteti"** (8.9.2026, na vlasnikovo pitanje "gde se definišu kapaciteti, to ne vidim"). Nalaz: ekran `/ugovori` postoji od Faze 1 i kapacitet se unosi upravo na njemu (ugovor → "Periodi / sezone" → "Ukupan kapacitet"), ali **nije bio ni u jednoj nav stavci** — do njega se stizalo samo preko sporednog dugmeta "ugovori" na ekranu Dobavljači. Ekran koji radi a nevidljiv je praktično ne postoji (zamka 7.6). Tri izmene: nova nav stavka `ugovori` (u `NAV_ITEMS` i u grupi "Katalog i nabavka", zamka 7.6), naslov i podnaslov ekrana sada kažu gde se kapacitet unosi, a ekran "Kapaciteti" nosi vezu "Kapacitet se unosi na ugovoru →" jer on stanje samo prikazuje. Red tabele poglavlja 4 razdvojen na "Dobavljači" i "Ugovori i kapaciteti" — to su dva ekrana, ne jedan. **Provera:** `/api/nav-items` za prijavljenog korisnika vraća i `ugovori` i `kapaciteti`; oba ekrana otvorena u browseru.
+
 **Verzija:** 2.65 — **ekran "Kapaciteti" napravljen** (8.9.2026, isti dan kad je specificiran). `apps/panel/src/app/(app)/kapaciteti/` — mreža (hotel kao zbirni red, klik razvija tipove soba), pilula sa brojem preostalih jedinica u tri stanja, `STOP` umesto broja kad je prodaja zatvorena, negativan broj sa minusom kad je prekoračeno, oznaka blokiranog, vikend kolone, legenda uvek vidljiva. Panel dana sa četiri broja, vezom ka "Kalendar rezervacija" i tri forme (stop-sale sa obaveznim izvorom informacije, blokada sa obaveznim razlogom i rokom, izmena kapaciteta) — sve u istom prolazu kao API, po standing pravilu iz CLAUDE.md. Nav stavka `kapaciteti` dodata i u `NAV_ITEMS` i u grupu "Katalog i nabavka" (zamka 7.6). **Provera:** viđeno u pravom browseru nad mock podacima, uključujući razvijanje hotela, panel dana i unos blokade kroz formu (potvrđen zapis u bazi); `tsc` i ESLint čisti.
 
 **Verzija:** 2.64 — traka sa četiri broja iznad mreže (novo poglavlje 4b.2a, 8.9.2026): ukupno putnika, noćenja, prosečna cena po putniku i prihod za isti filter — preuzeto sa taba "PAX & Statistika" uzora koji je vlasnik priložio, čita se iz M13 (§4.1/§4.2), ne računa ponovo; cenovno osetljiv deo gejtovan `M13/report:sales/VIEW`. Pregled svih sedam stavki sa trake uzora i šta od toga već imamo: dok. 44 §10.
@@ -1585,7 +1587,8 @@ Razlog nije estetski: M15 poglavlje 1 propisuje da je AI agent formalan M1 nalog
 | :------------------------------------------------------ | :-------------- | :---------- |
 | Korisnici i uloge                                       | M1              | Faza 0      |
 | Katalog proizvoda                                       | M2              | Faza 1      |
-| Dobavljači i ugovori                                    | M3              | Faza 1      |
+| Dobavljači                                              | M3              | Faza 1      |
+| Ugovori i kapaciteti (unos kapaciteta po periodu)       | M3              | Faza 1      |
 | Kapaciteti (mreža po danima, stop-sale, blokade)        | M3 (+ M5, M7)   | Faza 1      |
 | Pretraga i rezervacije                                  | M5 (+ M4 uživo) | Faza 1      |
 | Kalendar rezervacija (dolasci/odlasci/u toku po datumu) | M5              | Faza 1      |
