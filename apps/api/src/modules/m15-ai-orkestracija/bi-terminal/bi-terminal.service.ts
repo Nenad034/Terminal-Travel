@@ -25,6 +25,7 @@ import { ReportViewsService, VIEW_NAMES } from './report-views';
 import { safeFetchText } from './safe-web-fetch';
 import { WebContentSafetyService } from './web-content-safety.service';
 import { AgencySettingsService } from '../../m1-core-identitet/agency-settings/agency-settings.service';
+import { MAX_PAGE_SIZE } from '../../../common/pagination/pagination';
 
 const BI_TERMINAL_MODULE_CODE = 'M15_BI_TERMINAL';
 const WEB_RESEARCH_MODULE_CODE = 'M15_WEB_RESEARCH';
@@ -560,11 +561,14 @@ export class BiTerminalService {
         return this.listSubagents(addLink);
       }
       case 'unpaid_arrangements': {
-        const pending = await this.supplierObligations.findAll({ status: 'PENDING' });
-        const approved = await this.supplierObligations.findAll({ status: 'APPROVED' });
-        if (pending.length + approved.length > 0)
+        // Razvrstavanje 8.9.2026 (dok. 27, nastavak nalaza 2.2) — `findAll` sad vraća
+        // `{ data, total, ... }` (v. napomenu u `report-views.ts` `supplierObligationsView`).
+        const pagination = { limit: MAX_PAGE_SIZE };
+        const pending = await this.supplierObligations.findAll({ status: 'PENDING' }, pagination);
+        const approved = await this.supplierObligations.findAll({ status: 'APPROVED' }, pagination);
+        if (pending.data.length + approved.data.length > 0)
           addLink('Finansije — obaveze prema dobavljačima', '/finansije');
-        return [...pending, ...approved];
+        return [...pending.data, ...approved.data];
       }
       case 'report_snapshot': {
         addLink('Izveštaji — prodaja', '/izvestaji');
@@ -636,9 +640,10 @@ export class BiTerminalService {
         return { title: 'Spisak subagenata', rows: data };
       }
       case 'unpaid_arrangements': {
-        const pending = await this.supplierObligations.findAll({ status: 'PENDING' });
-        const approved = await this.supplierObligations.findAll({ status: 'APPROVED' });
-        return { title: 'Nenaplaćeni aranžmani', rows: [...pending, ...approved] };
+        const pagination = { limit: MAX_PAGE_SIZE };
+        const pending = await this.supplierObligations.findAll({ status: 'PENDING' }, pagination);
+        const approved = await this.supplierObligations.findAll({ status: 'APPROVED' }, pagination);
+        return { title: 'Nenaplaćeni aranžmani', rows: [...pending.data, ...approved.data] };
       }
       case 'report_snapshot': {
         const data = await this.reports.sales({

@@ -4,6 +4,11 @@ import { HealthSignal } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { HealthSignalsService } from '../health-signals/health-signals.service';
 import { NotificationDispatchService } from '../notification-channels/notification-dispatch.service';
+import {
+  type PaginationQueryDto,
+  paginated,
+  paginationArgs,
+} from '../../../common/pagination/pagination';
 
 const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
 
@@ -55,8 +60,17 @@ export class WeeklyReviewsService {
     });
   }
 
-  async findAll() {
-    return this.prisma.weeklyHealthReview.findMany({ orderBy: { periodStart: 'desc' } });
+  // Razvrstavanje 8.9.2026 (dok. 27, nastavak nalaza 2.2) — raste sporo (jednom nedeljno), ali
+  // panel (`/nadzor`) i dalje vuče CEO niz samo da uzme najskoriji ([0] posle sortiranja) — tvrd
+  // plafon iz `common/pagination` sprečava da to jednog dana postane veliko bez razloga, isti
+  // obrazac kao svaka druga lista, bez potrebe za posebnim "samo najnoviji" endpointom.
+  async findAll(pagination?: PaginationQueryDto) {
+    const { skip, take, page, limit } = paginationArgs(pagination);
+    const [data, total] = await this.prisma.$transaction([
+      this.prisma.weeklyHealthReview.findMany({ orderBy: { periodStart: 'desc' }, skip, take }),
+      this.prisma.weeklyHealthReview.count(),
+    ]);
+    return paginated(data, total, page, limit);
   }
 
   private buildSummary(signals: HealthSignal[], periodStart: Date, periodEnd: Date): string {

@@ -4,6 +4,11 @@ import { AuditLogService } from '../../m1-core-identitet/audit-log/audit-log.ser
 import { ExchangeRatesService } from '../exchange-rates/exchange-rates.service';
 import { CreateSupplierObligationDto } from './dto/create-supplier-obligation.dto';
 import { PaySupplierObligationDto } from './dto/pay-supplier-obligation.dto';
+import {
+  type PaginationQueryDto,
+  paginated,
+  paginationArgs,
+} from '../../../common/pagination/pagination';
 
 const DEFAULT_PAYMENT_TERMS_DAYS = 30; // M3 spec §2.2 — kad Contract.payment_terms_days nije uneto
 
@@ -80,11 +85,20 @@ export class SupplierObligationsService {
     return obligation;
   }
 
-  async findAll(filters: { supplierId?: string; status?: string }) {
-    return this.prisma.supplierObligation.findMany({
-      where: { supplierId: filters.supplierId, status: filters.status as any },
-      orderBy: { dueDate: 'asc' },
-    });
+  // Razvrstavanje 8.9.2026 (dok. 27, nastavak nalaza 2.2) — raste sa svakom potvrđenom
+  // rezervacijom sa CONTRACTED stavkom (§8.0 iznad); ekran (`/finansije`) je pozivao bez
+  // `supplierId`/`status`, tražeći SVE obaveze odjednom.
+  async findAll(
+    filters: { supplierId?: string; status?: string },
+    pagination?: PaginationQueryDto,
+  ) {
+    const where = { supplierId: filters.supplierId, status: filters.status as any };
+    const { skip, take, page, limit } = paginationArgs(pagination);
+    const [data, total] = await this.prisma.$transaction([
+      this.prisma.supplierObligation.findMany({ where, orderBy: { dueDate: 'asc' }, skip, take }),
+      this.prisma.supplierObligation.count({ where }),
+    ]);
+    return paginated(data, total, page, limit);
   }
 
   async findOne(id: string) {

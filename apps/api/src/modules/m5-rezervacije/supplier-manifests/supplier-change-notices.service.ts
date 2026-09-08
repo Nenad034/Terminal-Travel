@@ -4,6 +4,11 @@ import { PrismaService } from '../../../prisma/prisma.service';
 import { AuditLogService } from '../../m1-core-identitet/audit-log/audit-log.service';
 import { SupplierMailboxService } from '../common/supplier-mailbox.service';
 import { nextReferenceCode } from '../common/reference-code';
+import {
+  type PaginationQueryDto,
+  paginated,
+  paginationArgs,
+} from '../../../common/pagination/pagination';
 
 /**
  * M5 spec §8.8 — `SupplierChangeNotice`. Za razliku od nove rezervacije (SupplierManifest,
@@ -30,32 +35,42 @@ export class SupplierChangeNoticesService {
   // Dopuna 5.9.2026 — ekran u panelu treba da zna KOME se šalje, a adresa dobavljača se dobija
   // tek kroz lanac stavka → proizvod → ugovor → dobavljač. Bez ovoga bi operater morao ručno da
   // kuca mejl hotela pri svakom slanju, što je tačno mesto gde se prave greške.
-  findAll(bookingItemId?: string) {
-    return this.prisma.supplierChangeNotice.findMany({
-      where: { bookingItemId },
-      orderBy: { createdAt: 'desc' },
-      include: {
-        bookingItem: {
-          select: {
-            id: true,
-            stayFrom: true,
-            stayTo: true,
-            booking: { select: { id: true, bookingNumber: true } },
-            // `Product` nema polje `name` (nazivi žive u prevodima, M2 §2.2) — za ovaj ekran je
-            // dovoljno ko je dobavljač i koje je mesto; naziv objekta se vidi u samoj rezervaciji.
-            product: {
-              select: {
-                type: true,
-                destinationCity: true,
-                sourceContract: {
-                  select: { supplier: { select: { id: true, name: true, contactEmail: true } } },
+  // Razvrstavanje 8.9.2026 (dok. 27, nastavak nalaza 2.2) — isti ekran kao `SupplierManifestsService.
+  // findAll`, isti rizik (raste sa svakom izmenom/stornom stavke), poziva se bez `bookingItemId`.
+  async findAll(bookingItemId?: string, pagination?: PaginationQueryDto) {
+    const where = { bookingItemId };
+    const { skip, take, page, limit } = paginationArgs(pagination);
+    const [data, total] = await this.prisma.$transaction([
+      this.prisma.supplierChangeNotice.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take,
+        include: {
+          bookingItem: {
+            select: {
+              id: true,
+              stayFrom: true,
+              stayTo: true,
+              booking: { select: { id: true, bookingNumber: true } },
+              // `Product` nema polje `name` (nazivi žive u prevodima, M2 §2.2) — za ovaj ekran je
+              // dovoljno ko je dobavljač i koje je mesto; naziv objekta se vidi u samoj rezervaciji.
+              product: {
+                select: {
+                  type: true,
+                  destinationCity: true,
+                  sourceContract: {
+                    select: { supplier: { select: { id: true, name: true, contactEmail: true } } },
+                  },
                 },
               },
             },
           },
         },
-      },
-    });
+      }),
+      this.prisma.supplierChangeNotice.count({ where }),
+    ]);
+    return paginated(data, total, page, limit);
   }
 
   async findOne(id: string) {

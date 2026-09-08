@@ -3,6 +3,7 @@ import { getMe, hasPermission } from '@/lib/me';
 import RegisterTab from '@/components/RegisterTab';
 import Icon from '@/components/Icon';
 import ManifestsClient, { type Manifest, type ChangeNotice } from './ManifestsClient';
+import Pagination from '@/components/Pagination';
 
 // M5 spec §8 (§8.4 priprema/slanje, §8.6 potvrda, §8.8 jedinstveno sanduče) — ekran „Najave
 // dobavljačima", napravljen 5.9.2026 na zahtev vlasnika.
@@ -16,7 +17,10 @@ import ManifestsClient, { type Manifest, type ChangeNotice } from './ManifestsCl
 //
 // Server komponenta samo dovlači podatke i proverava dozvole; sve akcije su u
 // `ManifestsClient.tsx`/`actions.ts`, isti obrazac kao ostatak panela.
-export default async function SupplierNoticesPage() {
+export default async function SupplierNoticesPage(props: {
+  searchParams: Promise<{ page?: string }>;
+}) {
+  const searchParams = await props.searchParams;
   const me = await getMe();
   const canSend = hasPermission(me, 'M5', 'supplier-manifest', 'SEND');
   // Izmena/storno ima SOPSTVENU dozvolu (`supplier-change-notice/SEND`) — ne izvoditi je iz
@@ -27,12 +31,33 @@ export default async function SupplierNoticesPage() {
 
   let manifests: Manifest[] = [];
   let notices: ChangeNotice[] = [];
+  // Razvrstavanje 8.9.2026 (dok. 27, nastavak nalaza 2.2) — oba endpointa sad vraćaju
+  // `{ data, total, ... }`. "Najave čekaju slanje" (ispod) su uvek skorašnje (najsvežih
+  // `generatedAt`/`createdAt` prva strana pokriva ih), pa granica ne skriva radnju koja čeka —
+  // samo sprečava da istorija od stotina starih najava dođe u jednom odgovoru.
+  let total = 0;
+  let page = 1;
+  let pageCount = 1;
+  let limit = 50;
   let error: string | null = null;
   try {
-    [manifests, notices] = await Promise.all([
-      apiFetch<Manifest[]>('/sales/supplier-manifests'),
-      apiFetch<ChangeNotice[]>('/sales/supplier-change-notices'),
+    const qs = searchParams?.page ? `?page=${searchParams.page}` : '';
+    const [manifestsResult, noticesResult] = await Promise.all([
+      apiFetch<{
+        data: Manifest[];
+        total: number;
+        page: number;
+        pageCount: number;
+        limit: number;
+      }>(`/sales/supplier-manifests${qs}`),
+      apiFetch<{ data: ChangeNotice[] }>('/sales/supplier-change-notices?limit=200'),
     ]);
+    manifests = manifestsResult.data;
+    total = manifestsResult.total;
+    page = manifestsResult.page;
+    pageCount = manifestsResult.pageCount;
+    limit = manifestsResult.limit;
+    notices = noticesResult.data;
   } catch {
     error = 'Nemate dozvolu za uvid u najave dobavljačima (M5/supplier-manifest/VIEW).';
   }
@@ -68,6 +93,19 @@ export default async function SupplierNoticesPage() {
           canSendNotice={canSendNotice}
           canPrepare={canPrepare}
           canConfirm={canConfirm}
+        />
+      )}
+
+      {!error && (
+        <Pagination
+          page={page}
+          pageCount={pageCount}
+          total={total}
+          shown={manifests.length}
+          limit={limit}
+          basePath="/rezervacije/najave"
+          searchParams={searchParams ?? {}}
+          itemLabel="najava"
         />
       )}
     </div>

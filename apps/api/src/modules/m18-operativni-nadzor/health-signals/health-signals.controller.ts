@@ -5,6 +5,7 @@ import { HealthSignalsService } from './health-signals.service';
 import { JwtAuthGuard } from '../../m1-core-identitet/auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../../common/guards/permissions.guard';
 import { RequirePermission } from '../../../common/decorators/require-permission.decorator';
+import { parsePagination } from '../../../common/pagination/pagination';
 
 // M18 spec §9, prefiks /api/v1/ops
 @ApiTags('ops-health-signals')
@@ -20,7 +21,9 @@ export class HealthSignalsController {
     @Query('module') module?: string,
     @Query('type') type?: HealthSignalType,
     @Query('severity') severity?: HealthSignalSeverity,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
   ) {
-    return this.healthSignals.findAll({ module, type, severity });
+    return this.healthSignals.findAll({ module, type, severity }, parsePagination(page, limit));
   }
 }

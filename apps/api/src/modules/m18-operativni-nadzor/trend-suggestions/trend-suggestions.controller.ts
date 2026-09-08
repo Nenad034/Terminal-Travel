@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { TrendSuggestionsService } from './trend-suggestions.service';
 import { CreateTrendSuggestionDto } from './dto/create-trend-suggestion.dto';
@@ -6,6 +6,7 @@ import { JwtAuthGuard } from '../../m1-core-identitet/auth/guards/jwt-auth.guard
 import { PermissionsGuard } from '../../../common/guards/permissions.guard';
 import { RequirePermission } from '../../../common/decorators/require-permission.decorator';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
+import { parsePagination } from '../../../common/pagination/pagination';
 
 // M18 spec §9, prefiks /api/v1/ops
 @ApiTags('ops-trend-suggestions')
@@ -17,8 +18,8 @@ export class TrendSuggestionsController {
 
   @Get()
   @RequirePermission('M18', 'trend-suggestion', 'VIEW')
-  findAll() {
-    return this.trendSuggestions.findAll();
+  findAll(@Query('page') page?: string, @Query('limit') limit?: string) {
+    return this.trendSuggestions.findAll(parsePagination(page, limit));
   }
 
   @Post()

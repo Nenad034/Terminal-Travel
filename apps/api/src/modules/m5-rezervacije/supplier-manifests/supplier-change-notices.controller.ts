@@ -6,6 +6,7 @@ import { JwtAuthGuard } from '../../m1-core-identitet/auth/guards/jwt-auth.guard
 import { PermissionsGuard } from '../../../common/guards/permissions.guard';
 import { RequirePermission } from '../../../common/decorators/require-permission.decorator';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
+import { parsePagination } from '../../../common/pagination/pagination';
 
 class SendChangeNoticeDto {
   @IsEmail()
@@ -24,8 +25,12 @@ export class SupplierChangeNoticesController {
 
   @Get()
   @RequirePermission('M5', 'supplier-manifest', 'VIEW')
-  findAll(@Query('bookingItemId') bookingItemId?: string) {
-    return this.notices.findAll(bookingItemId);
+  findAll(
+    @Query('bookingItemId') bookingItemId?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.notices.findAll(bookingItemId, parsePagination(page, limit));
   }
 
   @Get(':id')

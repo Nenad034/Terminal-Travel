@@ -1,6 +1,11 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { CreateTrendSuggestionDto } from './dto/create-trend-suggestion.dto';
+import {
+  type PaginationQueryDto,
+  paginated,
+  paginationArgs,
+} from '../../../common/pagination/pagination';
 
 // M18 spec §5.1 — approve() menja isključivo status/approved_by u bazi. Ulazak u Dodatak A
 // Master dokumenta ostaje ljudski uređivački korak van ovog sistema (§5 "Tok") — kod ovde
@@ -9,8 +14,15 @@ import { CreateTrendSuggestionDto } from './dto/create-trend-suggestion.dto';
 export class TrendSuggestionsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findAll() {
-    return this.prisma.trendSuggestion.findMany({ orderBy: { createdAt: 'desc' } });
+  // Razvrstavanje 8.9.2026 (dok. 27, nastavak nalaza 2.2) — ekran (`/nadzor/trendovi`) je
+  // prikazivao SVE predloge svih statusa (DRAFT/APPROVED/REJECTED) zauvek, bez granice.
+  async findAll(pagination?: PaginationQueryDto) {
+    const { skip, take, page, limit } = paginationArgs(pagination);
+    const [data, total] = await this.prisma.$transaction([
+      this.prisma.trendSuggestion.findMany({ orderBy: { createdAt: 'desc' }, skip, take }),
+      this.prisma.trendSuggestion.count(),
+    ]);
+    return paginated(data, total, page, limit);
   }
 
   async create(dto: CreateTrendSuggestionDto) {

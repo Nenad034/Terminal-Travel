@@ -8,6 +8,11 @@ import {
 import { PrismaService } from '../../../prisma/prisma.service';
 import { NotificationDispatchService } from '../notification-channels/notification-dispatch.service';
 import { EventBusService } from '../../../common/events/event-bus.service';
+import {
+  type PaginationQueryDto,
+  paginated,
+  paginationArgs,
+} from '../../../common/pagination/pagination';
 
 export interface CreateHealthSignalParams {
   sourceModule: string;
@@ -60,15 +65,28 @@ export class HealthSignalsService {
     return signal;
   }
 
-  async findAll(filter: {
-    module?: string;
-    type?: HealthSignalType;
-    severity?: HealthSignalSeverity;
-  }) {
-    return this.prisma.healthSignal.findMany({
-      where: { sourceModule: filter.module, signalType: filter.type, severity: filter.severity },
-      orderBy: { detectedAt: 'desc' },
-    });
+  // Razvrstavanje 8.9.2026 (dok. 27, nastavak nalaza 2.2) — signal nastaje iz detekcije
+  // (event-subscribers/), bez ljudskog koraka koji bi usporio rast; ekran (`/nadzor`) je do
+  // sada prikazivao SVE, bez granice. Isti obrazac kao audit log/M4 dnevnik poziva.
+  async findAll(
+    filter: {
+      module?: string;
+      type?: HealthSignalType;
+      severity?: HealthSignalSeverity;
+    },
+    pagination?: PaginationQueryDto,
+  ) {
+    const where = {
+      sourceModule: filter.module,
+      signalType: filter.type,
+      severity: filter.severity,
+    };
+    const { skip, take, page, limit } = paginationArgs(pagination);
+    const [data, total] = await this.prisma.$transaction([
+      this.prisma.healthSignal.findMany({ where, orderBy: { detectedAt: 'desc' }, skip, take }),
+      this.prisma.healthSignal.count({ where }),
+    ]);
+    return paginated(data, total, page, limit);
   }
 
   async findSince(from: Date) {

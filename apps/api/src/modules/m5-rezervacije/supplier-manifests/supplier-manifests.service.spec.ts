@@ -279,3 +279,32 @@ describe('SupplierManifestsService.prepareBatch (M5 spec §8.4 dopuna v1.16)', (
     expect(hotelManifest.contractPeriodId).toBeNull();
   });
 });
+
+describe('SupplierManifestsService.findAll — straničenje (8.9.2026, dok. 27 nastavak nalaza 2.2)', () => {
+  function makeService() {
+    const prisma: any = {
+      supplierManifest: {
+        findMany: jest.fn().mockResolvedValue([]),
+        count: jest.fn().mockResolvedValue(0),
+      },
+      $transaction: jest.fn((ops: Promise<unknown>[]) => Promise.all(ops)),
+    };
+    const auditLog = { write: jest.fn() };
+    const mailbox = { sendViaSharedMailbox: jest.fn() };
+    const service = new SupplierManifestsService(prisma, auditLog as any, mailbox as any);
+    return { service, prisma };
+  }
+
+  it('vraća { data, total, page, limit } umesto golog niza, poštuje supplierId filter', async () => {
+    const { service, prisma } = makeService();
+    prisma.supplierManifest.findMany.mockResolvedValue([{ id: 'm1' }]);
+    prisma.supplierManifest.count.mockResolvedValue(1);
+
+    const result = await service.findAll('supplier-1');
+
+    expect(prisma.supplierManifest.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { supplierId: 'supplier-1' }, skip: 0, take: 50 }),
+    );
+    expect(result).toMatchObject({ data: [{ id: 'm1' }], total: 1, page: 1, limit: 50 });
+  });
+});

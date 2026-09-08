@@ -8,6 +8,7 @@ import {
 import { SupplierObligationsService } from '../../m10-finansije/supplier-obligations/supplier-obligations.service';
 import { SearchService } from '../../m5-rezervacije/search/search.service';
 import { ExchangeRatesService } from '../../m10-finansije/exchange-rates/exchange-rates.service';
+import { MAX_PAGE_SIZE } from '../../../common/pagination/pagination';
 
 // M15 spec §6.9.6 — generički read-only upit nad ZATVORENIM registrom "pogleda". Ovo NIJE slobodan
 // SQL/Prisma upit od jezičkog modela: model bira isključivo `view` iz VIEW_NAMES i, po pogledu,
@@ -151,12 +152,17 @@ export class ReportViewsService {
   // sa opcionim `status` filterom umesto uvek PENDING+APPROVED. Bez filtera ponaša se identično
   // starom alatu, radi kompatibilnosti.
   private async supplierObligationsView(args: QueryViewArgs) {
+    // Razvrstavanje 8.9.2026 (dok. 27, nastavak nalaza 2.2) — `findAll` sad vraća
+    // `{ data, total, ... }`; ovaj AI alat traži CEO tekući red (neplaćeno), ne jednu stranu —
+    // `limit: MAX_PAGE_SIZE` je tvrd plafon, ne stvarno očekivan broj (obaveza koja čeka
+    // plaćanje realno ne raste u hiljade bez internog problema koji bi i sam bio nalaz).
+    const pagination = { limit: MAX_PAGE_SIZE };
     const filters = args.filters ?? {};
     const status = typeof filters.status === 'string' ? filters.status : undefined;
-    if (status) return this.supplierObligations.findAll({ status });
-    const pending = await this.supplierObligations.findAll({ status: 'PENDING' });
-    const approved = await this.supplierObligations.findAll({ status: 'APPROVED' });
-    return [...pending, ...approved];
+    if (status) return (await this.supplierObligations.findAll({ status }, pagination)).data;
+    const pending = await this.supplierObligations.findAll({ status: 'PENDING' }, pagination);
+    const approved = await this.supplierObligations.findAll({ status: 'APPROVED' }, pagination);
+    return [...pending.data, ...approved.data];
   }
 
   // `catalog_offers` — dopuna (23.8.2026, na zahtev vlasnika — "pronađi najpovoljniju ponudu u

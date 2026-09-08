@@ -10,11 +10,13 @@ describe('SupplierObligationsService (M10 spec §8)', () => {
         findUnique: jest.fn(),
         update: jest.fn(),
         findMany: jest.fn(),
+        count: jest.fn().mockResolvedValue(0),
       },
       bookingItem: { findUnique: jest.fn() },
       product: { findUnique: jest.fn() },
       contract: { findUnique: jest.fn() },
       exchangeRateSnapshot: { findUniqueOrThrow: jest.fn() },
+      $transaction: jest.fn((ops: Promise<unknown>[]) => Promise.all(ops)),
     };
     const auditLog = { write: jest.fn() };
     const exchangeRates = { findForCurrencyOnOrBefore: jest.fn() };
@@ -70,6 +72,25 @@ describe('SupplierObligationsService (M10 spec §8)', () => {
 
       expect(result).toEqual({ id: 'so-existing' });
       expect(prisma.bookingItem.findUnique).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('findAll — straničenje (8.9.2026, dok. 27 nastavak nalaza 2.2)', () => {
+    it('vraća { data, total, page, limit } umesto golog niza, poštuje filtere', async () => {
+      const { service, prisma } = makeService();
+      prisma.supplierObligation.findMany.mockResolvedValue([{ id: 'so-1' }]);
+      prisma.supplierObligation.count.mockResolvedValue(1);
+
+      const result = await service.findAll({ supplierId: 's1', status: 'PENDING' });
+
+      expect(prisma.supplierObligation.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { supplierId: 's1', status: 'PENDING' },
+          skip: 0,
+          take: 50,
+        }),
+      );
+      expect(result).toMatchObject({ data: [{ id: 'so-1' }], total: 1, page: 1, limit: 50 });
     });
   });
 

@@ -48,7 +48,13 @@ export default async function FinansijePage() {
       ? apiFetch<Mismatch[]>('/finance/reconciliation/mismatches').catch(() => null)
       : Promise.resolve(null),
     canViewObligations
-      ? apiFetch<SupplierObligation[]>('/finance/supplier-obligations').catch(() => null)
+      ? // Razvrstavanje 8.9.2026 (dok. 27, nastavak nalaza 2.2) — endpoint sad vraća
+        // `{ data, total, ... }`; ovaj dashboard prikazuje prvu stranicu (50) — dovoljno za
+        // "šta traži pažnju", pun spisak čeka poseban ekran ako zatreba (isti princip kao
+        // rekonsilijacija iznad, koja takođe nije paginirana lista nego pregled).
+        apiFetch<{ data: SupplierObligation[] }>('/finance/supplier-obligations')
+          .then((r) => r.data)
+          .catch(() => null)
       : Promise.resolve(null),
     canViewSchedules
       ? apiFetch<ClientPaymentSchedule[]>('/finance/client-payment-schedules').catch(() => null)

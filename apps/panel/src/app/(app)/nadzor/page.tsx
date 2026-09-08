@@ -7,6 +7,7 @@ import NadzorSubnav from './NadzorSubnav';
 import RunWeeklyReviewButton from './RunWeeklyReviewButton';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import Pagination from '@/components/Pagination';
 
 interface HealthSignal {
   id: string;
@@ -49,21 +50,39 @@ const SIGNAL_TYPES = [
 // najskoriji nedeljni pregled na vrhu ekrana — M18 spec §4 ("push" obaveštenje ide preko
 // NotificationChannel, ovaj panel je "pull" prikaz istog izvora, spec §2.1 napomena).
 export default async function NadzorPage(props: {
-  searchParams: Promise<{ module?: string; type?: string; severity?: string }>;
+  searchParams: Promise<{ module?: string; type?: string; severity?: string; page?: string }>;
 }) {
   const searchParams = await props.searchParams;
   const me = await getMe();
   const canViewReview = hasPermission(me, 'M18', 'weekly-review', 'VIEW');
 
   let signals: HealthSignal[] = [];
+  // Razvrstavanje 8.9.2026 (dok. 27, nastavak nalaza 2.2) — `GET /ops/health-signals` sad vraća
+  // `{ data, total, ... }` umesto golog niza, isti obrazac kao Lista rezervacija/Gosti.
+  let total = 0;
+  let page = 1;
+  let pageCount = 1;
+  let limit = 50;
   let error: string | null = null;
   try {
     const qs = new URLSearchParams();
     if (searchParams?.module) qs.set('module', searchParams.module);
     if (searchParams?.type) qs.set('type', searchParams.type);
     if (searchParams?.severity) qs.set('severity', searchParams.severity);
+    if (searchParams?.page) qs.set('page', searchParams.page);
     const suffix = qs.toString() ? `?${qs.toString()}` : '';
-    signals = await apiFetch<HealthSignal[]>(`/ops/health-signals${suffix}`);
+    const result = await apiFetch<{
+      data: HealthSignal[];
+      total: number;
+      page: number;
+      pageCount: number;
+      limit: number;
+    }>(`/ops/health-signals${suffix}`);
+    signals = result.data;
+    total = result.total;
+    page = result.page;
+    pageCount = result.pageCount;
+    limit = result.limit;
   } catch {
     error = 'Nemate dozvolu za uvid u signale nadzora (M18/health-signal/VIEW).';
   }
@@ -71,13 +90,10 @@ export default async function NadzorPage(props: {
   let latestReview: WeeklyHealthReview | null = null;
   if (canViewReview) {
     try {
-      const reviews = await apiFetch<WeeklyHealthReview[]>('/ops/weekly-reviews');
-      latestReview =
-        reviews.length > 0
-          ? [...reviews].sort(
-              (a, b) => new Date(b.generatedAt).getTime() - new Date(a.generatedAt).getTime(),
-            )[0]
-          : null;
+      // Najskoriji pregled je uvek prvi (`orderBy periodStart desc`, `page=1`) — nema potrebe
+      // da se povuku svi da bi se izdvojio jedan.
+      const reviews = await apiFetch<{ data: WeeklyHealthReview[] }>('/ops/weekly-reviews?limit=1');
+      latestReview = reviews.data[0] ?? null;
     } catch {
       // nema dozvolu ili nema podataka — sekcija se jednostavno ne prikazuje
     }
@@ -201,6 +217,19 @@ export default async function NadzorPage(props: {
             );
           })}
         </div>
+      )}
+
+      {!error && (
+        <Pagination
+          page={page}
+          pageCount={pageCount}
+          total={total}
+          shown={signals.length}
+          limit={limit}
+          basePath="/nadzor"
+          searchParams={searchParams ?? {}}
+          itemLabel="signala"
+        />
       )}
     </div>
   );

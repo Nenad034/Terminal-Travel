@@ -9,6 +9,7 @@ import { RequirePermission } from '../../../common/decorators/require-permission
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import { AgentActionGuard } from '../../../common/guards/agent-action.guard';
 import { AgentAction } from '../../../common/decorators/agent-action.decorator';
+import { parsePagination } from '../../../common/pagination/pagination';
 
 // M5 spec §8/§11, prefiks /api/v1/sales
 @ApiTags('sales-supplier-manifests')
@@ -20,8 +21,12 @@ export class SupplierManifestsController {
 
   @Get()
   @RequirePermission('M5', 'supplier-manifest', 'VIEW')
-  findAll(@Query('supplierId') supplierId?: string) {
-    return this.manifests.findAll(supplierId);
+  findAll(
+    @Query('supplierId') supplierId?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.manifests.findAll(supplierId, parsePagination(page, limit));
   }
 
   @Post()

@@ -4,6 +4,7 @@ import RegisterTab from '@/components/RegisterTab';
 import NadzorSubnav from '../NadzorSubnav';
 import TrendSuggestionActions from './TrendSuggestionActions';
 import { Badge } from '@/components/ui/badge';
+import Pagination from '@/components/Pagination';
 
 interface TrendSuggestion {
   id: string;
@@ -18,14 +19,35 @@ interface TrendSuggestion {
 // M17 spec §4/§7 (Faza 7) — M18 §5/§9. GET /ops/trend-suggestions (M18/trend-suggestion/VIEW),
 // odobri/odbij (M18/trend-suggestion/APPROVE) — samo DRAFT predlozi mogu preći u
 // APPROVED/REJECTED (spec §5.1/§10, "ništa se ne menja automatski bez odobrenja").
-export default async function NadzorTrendoviPage() {
+export default async function NadzorTrendoviPage(props: {
+  searchParams: Promise<{ page?: string }>;
+}) {
+  const searchParams = await props.searchParams;
   const me = await getMe();
   const canApprove = hasPermission(me, 'M18', 'trend-suggestion', 'APPROVE');
 
   let suggestions: TrendSuggestion[] = [];
+  // Razvrstavanje 8.9.2026 (dok. 27, nastavak nalaza 2.2) — `GET /ops/trend-suggestions` sad
+  // vraća `{ data, total, ... }`, isti obrazac kao ostale liste.
+  let total = 0;
+  let page = 1;
+  let pageCount = 1;
+  let limit = 50;
   let error: string | null = null;
   try {
-    suggestions = await apiFetch<TrendSuggestion[]>('/ops/trend-suggestions');
+    const qs = searchParams?.page ? `?page=${searchParams.page}` : '';
+    const result = await apiFetch<{
+      data: TrendSuggestion[];
+      total: number;
+      page: number;
+      pageCount: number;
+      limit: number;
+    }>(`/ops/trend-suggestions${qs}`);
+    suggestions = result.data;
+    total = result.total;
+    page = result.page;
+    pageCount = result.pageCount;
+    limit = result.limit;
   } catch {
     error = 'Nemate dozvolu za uvid u predloge trendova (M18/trend-suggestion/VIEW).';
   }
@@ -76,6 +98,19 @@ export default async function NadzorTrendoviPage() {
             </div>
           ))}
         </div>
+      )}
+
+      {!error && (
+        <Pagination
+          page={page}
+          pageCount={pageCount}
+          total={total}
+          shown={suggestions.length}
+          limit={limit}
+          basePath="/nadzor/trendovi"
+          searchParams={searchParams ?? {}}
+          itemLabel="predloga"
+        />
       )}
     </div>
   );

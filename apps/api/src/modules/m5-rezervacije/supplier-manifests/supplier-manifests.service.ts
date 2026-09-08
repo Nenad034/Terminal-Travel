@@ -5,6 +5,11 @@ import { AuditLogService } from '../../m1-core-identitet/audit-log/audit-log.ser
 import { SupplierMailboxService } from '../common/supplier-mailbox.service';
 import { nextReferenceCode } from '../common/reference-code';
 import { GenerateManifestDto } from './dto/generate-manifest.dto';
+import {
+  type PaginationQueryDto,
+  paginated,
+  paginationArgs,
+} from '../../../common/pagination/pagination';
 
 /**
  * M5 spec §8 — operativne liste za dobavljače (CONTRACTED stavke). Cena/marža se NIKAD
@@ -22,15 +27,25 @@ export class SupplierManifestsService {
   // Dopuna 5.9.2026 — ekran u panelu (M17) traži naziv dobavljača i broj stavaka uz svaku listu;
   // bez toga bi spisak bio niz UUID-jeva. Čisto proširenje payload-a već autorizovanog upita
   // (isti obrazac kao M22 v1.5 `mailbox` u `GET /email/threads`), bez nove dozvole.
-  findAll(supplierId?: string) {
-    return this.prisma.supplierManifest.findMany({
-      where: { supplierId },
-      orderBy: { generatedAt: 'desc' },
-      include: {
-        supplier: { select: { id: true, name: true, contactEmail: true } },
-        _count: { select: { items: true } },
-      },
-    });
+  // Razvrstavanje 8.9.2026 (dok. 27, nastavak nalaza 2.2) — raste sa svakom generisanom najavom
+  // dobavljaču; ekran (`/rezervacije/najave`) je pozivao bez `supplierId`, tražeći SVE odjednom.
+  async findAll(supplierId?: string, pagination?: PaginationQueryDto) {
+    const where = { supplierId };
+    const { skip, take, page, limit } = paginationArgs(pagination);
+    const [data, total] = await this.prisma.$transaction([
+      this.prisma.supplierManifest.findMany({
+        where,
+        orderBy: { generatedAt: 'desc' },
+        skip,
+        take,
+        include: {
+          supplier: { select: { id: true, name: true, contactEmail: true } },
+          _count: { select: { items: true } },
+        },
+      }),
+      this.prisma.supplierManifest.count({ where }),
+    ]);
+    return paginated(data, total, page, limit);
   }
 
   async findOne(id: string) {
