@@ -4,6 +4,8 @@
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje
 
+**Verzija:** 2.61 — prekoračen kapacitet se u mreži prikazuje **kao negativan broj sa minusom ispred**, u `--danger` boji uz oznaku, nikad kao nula (8.9.2026, vlasnikov zahtev: "prikazati sa minusom ispred"; M3 v1.16 §2.3d/§2.8c). Jedino mesto u mreži gde boja nosi stanje a ne jačinu — prekoračenje nije stepen popunjenosti nego kvar koji traži radnju istog dana. Dopunjeno poglavlje 4b.2.
+
 **Verzija:** 2.60 — **nov ekran "Kapaciteti"** (8.9.2026, na zahtev vlasnika, novo poglavlje 4b + red u tabeli poglavlja 4). Mreža po danima nad M3 §2.8 (kapacitet po danu, stop-sale, blokade): redovi hotel → tip sobe, kolone dani, jačina boje = popunjenost, status = šrafura/oznaka (namerno NE boja pozadine, da se dva različita jezika ne bore na istoj ćeliji), bez treperenja. Čita M3/M5 **uživo**, ne M13 projekciju — operativa, ne analitika; to je i granica prema toplotnoj mapi iz M13 §4.4 (koja gleda unazad i zbirno). Radnje sa ekrana pokrivene postojećim i novim M3 dozvolama (`capacity/VIEW`, `capacity/CLOSE_SALE`, `capacity/BLOCK`), dodela kapaciteta subagentu kao zaseban sloj (M7 §5a). Prvi prolaz namerno pokriva samo smeštaj i čarter — ne-smeštajni proizvodi nemaju polazak kao zapis u modelu, pa bi ekran za njih prikazivao prazno (zamka 7.2). Analiza: `docs/analize/44-PREDLOG-MREZA-KAPACITETA.md`. **Čisto specifikaciona dopuna, bez koda u ovom prolazu.**
 
 **Verzija:** 2.59 — Pinovanje tabova, preživljava gašenje i ponovno pokretanje aplikacije (5.9.2026, vlasnikov zahtev: "omoguci pinovanje tabova koje zelimo da imamo i kada se aplikacija ugasi pa ponovo pokrene"). Do sad su se otvoreni tabovi pamtili isključivo preko `sessionStorage` (§5a, 21.8.2026) — namerno, da ne prežive zatvaranje browsera, samo osvežavanje stranice u toku iste smene. Kačenje dodaje DRUGI, trajniji sloj pamćenja BEZ menjanja tog postojećeg ponašanja za nezakačene tabove:
@@ -490,12 +492,15 @@ Redovi = ono što se prodaje, kolone = dani (podrazumevano mesec, raspon podesiv
 
 Ovo je jedina tačka na kojoj ekran svesno odstupa od PrimeTravel uzora (koji status nosi bojom pozadine):
 
-| Šta se prikazuje               | Kako                                                                                     |
-| :----------------------------- | :--------------------------------------------------------------------------------------- |
-| popunjenost (0–100%)           | jačina jedne nijanse (`--accent`), sekvencijalna skala — isto kao toplotna mapa M13 §4.4 |
-| prodaja zatvorena (`STOP`)     | šrafura + oznaka, **ne** sopstvena boja pozadine                                         |
-| blokirano                      | oznaka sa brojem blokiranih jedinica                                                     |
-| period ne postoji za taj datum | prazna ćelija bez ikakve boje (nije isto što i "popunjeno")                              |
+| Šta se prikazuje                                       | Kako                                                                                                                                                 |
+| :----------------------------------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------- |
+| popunjenost (0–100%)                                   | jačina jedne nijanse (`--accent`), sekvencijalna skala — isto kao toplotna mapa M13 §4.4                                                             |
+| prodaja zatvorena (`STOP`)                             | šrafura + oznaka, **ne** sopstvena boja pozadine                                                                                                     |
+| blokirano                                              | oznaka sa brojem blokiranih jedinica                                                                                                                 |
+| period ne postoji za taj datum                         | prazna ćelija bez ikakve boje (nije isto što i "popunjeno")                                                                                          |
+| **prekoračeno** (prodato više nego što ima kapaciteta) | **negativan broj sa minusom ispred** (`−3`), u `--danger` boji, uz oznaku — nikad prikazano kao nula (vlasnikov zahtev 8.9.2026; M3 §2.8c `razlika`) |
+
+**Zašto minus, a ne nula.** Kad dobavljač smanji kapacitet ispod već prodatog (imali 20, prodali 15, hotel nam smanji na 12), stanje je −3. Nula bi se pročitala kao "puno, sve u redu"; minus se čita kao "tri gosta nemaju gde". To je jedino mesto u mreži gde boja **jeste** signal stanja a ne jačine (`--danger`), jer prekoračenje nije stepen popunjenosti nego kvar koji traži radnju istog dana — i zato ide uz broj i oznaku, ne samo boju. Isti podatak stiže i kao M18 signal `CAPACITY_OVERSOLD`, pa se ne oslanja na to da neko gleda baš taj ekran.
 
 Razlog: kad bi "crveno = zatvoreno" i "tamno = puno" delili isti jezik na istoj ćeliji, čitalac ne bi znao šta gleda. Legenda je uvek vidljiva na ekranu, ne samo u verziji za štampu. Nema treperenja ni animacije za kritična polja — ekran se gleda ceo dan (dizajn dokument `29-DIZAJN-SISTEM-UI.md`, i zamka 1.11 za tekst na poluprovidnoj boji).
 

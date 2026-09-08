@@ -272,6 +272,19 @@ Posledice, sve tri važne:
 2. **Blokada nije prodaja** — ne ulazi u prihod, ne broji se u popunjenost kao prodato, i u izveštajima (M13) mora stajati odvojeno. Ovo je razlog zašto je izbor dobar: da se vodilo kao rezervacija, svaki izveštaj prodaje bio bi netačan dok grupa ne potvrdi.
 3. **Rok je obavezan, i sam se gasi.** Blokada bez roka je najsigurniji način da se kapacitet trajno izgubi — neko blokira 10 soba u martu, grupa se nikad ne javi, i sobe stoje do septembra jer ih se niko ne seti. Predlog: rok je obavezno polje, sistem sam vraća sobe u prodaju kad istekne, i javlja (M18) dan-dva ranije da rok ističe.
 
+### 9.6 Prekoračen kapacitet se prikazuje kao minus (8.9.2026, dopuna posle pitanja "gde se kapacitet definiše")
+
+Pri proveri gde se kapacitet uopšte unosi otkriveno je da se ugovorni period može **napraviti, ali ne i izmeniti ni obrisati** — `PATCH`/`DELETE` nikad nisu postojali, iako dozvola `M3/contract-period/EDIT` stoji u specifikaciji od prve verzije. Uz to je postavljeno pitanje šta raditi kad se kapacitet smanji **ispod već prodatog**.
+
+**Vlasnikova odluka: dozvoliti, i prikazati sa minusom ispred.**
+
+Posledice, upisane u M3 v1.16 (§2.3d, §2.8c), M17 v2.61 (§4b.2) i M18 v1.14:
+
+- smanjenje ispod prodatog **prolazi**, uz upozorenje pre potvrde, audit zapis sa starom i novom vrednošću i događaj `capacity_oversold`;
+- raspoloživost se razdvaja na dve vrednosti: **`razlika`** (prikaz — sme biti negativna) i **`za_prodaju`** (odluka o prodaji — nikad negativna). Nula bi se pročitala kao "puno, u redu je"; **−3** se čita kao "tri gosta nemaju gde";
+- prodaja za taj datum staje, ali se **nijedna postojeća rezervacija ne otkazuje automatski** — koga premestiti je ljudska odluka;
+- M18 dobija `CAPACITY_OVERSOLD` kao `CRITICAL` signal, da se ne oslanja na to da neko gleda baš taj ekran.
+
 ### 9.5 Šta iz svih odgovora sledi za model — sažeto
 
 Sve iz poglavlja 9 svodi se na **jedan zapis stanja po danu** i **tri zasebna zapisa razloga** iznad njega:
