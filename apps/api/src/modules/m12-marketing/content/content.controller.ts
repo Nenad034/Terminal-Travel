@@ -31,6 +31,7 @@ import { RequirePermission } from '../../../common/decorators/require-permission
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import { AgentActionGuard } from '../../../common/guards/agent-action.guard';
 import { AgentAction } from '../../../common/decorators/agent-action.decorator';
+import { parsePagination } from '../../../common/pagination/pagination';
 import {
   CONTENT_MEDIA_UPLOAD_ROOT,
   MAX_CONTENT_MEDIA_BYTES,
@@ -54,8 +55,10 @@ export class ContentController {
     @Query('status') status?: ContentPieceStatus,
     @Query('channel') channel?: ContentChannel,
     @Query('slug') slug?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
   ) {
-    return this.content.findAll({ type, status, channel, slug });
+    return this.content.findAll({ type, status, channel, slug }, parsePagination(page, limit));
   }
 
   @Post()

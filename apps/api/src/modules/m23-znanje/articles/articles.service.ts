@@ -1,12 +1,22 @@
 import { randomUUID } from 'node:crypto';
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { ArticleTranslation, LanguageCode } from '@prisma/client';
+import {
+  ArticleStatus,
+  ArticleSubjectType,
+  ArticleTranslation,
+  LanguageCode,
+} from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { AuditLogService } from '../../m1-core-identitet/audit-log/audit-log.service';
 import { CreateArticleDto } from './dto/create-article.dto';
 import { UpdateArticleDto } from './dto/update-article.dto';
 import { assertHumanActor } from '../ai-agent-guard';
 import { KnowledgeResearchService } from '../knowledge-research/knowledge-research.service';
+import {
+  type PaginationQueryDto,
+  paginated,
+  paginationArgs,
+} from '../../../common/pagination/pagination';
 
 const DEFAULT_LANGUAGE: LanguageCode = 'sr';
 
@@ -110,13 +120,40 @@ export class ArticlesService {
     return this.findOne(article.id, actorId, true);
   }
 
-  async findAll(actorId: string, canSeeAllStatuses: boolean, lang?: LanguageCode) {
-    const articles = await this.prisma.article.findMany({
-      where: canSeeAllStatuses ? {} : { status: 'PUBLISHED' },
-      include: { translations: true },
-      orderBy: { createdAt: 'desc' },
-    });
-    return articles.map((a) => this.withResolvedTranslation(a, lang));
+  // Razvrstavanje 8.9.2026 (dok. 27, nastavak nalaza 2.2) — raste sa svakim novim člankom;
+  // ekran (`/znanje`) je pozivan bez ikakve granice, a filtriranje po `subjectType`/`status` je
+  // do sada bilo KLIJENTSKO nad celom listom (stari komentar u `page.tsx`: "API ne izlaže
+  // subjectType/status kao query filtere") — sa straničenjem bi filter radio samo unutar jedne
+  // strane, pa oba filtera sad idu na server ZAJEDNO sa granicom. `status` filter poštuje
+  // postojeću ogradu (§3.1): ko nema EDIT ne može da traži ništa osim PUBLISHED.
+  async findAll(
+    actorId: string,
+    canSeeAllStatuses: boolean,
+    lang?: LanguageCode,
+    pagination?: PaginationQueryDto,
+    filters?: { subjectType?: ArticleSubjectType; status?: ArticleStatus },
+  ) {
+    const where = {
+      status: canSeeAllStatuses ? filters?.status : ArticleStatus.PUBLISHED,
+      subjectType: filters?.subjectType,
+    };
+    const { skip, take, page, limit } = paginationArgs(pagination);
+    const [articles, total] = await this.prisma.$transaction([
+      this.prisma.article.findMany({
+        where,
+        include: { translations: true },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take,
+      }),
+      this.prisma.article.count({ where }),
+    ]);
+    return paginated(
+      articles.map((a) => this.withResolvedTranslation(a, lang)),
+      total,
+      page,
+      limit,
+    );
   }
 
   async findOne(id: string, actorId: string, canSeeAllStatuses: boolean, lang?: LanguageCode) {

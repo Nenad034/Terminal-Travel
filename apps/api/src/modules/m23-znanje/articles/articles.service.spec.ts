@@ -63,3 +63,60 @@ describe('ArticlesService.publish (M23 spec §6/§9)', () => {
     expect(second.shareToken).toBe('existing-token');
   });
 });
+
+describe('ArticlesService.findAll — straničenje + filteri na serveru (8.9.2026, dok. 27 nastavak nalaza 2.2)', () => {
+  function makeService() {
+    const prisma: any = {
+      article: {
+        findMany: jest.fn().mockResolvedValue([]),
+        count: jest.fn().mockResolvedValue(0),
+      },
+      $transaction: jest.fn((ops: Promise<unknown>[]) => Promise.all(ops)),
+    };
+    const auditLog = { write: jest.fn() };
+    const research = {};
+    const service = new ArticlesService(prisma, auditLog as any, research as any);
+    return { service, prisma };
+  }
+
+  it('vraća { data, total, page, limit } umesto golog niza', async () => {
+    const { service, prisma } = makeService();
+    prisma.article.findMany.mockResolvedValue([{ id: 'a1', translations: [] }]);
+    prisma.article.count.mockResolvedValue(1);
+
+    const result = await service.findAll('actor-1', true);
+
+    expect(prisma.article.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ skip: 0, take: 50 }),
+    );
+    expect(result.total).toBe(1);
+    expect(result.data).toHaveLength(1);
+  });
+
+  it('ko nema EDIT dobija SAMO PUBLISHED, čak i ako traži drugi status', async () => {
+    const { service, prisma } = makeService();
+
+    await service.findAll('actor-1', false, undefined, undefined, {
+      status: 'DRAFT' as any,
+    });
+
+    expect(prisma.article.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: expect.objectContaining({ status: 'PUBLISHED' }) }),
+    );
+  });
+
+  it('ko ima EDIT sme da filtrira po subjectType/status na serveru', async () => {
+    const { service, prisma } = makeService();
+
+    await service.findAll('actor-1', true, undefined, undefined, {
+      subjectType: 'COUNTRY' as any,
+      status: 'DRAFT' as any,
+    });
+
+    expect(prisma.article.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ subjectType: 'COUNTRY', status: 'DRAFT' }),
+      }),
+    );
+  });
+});

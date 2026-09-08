@@ -6,6 +6,7 @@ import Icon from '@/components/Icon';
 import TabLink from '@/components/TabLink';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import Pagination from '@/components/Pagination';
 import {
   Table,
   TableBody,
@@ -25,25 +26,42 @@ interface UserRow {
   roles: { role: { id: string; name: string } }[];
 }
 
-// M1 spec §7 — GET /iam/users. Pretraga (ime/email) ide klijentski nad punom listom, isti
-// obrazac kao ostatak M17 kad API nema poseban filter parametar za taj resurs.
-export default async function KorisniciPage(props: { searchParams: Promise<{ q?: string }> }) {
+// M1 spec §7 — GET /iam/users. Razvrstavanje 8.9.2026 (dok. 27, nastavak nalaza 2.2) — pretraga
+// (ime/email) je do sada bila klijentska nad CELOM listom; sad ide na server ZAJEDNO sa
+// straničenjem (`q` je oduvek stizao u URL preko forme ispod, samo nije prosleđivan API-ju).
+export default async function KorisniciPage(props: {
+  searchParams: Promise<{ q?: string; page?: string }>;
+}) {
   const searchParams = await props.searchParams;
   const me = await getMe();
   const canCreate = hasPermission(me, 'M1', 'user', 'CREATE');
 
-  let users: UserRow[] = [];
+  let filtered: UserRow[] = [];
+  let total = 0;
+  let page = 1;
+  let pageCount = 1;
+  let limit = 50;
   let error: string | null = null;
   try {
-    users = await apiFetch<UserRow[]>('/iam/users');
+    const params = new URLSearchParams();
+    if (searchParams?.q) params.set('q', searchParams.q);
+    if (searchParams?.page) params.set('page', searchParams.page);
+    const qs = params.toString() ? `?${params.toString()}` : '';
+    const result = await apiFetch<{
+      data: UserRow[];
+      total: number;
+      page: number;
+      pageCount: number;
+      limit: number;
+    }>(`/iam/users${qs}`);
+    filtered = result.data;
+    total = result.total;
+    page = result.page;
+    pageCount = result.pageCount;
+    limit = result.limit;
   } catch {
     error = 'Nemate dozvolu za uvid u korisnike (M1/user/VIEW).';
   }
-
-  const q = searchParams?.q?.toLowerCase().trim();
-  const filtered = q
-    ? users.filter((u) => u.fullName.toLowerCase().includes(q) || u.email.toLowerCase().includes(q))
-    : users;
 
   return (
     <div className="p-6">
@@ -150,6 +168,19 @@ export default async function KorisniciPage(props: { searchParams: Promise<{ q?:
             </TableBody>
           </Table>
         </div>
+      )}
+
+      {!error && (
+        <Pagination
+          page={page}
+          pageCount={pageCount}
+          total={total}
+          shown={filtered.length}
+          limit={limit}
+          basePath="/korisnici"
+          searchParams={searchParams ?? {}}
+          itemLabel="korisnika"
+        />
       )}
     </div>
   );

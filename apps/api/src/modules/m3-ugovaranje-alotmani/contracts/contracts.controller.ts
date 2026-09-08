@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { ContractsService } from './contracts.service';
 import { CreateContractDto } from './dto/create-contract.dto';
@@ -8,6 +8,7 @@ import { PermissionsGuard } from '../../../common/guards/permissions.guard';
 import { RequirePermission } from '../../../common/decorators/require-permission.decorator';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import { ContractPeriodsService } from '../contract-periods/contract-periods.service';
+import { parsePagination } from '../../../common/pagination/pagination';
 
 // M3 spec §6, prefiks /api/v1/contracting
 @ApiTags('contracting-contracts')
@@ -22,8 +23,8 @@ export class ContractsController {
 
   @Get()
   @RequirePermission('M3', 'contract', 'VIEW')
-  findAll() {
-    return this.contracts.findAll();
+  findAll(@Query('page') page?: string, @Query('limit') limit?: string) {
+    return this.contracts.findAll(parsePagination(page, limit));
   }
 
   @Post()

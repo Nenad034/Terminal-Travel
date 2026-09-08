@@ -4,6 +4,7 @@ import { getMe, hasPermission } from '@/lib/me';
 import RegisterTab from '@/components/RegisterTab';
 import Icon from '@/components/Icon';
 import { Button } from '@/components/ui/button';
+import Pagination from '@/components/Pagination';
 
 interface Supplier {
   id: string;
@@ -16,15 +17,34 @@ interface Supplier {
 
 // M17 spec §4/§7 (Faza 1) — "Dobavljači i ugovori", jedna nav stavka koja pokriva oba M3
 // resursa (§6 M3 spec). Ova stranica je lista dobavljača; ugovori žive na /ugovori.
-export default async function SuppliersPage() {
+export default async function SuppliersPage(props: { searchParams: Promise<{ page?: string }> }) {
+  const searchParams = await props.searchParams;
   const me = await getMe();
   const canCreate = hasPermission(me, 'M3', 'supplier', 'CREATE');
   const canViewContracts = hasPermission(me, 'M3', 'contract', 'VIEW');
 
   let suppliers: Supplier[] = [];
+  // Razvrstavanje 8.9.2026 (dok. 27, nastavak nalaza 2.2) — `GET /contracting/suppliers` sad
+  // vraća `{ data, total, ... }` na ovom, jedinom PRAVOM browse ekranu za dobavljače.
+  let total = 0;
+  let page = 1;
+  let pageCount = 1;
+  let limit = 50;
   let error: string | null = null;
   try {
-    suppliers = await apiFetch<Supplier[]>('/contracting/suppliers');
+    const qs = searchParams?.page ? `?page=${searchParams.page}` : '';
+    const result = await apiFetch<{
+      data: Supplier[];
+      total: number;
+      page: number;
+      pageCount: number;
+      limit: number;
+    }>(`/contracting/suppliers${qs}`);
+    suppliers = result.data;
+    total = result.total;
+    page = result.page;
+    pageCount = result.pageCount;
+    limit = result.limit;
   } catch {
     error = 'Nemate dozvolu za uvid u dobavljače (M3/supplier/VIEW).';
   }
@@ -75,6 +95,19 @@ export default async function SuppliersPage() {
             </div>
           ))}
         </div>
+      )}
+
+      {!error && (
+        <Pagination
+          page={page}
+          pageCount={pageCount}
+          total={total}
+          shown={suppliers.length}
+          limit={limit}
+          basePath="/dobavljaci"
+          searchParams={searchParams ?? {}}
+          itemLabel="dobavljača"
+        />
       )}
     </div>
   );

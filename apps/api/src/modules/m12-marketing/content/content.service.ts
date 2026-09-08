@@ -14,6 +14,11 @@ import {
   Prisma,
 } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
+import {
+  type PaginationQueryDto,
+  paginated,
+  paginationArgs,
+} from '../../../common/pagination/pagination';
 import { AuditLogService } from '../../m1-core-identitet/audit-log/audit-log.service';
 import { CreateContentDto } from './dto/create-content.dto';
 import { UpdateContentDto } from './dto/update-content.dto';
@@ -159,22 +164,35 @@ export class ContentService {
   // Čitanje
   // ==========================================================================
   // M12 spec §7 — GET /content: "lista (kalendar = sortirano po scheduled_publish_at)".
-  async findAll(filters: {
-    type?: ContentPieceType;
-    status?: ContentPieceStatus;
-    channel?: ContentChannel;
-    slug?: string;
-  }) {
-    return this.prisma.contentPiece.findMany({
-      where: {
-        type: filters.type,
-        status: filters.status,
-        targetChannels: filters.channel ? { has: filters.channel } : undefined,
-        slug: filters.slug,
-      },
-      include: { translations: true, media: true },
-      orderBy: [{ scheduledPublishAt: 'asc' }, { createdAt: 'desc' }],
-    });
+  // Razvrstavanje 8.9.2026 (dok. 27, nastavak nalaza 2.2) — raste sa svakim novim sadržajem
+  // (AI nacrt ili ručan unos), ekran (`/marketing`) je pozivan bez ikakve granice.
+  async findAll(
+    filters: {
+      type?: ContentPieceType;
+      status?: ContentPieceStatus;
+      channel?: ContentChannel;
+      slug?: string;
+    },
+    pagination?: PaginationQueryDto,
+  ) {
+    const where = {
+      type: filters.type,
+      status: filters.status,
+      targetChannels: filters.channel ? { has: filters.channel } : undefined,
+      slug: filters.slug,
+    };
+    const { skip, take, page, limit } = paginationArgs(pagination);
+    const [data, total] = await this.prisma.$transaction([
+      this.prisma.contentPiece.findMany({
+        where,
+        include: { translations: true, media: true },
+        orderBy: [{ scheduledPublishAt: 'asc' }, { createdAt: 'desc' }],
+        skip,
+        take,
+      }),
+      this.prisma.contentPiece.count({ where }),
+    ]);
+    return paginated(data, total, page, limit);
   }
 
   async findOne(id: string) {

@@ -6,6 +6,7 @@ import Icon from '@/components/Icon';
 import TabLink from '@/components/TabLink';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import Pagination from '@/components/Pagination';
 
 interface ContentPiece {
   id: string;
@@ -25,7 +26,7 @@ const STATUSES = ['DRAFT', 'PENDING_APPROVAL', 'APPROVED', 'PUBLISHED'];
 // M17 spec §4/§7 (Faza 6) — "Marketing sadržaj", M12 §7 GET /content ("kalendar = sortirano po
 // scheduled_publish_at" — servis već sortira tako, ova lista je taj kalendar).
 export default async function MarketingPage(props: {
-  searchParams: Promise<{ type?: string; status?: string }>;
+  searchParams: Promise<{ type?: string; status?: string; page?: string }>;
 }) {
   const searchParams = await props.searchParams;
   const me = await getMe();
@@ -33,13 +34,31 @@ export default async function MarketingPage(props: {
   const canChannels = hasPermission(me, 'M12', 'channel-config', 'VIEW');
 
   let content: ContentPiece[] = [];
+  // Razvrstavanje 8.9.2026 (dok. 27, nastavak nalaza 2.2) — `GET /marketing/content` sad vraća
+  // `{ data, total, ... }`.
+  let total = 0;
+  let page = 1;
+  let pageCount = 1;
+  let limit = 50;
   let error: string | null = null;
   try {
     const params = new URLSearchParams();
     if (searchParams?.type) params.set('type', searchParams.type);
     if (searchParams?.status) params.set('status', searchParams.status);
+    if (searchParams?.page) params.set('page', searchParams.page);
     const qs = params.toString() ? `?${params.toString()}` : '';
-    content = await apiFetch<ContentPiece[]>(`/marketing/content${qs}`);
+    const result = await apiFetch<{
+      data: ContentPiece[];
+      total: number;
+      page: number;
+      pageCount: number;
+      limit: number;
+    }>(`/marketing/content${qs}`);
+    content = result.data;
+    total = result.total;
+    page = result.page;
+    pageCount = result.pageCount;
+    limit = result.limit;
   } catch {
     error = 'Nemate dozvolu za uvid u marketinški sadržaj (M12/content/VIEW).';
   }
@@ -143,6 +162,19 @@ export default async function MarketingPage(props: {
             );
           })}
         </div>
+      )}
+
+      {!error && (
+        <Pagination
+          page={page}
+          pageCount={pageCount}
+          total={total}
+          shown={content.length}
+          limit={limit}
+          basePath="/marketing"
+          searchParams={searchParams ?? {}}
+          itemLabel="sadržaja"
+        />
       )}
     </div>
   );

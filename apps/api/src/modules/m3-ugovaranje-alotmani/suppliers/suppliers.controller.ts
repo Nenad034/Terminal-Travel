@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { SuppliersService } from './suppliers.service';
 import { CreateSupplierDto } from './dto/create-supplier.dto';
@@ -9,6 +9,7 @@ import { JwtAuthGuard } from '../../m1-core-identitet/auth/guards/jwt-auth.guard
 import { PermissionsGuard } from '../../../common/guards/permissions.guard';
 import { RequirePermission } from '../../../common/decorators/require-permission.decorator';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
+import { parsePagination } from '../../../common/pagination/pagination';
 
 // M3 spec §6, prefiks /api/v1/contracting
 @ApiTags('contracting-suppliers')
@@ -20,8 +21,8 @@ export class SuppliersController {
 
   @Get()
   @RequirePermission('M3', 'supplier', 'VIEW')
-  findAll() {
-    return this.suppliers.findAll();
+  findAll(@Query('page') page?: string, @Query('limit') limit?: string) {
+    return this.suppliers.findAll(parsePagination(page, limit));
   }
 
   @Post()

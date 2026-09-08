@@ -4,6 +4,7 @@ import { getMe, hasPermission } from '@/lib/me';
 import RegisterTab from '@/components/RegisterTab';
 import Icon from '@/components/Icon';
 import { Badge } from '@/components/ui/badge';
+import Pagination from '@/components/Pagination';
 
 interface Contract {
   id: string;
@@ -21,20 +22,40 @@ interface Supplier {
 }
 
 // M17 spec §4/§7 (Faza 1) — "Dobavljači i ugovori", M3 §6 ugovori.
-export default async function ContractsPage() {
+export default async function ContractsPage(props: { searchParams: Promise<{ page?: string }> }) {
+  const searchParams = await props.searchParams;
   const me = await getMe();
   const canCreate = hasPermission(me, 'M3', 'contract', 'CREATE');
 
   let contracts: Contract[] = [];
   let suppliersById = new Map<string, string>();
+  // Razvrstavanje 8.9.2026 (dok. 27, nastavak nalaza 2.2) — `GET /contracting/contracts` sad
+  // vraća `{ data, total, ... }`. Spisak dobavljača ostaje traženo sa `?limit=200`: ovde služi
+  // ISKLJUČIVO kao mapa imena za `supplierId` svakog ugovora na trenutnoj strani, ne kao
+  // sopstvena paginirana lista — puna lista dobavljača (uža strana) ostaje na `/dobavljaci`.
+  let total = 0;
+  let page = 1;
+  let pageCount = 1;
+  let limit = 50;
   let error: string | null = null;
   try {
+    const qs = searchParams?.page ? `?page=${searchParams.page}` : '';
     const [contractsRes, suppliersRes] = await Promise.all([
-      apiFetch<Contract[]>('/contracting/contracts'),
-      apiFetch<Supplier[]>('/contracting/suppliers'),
+      apiFetch<{
+        data: Contract[];
+        total: number;
+        page: number;
+        pageCount: number;
+        limit: number;
+      }>(`/contracting/contracts${qs}`),
+      apiFetch<{ data: Supplier[] }>('/contracting/suppliers?limit=200'),
     ]);
-    contracts = contractsRes;
-    suppliersById = new Map(suppliersRes.map((s) => [s.id, s.name]));
+    contracts = contractsRes.data;
+    total = contractsRes.total;
+    page = contractsRes.page;
+    pageCount = contractsRes.pageCount;
+    limit = contractsRes.limit;
+    suppliersById = new Map(suppliersRes.data.map((s) => [s.id, s.name]));
   } catch {
     error = 'Nemate dozvolu za uvid u ugovore (M3/contract/VIEW).';
   }
@@ -98,6 +119,19 @@ export default async function ContractsPage() {
             </Link>
           ))}
         </div>
+      )}
+
+      {!error && (
+        <Pagination
+          page={page}
+          pageCount={pageCount}
+          total={total}
+          shown={contracts.length}
+          limit={limit}
+          basePath="/ugovori"
+          searchParams={searchParams ?? {}}
+          itemLabel="ugovora"
+        />
       )}
     </div>
   );

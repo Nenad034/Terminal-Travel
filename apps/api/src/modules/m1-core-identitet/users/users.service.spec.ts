@@ -9,13 +9,15 @@ describe('UsersService', () => {
         update: jest.fn(),
         findUniqueOrThrow: jest.fn(),
         findUnique: jest.fn().mockResolvedValue(null),
-        findMany: jest.fn(),
+        findMany: jest.fn().mockResolvedValue([]),
+        count: jest.fn().mockResolvedValue(0),
       },
       userRole: {
         upsert: jest.fn(),
         delete: jest.fn(),
         findMany: jest.fn().mockResolvedValue([]),
       },
+      $transaction: jest.fn((ops: Promise<unknown>[]) => Promise.all(ops)),
       role: {
         findUniqueOrThrow: jest.fn().mockResolvedValue({ id: 'role-1', name: 'ROLE-1' }),
       },
@@ -434,5 +436,52 @@ describe('UsersService', () => {
         { id: 'u1', fullName: 'Ana', phone: '+381601234567', email: 'ana@tt.rs' },
       ]);
     });
+  });
+});
+
+describe('UsersService.findAll — straničenje + pretraga na serveru (8.9.2026, dok. 27 nastavak nalaza 2.2)', () => {
+  function makeService() {
+    const prisma: any = {
+      user: {
+        findMany: jest.fn().mockResolvedValue([]),
+        count: jest.fn().mockResolvedValue(0),
+      },
+      $transaction: jest.fn((ops: Promise<unknown>[]) => Promise.all(ops)),
+    };
+    const auditLog = { write: jest.fn() };
+    const auth = {};
+    const mailer = {};
+    const service = new UsersService(prisma, auditLog as any, auth as any, mailer as any);
+    return { service, prisma };
+  }
+
+  it('vraća { data, total, page, limit } umesto golog niza', async () => {
+    const { service, prisma } = makeService();
+    prisma.user.findMany.mockResolvedValue([{ id: 'u1' }]);
+    prisma.user.count.mockResolvedValue(1);
+
+    const result = await service.findAll();
+
+    expect(prisma.user.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: {}, skip: 0, take: 50 }),
+    );
+    expect(result).toMatchObject({ data: [{ id: 'u1' }], total: 1, page: 1, limit: 50 });
+  });
+
+  it('pretraga (q) ide na server preko OR fullName/email, ne klijentski', async () => {
+    const { service, prisma } = makeService();
+
+    await service.findAll('ana');
+
+    expect(prisma.user.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          OR: [
+            { fullName: { contains: 'ana', mode: 'insensitive' } },
+            { email: { contains: 'ana', mode: 'insensitive' } },
+          ],
+        },
+      }),
+    );
   });
 });

@@ -5,6 +5,11 @@ import { CreateSupplierDto } from './dto/create-supplier.dto';
 import { UpdateSupplierDto } from './dto/update-supplier.dto';
 import { CreateSupplierContactDto } from './dto/create-supplier-contact.dto';
 import { UpdateSupplierContactDto } from './dto/update-supplier-contact.dto';
+import {
+  type PaginationQueryDto,
+  paginated,
+  paginationArgs,
+} from '../../../common/pagination/pagination';
 
 @Injectable()
 export class SuppliersService {
@@ -13,8 +18,20 @@ export class SuppliersService {
     private readonly auditLog: AuditLogService,
   ) {}
 
-  findAll() {
-    return this.prisma.supplier.findMany({ orderBy: { name: 'asc' } });
+  // Razvrstavanje 8.9.2026 (dok. 27, nastavak nalaza 2.2) — raste sa svakim novim dobavljačem.
+  // OVA lista se, za razliku od većine ostalih ispravljenih ovim prolazom, koristi na dva
+  // suštinski različita načina: (a) `/dobavljaci` je stvaran browse ekran (dobija straničenje
+  // + `Pagination`), (b) šest drugih mesta je koristi kao IZVOR ZA PADAJUĆU LISTU (forma za nov
+  // ugovor, filter liste rezervacija, chat "novi razgovor", API posrednik za autocomplete) —
+  // ta mesta traže `?limit=200` (tvrd plafon, ne "sve bez granice") jer bi dobavljač nevidljiv
+  // u padajućoj listi bio gori kvar (ne može se izabrati) od browse ekrana bez kraja liste.
+  async findAll(pagination?: PaginationQueryDto) {
+    const { skip, take, page, limit } = paginationArgs(pagination);
+    const [data, total] = await this.prisma.$transaction([
+      this.prisma.supplier.findMany({ orderBy: { name: 'asc' }, skip, take }),
+      this.prisma.supplier.count(),
+    ]);
+    return paginated(data, total, page, limit);
   }
 
   findOne(id: string) {

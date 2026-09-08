@@ -139,8 +139,10 @@ describe('M23 — izlazni kriterijum (e2e)', () => {
     expect(listSales.status).toBe(200);
     expect(listSubagent.status).toBe(200);
 
-    const salesIds = listSales.body.map((a: any) => a.id).sort();
-    const subagentIds = listSubagent.body.map((a: any) => a.id).sort();
+    // Razvrstavanje 8.9.2026 (dok. 27, nastavak nalaza 2.2) — GET /knowledge/articles sad vraća
+    // { data, total, ... } umesto golog niza (M23 spec, findAll straničenje).
+    const salesIds = listSales.body.data.map((a: any) => a.id).sort();
+    const subagentIds = listSubagent.body.data.map((a: any) => a.id).sort();
     expect(salesIds).toEqual(subagentIds);
     expect(salesIds).toContain(articleId);
   });

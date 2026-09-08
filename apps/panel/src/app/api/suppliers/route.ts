@@ -9,12 +9,14 @@ import { apiFetch, ApiError } from '@/lib/api-client';
 // dobavljača nemaju šta da odu u browser zbog jednog padajućeg spiska.
 export async function GET() {
   try {
-    const suppliers = await apiFetch<{ id: string; name: string; status: string }[]>(
-      '/contracting/suppliers',
+    // Razvrstavanje 8.9.2026 (dok. 27) — padajuća lista, ne browse ekran; `?limit=200` tvrd
+    // plafon (GET /contracting/suppliers sad vraća { data, total, ... }).
+    const result = await apiFetch<{ data: { id: string; name: string; status: string }[] }>(
+      '/contracting/suppliers?limit=200',
       { requireAuth: true },
     );
     return NextResponse.json(
-      suppliers.filter((s) => s.status === 'ACTIVE').map((s) => ({ id: s.id, name: s.name })),
+      result.data.filter((s) => s.status === 'ACTIVE').map((s) => ({ id: s.id, name: s.name })),
     );
   } catch (err) {
     if (err instanceof ApiError) {

@@ -51,11 +51,7 @@ export class UsersController {
 
   @Get()
   @RequirePermission('M1', 'user', 'VIEW')
-  findAll(
-    @Query('q') q?: string,
-    @Query('page') page?: string,
-    @Query('limit') limit?: string,
-  ) {
+  findAll(@Query('q') q?: string, @Query('page') page?: string, @Query('limit') limit?: string) {
     return this.users.findAll(q, parsePagination(page, limit));
   }
 

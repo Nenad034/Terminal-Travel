@@ -72,7 +72,10 @@ export default async function BookingListPage(props: { searchParams: Promise<Boo
   const [branchRows, employeeRows, supplierRows] = await Promise.all([
     safeList<{ id: string; name: string }>('/iam/branches'),
     safeList<{ id: string; fullName: string }>('/iam/users/directory'),
-    safeList<{ id: string; name: string }>('/contracting/suppliers'),
+    // Razvrstavanje 8.9.2026 (dok. 27) — padajuća lista filtera, ne browse ekran; `?limit=200`.
+    apiFetch<{ data: { id: string; name: string }[] }>('/contracting/suppliers?limit=200')
+      .then((r) => r.data)
+      .catch(() => []),
   ]);
   const branches: FilterOption[] = branchRows.map((b) => ({ id: b.id, name: b.name }));
   const employees: FilterOption[] = employeeRows.map((u) => ({ id: u.id, name: u.fullName }));

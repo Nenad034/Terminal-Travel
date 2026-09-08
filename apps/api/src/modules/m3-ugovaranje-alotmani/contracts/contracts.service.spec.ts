@@ -9,7 +9,9 @@ describe('ContractsService (M3 spec §2.2/§2.2a)', () => {
         findUniqueOrThrow: jest.fn(),
         create: jest.fn(),
         update: jest.fn(),
+        count: jest.fn().mockResolvedValue(0),
       },
+      $transaction: jest.fn((ops: Promise<unknown>[]) => Promise.all(ops)),
     };
     const auditLog = { write: jest.fn() };
     const service = new ContractsService(prisma as any, auditLog as any);
@@ -175,5 +177,33 @@ describe('ContractsService (M3 spec §2.2/§2.2a)', () => {
       );
       expect(result.status).toBe('ACTIVE');
     });
+  });
+});
+
+describe('ContractsService.findAll — straničenje (8.9.2026, dok. 27 nastavak nalaza 2.2)', () => {
+  function makeService() {
+    const prisma: any = {
+      contract: {
+        findMany: jest.fn().mockResolvedValue([]),
+        count: jest.fn().mockResolvedValue(0),
+      },
+      $transaction: jest.fn((ops: Promise<unknown>[]) => Promise.all(ops)),
+    };
+    const auditLog = { write: jest.fn() };
+    const service = new ContractsService(prisma, auditLog as any);
+    return { service, prisma };
+  }
+
+  it('vraća { data, total, page, limit } umesto golog niza', async () => {
+    const { service, prisma } = makeService();
+    prisma.contract.findMany.mockResolvedValue([{ id: 'c1' }]);
+    prisma.contract.count.mockResolvedValue(1);
+
+    const result = await service.findAll();
+
+    expect(prisma.contract.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ skip: 0, take: 50 }),
+    );
+    expect(result).toMatchObject({ data: [{ id: 'c1' }], total: 1, page: 1, limit: 50 });
   });
 });

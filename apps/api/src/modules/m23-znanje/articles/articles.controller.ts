@@ -1,6 +1,6 @@
 import { Body, Controller, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import { LanguageCode } from '@prisma/client';
+import { ArticleStatus, ArticleSubjectType, LanguageCode } from '@prisma/client';
 import { ArticlesService } from './articles.service';
 import { CreateArticleDto } from './dto/create-article.dto';
 import { UpdateArticleDto } from './dto/update-article.dto';
@@ -11,6 +11,7 @@ import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import { PermissionsService } from '../../m1-core-identitet/permissions/permissions.service';
 import { KnowledgeResearchService } from '../knowledge-research/knowledge-research.service';
 import { ResearchArticleDto } from '../knowledge-research/dto/research-article.dto';
+import { parsePagination } from '../../../common/pagination/pagination';
 
 // M23 spec §8, prefiks /api/v1/knowledge. VIEW dozvola je jedini gate za GET rute (§3.1 — ista
 // puna lista za interni tim i SUBAGENT_ADMIN, bez audience razdvajanja poput M21); EDIT dozvola
@@ -28,14 +29,27 @@ export class ArticlesController {
 
   @Get()
   @RequirePermission('M23', 'article', 'VIEW')
-  async findAll(@CurrentUser() actor: { userId: string }, @Query('lang') lang?: LanguageCode) {
+  async findAll(
+    @CurrentUser() actor: { userId: string },
+    @Query('lang') lang?: LanguageCode,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Query('subjectType') subjectType?: ArticleSubjectType,
+    @Query('status') status?: ArticleStatus,
+  ) {
     const canSeeAllStatuses = await this.permissions.hasPermission(
       actor.userId,
       'M23',
       'article',
       'EDIT',
     );
-    return this.articles.findAll(actor.userId, canSeeAllStatuses, lang);
+    return this.articles.findAll(
+      actor.userId,
+      canSeeAllStatuses,
+      lang,
+      parsePagination(page, limit),
+      { subjectType, status },
+    );
   }
 
   @Post()

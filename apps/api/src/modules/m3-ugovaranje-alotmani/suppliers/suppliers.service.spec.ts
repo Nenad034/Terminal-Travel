@@ -8,6 +8,7 @@ describe('SuppliersService', () => {
         findUniqueOrThrow: jest.fn(),
         create: jest.fn(),
         update: jest.fn(),
+        count: jest.fn().mockResolvedValue(0),
       },
       supplierContact: {
         findMany: jest.fn(),
@@ -15,6 +16,7 @@ describe('SuppliersService', () => {
         create: jest.fn(),
         update: jest.fn(),
       },
+      $transaction: jest.fn((ops: Promise<unknown>[]) => Promise.all(ops)),
     };
     const auditLog = { write: jest.fn() };
     const service = new SuppliersService(prisma as any, auditLog as any);
@@ -92,5 +94,44 @@ describe('SuppliersService', () => {
       );
       expect(result).toBe(after);
     });
+  });
+});
+
+describe('SuppliersService.findAll — straničenje (8.9.2026, dok. 27 nastavak nalaza 2.2)', () => {
+  function makeService() {
+    const prisma: any = {
+      supplier: {
+        findMany: jest.fn().mockResolvedValue([]),
+        count: jest.fn().mockResolvedValue(0),
+      },
+      $transaction: jest.fn((ops: Promise<unknown>[]) => Promise.all(ops)),
+    };
+    const auditLog = { write: jest.fn() };
+    const service = new SuppliersService(prisma, auditLog as any);
+    return { service, prisma };
+  }
+
+  it('vraća { data, total, page, limit } umesto golog niza', async () => {
+    const { service, prisma } = makeService();
+    prisma.supplier.findMany.mockResolvedValue([{ id: 's1' }]);
+    prisma.supplier.count.mockResolvedValue(1);
+
+    const result = await service.findAll();
+
+    expect(prisma.supplier.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ orderBy: { name: 'asc' }, skip: 0, take: 50 }),
+    );
+    expect(result).toMatchObject({ data: [{ id: 's1' }], total: 1, page: 1, limit: 50 });
+  });
+
+  it('padajuća lista (dropdown pozivalac) traži veći plafon preko limit parametra', async () => {
+    const { service, prisma } = makeService();
+    prisma.supplier.count.mockResolvedValue(150);
+
+    await service.findAll({ limit: 200 });
+
+    expect(prisma.supplier.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ skip: 0, take: 200 }),
+    );
   });
 });

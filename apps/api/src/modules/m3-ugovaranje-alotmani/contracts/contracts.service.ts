@@ -3,6 +3,11 @@ import { PrismaService } from '../../../prisma/prisma.service';
 import { AuditLogService } from '../../m1-core-identitet/audit-log/audit-log.service';
 import { CreateContractDto } from './dto/create-contract.dto';
 import { UpdateContractDto } from './dto/update-contract.dto';
+import {
+  type PaginationQueryDto,
+  paginated,
+  paginationArgs,
+} from '../../../common/pagination/pagination';
 
 @Injectable()
 export class ContractsService {
@@ -11,8 +16,16 @@ export class ContractsService {
     private readonly auditLog: AuditLogService,
   ) {}
 
-  findAll() {
-    return this.prisma.contract.findMany({ orderBy: { createdAt: 'desc' } });
+  // Razvrstavanje 8.9.2026 (dok. 27, nastavak nalaza 2.2) — raste sa svakim novim ugovorom;
+  // jedini pozivalac ove liste (`/ugovori` u panelu) traži pun spisak dobavljača da bi imenom
+  // razrešio `supplierId` svakog reda (`SuppliersService.findAll` ispod), ne obrnuto.
+  async findAll(pagination?: PaginationQueryDto) {
+    const { skip, take, page, limit } = paginationArgs(pagination);
+    const [data, total] = await this.prisma.$transaction([
+      this.prisma.contract.findMany({ orderBy: { createdAt: 'desc' }, skip, take }),
+      this.prisma.contract.count(),
+    ]);
+    return paginated(data, total, page, limit);
   }
 
   findOne(id: string) {

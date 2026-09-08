@@ -110,7 +110,10 @@ export default async function SupplierChatPage() {
   let suppliersForNewConversation: Supplier[] = [];
   if (canGrant && canViewSuppliers) {
     try {
-      suppliersForNewConversation = await apiFetch<Supplier[]>('/contracting/suppliers');
+      // Razvrstavanje 8.9.2026 (dok. 27) — padajuća lista za "novi razgovor", ne browse ekran.
+      suppliersForNewConversation = (
+        await apiFetch<{ data: Supplier[] }>('/contracting/suppliers?limit=200')
+      ).data;
     } catch {
       // forma za novi razgovor se jednostavno ne prikazuje ispod
     }

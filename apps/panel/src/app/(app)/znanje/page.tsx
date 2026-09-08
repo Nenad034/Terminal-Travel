@@ -6,6 +6,7 @@ import Icon from '@/components/Icon';
 import TabLink from '@/components/TabLink';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import Pagination from '@/components/Pagination';
 
 interface ArticleRow {
   id: string;
@@ -25,29 +26,43 @@ const STATUSES = ['DRAFT', 'PENDING_APPROVAL', 'PUBLISHED', 'ARCHIVED'];
 // M23 spec §3.1/§8 — GET /knowledge/articles. Za razliku od M21, NEMA audience segmentaciju —
 // interni tim i subagenti (SUBAGENT_ADMIN) vide istu listu. Ko ima i M23/article/EDIT vidi svaki
 // status; ostali samo PUBLISHED (backend odlučuje preko iste dozvole, ne query parametra).
-// API ne izlaže subjectType/status kao query filtere (§8 tabela — samo `lang`) — filtriranje ide
-// preko celog skupa na ovoj strani, isti obrazac kao M13 klijentsko sortiranje kad backend nema
-// poseban filter endpoint.
+// Razvrstavanje 8.9.2026 (dok. 27, nastavak nalaza 2.2) — `subjectType`/`status` sad idu na
+// server (ranije klijentsko filtriranje nad celom listom bi posle straničenja radilo samo
+// unutar jedne strane), zajedno sa granicom.
 export default async function ZnanjePage(props: {
-  searchParams: Promise<{ subjectType?: string; status?: string }>;
+  searchParams: Promise<{ subjectType?: string; status?: string; page?: string }>;
 }) {
   const searchParams = await props.searchParams;
   const me = await getMe();
   const canCreate = hasPermission(me, 'M23', 'article', 'EDIT');
 
-  let articles: ArticleRow[] = [];
+  let filtered: ArticleRow[] = [];
+  let total = 0;
+  let page = 1;
+  let pageCount = 1;
+  let limit = 50;
   let error: string | null = null;
   try {
-    articles = await apiFetch<ArticleRow[]>('/knowledge/articles');
+    const params = new URLSearchParams();
+    if (searchParams?.subjectType) params.set('subjectType', searchParams.subjectType);
+    if (searchParams?.status) params.set('status', searchParams.status);
+    if (searchParams?.page) params.set('page', searchParams.page);
+    const qs = params.toString() ? `?${params.toString()}` : '';
+    const result = await apiFetch<{
+      data: ArticleRow[];
+      total: number;
+      page: number;
+      pageCount: number;
+      limit: number;
+    }>(`/knowledge/articles${qs}`);
+    filtered = result.data;
+    total = result.total;
+    page = result.page;
+    pageCount = result.pageCount;
+    limit = result.limit;
   } catch {
     error = 'Nemate dozvolu za uvid u bazu znanja (M23/article/VIEW).';
   }
-
-  const filtered = articles.filter((a) => {
-    if (searchParams?.subjectType && a.subjectType !== searchParams.subjectType) return false;
-    if (searchParams?.status && a.status !== searchParams.status) return false;
-    return true;
-  });
 
   return (
     <div className="p-6">
@@ -145,6 +160,19 @@ export default async function ZnanjePage(props: {
             </TabLink>
           ))}
         </div>
+      )}
+
+      {!error && (
+        <Pagination
+          page={page}
+          pageCount={pageCount}
+          total={total}
+          shown={filtered.length}
+          limit={limit}
+          basePath="/znanje"
+          searchParams={searchParams ?? {}}
+          itemLabel="članaka"
+        />
       )}
     </div>
   );
