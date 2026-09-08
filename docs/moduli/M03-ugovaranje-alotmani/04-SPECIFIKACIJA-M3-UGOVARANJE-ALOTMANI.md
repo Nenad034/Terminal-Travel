@@ -3,6 +3,8 @@
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M3) i poglavlje 8 (Faza 1)
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje
+**Verzija:** 1.17 — **AI agent koji uređuje kapacitete na ljudski zahtev** (8.9.2026, na zahtev vlasnika, novo poglavlje 4.4). Ne agent koji sam odlučuje šta da zatvori, nego onaj kome se kaže ("zatvori Splendid, sve sobe, 12–15.7.") i koji jednu rečenicu prevede u tačne dnevne zapise — posao u kom čovek greši jer unos ima dve dimenzije obima. Čitanje je `AUTONOMOUS`, sve tri izmene (`capacity.stop_sale`/`block`/`override`) su `PROPOSE_THEN_APPROVE`, a potvrdu daje isti čovek koji je tražio. Šest obaveznih ograda, od kojih tri najvažnije: agent **nema sopstvene dozvole** nego radi pravima korisnika (ko nema `CLOSE_SALE` ne može ni preko agenta), pregled pre izvršenja je **prebrojan** a ne opisan, i prekoračenje traži **drugu, izričitu potvrdu** uz broj gostiju koji ostaju bez pokrića. Nejasan zahtev se pita, nikad ne pogađa; jedan zahtev je jedna transakcija; trag nosi i agenta i čoveka. Predlog iz mejla dobavljača (§4.4.3) zabeležen ali van prvog prolaza — M22 još ne dovlači poštu. Registar akcija u M15 §4 i pregled u dok. 32 dopunjeni u istom prolazu. **Čisto specifikaciona dopuna, bez koda u ovom prolazu.**
+
 **Verzija:** 1.16 — **izmena i gašenje ugovornog perioda** (novo poglavlje 2.3d) i **prekoračenje kao negativan broj** (8.9.2026, isti dan kao v1.15). Otkriveno na vlasnikovo pitanje gde se kapacitet definiše: kapacitet JESTE imao formu za unos, ali period se nije mogao ni izmeniti ni obrisati — `PATCH`/`DELETE` nikad nisu postojali, iako dozvola `M3/contract-period/EDIT` stoji u poglavlju 5 od prve verzije. Dodati oba, uz ponovnu proveru preklapanja pri izmeni datuma/tipa sobe i gašenje (`INACTIVE`) umesto brisanja kad period ima rezervacije. **Smanjenje kapaciteta ispod već prodatog se ne odbija** (vlasnikova odluka — u praksi se dešava) nego prolazi uz upozorenje, audit zapis i `capacity_oversold` događaj, a stanje se od tada prikazuje kao **negativan broj** (vlasnikov zahtev: "prikazati sa minusom ispred") — poglavlje 2.8c razdvaja `razlika` (prikaz, sme biti negativna) od `za_prodaju` (odluka o prodaji, nikad negativna). Postojeće rezervacije se nikad ne otkazuju automatski. Tri nove stavke izlaznog kriterijuma. **Čisto specifikaciona dopuna, bez koda u ovom prolazu.**
 
 **Verzija:** 1.15 — **kapacitet po danu, zatvaranje prodaje i blokade** (8.9.2026, na zahtev vlasnika, novo poglavlje 2.8). Do ove verzije M3 nije znao stanje kapaciteta na konkretan datum — samo jedan zbir po sezoni. Uvedena tri autorska zapisa: `CapacityDay` (odstupanje kapaciteta + `sale_status` po danu, lenjo materijalizovan), `CapacityBlock` (držanje za nepotvrđenu grupu, sa **obaveznim** rokom koji se sam gasi) i masovni unos stop-sale po dve dimenzije obima (jedan tip sobe ili ceo objekat × jedan datum, raspon ili ceo period). **Prodato se i dalje nigde ne upisuje po danu** — računa se iz M5. Stop-sale je namerno zaseban status, ne kapacitet spušten na nulu (kod `FIXED_LEASE` kapacitet je plaćen i obaveza ostaje). Provera kapaciteta pri rezervaciji se pomera sa perioda na dan (2.8c), `ContractPeriod.units_sold` ostaje samo za poglavlja 4.1/4.3. Tri nove dozvole (`capacity/VIEW`, `capacity/CLOSE_SALE` — namerno i pojedinačna dodela po korisniku, `capacity/BLOCK`), šest novih endpoint-a, pet novih stavki izlaznog kriterijuma. Time je zatvorena i otvorena stavka "dobavljač jednostrano suspenduje kapacitet" iz poglavlja 8. Analiza i obrazloženje: `docs/analize/44-PREDLOG-MREZA-KAPACITETA.md`; ekran koji ovo prikazuje: M17 spec, M7 dobija dodelu kapaciteta subagentu. **Čisto specifikaciona dopuna, bez koda u ovom prolazu.**
@@ -478,6 +480,40 @@ Nezavisno od `release_days_before` roka (poglavlje 4.1, koji je vezan za vraćan
 - Preostalo > 2 jedinice → bez signala (izbegava se šum na svaku prodaju).
 
 Nivo **"Autonomno"** iz poglavlja 7 Master dokumenta — čisto informativno obaveštenje tima da je period skoro rasprodat, ne menja nijedan podatak niti blokira prodaju (za razliku od M11 tvrde blokade garancije, poglavlje 4.2 te specifikacije, ovo je samo signal, ne ograda). Potvrđeno poređenjem sa PrimeTravel `OperationalReports` obrascem (upozorenje na preostala 1–2 jedinice), vidi `22-ANALIZA-PRIMETRAVEL-NALAZI.md`.
+
+---
+
+### 4.4 AI agent koji uređuje kapacitete na ljudski zahtev (dopuna v1.17, 8.9.2026, na zahtev vlasnika)
+
+**Šta je traženo:** _"Ovde nam treba i AI agent kom možemo dati mogućnost da na naš zahtev uređuje kapacitete."_ Dakle ne agent koji sam odlučuje šta da zatvori, nego agent kome se kaže — "zatvori prodaju za Splendid, sve sobe, 12–15. jula" ili "smanji Hunguest dvokrevetne na 8 za ceo jul" — i koji to prevede u tačne izmene umesto da čovek klikće po mreži.
+
+**Zašto je to vredno:** unos iz poglavlja 2.8a ima dve dimenzije obima (šta × kada), pa jedna rečenica iz mejla dobavljača ume da znači desetine dnevnih zapisa kroz više perioda. To je posao u kom čovek greši, a mašina ne — ali odluka ostaje ljudska.
+
+#### 4.4.1 Nivo autonomije — čitanje samostalno, izmena uz potvrdu
+
+| Akcija               | Nivo                   | Obrazloženje                                                                  |
+| :------------------- | :--------------------- | :---------------------------------------------------------------------------- |
+| `capacity.read`      | `AUTONOMOUS`           | čisto čitanje stanja ("koliko je slobodno u Budvi 14.7.") — ništa se ne menja |
+| `capacity.stop_sale` | `PROPOSE_THEN_APPROVE` | menja šta se sme prodati; posledica je propuštena prodaja ili preprodaja      |
+| `capacity.block`     | `PROPOSE_THEN_APPROVE` | izuzima kapacitet iz prodaje; ista težina kao gore                            |
+| `capacity.override`  | `PROPOSE_THEN_APPROVE` | menja ugovoreni kapacitet; može ostaviti goste bez pokrića (poglavlje 2.3d)   |
+
+Potvrdu daje **isti čovek koji je i tražio izmenu**, ne treće lice — isti obrazac kao M21 `help_escalation.create_ticket` (korisnik potvrđuje sopstvenu radnju). Agent Inbox (M15 poglavlje 6) se ovde ne koristi kao red čekanja za tuđe odobrenje; potvrda je korak u samom razgovoru.
+
+#### 4.4.2 Šest ograda, sve obavezne
+
+1. **Agent nema sopstvene dozvole nad kapacitetom.** Izvršava isključivo u ime korisnika koji traži, sa njegovim pravima: ko nema `M3/capacity/CLOSE_SALE` ne može ni preko agenta da zatvori prodaju. Odbijanje je jasno ("nemate pravo za ovo"), ne tiho preskakanje. Isti princip kao M15 poglavlje 5 (sprovedba na nivou koda, ne u promptu).
+2. **Pregled pre izvršenja je prebrojan, ne opisan.** Agent prikazuje tačan obim — "3 perioda × 4 datuma = 12 dnevnih zapisa, hoteli: Splendid (Superior, Premium), Budva (Standard)" — i tek posle potvrde piše. Rečenica "zatvoriću ti to za jul" nije pregled.
+3. **Nejasan zahtev se pita, ne pogađa.** Dva hotela sa sličnim imenom, datum bez godine, "sve sobe" u ugovoru koji ima i periode van traženog raspona — agent pita, i ne izvršava ništa dok ne dobije odgovor. Nikad delimično izvršenje "onoga što je razumeo".
+4. **Sve ili ništa.** Jedan zahtev = jedna transakcija. Ako bilo koji od 12 zapisa ne prođe (npr. period je u međuvremenu ugašen), ne upisuje se nijedan.
+5. **Prekoračenje traži drugu, izričitu potvrdu.** Ako izmena ostavlja već potvrđene rezervacije bez pokrića (poglavlje 2.3d), pregled to mora reći **brojem** ("ovo ostavlja 3 gosta bez sobe 14–16.7.") i tražiti zasebnu potvrdu, ne istu kojom se potvrđuje ostatak. Agent nikad ne otkazuje rezervacije, ni na zahtev — to je M5 tok koji radi čovek.
+6. **Trag nosi oba imena.** Audit zapis i prikaz na ekranu vode i agenta i čoveka u čije ime je radio (`29-DIZAJN-SISTEM-UI.md` poglavlje 6a, M17 poglavlje 3.1) — "AI agent, po nalogu Marije Petrović". Nikad samo jedno od to dvoje.
+
+#### 4.4.3 Predlog iz mejla dobavljača — kasnija dopuna, ne sada
+
+Prirodan nastavak: dobavljač pošalje mejl "stop sale za apartmane 12–15.7.", agent ga pročita (M22) i **predloži** tačnu izmenu sa već popunjenim `stop_source = SUPPLIER_EMAIL` i vezom ka poruci, a čovek potvrdi. To je isti `PROPOSE_THEN_APPROVE` nivo i ne traži nov mehanizam.
+
+**Ne ulazi u prvi prolaz iz jednog konkretnog razloga:** M22 danas ume da pošalje, ali **ne i da dovuče pristiglu poštu** (`fetchNewMessages` ne postoji — vidi `docs/analize/27-BACKLOG-IDEJA-I-PREDLOZI.md`). Dok taj ulazni tok ne postoji, nema šta da se čita. Zabeleženo ovde da se ne izgubi.
 
 ---
 

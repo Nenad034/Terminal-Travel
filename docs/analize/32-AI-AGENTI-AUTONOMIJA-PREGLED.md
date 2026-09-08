@@ -21,6 +21,7 @@
 | :--------- | :------------------------------------------------------------------------------ |
 | M3         | Izvlačenje podataka iz uvezenog cenovnika                                       |
 | M3         | Upozorenje o niskom kapacitetu (1–2 jedinice ostalo)                            |
+| M3         | Čitanje stanja kapaciteta po danu ("koliko je slobodno u Budvi 14.7.")          |
 | M5         | Priprema nacrta manifesta za dobavljača                                         |
 | M6         | Nacrt poruke gostu/nalogodavcu                                                  |
 | M7         | Izračun nacrta provizionog rabata                                               |
@@ -51,6 +52,9 @@
 | :--------- | :---------------------------------------------------------------------------------------------------------- |
 | M3         | Upozorenje o isteku roka ugovora (pre slanja)                                                               |
 | M3         | Odobravanje reda iz uvezenog cenovnika                                                                      |
+| M3         | Zatvaranje/otvaranje prodaje za datum (stop-sale) na ljudski zahtev                                         |
+| M3         | Blokada kapaciteta za nepotvrđenu grupu na ljudski zahtev                                                   |
+| M3         | Izmena kapaciteta za dan/raspon na ljudski zahtev (prekoračenje traži drugu, izričitu potvrdu)              |
 | M5         | Slanje manifesta dobavljaču                                                                                 |
 | M5         | Provera dupliranog zahteva za storno (pre same akcije)                                                      |
 | M6         | Slanje poruke gostu koja sadrži cenu ili obavezu                                                            |

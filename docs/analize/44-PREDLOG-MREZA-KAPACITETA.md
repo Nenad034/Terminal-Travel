@@ -303,4 +303,26 @@ Slobodno za subagenta = manje od te dve vrednosti: gornja granica iz njegove dod
 
 ---
 
+## 10. Ostali tabovi i linkovi sa uzora — šta od toga već imamo (8.9.2026, na zahtev vlasnika: "pregledajte sve ove linkove gore")
+
+Vlasnik je priložio snimak gornje trake PrimeTravel ekrana "Operativni Izveštaji — Command Center za upravljanje produkcijom i kapacitetima". Pregledano je šta stoji iza svakog taba (pročitano u kodu, `modules/production/OperationalReports.tsx`), i upoređeno sa onim što Terminal već ima.
+
+| Tab / link (uzor)          | Šta je to kod njih                                                                                                             | Stanje kod nas                                                                                                                                            |
+| :------------------------- | :----------------------------------------------------------------------------------------------------------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Inventory Orchestrator** | mreža kapaciteta po danima                                                                                                     | **jedino što je stvarno novo** — upravo specificirano: M3 §2.8, M17 §4b                                                                                   |
+| **Kreiraj Kapacitet**      | dugme koje otvara čarobnjak za unos kapaciteta, nezavisno od ugovora                                                           | postoji, ali **vezano za ugovor** (Ugovori → period, polje "Ukupan kapacitet") — kod nas kapacitet dolazi iz ugovora, ne nastaje sam za sebe. Ostaje tako |
+| **PAX & Statistika**       | četiri broja za izabrani period: ukupno putnika, ukupno noćenja (i prosek po putniku), prosečna cena po putniku, ukupan prihod | M13 §4.1/§4.2 ima iste podatke, ali kao izveštaj. **Vredi preuzeti kao traku od četiri broja u zaglavlju mreže** — vidi predlog ispod                     |
+| **Dynamic Analytics**      | "Dynamic Reporting Engine" — klikom se biraju nivoi grupisanja, redosled klika definiše hijerarhiju; dva imenovana preseta     | **već imamo, i šire** — M13 §4.2 Dinamički izveštaj (izbor dimenzija, drill-down u tri nivoa, ikonice po vrsti proizvoda, preseti po kanalu/dobavljaču)   |
+| **Rooming Lista**          | spisak gostiju po sobama, prekidač SR/EN, pretraga, izvoz u Excel                                                              | **već imamo, i jače** — M5 §8 najave dobavljačima (SR/EN manifest kao zapis, sa tokom slanja i potvrde), ekran `/rezervacije/najave`                      |
+| Finansijski Hub / Isplate  | finansijski pregled i isplate dobavljačima (u traci, zasivljeno)                                                               | M10 — fakture/plaćanja i `supplier-payment-instruction`, ekran `/finansije`                                                                               |
+| NBS Lista                  | kursna lista NBS                                                                                                               | M10 — `/finansije/kursna-lista` (srednji kurs, uvoz po danu, popunjavanje rupa)                                                                           |
+
+**Zaključak: od sedam stavki sa te trake, šest već postoji kod nas** (četiri kao ravnopravno ili bogatije rešenje, dve kao deo M10), a jedina koja stvarno nedostaje je mreža kapaciteta — ona koja se ovim dokumentom i specificira. To je koristan nalaz sam po sebi: uzor nije "mnogo dalje", nego je jednu stvar rešio bolje.
+
+**Jedini predlog za preuzimanje — traka sa četiri broja iznad mreže.** Ukupno putnika, ukupno noćenja, prosečna cena po putniku i ukupan prihod za **isti filter** koji je već postavljen na mreži. Razlog zašto to ima smisla baš tu (a ne samo u Izveštajima): kad se gleda "šta je slobodno u julu u Budvi", odmah je korisno videti i koliko je to ljudi i para — bez menjanja ekrana i ponovnog postavljanja istih filtera. Podaci su isti oni koje M13 već računa (§4.1/§4.2), pa se ne uvodi nov izvor.
+
+**Šta se namerno NE preuzima sa te trake:** naziv "Command Center" i podela na četiri taba unutar jednog ekrana. Kod nas su Izveštaji (M13) i Kapaciteti (M3) dva odvojena ekrana sa dva različita pitanja — spajanje u jedan "hub" sa tabovima vratilo bi nas na obrazac gde jedan ekran radi četiri posla, što je tačno ono što je u PrimeTravel-u proizvelo fajl od 3568 linija (dok. 22, i CLAUDE.md razlog postojanja).
+
+---
+
 _Ovaj dokument je predlog, ne odluka. Ništa iz njega se ne implementira dok vlasnik ne potvrdi obim i dok odgovarajuće Nivo 2 specifikacije (poglavlje 6) ne budu dopunjene._

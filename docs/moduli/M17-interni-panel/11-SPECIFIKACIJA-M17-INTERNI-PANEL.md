@@ -4,6 +4,12 @@
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje
 
+**Verzija:** 2.64 — traka sa četiri broja iznad mreže (novo poglavlje 4b.2a, 8.9.2026): ukupno putnika, noćenja, prosečna cena po putniku i prihod za isti filter — preuzeto sa taba "PAX & Statistika" uzora koji je vlasnik priložio, čita se iz M13 (§4.1/§4.2), ne računa ponovo; cenovno osetljiv deo gejtovan `M13/report:sales/VIEW`. Pregled svih sedam stavki sa trake uzora i šta od toga već imamo: dok. 44 §10.
+
+**Verzija:** 2.63 — ulaz za AI agenta koji uređuje kapacitete sa samog ekrana (8.9.2026, isti prolaz kao M3 v1.17 §4.4): postojeće polje AI razgovora (M15 §6.5), prebrojan pregled pre izvršenja, potvrda istog korisnika, izvršenje njegovim pravima, oznaka porekla na izmenjenim poljima. Dopunjeno poglavlje 4b.4.
+
+**Verzija:** 2.62 — **izgled mreže usklađen sa uzorom koji je vlasnik priložio** (8.9.2026, tri snimka PrimeTravel ekrana). Dve izmene u odnosu na v2.60/2.61: (1) poglavlje 4b.2 napisano iznova — boja više NE nosi popunjenost kao gradijent, nego **koliko je jedinica ostalo** u tri stanja (dovoljno/na izmaku/nema), jer je to podatak od kog zavisi radnja; popunjenost kao obrazac kroz vreme već pokriva toplotna mapa M13 §4.4, pa svaki ekran koristi boju za svoje pitanje. Boju nosi isključivo pilula sa brojem, sve ostalo u ćeliji je tekst bez boje; broj je uvek ispisan (boja nikad jedini nosilac), nema treperenja, boje su tokeni teme a ne ukucane vrednosti. (2) poglavlje 4b.1 — klik na ćeliju otvara dan razložen na **dolaske / odlaske / blokade**, sa vezom ka postojećem ekranu "Kalendar rezervacija" umesto dupliranja. **Čisto specifikaciona dopuna, bez koda u ovom prolazu.**
+
 **Verzija:** 2.61 — prekoračen kapacitet se u mreži prikazuje **kao negativan broj sa minusom ispred**, u `--danger` boji uz oznaku, nikad kao nula (8.9.2026, vlasnikov zahtev: "prikazati sa minusom ispred"; M3 v1.16 §2.3d/§2.8c). Jedino mesto u mreži gde boja nosi stanje a ne jačinu — prekoračenje nije stepen popunjenosti nego kvar koji traži radnju istog dana. Dopunjeno poglavlje 4b.2.
 
 **Verzija:** 2.60 — **nov ekran "Kapaciteti"** (8.9.2026, na zahtev vlasnika, novo poglavlje 4b + red u tabeli poglavlja 4). Mreža po danima nad M3 §2.8 (kapacitet po danu, stop-sale, blokade): redovi hotel → tip sobe, kolone dani, jačina boje = popunjenost, status = šrafura/oznaka (namerno NE boja pozadine, da se dva različita jezika ne bore na istoj ćeliji), bez treperenja. Čita M3/M5 **uživo**, ne M13 projekciju — operativa, ne analitika; to je i granica prema toplotnoj mapi iz M13 §4.4 (koja gleda unazad i zbirno). Radnje sa ekrana pokrivene postojećim i novim M3 dozvolama (`capacity/VIEW`, `capacity/CLOSE_SALE`, `capacity/BLOCK`), dodela kapaciteta subagentu kao zaseban sloj (M7 §5a). Prvi prolaz namerno pokriva samo smeštaj i čarter — ne-smeštajni proizvodi nemaju polazak kao zapis u modelu, pa bi ekran za njih prikazivao prazno (zamka 7.2). Analiza: `docs/analize/44-PREDLOG-MREZA-KAPACITETA.md`. **Čisto specifikaciona dopuna, bez koda u ovom prolazu.**
@@ -486,23 +492,46 @@ Redovi = ono što se prodaje, kolone = dani (podrazumevano mesec, raspon podesiv
 - prva kolona je zalepljena pri horizontalnom skrolu; vikend kolone su vizuelno odvojene;
 - **hotel je zbirni red, klik ga razvija na tipove soba** (jedan `ContractPeriod` po tipu, M3 §2.3); skupljen red pokazuje najnepovoljnije stanje svojih redova (zatvoreno > popunjeno > slobodno), da se problem vidi i kad je red zatvoren;
 - ćelija nosi četiri broja iz M3 §2.8c — kapacitet, prodato, blokirano, slobodno — ali se pri mesečnom rasponu prikazuje samo boja i oznaka, a brojevi na prelaz mišem i u nedeljnom rasponu (isto pravilo kao toplotna mapa: 168 brojeva na ekranu poništava svrhu prikaza);
-- klik na ćeliju otvara taj dan: koje rezervacije čine taj broj, sa vezom ka svakoj (M5), i koje blokade stoje.
+- klik na ćeliju otvara **taj dan** u bočnom panelu/modalu, razložen na tri dela (oblik potvrđen vlasnikovim snimkom uzora, 8.9.2026):
+  1. **Dolasci** tog datuma — gost, tip sobe, broj putnika, veza ka dosijeu rezervacije (M5);
+  2. **Odlasci** tog datuma — isti oblik; prazan slučaj se ispisuje rečju ("Nema odlazaka"), ne praznim prostorom;
+  3. **Blokade** koje stoje na tom danu (razlog, rok, ko je postavio) — deo kojeg uzor nema, jer taj pojam kod njih ne postoji.
+     Panel **ne duplira** postojeći ekran "Kalendar rezervacija" (M5, tabela poglavlja 4) nego vodi u njega vezom "vidi sve dolaske/odlaske" — isti podatak se ne gradi dvaput.
 
-### 4b.2 Boja i oznaka — jačina je popunjenost, status je oznaka
+### 4b.2 Boja i oznaka — jedan jezik boje: koliko je ostalo (izmenjeno 8.9.2026, posle vlasnikovih snimaka ekrana)
 
-Ovo je jedina tačka na kojoj ekran svesno odstupa od PrimeTravel uzora (koji status nosi bojom pozadine):
+**Ova odluka je promenjena u odnosu na prvu verziju poglavlja 4b** (v2.60, isti dan). Prva verzija je predviđala da jačina boje nosi **popunjenost** (sekvencijalna skala, isto kao toplotna mapa M13 §4.4). Vlasnik je priložio snimke PrimeTravel ekrana kao referencu izgleda, i pri poređenju je jasno da je njihov izbor bolji za ovaj ekran: boja nosi **koliko je jedinica ostalo**, u tri stanja (dovoljno / na izmaku / nema), jer je to podatak od kog zavisi radnja. Popunjenost kao gradijent je korisna za uočavanje obrasca kroz vreme — a taj posao već radi toplotna mapa u Izveštajima. Dva ekrana, dva pitanja, i svaki koristi boju za svoje.
 
-| Šta se prikazuje                                       | Kako                                                                                                                                                 |
-| :----------------------------------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------- |
-| popunjenost (0–100%)                                   | jačina jedne nijanse (`--accent`), sekvencijalna skala — isto kao toplotna mapa M13 §4.4                                                             |
-| prodaja zatvorena (`STOP`)                             | šrafura + oznaka, **ne** sopstvena boja pozadine                                                                                                     |
-| blokirano                                              | oznaka sa brojem blokiranih jedinica                                                                                                                 |
-| period ne postoji za taj datum                         | prazna ćelija bez ikakve boje (nije isto što i "popunjeno")                                                                                          |
-| **prekoračeno** (prodato više nego što ima kapaciteta) | **negativan broj sa minusom ispred** (`−3`), u `--danger` boji, uz oznaku — nikad prikazano kao nula (vlasnikov zahtev 8.9.2026; M3 §2.8c `razlika`) |
+**Jedan jezik boje po ćeliji.** Boju nosi isključivo "pilula" sa brojem preostalih jedinica:
 
-**Zašto minus, a ne nula.** Kad dobavljač smanji kapacitet ispod već prodatog (imali 20, prodali 15, hotel nam smanji na 12), stanje je −3. Nula bi se pročitala kao "puno, sve u redu"; minus se čita kao "tri gosta nemaju gde". To je jedino mesto u mreži gde boja **jeste** signal stanja a ne jačine (`--danger`), jer prekoračenje nije stepen popunjenosti nego kvar koji traži radnju istog dana — i zato ide uz broj i oznaku, ne samo boju. Isti podatak stiže i kao M18 signal `CAPACITY_OVERSOLD`, pa se ne oslanja na to da neko gleda baš taj ekran.
+| Stanje                         | Pilula                               | Boja                   |
+| :----------------------------- | :----------------------------------- | :--------------------- |
+| dovoljno slobodno (≥ 3)        | broj                                 | `--ok` (zelena)        |
+| na izmaku (1–2)                | broj                                 | `--warn` (narandžasta) |
+| popunjeno (0)                  | `0`                                  | `--danger`             |
+| prodaja zatvorena (`STOP`)     | tekst **`STOP`** umesto broja        | `--danger`             |
+| **prekoračeno**                | **negativan broj sa minusom** (`−3`) | `--danger`, podebljano |
+| period ne postoji za taj datum | prazna ćelija, bez pilule i bez boje | —                      |
 
-Razlog: kad bi "crveno = zatvoreno" i "tamno = puno" delili isti jezik na istoj ćeliji, čitalac ne bi znao šta gleda. Legenda je uvek vidljiva na ekranu, ne samo u verziji za štampu. Nema treperenja ni animacije za kritična polja — ekran se gleda ceo dan (dizajn dokument `29-DIZAJN-SISTEM-UI.md`, i zamka 1.11 za tekst na poluprovidnoj boji).
+Sve ostalo u ćeliji je **tekst bez boje**: kapacitet, prodato, procenat popunjenosti, i mala neutralna oznaka vrste alotmana (`ALO` / `FIX` / `NA UPIT` / `ZAKUP`) — isto kao na priloženom uzoru, samo bez obojene pozadine. Blokirane jedinice se prikazuju kao zasebna sitna oznaka sa brojem (npr. `⊘2`), jer blokada nije ni prodato ni slobodno (M3 §2.8b).
+
+**Tri pravila koja se ne pregovaraju:**
+
+1. **Broj je uvek ispisan** — boja je pojačanje, nikad jedini nosilac informacije. Zeleno/crveno je klasičan par koji deo ljudi ne razlikuje; broj i oznaka rade i bez boje, i u crno-beloj štampi.
+2. **Nema treperenja ni animacije.** Uzor pulsira kritična polja u petlji (`cap-pulse-danger`, 0.6s); ekran koji prodaja drži otvoren ceo dan ne sme da se mrda. Kritično stanje se vidi bojom, brojem i oznakom — to je dovoljno.
+3. **Legenda je uvek na ekranu**, ne samo u verziji za slanje/štampu.
+
+**Zašto minus, a ne nula.** Kad dobavljač smanji kapacitet ispod već prodatog (imali 20, prodali 15, hotel nam smanji na 12), stanje je −3. Nula bi se pročitala kao "puno, sve u redu"; minus se čita kao "tri gosta nemaju gde" (vlasnikov zahtev 8.9.2026; M3 §2.8c razdvaja `razlika` od `za_prodaju`). Isti podatak stiže i kao M18 signal `CAPACITY_OVERSOLD`, pa se ne oslanja na to da neko gleda baš taj ekran.
+
+**Boje su tokeni teme, ne ukucane vrednosti.** Uzor koristi ukucane heks vrednosti (`#ef4444`, `rgba(59,130,246,…)`) i zato postoji samo u jednom modu prikaza; ovde idu `--ok`/`--warn`/`--danger` iz `29-DIZAJN-SISTEM-UI.md`, pa mreža prati svetli/dim/tamni mod bez ijedne nove vrednosti. Kontrast teksta na pilulama se meri skriptom (`node tools/check-contrast.js`) pre nego što se ekran proglasi gotovim, ne procenjuje se okom (zamka 1.1/1.11).
+
+### 4b.2a Traka sa četiri broja iznad mreže (dopuna 8.9.2026, preuzeto sa uzora)
+
+Iznad mreže stoji red od četiri broja za **isti filter koji je već postavljen**: ukupno putnika, ukupno noćenja (sa prosekom po putniku), prosečna cena po putniku i ukupan prihod. Preuzeto sa taba "PAX & Statistika" priloženog uzora (analiza: `docs/analize/44-PREDLOG-MREZA-KAPACITETA.md` §10).
+
+Razlog zašto stoji baš ovde, a ne samo u Izveštajima: kad se gleda "šta je slobodno u julu u Budvi", odmah je korisno videti i koliko je to ljudi i para — bez prelaska na drugi ekran i ponovnog postavljanja istih filtera. Podatak je isti onaj koji M13 §4.1/§4.2 već računa, čita se iz M13, ne računa se ponovo ovde.
+
+Prihod i prosečna cena su cenovno osetljivi, pa taj deo trake zahteva `M13/report:sales/VIEW`; broj putnika i noćenja vide svi sa `M3/capacity/VIEW`.
 
 ### 4b.3 Filteri i grupisanje
 
@@ -514,14 +543,17 @@ Razlog: kad bi "crveno = zatvoreno" i "tamno = puno" delili isti jezik na istoj 
 
 ### 4b.4 Radnje sa ekrana
 
-| Radnja                             | Dozvola (M3 §5)                 | Napomena                                                                                               |
-| :--------------------------------- | :------------------------------ | :----------------------------------------------------------------------------------------------------- |
-| gledanje mreže                     | `M3/capacity/VIEW`              | uključujući prodajne agente                                                                            |
-| zatvaranje/otvaranje prodaje       | `M3/capacity/CLOSE_SALE`        | forma traži obim, raspon datuma i **izvor informacije**; upis u audit log                              |
-| blokada za grupu                   | `M3/capacity/BLOCK`             | forma traži razlog i **rok** — oba obavezna (M3 §2.8b)                                                 |
-| izmena kapaciteta za dan/raspon    | `M3/contract-period/EDIT`       | postojeća dozvola, ne nova                                                                             |
-| nova rezervacija iz izabranog dana | postojeće M5 dozvole            | vodi u M5 tok, ne duplira ga                                                                           |
-| dodela kapaciteta subagentu        | `M7/capacity-allocation/MANAGE` | prikazuje se kao zaseban sloj (M7 §5a), da se vidi zašto partneru nešto nije vidljivo iako je slobodno |
+| Radnja                               | Dozvola (M3 §5)                 | Napomena                                                                                               |
+| :----------------------------------- | :------------------------------ | :----------------------------------------------------------------------------------------------------- |
+| gledanje mreže                       | `M3/capacity/VIEW`              | uključujući prodajne agente                                                                            |
+| zatvaranje/otvaranje prodaje         | `M3/capacity/CLOSE_SALE`        | forma traži obim, raspon datuma i **izvor informacije**; upis u audit log                              |
+| blokada za grupu                     | `M3/capacity/BLOCK`             | forma traži razlog i **rok** — oba obavezna (M3 §2.8b)                                                 |
+| izmena kapaciteta za dan/raspon      | `M3/contract-period/EDIT`       | postojeća dozvola, ne nova                                                                             |
+| nova rezervacija iz izabranog dana   | postojeće M5 dozvole            | vodi u M5 tok, ne duplira ga                                                                           |
+| dodela kapaciteta subagentu          | `M7/capacity-allocation/MANAGE` | prikazuje se kao zaseban sloj (M7 §5a), da se vidi zašto partneru nešto nije vidljivo iako je slobodno |
+| AI agent uređuje kapacitet na zahtev | ista dozvola kao ručna radnja   | agent nema sopstvenu dozvolu — izvršava pravima korisnika koji traži (M3 §4.4.2)                       |
+
+**AI agent za kapacitete (M3 §4.4, dopuna 8.9.2026).** Sa ovog ekrana se agentu može reći šta da uradi ("zatvori Splendid, sve sobe, 12–15.7.") umesto klikanja po mreži — ulaz je postojeće polje AI razgovora (M15 §6.5), ne nova komponenta. Pre izvršenja agent prikazuje **prebrojan** pregled ("3 perioda × 4 datuma = 12 dnevnih zapisa") i čeka potvrdu istog korisnika; izvršava **njegovim pravima**, pa korisnik bez `M3/capacity/CLOSE_SALE` dobija odbijanje i preko agenta. Izmena koja ostavlja goste bez pokrića traži drugu, izričitu potvrdu. Posle izvršenja izmenjena polja nose oznaku porekla (AI agent po nalogu čoveka — poglavlje 3.1, `ActorLabel`), isto kao svaka druga AI radnja u panelu.
 
 **Standing pravilo "logika i ekran u istom prolazu" (CLAUDE.md)** ovde znači: forme za stop-sale, blokadu i izmenu kapaciteta prave se **u istom prolazu** kao pripadajući M3 endpoint-i, ne kao poseban zadatak posle.
 
