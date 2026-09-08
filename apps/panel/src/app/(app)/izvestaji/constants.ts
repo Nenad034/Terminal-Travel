@@ -11,8 +11,31 @@ export const TAB_LABELS = {
   smestaj: 'Smeštaj',
   dinamicki: 'Dinamički',
   marketing: 'Marketing',
+  vremenski: 'Vremenski obrasci',
 } as const;
 export type TabKey = keyof typeof TAB_LABELS;
+
+// M13 spec §4.4 (dopuna 8.9.2026) — "Vremenski obrasci": doba dana/nedelje upita/rezervacija/
+// otkazivanja, i "poslednji čas" otkazivanja kao kategorije lead-time-a.
+export const TEMPORAL_DIMENSION_LABELS = {
+  inquiries_by_hour: 'Upiti po satu/danu',
+  bookings_by_hour: 'Rezervacije po satu/danu',
+  cancellations_by_hour: 'Otkazivanja po satu/danu',
+  cancellation_lead_time: 'Koliko unapred se otkazuje',
+} as const;
+export type TemporalDimension = keyof typeof TEMPORAL_DIMENSION_LABELS;
+export const TEMPORAL_DIMENSION_OPTIONS = Object.keys(
+  TEMPORAL_DIMENSION_LABELS,
+) as TemporalDimension[];
+export const DAY_OF_WEEK_LABELS = [
+  'Nedelja',
+  'Ponedeljak',
+  'Utorak',
+  'Sreda',
+  'Četvrtak',
+  'Petak',
+  'Subota',
+] as const;
 
 // Pod-tabovi unutar "Profitabilnost"/"Prodaja" (5.9.2026, vlasnikov zahtev: "izvestaje po
 // kategorijama stavite takodje u tabove kako se ne bi skrolovalo na dole").
@@ -116,4 +139,6 @@ export interface SearchParams {
   groupBy?: string;
   view?: string;
   sub?: string;
+  /** M13 spec §4.4 — koja dimenzija tab-a "Vremenski obrasci". */
+  dimension?: string;
 }

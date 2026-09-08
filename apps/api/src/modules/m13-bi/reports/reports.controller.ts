@@ -21,6 +21,8 @@ import {
   ReportDateField,
   REPORT_SEGMENTS,
   ReportSegment,
+  TEMPORAL_DIMENSIONS,
+  TemporalDimension,
 } from './reports.service';
 import { ExportReportDto } from './dto/export-report.dto';
 import { SendReportChatDto } from './dto/send-report-chat.dto';
@@ -192,6 +194,23 @@ export class ReportsController {
       dateField: dateField as ReportDateField | undefined,
       segment: segment as ReportSegment | undefined,
     });
+  }
+
+  // §4.4 dopuna (8.9.2026) — `from`/`to` se odnose na TRENUTAK samog događaja (upit/rezervacija/
+  // otkazivanje), ne na termin boravka — zato bez `dateField`, za razliku od ostalih ruta iznad.
+  @Get('temporal')
+  @RequirePermission('M13', 'report:temporal', 'VIEW')
+  temporal(
+    @Query('dimension') dimension: string,
+    @Query('from') from?: string,
+    @Query('to') to?: string,
+  ) {
+    if (!TEMPORAL_DIMENSIONS.includes(dimension as TemporalDimension)) {
+      throw new BadRequestException(
+        `dimension mora biti jedno od: ${TEMPORAL_DIMENSIONS.join(', ')} (M13 spec §7).`,
+      );
+    }
+    return this.reports.temporal({ dimension: dimension as TemporalDimension, from, to });
   }
 
   // §7 (v1.5 dopuna) — BEZ @RequirePermission na ove tri rute: dozvola zavisi od `reportKind` u

@@ -5,7 +5,7 @@
 **Prefiks:** `/api/v1/bi`
 **Autentikacija:** `Authorization: Bearer <JWT>` na svakom pozivu (M1).
 
-**Dozvole:** `M13/report:profitability/VIEW` (Vlasnik, Direktor — gejtuje i ručnu rekonsilijaciju), `report:sales/VIEW` (+ Sales Manager), `report:financial/VIEW` (+ Računovođa), `report:occupancy/VIEW` (+ Sales Manager), `report:dynamic/VIEW` (Vlasnik, Direktor), `report:marketing/VIEW` (Vlasnik, Direktor).
+**Dozvole:** `M13/report:profitability/VIEW` (Vlasnik, Direktor — gejtuje i ručnu rekonsilijaciju), `report:sales/VIEW` (+ Sales Manager), `report:financial/VIEW` (+ Računovođa), `report:occupancy/VIEW` (+ Sales Manager), `report:dynamic/VIEW` (Vlasnik, Direktor), `report:marketing/VIEW` (Vlasnik, Direktor), `report:temporal/VIEW` (+ Sales Manager).
 
 **Napomena o svežini podataka:** svaki izveštaj vraća `lastSyncedAt` — vreme poslednje sinhronizacije projekcije (Event Bus u skoro-realnom-vremenu ili noćna rekonsilijacija). M13 nikad ne čita direktno iz drugih modula pri odgovoru na izveštaj — uvek čita sopstvenu izvedenu projekciju (`FactBooking`/`FactPayment`), pa je `lastSyncedAt` jedini način da korisnik zna koliko su podaci sveži.
 
@@ -136,6 +136,37 @@ Marketing performanse — atribucija rezervacije ka M12 sadržaju (poglavlje 4.3
 ```
 
 **Napomena (avgust 2026):** M12 (Marketing i sadržajni engine) je trenutno samo specifikovan, još nema implementaciju u kodu — `referral_content_id`/`referral_content_name` na `FactBooking` ostaju trajno `null` dok M12 ne dobije kod, pa se sve rezervacije pojavljuju u `withoutKnownOrigin`. Ovo NIJE greška — spec §4.3 ovo eksplicitno predviđa kao normalan prelazni slučaj.
+
+### GET /bi/reports/temporal
+
+Vremenski obrasci (poglavlje 4.4, dopuna 8.9.2026) — doba dana/nedelje upita/rezervacija/otkazivanja, i lead-time do otkazivanja. Query: `dimension` (obavezno, jedno od `inquiries_by_hour`/`bookings_by_hour`/`cancellations_by_hour`/`cancellation_lead_time`), `from`, `to` — **bez** `dateField`/`segment` (period se odnosi na trenutak samog događaja, ne na termin boravka).
+
+**Odgovor `200` (`dimension=bookings_by_hour`, isti oblik za `inquiries_by_hour`/`cancellations_by_hour`):**
+
+```json
+{
+  "byHour": [
+    { "hour": 10, "dayOfWeek": 1, "count": 14 },
+    { "hour": 19, "dayOfWeek": 5, "count": 9 }
+  ]
+}
+```
+
+`dayOfWeek`: 0=nedelja...6=subota (`Date.getDay()`). `inquiries_by_hour` čita M5 `SearchLog` (§3.0i M5 spec), ostala dva čitaju `FactBooking`.
+
+**Odgovor `200` (`dimension=cancellation_lead_time`):**
+
+```json
+{
+  "leadTime": [
+    { "key": "48h+", "count": 12 },
+    { "key": "24-48h", "count": 3 },
+    { "key": "<24h", "count": 1 }
+  ]
+}
+```
+
+Kategorije, ne prosek — nepoznato/nedostajuće `dimension` → `400`.
 
 ---
 

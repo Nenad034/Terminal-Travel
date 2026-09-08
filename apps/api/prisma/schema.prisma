@@ -2777,9 +2777,31 @@ model FactBooking {
   referralContentId   String?           @map("referral_content_id") // weak ref → M12 ContentPiece
   referralContentName String?           @map("referral_content_name")
   status              BookingItemStatus
+  // M13 spec §4.4 dopuna (8.9.2026) — snapshot M5 Booking.cancelledAt, nosilac analize sata/dana
+  // otkazivanja i lead-time-a do polaska. `null` dok stavka nije otkazana.
+  cancelledAt         DateTime?         @map("cancelled_at")
   lastSyncedAt        DateTime          @map("last_synced_at")
 
   @@map("fact_bookings")
+}
+
+// M5 spec §3.0i (8.9.2026) — log svakog GET /search poziva, radi analize "u koje doba dana je
+// bilo najviše upita" (M13 §4.4). Namerno BEZ IP adrese/kolačić-identifikatora za anonimne
+// pozivaoce (vlasnikova odluka, potvrđeno preko AskUserQuestion) — actorId/clientAccountId
+// ostaju null kad pozivalac nije prijavljen.
+model SearchLog {
+  id                 String   @id @default(uuid())
+  occurredAt         DateTime @default(now()) @map("occurred_at")
+  channel            String
+  actorId            String?  @map("actor_id") // weak ref → M1 User, popunjeno za prijavljen STAFF/B2B poziv
+  clientAccountId    String?  @map("client_account_id") // weak ref → M6 ClientAccount, popunjeno za prijavljenog B2C gosta
+  productType        String?  @map("product_type")
+  destinationCountry String?  @map("destination_country")
+  destinationCity    String?  @map("destination_city")
+  resultCount        Int      @map("result_count")
+
+  @@index([occurredAt])
+  @@map("search_logs")
 }
 
 // §3.2 `FactPayment` — za finansijske izveštaje (M10 Payment). `payment_id` je dopuna otkrivena

@@ -852,6 +852,13 @@ const M13_PERMISSIONS: { module: string; resource: string; action: string; descr
       action: 'VIEW',
       description: 'Marketing performanse — atribucija rezervacije ka M12 sadržaju',
     },
+    {
+      module: 'M13',
+      resource: 'report:temporal',
+      action: 'VIEW',
+      description:
+        'Vremenski obrasci — upiti/rezervacije/otkazivanja po satu i danu, lead-time otkazivanja (§4.4)',
+    },
   ];
 
 // M12 spec §5 — dozvole marketing/sadržajnog engine-a. APPROVE_PUBLISH je namerno odvojena
@@ -1514,9 +1521,10 @@ const DEFAULT_ROLE_PERMISSIONS: Record<
     { module: 'M14', resource: 'ticket', action: 'CREATE' },
     { module: 'M14', resource: 'ticket', action: 'RESPOND' },
     { module: 'M14', resource: 'ticket', action: 'VIEW_ALL' },
-    // M13 spec §6 — Sales Manager dobija sales/occupancy (nije cenovno osetljivo kao profitabilnost/dinamički).
+    // M13 spec §6 — Sales Manager dobija sales/occupancy/temporal (nije cenovno osetljivo kao profitabilnost/dinamički).
     { module: 'M13', resource: 'report:sales', action: 'VIEW' },
     { module: 'M13', resource: 'report:occupancy', action: 'VIEW' },
+    { module: 'M13', resource: 'report:temporal', action: 'VIEW' },
     // M15 spec §8 — Agent Inbox: vidi stavke iz izvora za koje već ima VIEW (M5/M7/M14 iznad).
     { module: 'M15', resource: 'agent-inbox', action: 'VIEW' },
     // M19 spec §7/§9.6 — Sales Manager je u oba kruga: interni tim-chat i EXTERNAL_SUPPLIER

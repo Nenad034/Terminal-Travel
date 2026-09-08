@@ -171,6 +171,8 @@ export class FactSyncService {
       referralContentId: referral.contentId,
       referralContentName: referral.contentName,
       status: item.itemStatus,
+      // M13 spec §4.4 dopuna (8.9.2026) — snapshot za analizu sata/dana otkazivanja i lead-time-a.
+      cancelledAt: booking.cancelledAt,
       lastSyncedAt: new Date(),
     };
   }

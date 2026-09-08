@@ -18,6 +18,9 @@ import {
   type ProdajaSub,
   DYNAMIC_OTHER_PRESETS,
   type SearchParams,
+  TEMPORAL_DIMENSION_LABELS,
+  DAY_OF_WEEK_LABELS,
+  type TemporalDimension,
 } from './constants';
 
 interface Bucket {
@@ -62,6 +65,20 @@ interface DynamicReport {
   dimensions: string[];
   tree: DynamicNode[];
   lastSyncedAt: string | null;
+}
+
+interface HourDayBucket {
+  hour: number;
+  dayOfWeek: number;
+  count: number;
+}
+interface LeadTimeBucket {
+  key: '48h+' | '24-48h' | '<24h';
+  count: number;
+}
+interface TemporalReport {
+  byHour?: HourDayBucket[];
+  leadTime?: LeadTimeBucket[];
 }
 
 interface MarketingReport {
@@ -155,6 +172,7 @@ export default async function IzvestajiPage(props: { searchParams: Promise<Searc
     smestaj: hasPermission(me, 'M13', 'report:occupancy', 'VIEW'),
     dinamicki: hasPermission(me, 'M13', 'report:dynamic', 'VIEW'),
     marketing: hasPermission(me, 'M13', 'report:marketing', 'VIEW'),
+    vremenski: hasPermission(me, 'M13', 'report:temporal', 'VIEW'),
   };
   const canReconcile = perms.profitabilnost;
   const availableTabs = (Object.keys(TAB_LABELS) as TabKey[]).filter((k) => perms[k]);
@@ -186,6 +204,7 @@ export default async function IzvestajiPage(props: { searchParams: Promise<Searc
     if (searchParams?.channel) v.set('channel', searchParams.channel);
     if (searchParams?.productType) v.set('productType', searchParams.productType);
     if (searchParams?.groupBy) v.set('groupBy', searchParams.groupBy);
+    if (searchParams?.dimension) v.set('dimension', searchParams.dimension);
     return v;
   }
   function viewHref(next: 'tabela' | 'grafik'): string {
@@ -256,6 +275,7 @@ export default async function IzvestajiPage(props: { searchParams: Promise<Searc
   let occupancy: OccupancyReport | null = null;
   let dynamicReport: DynamicReport | null = null;
   let marketing: MarketingReport | null = null;
+  let temporal: TemporalReport | null = null;
   let error: string | null = null;
 
   try {
@@ -288,6 +308,12 @@ export default async function IzvestajiPage(props: { searchParams: Promise<Searc
       if (searchParams?.dateField) mqs.set('dateField', searchParams.dateField);
       if (searchParams?.segment) mqs.set('segment', searchParams.segment);
       marketing = await apiFetch<MarketingReport>(`/bi/reports/marketing?${mqs.toString()}`);
+    } else if (tab === 'vremenski') {
+      const tqs = new URLSearchParams();
+      tqs.set('dimension', searchParams?.dimension || 'inquiries_by_hour');
+      if (searchParams?.from) tqs.set('from', searchParams.from);
+      if (searchParams?.to) tqs.set('to', searchParams.to);
+      temporal = await apiFetch<TemporalReport>(`/bi/reports/temporal?${tqs.toString()}`);
     }
   } catch {
     error = 'Izveštaj trenutno nije dostupan (nemate dozvolu ili je M13 projekcija prazna).';
@@ -622,6 +648,15 @@ export default async function IzvestajiPage(props: { searchParams: Promise<Searc
           )}
         </div>
       )}
+
+      {!error && tab === 'vremenski' && temporal && (
+        <div id="izvestaj-sadrzaj" className="flex flex-col gap-4">
+          <TemporalReportBlock
+            report={temporal}
+            dimension={(searchParams?.dimension as TemporalDimension) || 'inquiries_by_hour'}
+          />
+        </div>
+      )}
     </div>
   );
 }
@@ -868,6 +903,111 @@ function BucketTable({
                 <td className="px-4 py-2 text-right font-mono">100,0%</td>
               </tr>
             </tfoot>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// M13 spec §4.4 (dopuna 8.9.2026) — "Vremenski obrasci". Tri "po satu/danu" dimenzije dele isti
+// prikaz (tabela sat×dan, sortirana po broju opadajuće — najgušće doba dana na vrhu, isti princip
+// kao ostale tabele ovog ekrana); "koliko unapred se otkazuje" je zaseban, mali prikaz (tri reda,
+// kategorije umesto proseka — M13 spec §4.4 obrazloženje).
+function TemporalReportBlock({
+  report,
+  dimension,
+}: {
+  report: TemporalReport;
+  dimension: TemporalDimension;
+}) {
+  if (dimension === 'cancellation_lead_time') {
+    const rows = report.leadTime ?? [];
+    const total = rows.reduce((sum, r) => sum + r.count, 0);
+    return (
+      <div>
+        <div className="mb-2 text-sm font-semibold text-ink">
+          {TEMPORAL_DIMENSION_LABELS[dimension]}
+        </div>
+        {rows.length === 0 || total === 0 ? (
+          <p className="rounded-lg border border-border bg-panel p-4 text-center text-xs text-ink-faint">
+            Nema otkazanih rezervacija za zadati period.
+          </p>
+        ) : (
+          <div className="overflow-hidden overflow-x-auto rounded-lg border border-border">
+            <table className="w-full border-collapse text-xs">
+              <thead>
+                <tr className="bg-sunken text-[11px] uppercase tracking-wide text-ink-faint">
+                  <th className="px-4 py-2 text-left font-medium">koliko unapred</th>
+                  <th className="px-4 py-2 text-right font-medium">broj otkazivanja</th>
+                  <th className="px-4 py-2 text-right font-medium">udeo</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((r, i) => (
+                  <tr key={r.key} className={i % 2 === 1 ? 'bg-panel2/40' : undefined}>
+                    <td className="border-t border-border px-4 py-2 font-medium text-ink">
+                      {r.key}
+                    </td>
+                    <td className="border-t border-border px-4 py-2 text-right font-mono text-ink-dim">
+                      {r.count.toLocaleString('sr-RS')}
+                    </td>
+                    <td className="border-t border-border px-4 py-2 text-right">
+                      <PctBadge value={formatPct(r.count, total)} />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  const rows = [...(report.byHour ?? [])].sort((a, b) => b.count - a.count);
+  const total = rows.reduce((sum, r) => sum + r.count, 0);
+  return (
+    <div>
+      <div className="mb-2 text-sm font-semibold text-ink">
+        {TEMPORAL_DIMENSION_LABELS[dimension]}
+      </div>
+      {rows.length === 0 ? (
+        <p className="rounded-lg border border-border bg-panel p-4 text-center text-xs text-ink-faint">
+          Nema podataka za zadati period.
+        </p>
+      ) : (
+        <div className="overflow-hidden overflow-x-auto rounded-lg border border-border">
+          <table className="w-full border-collapse text-xs">
+            <thead>
+              <tr className="bg-sunken text-[11px] uppercase tracking-wide text-ink-faint">
+                <th className="px-4 py-2 text-left font-medium">dan</th>
+                <th className="px-4 py-2 text-left font-medium">sat</th>
+                <th className="px-4 py-2 text-right font-medium">broj</th>
+                <th className="px-4 py-2 text-right font-medium">udeo</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((r, i) => (
+                <tr
+                  key={`${r.dayOfWeek}-${r.hour}`}
+                  className={i % 2 === 1 ? 'bg-panel2/40' : undefined}
+                >
+                  <td className="border-t border-border px-4 py-2 font-medium text-ink">
+                    {DAY_OF_WEEK_LABELS[r.dayOfWeek]}
+                  </td>
+                  <td className="border-t border-border px-4 py-2 font-mono text-ink-dim">
+                    {String(r.hour).padStart(2, '0')}–{String((r.hour + 1) % 24).padStart(2, '0')}h
+                  </td>
+                  <td className="border-t border-border px-4 py-2 text-right font-mono text-ink-dim">
+                    {r.count.toLocaleString('sr-RS')}
+                  </td>
+                  <td className="border-t border-border px-4 py-2 text-right">
+                    <PctBadge value={formatPct(r.count, total)} />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
           </table>
         </div>
       )}

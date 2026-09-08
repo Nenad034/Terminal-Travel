@@ -89,6 +89,15 @@ export const DYNAMIC_DIMENSIONS = [
 ] as const;
 export type DynamicDimension = (typeof DYNAMIC_DIMENSIONS)[number];
 
+// M13 spec §4.4 (dopuna 8.9.2026) — "Vremenski obrasci".
+export const TEMPORAL_DIMENSIONS = [
+  'inquiries_by_hour',
+  'bookings_by_hour',
+  'cancellations_by_hour',
+  'cancellation_lead_time',
+] as const;
+export type TemporalDimension = (typeof TEMPORAL_DIMENSIONS)[number];
+
 export const OCCUPANCY_GROUP_BY = [
   'room_type',
   'board_type',
@@ -106,6 +115,7 @@ const REPORT_KIND_PERMISSION: Record<string, string> = {
   occupancy: 'report:occupancy',
   dynamic: 'report:dynamic',
   marketing: 'report:marketing',
+  temporal: 'report:temporal',
 };
 
 // M13 spec §4 — svi izveštaji čitaju isključivo FactBooking/FactPayment (projekcija), nikad
@@ -350,6 +360,81 @@ export class ReportsService {
       attributedShare: rows.length > 0 ? attributed.length / rows.length : 0,
       lastSyncedAt: await this.lastSyncedAt(rows),
     };
+  }
+
+  // ==========================================================================
+  // §4.4 — Vremenski obrasci (dopuna 8.9.2026, vlasnikov zahtev)
+  // ==========================================================================
+  async temporal(filters: { dimension: TemporalDimension; from?: string; to?: string }) {
+    const range = {
+      ...(filters.from ? { gte: new Date(filters.from) } : {}),
+      ...(filters.to ? { lte: new Date(`${filters.to}T23:59:59.999Z`) } : {}),
+    };
+
+    if (filters.dimension === 'inquiries_by_hour') {
+      const rows = await this.prisma.searchLog.findMany({
+        where: Object.keys(range).length ? { occurredAt: range } : {},
+        select: { occurredAt: true },
+      });
+      return { byHour: this.hourDayBuckets(rows.map((r) => r.occurredAt)) };
+    }
+
+    if (filters.dimension === 'bookings_by_hour') {
+      const rows = await this.prisma.factBooking.findMany({
+        where: {
+          status: { not: 'CANCELLED' },
+          ...(Object.keys(range).length ? { bookingDate: range } : {}),
+        },
+        select: { bookingDate: true },
+      });
+      return { byHour: this.hourDayBuckets(rows.map((r) => r.bookingDate)) };
+    }
+
+    if (filters.dimension === 'cancellations_by_hour') {
+      const rows = await this.prisma.factBooking.findMany({
+        where: { cancelledAt: { not: null, ...range } },
+        select: { cancelledAt: true },
+      });
+      return { byHour: this.hourDayBuckets(rows.map((r) => r.cancelledAt as Date)) };
+    }
+
+    // cancellation_lead_time — kategorije, ne prosek (dok. 40 pravilo 4, M13 spec §4.4).
+    const rows = await this.prisma.factBooking.findMany({
+      where: { cancelledAt: { not: null, ...range } },
+      select: { cancelledAt: true, stayFrom: true },
+    });
+    const buckets: Record<'48h+' | '24-48h' | '<24h', number> = {
+      '48h+': 0,
+      '24-48h': 0,
+      '<24h': 0,
+    };
+    for (const r of rows) {
+      const hoursBeforeStay =
+        (r.stayFrom.getTime() - (r.cancelledAt as Date).getTime()) / (1000 * 60 * 60);
+      if (hoursBeforeStay >= 48) buckets['48h+'] += 1;
+      else if (hoursBeforeStay >= 24) buckets['24-48h'] += 1;
+      else buckets['<24h'] += 1;
+    }
+    return {
+      leadTime: (['48h+', '24-48h', '<24h'] as const).map((key) => ({
+        key,
+        count: buckets[key],
+      })),
+    };
+  }
+
+  /** Broj događaja po satu (0–23) i danu u nedelji (0=nedelja...6=subota, `Date.getDay()`). */
+  private hourDayBuckets(dates: Date[]): { hour: number; dayOfWeek: number; count: number }[] {
+    const map = new Map<string, { hour: number; dayOfWeek: number; count: number }>();
+    for (const d of dates) {
+      const hour = d.getHours();
+      const dayOfWeek = d.getDay();
+      const key = `${dayOfWeek}-${hour}`;
+      const bucket = map.get(key) ?? { hour, dayOfWeek, count: 0 };
+      bucket.count += 1;
+      map.set(key, bucket);
+    }
+    return [...map.values()].sort((a, b) => a.dayOfWeek - b.dayOfWeek || a.hour - b.hour);
   }
 
   // ==========================================================================

@@ -4,6 +4,8 @@ import {
   ReportsService,
   DYNAMIC_DIMENSIONS,
   type DynamicDimension,
+  TEMPORAL_DIMENSIONS,
+  type TemporalDimension,
 } from '../../m13-bi/reports/reports.service';
 import { SupplierObligationsService } from '../../m10-finansije/supplier-obligations/supplier-obligations.service';
 import { SearchService } from '../../m5-rezervacije/search/search.service';
@@ -22,6 +24,7 @@ export const VIEW_NAMES = [
   'supplier_obligations',
   'catalog_offers',
   'exchange_rates',
+  'temporal_patterns',
 ] as const;
 export type ViewName = (typeof VIEW_NAMES)[number];
 
@@ -57,6 +60,8 @@ export class ReportViewsService {
         return this.catalogOffersView(args);
       case 'exchange_rates':
         return this.exchangeRatesView(args);
+      case 'temporal_patterns':
+        return this.temporalPatternsView(args);
       default:
         return {
           error: `Nepoznat pogled: "${view}". Dozvoljeni pogledi: ${VIEW_NAMES.join(', ')}.`,
@@ -219,5 +224,25 @@ export class ReportViewsService {
     const filters = args.filters ?? {};
     const currency = typeof filters.currency === 'string' ? filters.currency : undefined;
     return this.exchangeRates.findAll({ currency });
+  }
+
+  // `temporal_patterns` — dopuna (8.9.2026, vlasnikov zahtev: "u kom delu dana je bilo najviše
+  // upita, rezervacija, kada je bilo najviše storno rezervacija, kada su klijenti odustali u
+  // zadnjem trenutku"). Isti obrazac kao `bookings` gore — poziva POSTOJEĆI M13
+  // `ReportsService.temporal()` (§4.4 te specifikacije), ne nov upit mimo M13. `dimension` je
+  // obavezan (nema razumnog "svega odjednom" — modelu se vraća greška ako izostavi).
+  private async temporalPatternsView(args: QueryViewArgs) {
+    const filters = args.filters ?? {};
+    const dimension = typeof filters.dimension === 'string' ? filters.dimension : undefined;
+    if (!dimension || !TEMPORAL_DIMENSIONS.includes(dimension as TemporalDimension)) {
+      return {
+        error: `filters.dimension mora biti jedno od: ${TEMPORAL_DIMENSIONS.join(', ')}.`,
+      };
+    }
+    return this.reports.temporal({
+      dimension: dimension as TemporalDimension,
+      from: args.dateFrom,
+      to: args.dateTo,
+    });
   }
 }

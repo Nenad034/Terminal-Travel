@@ -12,6 +12,7 @@ import { ApiTags } from '@nestjs/swagger';
 import { Request } from 'express';
 import { JwtService } from '@nestjs/jwt';
 import { SearchService } from './search.service';
+import { SearchLogService } from './search-log.service';
 import { SearchQueryDto } from './dto/search-query.dto';
 import { PermissionsService } from '../../m1-core-identitet/permissions/permissions.service';
 import {
@@ -34,7 +35,23 @@ export class SearchController {
     private readonly search: SearchService,
     private readonly jwt: JwtService,
     private readonly permissions: PermissionsService,
+    private readonly searchLog: SearchLogService,
   ) {}
+
+  /** M5 spec §3.0i.2 — isti Bearer dekodiran već za `assertInternalPanelAccess`, samo za bilo
+   * koji kanal (STAFF/B2B pozivi nose token bez obzira na kanal). Nikad ne baca — nepostojeći/
+   * nevažeći token znači anonimnog pozivaoca, ne grešku pretrage. */
+  private actorIdFromRequest(req: Request): string | undefined {
+    const authHeader = req.headers['authorization'];
+    if (!authHeader?.startsWith('Bearer ')) return undefined;
+    try {
+      return assertAccessTokenPayload(
+        this.jwt.verify<AccessTokenPayload>(authHeader.slice('Bearer '.length)),
+      ).sub;
+    } catch {
+      return undefined;
+    }
+  }
 
   /**
    * `channel=INTERNAL_PANEL` preskače `visible_channels` filter, pa taj kanal — i samo on —
@@ -129,7 +146,7 @@ export class SearchController {
         throw new BadRequestException('occupancy mora biti validan JSON (M5 spec §11)');
       }
     }
-    return this.search.search({
+    const results = await this.search.search({
       type: query.type,
       destinationCountry: query.destinationCountry,
       destinationCity: query.destinationCity,
@@ -147,5 +164,20 @@ export class SearchController {
       amenityTags: query.amenityTags,
       hasExpertGuide: query.hasExpertGuide,
     });
+
+    // M5 spec §3.0i.2 — upis posle uspešnog izvršavanja, ne blokira odgovor. `clientAccountId`
+    // namerno UVEK undefined u ovom prolazu — B2C gost koristi poseban (kolačić) mehanizam
+    // prijave, ne Bearer JWT; ostaje poznat, eksplicitno zabeležen nedostatak (dok. 27), ne tiho
+    // izostavljen. `actorId` pokriva STAFF/B2B pozive (isti Bearer token kao INTERNAL_PANEL).
+    this.searchLog.log({
+      channel: query.channel ?? 'B2C_SITE',
+      actorId: this.actorIdFromRequest(req),
+      productType: query.type?.join(','),
+      destinationCountry: query.destinationCountry,
+      destinationCity: query.destinationCity,
+      resultCount: results.length,
+    });
+
+    return results;
   }
 }

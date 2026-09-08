@@ -19,6 +19,8 @@ import {
   DATE_FIELD_OPTIONS,
   SEGMENT_LABELS,
   SEGMENT_OPTIONS,
+  TEMPORAL_DIMENSION_LABELS,
+  TEMPORAL_DIMENSION_OPTIONS,
 } from './constants';
 
 // M13 spec §7 dopuna (5.9.2026, vlasnikov nalaz: "polja u kojima se kuca ne reaguju... polje...
@@ -80,6 +82,7 @@ export default function IzvestajiFilterForm({
     if (searchParams?.channel) v.set('channel', searchParams.channel);
     if (searchParams?.productType) v.set('productType', searchParams.productType);
     if (searchParams?.groupBy) v.set('groupBy', searchParams.groupBy);
+    if (searchParams?.dimension) v.set('dimension', searchParams.dimension);
     return v;
   }
   // Preset kombinacije dimenzija za "Dinamički" — isti obrazac kao `subHref`/`viewHref` u
@@ -128,43 +131,72 @@ export default function IzvestajiFilterForm({
           zahtev: "polje za datum i dva ispod tog polja treba da budu u istom redu, istih
           sirina") — eksplicitan red (ne opšti flex-wrap sa ostatkom forme, koji zavisi od širine
           ekrana i broja ostalih polja) garantuje ova tri UVEK zajedno, ravnomerno. */}
-      <div className="flex w-full gap-2">
-        <div className="min-w-0 flex-1">
-          <PeriodRangeField
-            initialFrom={searchParams?.from ?? ''}
-            initialTo={searchParams?.to ?? ''}
-          />
+      {tab === 'vremenski' ? (
+        // M13 spec §4.4 — "odnosi se na"/"segment" nisu primenjivi ovde (backend `dimension`
+        // sam bira relevantan timestamp: trenutak upita/rezervacije/otkazivanja, ne termin
+        // boravka) — prikazivanje kontrola koje bi tiho ništa ne radile bi bila zamka (dok. 40).
+        <div className="flex w-full gap-2">
+          <div className="min-w-0 flex-1">
+            <PeriodRangeField
+              initialFrom={searchParams?.from ?? ''}
+              initialTo={searchParams?.to ?? ''}
+            />
+          </div>
+          <div className="min-w-0 flex-1">
+            <FieldInline label="razvrstaj po">
+              <select
+                name="dimension"
+                defaultValue={searchParams?.dimension ?? TEMPORAL_DIMENSION_OPTIONS[0]}
+                className={selectClassName}
+              >
+                {TEMPORAL_DIMENSION_OPTIONS.map((d) => (
+                  <option key={d} value={d} className={optionClassName}>
+                    {TEMPORAL_DIMENSION_LABELS[d]}
+                  </option>
+                ))}
+              </select>
+            </FieldInline>
+          </div>
         </div>
-        <div className="min-w-0 flex-1">
-          <FieldInline label="odnosi se na">
-            <select name="dateField" defaultValue={currentDateField} className={selectClassName}>
-              {DATE_FIELD_OPTIONS.map((f) => (
-                <option key={f} value={f} className={optionClassName}>
-                  {DATE_FIELD_LABELS[f]}
+      ) : (
+        <div className="flex w-full gap-2">
+          <div className="min-w-0 flex-1">
+            <PeriodRangeField
+              initialFrom={searchParams?.from ?? ''}
+              initialTo={searchParams?.to ?? ''}
+            />
+          </div>
+          <div className="min-w-0 flex-1">
+            <FieldInline label="odnosi se na">
+              <select name="dateField" defaultValue={currentDateField} className={selectClassName}>
+                {DATE_FIELD_OPTIONS.map((f) => (
+                  <option key={f} value={f} className={optionClassName}>
+                    {DATE_FIELD_LABELS[f]}
+                  </option>
+                ))}
+              </select>
+            </FieldInline>
+          </div>
+          <div className="min-w-0 flex-1">
+            <FieldInline label="segment">
+              <select
+                name="segment"
+                defaultValue={searchParams?.segment ?? ''}
+                className={selectClassName}
+              >
+                <option value="" className={optionClassName}>
+                  svi
                 </option>
-              ))}
-            </select>
-          </FieldInline>
+                {SEGMENT_OPTIONS.map((s) => (
+                  <option key={s} value={s} className={optionClassName}>
+                    {SEGMENT_LABELS[s]}
+                  </option>
+                ))}
+              </select>
+            </FieldInline>
+          </div>
         </div>
-        <div className="min-w-0 flex-1">
-          <FieldInline label="segment">
-            <select
-              name="segment"
-              defaultValue={searchParams?.segment ?? ''}
-              className={selectClassName}
-            >
-              <option value="" className={optionClassName}>
-                svi
-              </option>
-              {SEGMENT_OPTIONS.map((s) => (
-                <option key={s} value={s} className={optionClassName}>
-                  {SEGMENT_LABELS[s]}
-                </option>
-              ))}
-            </select>
-          </FieldInline>
-        </div>
-      </div>
+      )}
       {(tab === 'profitabilnost' || tab === 'smestaj') && (
         <>
           <FilterLocationFields
