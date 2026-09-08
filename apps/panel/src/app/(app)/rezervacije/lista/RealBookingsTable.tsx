@@ -508,11 +508,13 @@ export default function RealBookingsTable({
             Izvoze se TRENUTNO PRIKAZANI redovi (posle filtera i sortiranja), ne uvek cela lista —
             ono što korisnik stvarno vidi.
 
-            NAMERNO BEZ demo kolona (poslovnica, zaduženi, dobavljač, hotel): te vrednosti nemaju
-            pravi izvor nego se izvode iz broja rezervacije (vidi `decorate`). Na ekranu ih prati
-            oznaka „(demo)"; u Excel tabeli koja izađe iz sistema te oznake nema, pa bi ih neko
-            mogao pročitati kao stvarne podatke i po njima postupiti. Vraćaju se kad dobiju pravi
-            izvor. */}
+            Uska revizija 8.9.2026 (dok. 40 §10, okidač: dok. 42 nalaz 1 zatvoren) — Poslovnica i
+            Zadužen su dobili pravi izvor (M5 spec v2.44) pa su vraćeni u izvoz. `buyerEmail`/
+            `buyerPhone` NAMERNO ostaju izvan Excel fajla iako imaju pravi izvor: prikaz u panelu
+            (INTERNAL_PANEL, M5 booking-visibility maska) nije ista odluka kao puštanje ličnih
+            podataka gosta u fajl koji fizički napušta sistem na disk korisnika — čeka vlasnikovu
+            potvrdu. Dobavljač/hotel i dalje NAMERNO nedostaju: još uvek demo, nemaju pravi izvor
+            (isto obrazloženje kao ranije — oznaka „(demo)" na ekranu bi u Excelu nestala). */}
         <ExportButton
           rows={sorted.map((b) => ({
             Broj: b.bookingNumber,
@@ -523,6 +525,8 @@ export default function RealBookingsTable({
             'Tip nastupanja': b.tipNastupanja,
             Status: b.status,
             Uplata: b.paymentStatus,
+            Poslovnica: b.branchName ?? '',
+            Zadužen: b.assignedUserName ?? '',
             Država: b.destinationCountry ?? '',
             Destinacija: b.destinationCity ?? '',
             'Vrsta proizvoda': b.productType ?? '',

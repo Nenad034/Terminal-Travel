@@ -245,6 +245,23 @@ export default function RealFilterFields({
                 ))}
               </select>
             </Field>
+            {/* Uska revizija 8.9.2026 (dok. 40 §10) — "Zadužen" (`assignedToId`) je odvojen od
+                "Zaposleni" (`ownerId` iznad, ko je kreirao/nosi odgovornost): stari mock filter
+                je imao ovo polje, prelazak na prave podatke ga je tiho izostavio. */}
+            <Field label="Zadužen">
+              <select
+                name="assignedToId"
+                defaultValue={filters.assignedToId ?? ''}
+                className={inputClass}
+              >
+                <option value="">svi</option>
+                {employees.map((e) => (
+                  <option key={`assigned-${e.id}`} value={e.id}>
+                    {e.name}
+                  </option>
+                ))}
+              </select>
+            </Field>
           </Column>
           <Column>
             <Field label="Vrsta objekta">

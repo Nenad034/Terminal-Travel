@@ -36,6 +36,9 @@ export interface BookingFilters {
   // `BookingsService.findAll` za tačan oslonac svakog u modelu podataka.
   branchId?: string;
   ownerId?: string;
+  /** Uska revizija 8.9.2026 (dok. 40 §10) — "zadužen" (`Booking.assignedToId`), odvojeno od
+   * "Zaposleni" (`ownerId`) iznad — stari mock filter je pokrivao ovo, novi dugo nije. */
+  assignedToId?: string;
   supplierId?: string;
   supplierType?: string;
   accommodationType?: string;
@@ -95,6 +98,7 @@ function countActiveFilters(f: BookingFilters): number {
     'hasTravelGuarantee',
     'branchId',
     'ownerId',
+    'assignedToId',
     'supplierId',
     'supplierType',
     'accommodationType',

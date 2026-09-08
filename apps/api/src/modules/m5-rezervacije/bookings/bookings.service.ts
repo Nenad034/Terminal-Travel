@@ -657,6 +657,13 @@ export class BookingsService {
       // destinationCity), Vrsta objekta (Product.attributes.accommodation_type, M2 §2.3).
       branchId?: string;
       ownerId?: string;
+      // Uska revizija 8.9.2026 (dok. 40 §10, okidač: prelazak liste na prava buyer/branch/
+      // assignedUser polja, dok. 42 nalaz 1) — stari mock filter "User (zadužen)" filtrirao je
+      // po ZADUŽENOM (ko trenutno radi na rezervaciji, `assigned_to_id`, menja se preko
+      // `reassign()` ispod), ne po VLASNIKU (`owner_id`, ko je kreirao/nosi odgovornost — filter
+      // "Zaposleni" iznad). Ista razlika kao u `booking.service.ts:171` (oba polja se posebno
+      // proveravaju za pristup) — filter je pratio samo jedno od dva.
+      assignedToId?: string;
       supplierId?: string;
       supplierType?: string;
       accommodationType?: string;
@@ -706,6 +713,7 @@ export class BookingsService {
       if (filters.hasTravelGuarantee === 'false') where.travelGuaranteeRegistration = { is: null };
       if (filters.branchId) where.branchId = filters.branchId;
       if (filters.ownerId) where.ownerId = filters.ownerId;
+      if (filters.assignedToId) where.assignedToId = filters.assignedToId;
 
       const itemWhere: Prisma.BookingItemWhereInput = {};
       if (filters.stayFrom || filters.stayTo) {

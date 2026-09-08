@@ -74,6 +74,8 @@ export class BookingsController {
     // Vrsta dobavljača/Vrsta objekta) — vidi komentar uz `BookingsService.findAll`.
     @Query('branchId') branchId: string | undefined,
     @Query('ownerId') ownerId: string | undefined,
+    // Uska revizija 8.9.2026 (dok. 40 §10) — filter po ZADUŽENOM, odvojen od `ownerId` iznad.
+    @Query('assignedToId') assignedToId: string | undefined,
     @Query('supplierId') supplierId: string | undefined,
     @Query('supplierType') supplierType: string | undefined,
     @Query('accommodationType') accommodationType: string | undefined,
@@ -113,6 +115,7 @@ export class BookingsController {
         hasTravelGuarantee,
         branchId,
         ownerId,
+        assignedToId,
         supplierId,
         supplierType,
         accommodationType,

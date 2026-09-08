@@ -726,6 +726,20 @@ describe('BookingsService (M5 spec §4/§6.4)', () => {
     });
   });
 
+  describe('findAll — assignedToId filter (uska revizija 8.9.2026, dok. 40 §10)', () => {
+    it('filtrira po zaduženom (assigned_to_id), odvojeno od ownerId', async () => {
+      const { service, prisma } = makeService();
+      prisma.user.findUnique.mockResolvedValue({ accountType: 'STAFF', linkedProfileId: null });
+      prisma.booking.findMany.mockResolvedValue([]);
+
+      await service.findAll({ assignedToId: 'user-1' }, { userId: 'staff-1' });
+
+      const where = prisma.booking.findMany.mock.calls[0][0].where;
+      expect(where.assignedToId).toBe('user-1');
+      expect(where.ownerId).toBeUndefined();
+    });
+  });
+
   describe('findAll/findOne — VIEW_ALL vidljivost (§6.6, 31.8.2026)', () => {
     it('podrazumevano (VIEW_ALL=true) interno osoblje NE dobija OR filter na vlasništvo/zaduženje', async () => {
       const { service, prisma, permissions } = makeService();
