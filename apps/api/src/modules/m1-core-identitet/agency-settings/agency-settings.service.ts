@@ -52,6 +52,7 @@ export class AgencySettingsService {
   // poverljive uloge u sistemu, pa je rizik svesno prihvaćen na tom nivou, ne uklonjen do nule.
   async getSanitizedBrandName(): Promise<string> {
     const s = await this.get();
+    // eslint-disable-next-line no-control-regex -- namerno: baš kontrolni karakteri su meta
     const cleaned = s.brandName?.replace(/[\r\n\t\x00-\x1F\x7F]/g, ' ').trim();
     return cleaned ? cleaned.slice(0, 200) : 'Terminal Travel';
   }
