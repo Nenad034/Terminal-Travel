@@ -17,15 +17,26 @@
  * kompozituju preko podloge na kojoj stoje — merenje protiv same alfa vrednosti daje besmislen
  * broj, a upravo je taj par (`accent` na `accent-soft`) bio stvaran WCAG propust 17.8.2026.
  *
- * POKRETANJE:  node tools/check-contrast.js            (sve, izlazi 1 ako nešto padne)
+ * POKRETANJE:  node tools/check-contrast.js            (panel, sve, izlazi 1 ako nešto padne)
  *              node tools/check-contrast.js --mode light
  *              node tools/check-contrast.js --all      (ispisuje i parove koji prolaze)
+ *              node tools/check-contrast.js --app web  (sajt umesto panela)
+ *              node tools/check-contrast.js --app all  (oba, redom)
+ *
+ * PROŠIRENO na `apps/web` (8.9.2026) — `29-DIZAJN-SISTEM-UI.md` §8 je od 17.8.2026. najavljivao
+ * "kad dođe na red, skriptu proširiti na oba fajla umesto pisanja druge"; taj trenutak je nastupio
+ * kad je sajt prešao na istu (panelovu) paletu u svetlom modu. `apps/web/globals.css` nema
+ * `data-theme` prekidač ni `--sunken`/`--bar`/`--icon-line` — provera to prirodno preskače (isti
+ * blok koda, samo nema šta da nađe).
  */
 
 const fs = require('fs');
 const path = require('path');
 
-const CSS_PATH = path.join(__dirname, '..', 'apps', 'panel', 'src', 'app', 'globals.css');
+const CSS_PATHS = {
+  panel: path.join(__dirname, '..', 'apps', 'panel', 'src', 'app', 'globals.css'),
+  web: path.join(__dirname, '..', 'apps', 'web', 'src', 'app', 'globals.css'),
+};
 
 /* --- WCAG 2.1 relativna luminansa i odnos kontrasta ------------------------------------- */
 
@@ -70,47 +81,74 @@ function contrast(fgHex, bgHex) {
  * Vraća { imeModa: { token: hex } }. Svetli mod postoji u dva bloka (`:root` i
  * `:root[data-theme='light']`) koji MORAJU biti identični — zamka 1.7; oba se čitaju
  * odvojeno upravo da bi se razlika videla, ne stopila.
+ *
+ * Ugnježdenost se prati eksplicitno (stek zagrada), NE pogađa po tekstu selektora — `apps/web`
+ * nema `data-theme`, pa su joj svetli i tamni blok DOSLOVNO isti selektor (`:root`), razlika je
+ * samo u tome da li je jedan ugnježden unutar `@media (prefers-color-scheme: dark)`. Ranija
+ * verzija je selektor prepoznavala tekstualno (`:not([data-theme='light'])` itd.) — to je tačno
+ * za panel, ali bi za sajt dva različita bloka nazvala istim imenom i jedan tiho prepisao drugi.
  */
 function readTokenBlocks(css) {
+  const noComments = css.replace(/\/\*[\s\S]*?\*\//g, '');
   const blocks = {};
-  // Svaki blok: selektor { ... }. Uzimamo samo one koji definišu --bg (blokovi palete).
-  const re = /([^{}]+)\{([^{}]*)\}/g;
-  let m;
-  while ((m = re.exec(css)) !== null) {
-    const selector = m[1]
-      .replace(/\/\*[\s\S]*?\*\//g, '')
-      .trim()
-      .replace(/\s+/g, ' ');
-    const body = m[2];
-    if (!/--bg\s*:/.test(body)) continue;
+  const stack = [];
+  let buf = '';
 
-    const tokens = {};
-    const tre = /(--[a-z0-9-]+)\s*:\s*([^;]+);/gi;
-    let t;
-    while ((t = tre.exec(body)) !== null) {
-      const value = t[2].replace(/\/\*[\s\S]*?\*\//g, '').trim();
-      if (/^#[0-9a-f]{6,8}$/i.test(value)) tokens[t[1]] = value.toLowerCase();
-      else tokens[t[1]] = value; // npr. currentColor — beleži se, ne meri
+  for (let i = 0; i < noComments.length; i++) {
+    const ch = noComments[i];
+    if (ch === '{') {
+      const selector = buf.trim().replace(/\s+/g, ' ');
+      buf = '';
+      stack.push({
+        selector,
+        isMediaDark: /^@media[^{]*prefers-color-scheme:\s*dark/.test(selector),
+        isMedia: /^@media/.test(selector),
+        bodyStart: i + 1,
+      });
+    } else if (ch === '}') {
+      const top = stack.pop();
+      if (!top) continue;
+      const body = noComments.slice(top.bodyStart, i);
+      buf = '';
+      if (top.isMedia || !/--bg\s*:/.test(body)) continue; // ne blok tokena — npr. sam @media
+
+      const tokens = {};
+      const tre = /(--[a-z0-9-]+)\s*:\s*([^;]+);/gi;
+      let t;
+      while ((t = tre.exec(body)) !== null) {
+        const value = t[2].trim();
+        tokens[t[1]] = /^#[0-9a-f]{6,8}$/i.test(value) ? value.toLowerCase() : value;
+      }
+
+      const insideMediaDark = stack.some((s) => s.isMediaDark);
+      const { selector } = top;
+      // Redosled je bitan: `:root:not([data-theme='light'])` (tamni po OS-u) SADRŽI substring
+      // "data-theme='light'", pa `insideMediaDark` mora biti proveren PRE te provere — inače se
+      // tamni OS blok pogrešno imenuje kao svetli prekidač (ista zamka kao u ranijoj verziji,
+      // samo drugim putem: ranije pogrešno tekstualno prepoznavanje, sad pogrešan redosled).
+      let name;
+      if (/data-theme='dark'/.test(selector)) name = 'dark (prekidač)';
+      else if (/data-theme='dim'/.test(selector)) name = 'dim (prekidač)';
+      else if (insideMediaDark) name = 'dark (OS)';
+      else if (/data-theme='light'/.test(selector)) name = 'light (prekidač)';
+      else if (/^:root$/.test(selector)) name = 'light (OS)';
+      else name = selector;
+
+      if (blocks[name]) {
+        console.error(
+          `Upozorenje: dva bloka su prepoznata kao "${name}" — selektor "${selector}" prepisuje raniji.`,
+        );
+      }
+      blocks[name] = tokens;
+    } else if (ch === ';' && stack.length === 0) {
+      // Statement bez bloka na najvišem nivou (npr. `@tailwind base;`) — bafer koji bi inače
+      // ostao zalepljen za sledeći selektor (uhvaćeno na `apps/web/globals.css`, gde `@tailwind`
+      // direktive prethode `:root {` i bez ovog reseta bi ime bloka postalo doslovno "@tailwind
+      // base; @tailwind components; @tailwind utilities; :root").
+      buf = '';
+    } else {
+      buf += ch;
     }
-
-    // Redosled provera je bitan: `:root:not([data-theme='light'])` (tamni mod po OS-u) SADRŽI
-    // niz "data-theme='light'", pa mora biti prepoznat PRE proste provere na 'light' — inače se
-    // tamni OS blok imenuje kao svetli i tiho pregazi stvarnim svetlim blokom, a nikad ne bude
-    // izmeren. (Baš ta greška je bila u prvoj verziji ove skripte, uhvaćena 2.9.2026.)
-    let name;
-    if (/not\(\[data-theme='light'\]\)/.test(selector)) name = 'dark (OS)';
-    else if (/data-theme='dark'/.test(selector)) name = 'dark (prekidač)';
-    else if (/data-theme='dim'/.test(selector)) name = 'dim (prekidač)';
-    else if (/data-theme='light'/.test(selector)) name = 'light (prekidač)';
-    else if (/^:root$/.test(selector)) name = 'light (OS)';
-    else name = selector;
-
-    if (blocks[name]) {
-      console.error(
-        `Upozorenje: dva bloka su prepoznata kao "${name}" — selektor "${selector}" prepisuje raniji.`,
-      );
-    }
-    blocks[name] = tokens;
   }
   return blocks;
 }
@@ -166,20 +204,18 @@ const TEXT_TOKENS = ['--text', '--text-dim', '--text-faint', '--icon-line'];
 
 /* --- pokretanje ---------------------------------------------------------------------------- */
 
-function main() {
-  const args = process.argv.slice(2);
-  const showAll = args.includes('--all');
-  const modeArg = args.includes('--mode') ? args[args.indexOf('--mode') + 1] : null;
-
-  const css = fs.readFileSync(CSS_PATH, 'utf8');
+function runFor(appName, { showAll, modeArg }) {
+  const cssPath = CSS_PATHS[appName];
+  console.log(`\n########## ${appName} (${cssPath}) ##########`);
+  const css = fs.readFileSync(cssPath, 'utf8');
   const blocks = readTokenBlocks(css);
   const names = Object.keys(blocks).filter((n) => !modeArg || n.startsWith(modeArg));
 
   if (names.length === 0) {
     console.error(
-      `Nijedan blok tokena nije pronađen u ${CSS_PATH}` + (modeArg ? ` za mod "${modeArg}"` : ''),
+      `Nijedan blok tokena nije pronađen u ${cssPath}` + (modeArg ? ` za mod "${modeArg}"` : ''),
     );
-    process.exit(2);
+    return 1;
   }
 
   let failures = 0;
@@ -238,15 +274,18 @@ function main() {
     }
   }
 
-  // Zamka 1.7: svetli mod je definisan u dva bloka koji moraju biti identični.
+  // Zamka 1.7: svetli mod je definisan u dva bloka koji moraju biti identični ZA SVAKI TOKEN
+  // KOJI OBA BLOKA DEKLARIŠU. Token koji postoji samo u jednom (npr. --tab-line/--brand, po
+  // dizajnu fiksni u sva tri moda i namerno nikad ne redeklarisani u [data-theme=] bloku) NIJE
+  // greška — nasleđuje se normalnom CSS kaskadom sa `:root`, ne treba mu duplikat.
   const pairsToCompare = [
     ['light (OS)', 'light (prekidač)'],
     ['dark (OS)', 'dark (prekidač)'],
   ];
   for (const [a, b] of pairsToCompare) {
     if (!blocks[a] || !blocks[b]) continue;
-    const keys = new Set([...Object.keys(blocks[a]), ...Object.keys(blocks[b])]);
-    const diff = [...keys].filter((k) => blocks[a][k] !== blocks[b][k]);
+    const sharedKeys = Object.keys(blocks[a]).filter((k) => k in blocks[b]);
+    const diff = sharedKeys.filter((k) => blocks[a][k] !== blocks[b][k]);
     if (diff.length) {
       failures++;
       console.log(`\n!! ${a} i ${b} se RAZLIKUJU (zamka 1.7) — ${diff.join(', ')}`);
@@ -254,6 +293,24 @@ function main() {
   }
 
   console.log(failures === 0 ? '\nSve provere prolaze.' : `\n${failures} par(ova) pada prag.`);
+  return failures === 0 ? 0 : 1;
+}
+
+function main() {
+  const args = process.argv.slice(2);
+  const showAll = args.includes('--all');
+  const modeArg = args.includes('--mode') ? args[args.indexOf('--mode') + 1] : null;
+  const appArg = args.includes('--app') ? args[args.indexOf('--app') + 1] : 'panel';
+
+  if (!['panel', 'web', 'all'].includes(appArg)) {
+    console.error(`Nepoznat --app "${appArg}" — očekivano panel|web|all.`);
+    process.exit(2);
+  }
+
+  const apps = appArg === 'all' ? ['panel', 'web'] : [appArg];
+  let failures = 0;
+  for (const appName of apps) failures += runFor(appName, { showAll, modeArg });
+
   process.exit(failures === 0 ? 0 : 1);
 }
 
