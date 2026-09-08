@@ -7,6 +7,7 @@ import ReconciliationButton from './ReconciliationButton';
 import { Badge } from '@/components/ui/badge';
 import IzvestajiFilterForm from './IzvestajiFilterForm';
 import BarChart, { type ChartSeries } from './BarChart';
+import HourHeatmap from './HourHeatmap';
 import ShareReportButton from './ShareReportButton';
 import DynamicTree, { type DynamicNode } from './DynamicTree';
 import {
@@ -109,6 +110,11 @@ const MARGIN_SERIES: ChartSeries<Bucket>[] = [
   { label: 'neto', color: 'var(--accent2)', value: (b) => b.baseCost, money: true },
   { label: 'bruto', color: 'var(--accent)', value: (b) => b.revenue, money: true },
   { label: 'marža', color: 'var(--brand)', value: (b) => b.margin, money: true },
+];
+// "Vremenski obrasci" (§4.4) broje pojave, ne novac — jedna serija, bez `money` (8.9.2026).
+// Jedna serija namerno nema legendu (BarChart je izostavlja) — naslov iznad već kaže šta se broji.
+const COUNT_SERIES: ChartSeries<{ key: string; count: number }>[] = [
+  { label: 'broj', color: 'var(--accent)', value: (b) => b.count },
 ];
 // Occupancy tabela (§4.1) ima kolone stavki/noćenja/udeo — grafik prati prve dve (isti razlog).
 const OCCUPANCY_SERIES: ChartSeries<Bucket & { nights: number }>[] = [
@@ -661,6 +667,7 @@ export default async function IzvestajiPage(props: { searchParams: Promise<Searc
           <TemporalReportBlock
             report={temporal}
             dimension={(searchParams?.dimension as TemporalDimension) || 'inquiries_by_hour'}
+            view={view}
           />
         </div>
       )}
@@ -924,9 +931,15 @@ function BucketTable({
 function TemporalReportBlock({
   report,
   dimension,
+  view,
 }: {
   report: TemporalReport;
   dimension: TemporalDimension;
+  /** 8.9.2026, na zahtev vlasnika: "omogucite graficki prikaz i vremenskih obrazaca" — do tada je
+   * ovo bio JEDINI tab na kom prekidač tabela/grafik nije radio ništa. Oblik grafika bira se po
+   * dimenziji, ne jedan za sve: mreža sat×dan je toplotna mapa (`HourHeatmap`), a destinacije i
+   * lead-time su magnitude po kategoriji, tj. isti bar-grafik kao ostali izveštaji. */
+  view: 'tabela' | 'grafik';
 }) {
   if (TEMPORAL_DESTINATION_DIMENSIONS.includes(dimension)) {
     const rows = report.byDestination ?? [];
@@ -936,7 +949,9 @@ function TemporalReportBlock({
         <div className="mb-2 text-sm font-semibold text-ink">
           {TEMPORAL_DIMENSION_LABELS[dimension]}
         </div>
-        {rows.length === 0 ? (
+        {view === 'grafik' && rows.length > 0 ? (
+          <BarChart rows={rows} series={COUNT_SERIES} />
+        ) : rows.length === 0 ? (
           <p className="rounded-lg border border-border bg-panel p-4 text-center text-xs text-ink-faint">
             Nema podataka za zadati period.
           </p>
@@ -980,7 +995,11 @@ function TemporalReportBlock({
         <div className="mb-2 text-sm font-semibold text-ink">
           {TEMPORAL_DIMENSION_LABELS[dimension]}
         </div>
-        {rows.length === 0 || total === 0 ? (
+        {view === 'grafik' && rows.length > 0 && total > 0 ? (
+          /* `sort={false}` — 48h+ → 24–48h → <24h je skala vremena; sortiranje po veličini bi je
+             razbilo i "poslednji čas" (poenta izveštaja) više ne bi bio na kraju. */
+          <BarChart rows={rows} series={COUNT_SERIES} sort={false} />
+        ) : rows.length === 0 || total === 0 ? (
           <p className="rounded-lg border border-border bg-panel p-4 text-center text-xs text-ink-faint">
             Nema otkazanih rezervacija za zadati period.
           </p>
@@ -1023,7 +1042,9 @@ function TemporalReportBlock({
       <div className="mb-2 text-sm font-semibold text-ink">
         {TEMPORAL_DIMENSION_LABELS[dimension]}
       </div>
-      {rows.length === 0 ? (
+      {view === 'grafik' ? (
+        <HourHeatmap cells={report.byHour ?? []} />
+      ) : rows.length === 0 ? (
         <p className="rounded-lg border border-border bg-panel p-4 text-center text-xs text-ink-faint">
           Nema podataka za zadati period.
         </p>

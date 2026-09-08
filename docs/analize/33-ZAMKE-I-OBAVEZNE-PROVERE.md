@@ -134,6 +134,12 @@ Brojevi 5.6, 5.7, 5.11–5.14, 9.4 i 12.2 i dalje postoje — nose **drugi** od 
 - _Uzrok:_ panel ima **tri** površine na kojima stoje i tekst i granice: `--panel` (centralni sadržaj), `--bg` (osnovna pozadina) i `--panel-2` (bočni paneli, zaglavlje tabele, trake). `--panel-2` je u svetlom modu tamniji od bele, pa je kontrast tamnog elementa na njemu **najniži** — a upravo se on najlakše zaboravi, jer čovek pri proveri gleda glavni deo ekrana. Uhvaćeno 2.9.2026: prijavljena regresija granice glasila je 1.27:1 (na `--panel`), a stvarna najgora vrednost bila je **1.15:1** (na `--panel-2`). Isti oblik greške kao zamka 1.2, samo za površinu koja se najčešće previdi.
 - _Provera:_ merodavan je **minimum od sve tri**, ne vrednost na belu/glavnu podlogu. `tools/check-contrast.js` to radi automatski za tekstualne tokene i granice; kad se boja proverava ručno (nova semantička boja, boja u pojedinačnoj komponenti), izlistaj podloge na kojima se stvarno pojavljuje pre merenja, ne posle.
 
+**1.11 Boja dobijena preko `opacity` nema izmeren kontrast — tekst na njoj je neproverena kombinacija**
+
+- _Simptom:_ element izgleda uredno u svetlom modu, a broj/oznaka na njemu se gubi na srednjim jačinama (ili u drugom modu). Nijedan alat to ne prijavi.
+- _Uzrok:_ `tools/check-contrast.js` meri **parove tokena** iz `globals.css`. Skala napravljena tako što se ista boja crta u više stepena providnosti (toplotna mapa, trag napunjenosti, prelaz) proizvodi **međuvrednosti kojih nema ni u jednom tokenu** — pa nisu ni izmerene. Izmereno je samo dno skale (podloga) i vrh (pun `--accent`, gde važi `--accent-ink`).
+- _Provera:_ tekst se piše **isključivo na krajevima skale** — na podlozi (tekst u `--ink`/`--ink-dim`) ili na punoj boji (tekst u `--accent-ink`); na međustepenima vrednost ide na hover (`title`) i u tabelarni prikaz, nikad kao tekst preko boje. Ako broj na međustepenu stvarno mora da postoji, ta konkretna kompozitna vrednost se meri ručno protiv oba moguća teksta pre nego što se upiše — pretpostavka "akcent je taman, belo će valjati" ovde ne važi, jer 40% akcenta nije taman. Prvi put primenjeno 8.9.2026 (`izvestaji/HourHeatmap.tsx`, M13 §4.4).
+
 ---
 
 ## 2. Prava pristupa i identitet (M1, M5, M6)

@@ -43,12 +43,18 @@ export default function BarChart<T extends ChartRow>({
   rows,
   series,
   limit = 8,
+  sort = true,
 }: {
   rows: T[];
   series: ChartSeries<T>[];
   /** Koliko kategorija se prikazuje (sortirano po prvoj seriji, opadajuće) — grafik postoji da
    * bi se jednim pogledom video obrazac, ne da ponovi celu tabelu ispod sebe. */
   limit?: number;
+  /** Da li se redovi sortiraju po veličini (8.9.2026). Podrazumevano da — za "prihod po
+   * destinaciji" redosled po veličini JESTE poruka. Isključuje se kad kategorije imaju sopstveni
+   * prirodan redosled koji sortiranje uništava: M13 §4.4 "koliko unapred se otkazuje"
+   * (48h+ → 24–48h → <24h je skala vremena, ne rang). */
+  sort?: boolean;
 }) {
   if (rows.length === 0 || series.length === 0) {
     return (
@@ -58,7 +64,9 @@ export default function BarChart<T extends ChartRow>({
     );
   }
 
-  const sorted = [...rows].sort((a, b) => series[0].value(b) - series[0].value(a));
+  const sorted = sort
+    ? [...rows].sort((a, b) => series[0].value(b) - series[0].value(a))
+    : [...rows];
   const shown = sorted.slice(0, limit);
   const hiddenCount = sorted.length - shown.length;
   const max = Math.max(1, ...shown.flatMap((r) => series.map((s) => s.value(r))));

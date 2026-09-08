@@ -27,6 +27,10 @@ Ovo je testirano baš u tom najgorem scenariju: namerno smo simulirali da jedna 
 - **Dinamički izveštaj** — umesto fiksnih tabela, tim sam bira redosled po kojem želi da vidi podatke (npr. "prvo po državi, pa unutar toga po dobavljaču") i sistem sam sastavi rezultat tim redosledom, sa zaradom/naplatom/dugom na svakom nivou.
 - **Marketing performanse** — koje rezervacije stvarno potiču od klika na promotivni sadržaj (blog objava, društvene mreže) koji je agencija objavila preko M12 (marketing modul, izgrađen avgust 2026). Kad gost rezerviše preko linka koji nosi trag konkretne objave, izveštaj ga poveže sa tim sadržajem; ako trag nedostaje ili ne odgovara nijednoj objavi, rezervacija se iskreno prikazuje kao "nepoznato poreklo", nikad se ništa ne izmišlja.
 
+- **Vremenski obrasci** — svi izveštaji iznad odgovaraju na pitanje "šta se prodalo"; ovaj odgovara na "kada". Kada ljudi najviše pretražuju, kada rezervišu, kada otkazuju, i koliko unapred otkazuju (više od 48 sati, između 24 i 48 sati, ili manje od 24 sata pred polazak — namerno tri grupe, a ne prosek, jer prosek pomeša otkazivanje mesec dana unapred sa otkazivanjem uveče pred put). Isto se može pogledati i po destinaciji, i odvojeno za B2B, B2C i subagente.
+
+  Ovaj izveštaj se od 8.9.2026. može gledati i **kao sliku, ne samo kao tabelu** (dugme "grafik" u gornjem desnom uglu). Za "kada" se crta mreža: sedam redova (dani u nedelji) i dvadeset četiri kolone (sati). Polje je tamnije što se u tom terminu više dešavalo — kao vremenska prognoza u boji. Iz tabele od 168 redova brojeva se ne vidi da se, na primer, najviše rezerviše subotom uveče; iz obojene mreže se vidi odmah. Tačan broj se dobija kad se mišem stane na polje, a i dalje postoji cela tabela na dugme "tabela" pored. Za destinacije i za "koliko unapred se otkazuje" crtaju se trake iste vrste kao na ostalim izveštajima.
+
 Svaki izveštaj u gornjem uglu pokazuje kada je poslednji put osvežen — da tim zna da li gleda podatke od pre par sekundi ili od sinoćne provere.
 
 ## Šta još čeka (namerno, ne propust)
