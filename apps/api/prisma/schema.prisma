@@ -3900,25 +3900,47 @@ model Question {
 // (isti princip kao `updatedByUserId`/`AgencySettings.updatedByUserId`) — ne dodaje drugu
 // bidirekcionu relaciju na User samo za ovo polje, dovoljno je čuvati UUID.
 model EmployeeRecord {
-  id                      String         @id @default(uuid())
-  userId                  String         @unique @map("user_id")
-  employmentType          EmploymentType @map("employment_type")
-  contractBasis           ContractBasis  @map("contract_basis")
-  hireDate                DateTime       @map("hire_date")
-  probationEndDate        DateTime?      @map("probation_end_date")
-  contractEndDate         DateTime?      @map("contract_end_date")
-  terminationDate         DateTime?      @map("termination_date")
-  reportsToUserId         String?        @map("reports_to_user_id") // weak ref -> M1 User
-  annualLeaveDaysEntitled Int?           @map("annual_leave_days_entitled")
-  createdAt               DateTime       @default(now()) @map("created_at")
-  updatedAt               DateTime       @updatedAt @map("updated_at")
-  updatedByUserId         String?        @map("updated_by_user_id") // weak ref -> M1 User
+  id               String         @id @default(uuid())
+  userId           String         @unique @map("user_id")
+  employmentType   EmploymentType @map("employment_type")
+  contractBasis    ContractBasis  @map("contract_basis")
+  hireDate         DateTime       @map("hire_date")
+  probationEndDate DateTime?      @map("probation_end_date")
+  contractEndDate  DateTime?      @map("contract_end_date")
+  terminationDate  DateTime?      @map("termination_date")
+  reportsToUserId  String?        @map("reports_to_user_id") // weak ref -> M1 User
+  createdAt        DateTime       @default(now()) @map("created_at")
+  updatedAt        DateTime       @updatedAt @map("updated_at")
+  updatedByUserId  String?        @map("updated_by_user_id") // weak ref -> M1 User
 
   user                   User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
   leaveRecords           LeaveRecord[]
+  leaveEntitlements      LeaveEntitlement[]
   trainingCertifications TrainingCertification[]
 
   @@map("employee_records")
+}
+
+// M24 spec §2.2a (predlog v1.5) — dodeljeni dani godišnjeg odmora PO GODINI, zamenjuje raniji
+// flat EmployeeRecord.annualLeaveDaysEntitled (broj se zakonski menja iz godine u godinu).
+// carriedOverDays je predložena/ručno potvrđena vrednost (Zakon o radu RS: rok 30.6. naredne
+// godine) — sistem NE obračunava/sprovodi ovo automatski (svesno odloženo, spec §7).
+model LeaveEntitlement {
+  id                   String    @id @default(uuid())
+  employeeRecordId     String    @map("employee_record_id")
+  year                 Int
+  daysEntitled         Int       @map("days_entitled")
+  carriedOverDays      Int?      @map("carried_over_days")
+  carriedOverExpiresAt DateTime? @map("carried_over_expires_at")
+  createdAt            DateTime  @default(now()) @map("created_at")
+  updatedAt            DateTime  @updatedAt @map("updated_at")
+  updatedByUserId      String?   @map("updated_by_user_id") // weak ref -> M1 User
+
+  employeeRecord EmployeeRecord @relation(fields: [employeeRecordId], references: [id], onDelete: Cascade)
+
+  @@unique([employeeRecordId, year])
+  @@index([employeeRecordId])
+  @@map("leave_entitlements")
 }
 
 enum EmploymentType {

@@ -492,8 +492,7 @@ _(§10, `docs/moduli/M23-znanje/28-SPECIFIKACIJA-M23-ZNANJE.md` — backend impl
 _(§7, `docs/moduli/M24-ljudski-resursi/43-SPECIFIKACIJA-M24-LJUDSKI-RESURSI.md` — uloge/RBAC ograda/HR ekran/godišnji odmor implementirani 8.9.2026, AI agent deo ispod i dalje otvoren)_
 
 - **AI HR agent (podsetnici o rokovima — probni rad, istek ugovora, obuke/sertifikati).** Vlasnik potvrdio 8.9.2026: "uradite AI HR agenta kad M15 bude spreman." M15 OKVIR već postoji i radi (M18/M21/M22/M23 imaju agente ožičene preko njega) — stvarna prepreka je Master dokument poglavlje 7 tačka 4 (modul mora biti deterministički stabilan, raditi u produkciji bez agenta bar jedan poslovni ciklus). M24 dobio kod 8.9.2026, nula stvarne upotrebe — kad prođe taj ciklus stvarne upotrebe, ovo se gradi. Detalji nivoa autonomije: M24 spec §3.
-- **Dodeljeni dani godišnjeg odmora po godini** (`LeaveEntitlement`) — predlog v1.5 zapisan (8.9.2026), čeka vlasnikovu potvrdu nacrta pre migracije/koda. M24 spec §2.2a/§6.
-- **Puna automatizacija prenosa neiskorišćenih dana godišnjeg odmora** (rok 30.6., Zakon o radu RS) — svesno odloženo, vlasnik: "kad bude zgodno". M24 spec §2.2a/§7.
+- **Puna automatizacija prenosa neiskorišćenih dana godišnjeg odmora** (rok 30.6., Zakon o radu RS) — svesno odloženo, vlasnik: "kad bude zgodno". M24 spec §2.2a/§7. (Dodeljeni dani po godini, `LeaveEntitlement`, implementirani 8.9.2026 — ovo je jedini preostali deo te teme.)
 - GDPR/Zakon o zaštiti podataka — tačan rok čuvanja HR dosijea posle prestanka radnog odnosa i procedura brisanja/anonimizacije — pravno pitanje, čeka potvrdu pravnika/knjigovođe.
 - Prikazni (čitljiv) naziv uloge u UI umesto doslovnog imena konstante (npr. "Agent prodaje" umesto `PRODAJNI_AGENT` na bedžu) — mala, nezavisna UI izmena.
 - Tačan broj dana unapred za AI podsetnik o isteku ugovora/probnog roka — predlog 30/7 dana u spec-u, čeka vlasnikovu potvrdu.

@@ -1,6 +1,11 @@
-import { Body, Controller, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, Put, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import { HrService, type CreateLeaveRecordDto, type UpsertEmployeeRecordDto } from './hr.service';
+import {
+  HrService,
+  type CreateLeaveRecordDto,
+  type UpsertEmployeeRecordDto,
+  type UpsertLeaveEntitlementDto,
+} from './hr.service';
 import { JwtAuthGuard } from '../m1-core-identitet/auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import { RequirePermission } from '../../common/decorators/require-permission.decorator';
@@ -50,9 +55,34 @@ export class HrController {
   }
 
   @Get('employees/:userId/leave-balance')
-  async getLeaveBalance(@Param('userId') userId: string, @CurrentUser() actor: { userId: string }) {
+  async getLeaveBalance(
+    @Param('userId') userId: string,
+    @Query('year') year: string | undefined,
+    @CurrentUser() actor: { userId: string },
+  ) {
     await this.hr.assertCanView(userId, actor.userId);
-    return this.hr.getLeaveBalance(userId);
+    return this.hr.getLeaveBalance(userId, year ? Number(year) : undefined);
+  }
+
+  // M24 spec §2.2a (predlog v1.5) — dodeljeni dani PO GODINI, iste dozvole kao EmployeeRecord.
+  @Get('employees/:userId/leave-entitlements')
+  async listLeaveEntitlements(
+    @Param('userId') userId: string,
+    @CurrentUser() actor: { userId: string },
+  ) {
+    await this.hr.assertCanView(userId, actor.userId);
+    return this.hr.listLeaveEntitlements(userId);
+  }
+
+  @Put('employees/:userId/leave-entitlements/:year')
+  @RequirePermission('M24', 'employee-record', 'EDIT')
+  upsertLeaveEntitlement(
+    @Param('userId') userId: string,
+    @Param('year') year: string,
+    @Body() dto: UpsertLeaveEntitlementDto,
+    @CurrentUser() actor: { userId: string },
+  ) {
+    return this.hr.upsertLeaveEntitlement(userId, Number(year), dto, actor.userId);
   }
 
   // M24 spec §3a — odobravalac (reportsToUserId) ili M24/leave-record/CREATE (blanket),

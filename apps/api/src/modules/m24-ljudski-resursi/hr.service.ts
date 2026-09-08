@@ -11,7 +11,15 @@ export interface UpsertEmployeeRecordDto {
   contractEndDate?: string | null;
   terminationDate?: string | null;
   reportsToUserId?: string | null;
-  annualLeaveDaysEntitled?: number | null;
+}
+
+// M24 spec §2.2a (predlog v1.5) — dodeljeni dani godišnjeg odmora PO GODINI, zamenjuje raniji
+// flat EmployeeRecord.annualLeaveDaysEntitled. carriedOverDays je predložena/ručno potvrđena
+// vrednost (Zakon o radu RS: rok 30.6. naredne godine) — sistem je NE obračunava sam.
+export interface UpsertLeaveEntitlementDto {
+  daysEntitled: number;
+  carriedOverDays?: number | null;
+  carriedOverExpiresAt?: string | null;
 }
 
 export interface CreateLeaveRecordDto {
@@ -69,7 +77,6 @@ export class HrService {
       contractEndDate: dto.contractEndDate ? new Date(dto.contractEndDate) : null,
       terminationDate: dto.terminationDate ? new Date(dto.terminationDate) : null,
       reportsToUserId: dto.reportsToUserId ?? null,
-      annualLeaveDaysEntitled: dto.annualLeaveDaysEntitled ?? null,
       updatedByUserId: actorId,
     };
 
@@ -226,15 +233,80 @@ export class HrService {
     return after;
   }
 
-  // M24 spec §2.3 — preostali dani = dodeljeno − suma GODISNJI_ODMOR tekuće godine gde
-  // status=APPROVED, izračunato, ne čuvano polje (princip #1, jedan izvor istine).
-  async getLeaveBalance(userId: string) {
+  // M24 spec §2.2a (predlog v1.5) — dodeljeni dani PO GODINI. Ownership/dozvole isti kao
+  // EmployeeRecord (VIEW/EDIT preko §4), poziva se posle assertCanView u kontroleru.
+  async listLeaveEntitlements(userId: string) {
     const record = await this.prisma.employeeRecord.findUnique({ where: { userId } });
-    if (!record || record.annualLeaveDaysEntitled == null) {
+    if (!record) return [];
+    return this.prisma.leaveEntitlement.findMany({
+      where: { employeeRecordId: record.id },
+      orderBy: { year: 'desc' },
+    });
+  }
+
+  async upsertLeaveEntitlement(
+    userId: string,
+    year: number,
+    dto: UpsertLeaveEntitlementDto,
+    actorId: string,
+  ) {
+    const record = await this.prisma.employeeRecord.findUnique({ where: { userId } });
+    if (!record) {
+      throw new BadRequestException(
+        'HR dosije za ovog zaposlenog još nije popunjen — popunite osnovne podatke pre dodele dana godišnjeg odmora.',
+      );
+    }
+    const data = {
+      daysEntitled: dto.daysEntitled,
+      carriedOverDays: dto.carriedOverDays ?? null,
+      carriedOverExpiresAt: dto.carriedOverExpiresAt ? new Date(dto.carriedOverExpiresAt) : null,
+      updatedByUserId: actorId,
+    };
+    const key = { employeeRecordId_year: { employeeRecordId: record.id, year } };
+    const before = await this.prisma.leaveEntitlement.findUnique({ where: key });
+    const after = await this.prisma.leaveEntitlement.upsert({
+      where: key,
+      update: data,
+      create: { employeeRecordId: record.id, year, ...data },
+    });
+    await this.auditLog.write({
+      actorType: 'HUMAN',
+      actorId,
+      module: 'M24',
+      action: before ? 'leave-entitlement.updated' : 'leave-entitlement.created',
+      resourceType: 'LeaveEntitlement',
+      resourceId: after.id,
+      beforeState: before ?? undefined,
+      afterState: after,
+      context: { userId, year },
+    });
+    return after;
+  }
+
+  // M24 spec §2.3 (dopunjeno predlogom v1.5) — preostali dani = (dodeljeno TE godine + preneto
+  // iz prethodne ako rok nije prošao) − suma GODISNJI_ODMOR te iste godine gde status=APPROVED,
+  // izračunato, ne čuvano polje (princip #1, jedan izvor istine). Bez LeaveEntitlement reda za
+  // traženu godinu → "nije dodeljeno" (entitled=null), sistem ne pogađa broj iz prethodne godine.
+  async getLeaveBalance(userId: string, year?: number) {
+    const record = await this.prisma.employeeRecord.findUnique({ where: { userId } });
+    if (!record) {
       return { entitled: null, used: 0, remaining: null };
     }
-    const yearStart = new Date(new Date().getFullYear(), 0, 1);
-    const yearEnd = new Date(new Date().getFullYear() + 1, 0, 1);
+    const targetYear = year ?? new Date().getFullYear();
+    const entitlement = await this.prisma.leaveEntitlement.findUnique({
+      where: { employeeRecordId_year: { employeeRecordId: record.id, year: targetYear } },
+    });
+    if (!entitlement) {
+      return { entitled: null, used: 0, remaining: null };
+    }
+
+    const carriedOverStillValid =
+      entitlement.carriedOverDays != null &&
+      (!entitlement.carriedOverExpiresAt || entitlement.carriedOverExpiresAt >= new Date());
+    const entitled = entitlement.daysEntitled + (carriedOverStillValid ? entitlement.carriedOverDays! : 0);
+
+    const yearStart = new Date(targetYear, 0, 1);
+    const yearEnd = new Date(targetYear + 1, 0, 1);
     const usedRows = await this.prisma.leaveRecord.findMany({
       where: {
         employeeRecordId: record.id,
@@ -245,11 +317,7 @@ export class HrService {
       select: { daysCount: true },
     });
     const used = usedRows.reduce((sum, r) => sum + r.daysCount, 0);
-    return {
-      entitled: record.annualLeaveDaysEntitled,
-      used,
-      remaining: record.annualLeaveDaysEntitled - used,
-    };
+    return { entitled, used, remaining: entitled - used };
   }
 
   // M24 spec §3b — timski kalendar. APPROVED vidljivo svima (bez `note` van kruga koji sme da

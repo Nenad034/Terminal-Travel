@@ -55,7 +55,16 @@ interface EmployeeRecord {
   contractEndDate: string | null;
   terminationDate: string | null;
   reportsToUserId: string | null;
-  annualLeaveDaysEntitled: number | null;
+}
+
+// M24 spec §2.2a (predlog v1.5) — dodeljeni dani godišnjeg odmora PO GODINI, zamenjuje raniji
+// flat EmployeeRecord.annualLeaveDaysEntitled.
+interface LeaveEntitlement {
+  id: string;
+  year: number;
+  daysEntitled: number;
+  carriedOverDays: number | null;
+  carriedOverExpiresAt: string | null;
 }
 
 interface LeaveRecord {
@@ -112,8 +121,16 @@ export default async function KorisnikDetailPage(props: { params: Promise<{ id: 
     throw err;
   }
 
-  const [allRoles, overrides, allPermissions, branches, employee, leaveRecords, leaveBalance] =
-    await Promise.all([
+  const [
+    allRoles,
+    overrides,
+    allPermissions,
+    branches,
+    employee,
+    leaveRecords,
+    leaveBalance,
+    leaveEntitlements,
+  ] = await Promise.all([
       canEdit
         ? apiFetch<RoleOption[]>('/iam/roles').catch(() => [])
         : Promise.resolve<RoleOption[]>([]),
@@ -141,6 +158,11 @@ export default async function KorisnikDetailPage(props: { params: Promise<{ id: 
             remaining: null,
           }))
         : Promise.resolve<LeaveBalance>({ entitled: null, used: 0, remaining: null }),
+      canViewHr
+        ? apiFetch<LeaveEntitlement[]>(`/hr/employees/${params.id}/leave-entitlements`).catch(
+            () => [],
+          )
+        : Promise.resolve<LeaveEntitlement[]>([]),
     ]);
 
   const assignedRoleIds = new Set(user.roles.map((r) => r.roleId));
@@ -219,6 +241,7 @@ export default async function KorisnikDetailPage(props: { params: Promise<{ id: 
             employee={employee}
             leaveRecords={leaveRecords}
             leaveBalance={leaveBalance}
+            leaveEntitlements={leaveEntitlements}
           />
         </div>
       )}

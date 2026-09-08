@@ -31,7 +31,6 @@ export async function upsertEmployeeRecord(
   if (typeof hireDate !== 'string' || hireDate.trim() === '')
     return { error: 'Datum zasnivanja radnog odnosa je obavezan.' };
 
-  const annualLeave = formData.get('annualLeaveDaysEntitled');
   try {
     await apiFetch(`/hr/employees/${userId}`, {
       method: 'PATCH',
@@ -43,13 +42,48 @@ export async function upsertEmployeeRecord(
         contractEndDate: optionalText(formData, 'contractEndDate'),
         terminationDate: optionalText(formData, 'terminationDate'),
         reportsToUserId: optionalText(formData, 'reportsToUserId'),
-        annualLeaveDaysEntitled:
-          typeof annualLeave === 'string' && annualLeave.trim() !== '' ? Number(annualLeave) : null,
       },
     });
   } catch (err) {
     return {
       error: err instanceof ApiError ? extractMessage(err) : 'Čuvanje HR dosijea nije uspelo.',
+    };
+  }
+  revalidatePath(`/korisnici/${userId}`);
+  return { error: null };
+}
+
+// M24 spec §2.2a/§5 (predlog v1.5) — PUT /hr/employees/:userId/leave-entitlements/:year, upsert
+// (isti obrazac kao HR dosije). carriedOverDays/carriedOverExpiresAt su ručno potvrđena polja
+// (rok 30.6. narednog obračuna) — sistem ih ne izračunava sam u ovom prolazu.
+export async function upsertLeaveEntitlement(
+  userId: string,
+  _prev: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const year = formData.get('year');
+  const daysEntitled = formData.get('daysEntitled');
+  if (typeof year !== 'string' || year.trim() === '')
+    return { error: 'Godina je obavezna.' };
+  if (typeof daysEntitled !== 'string' || daysEntitled.trim() === '')
+    return { error: 'Dodeljeni dani su obavezni.' };
+
+  const carriedOverDays = formData.get('carriedOverDays');
+  try {
+    await apiFetch(`/hr/employees/${userId}/leave-entitlements/${Number(year)}`, {
+      method: 'PUT',
+      body: {
+        daysEntitled: Number(daysEntitled),
+        carriedOverDays:
+          typeof carriedOverDays === 'string' && carriedOverDays.trim() !== ''
+            ? Number(carriedOverDays)
+            : null,
+        carriedOverExpiresAt: optionalText(formData, 'carriedOverExpiresAt'),
+      },
+    });
+  } catch (err) {
+    return {
+      error: err instanceof ApiError ? extractMessage(err) : 'Čuvanje dodeljenih dana nije uspelo.',
     };
   }
   revalidatePath(`/korisnici/${userId}`);

@@ -4,6 +4,7 @@ import { useActionState } from 'react';
 import { useFormStatus } from 'react-dom';
 import {
   upsertEmployeeRecord,
+  upsertLeaveEntitlement,
   createLeaveRecord,
   approveLeaveRecord,
   rejectLeaveRecord,
@@ -20,7 +21,17 @@ interface EmployeeRecord {
   contractEndDate: string | null;
   terminationDate: string | null;
   reportsToUserId: string | null;
-  annualLeaveDaysEntitled: number | null;
+}
+
+// M24 spec §2.2a (predlog v1.5) — dodeljeni dani godišnjeg odmora PO GODINI, zamenjuje raniji
+// flat EmployeeRecord.annualLeaveDaysEntitled. carriedOverDays/carriedOverExpiresAt su
+// predložena/ručno potvrđena vrednost (Zakon o radu RS: rok 30.6.) — sistem ih ne sprovodi sam.
+interface LeaveEntitlement {
+  id: string;
+  year: number;
+  daysEntitled: number;
+  carriedOverDays: number | null;
+  carriedOverExpiresAt: string | null;
 }
 
 interface LeaveRecord {
@@ -60,6 +71,7 @@ export default function HrSection({
   employee,
   leaveRecords,
   leaveBalance,
+  leaveEntitlements,
 }: {
   userId: string;
   canEdit: boolean;
@@ -68,6 +80,7 @@ export default function HrSection({
   employee: EmployeeRecord | null;
   leaveRecords: LeaveRecord[];
   leaveBalance: LeaveBalance;
+  leaveEntitlements: LeaveEntitlement[];
 }) {
   return (
     <div className="rounded-lg border border-border bg-panel p-4">
@@ -95,9 +108,12 @@ export default function HrSection({
                 preostalo {leaveBalance.remaining} od {leaveBalance.entitled} dana
               </span>
             ) : (
-              <span className="text-ink-faint">nije dodeljen broj dana</span>
+              <span className="text-ink-faint">nije dodeljen broj dana za {new Date().getFullYear()}.</span>
             )}
           </div>
+
+          <LeaveEntitlementsList entitlements={leaveEntitlements} />
+          {canEdit && <LeaveEntitlementForm userId={userId} />}
 
           {leaveRecords.length === 0 ? (
             <p className="text-xs text-ink-faint">Nema evidentiranih odsustava.</p>
@@ -113,6 +129,80 @@ export default function HrSection({
         </div>
       )}
     </div>
+  );
+}
+
+// M24 spec §2.2a (predlog v1.5) — dodeljeni dani PO GODINI, lista umesto jednog fiksnog polja.
+function LeaveEntitlementsList({ entitlements }: { entitlements: LeaveEntitlement[] }) {
+  if (entitlements.length === 0) return null;
+  return (
+    <ul className="mb-2 flex flex-col gap-1 text-xs">
+      {entitlements.map((e) => (
+        <li key={e.id} className="flex items-center gap-2 text-ink-dim">
+          <Badge variant="secondary">{e.year}.</Badge>
+          <span>{e.daysEntitled} dana</span>
+          {e.carriedOverDays != null && (
+            <span className="text-ink-faint">
+              + {e.carriedOverDays} preneto
+              {e.carriedOverExpiresAt && ` (rok ${toInputDate(e.carriedOverExpiresAt)})`}
+            </span>
+          )}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function LeaveEntitlementForm({ userId }: { userId: string }) {
+  const initialState: FormState = { error: null };
+  const boundAction = upsertLeaveEntitlement.bind(null, userId);
+  const [state, formAction] = useActionState(boundAction, initialState);
+
+  return (
+    <form
+      action={formAction}
+      className="mb-3 flex flex-wrap items-end gap-2 border-b border-border pb-3 text-xs"
+    >
+      {state.error && <p className="w-full rounded bg-danger-bg p-2 text-danger">{state.error}</p>}
+      <label className="text-ink-faint">
+        godina
+        <input
+          type="number"
+          name="year"
+          required
+          defaultValue={new Date().getFullYear()}
+          className="input mt-1 w-20"
+        />
+      </label>
+      <label className="text-ink-faint">
+        dodeljeno dana
+        <input type="number" min={0} name="daysEntitled" required className="input mt-1 w-24" />
+      </label>
+      <label className="text-ink-faint">
+        preneto iz prethodne
+        <input type="number" min={0} name="carriedOverDays" className="input mt-1 w-24" />
+      </label>
+      <label className="text-ink-faint">
+        rok za preneto
+        <div className="mt-1">
+          <DateField name="carriedOverExpiresAt" />
+        </div>
+      </label>
+      <EntitlementSaveButton />
+    </form>
+  );
+}
+
+function EntitlementSaveButton() {
+  const { pending } = useFormStatus();
+  return (
+    <button
+      type="submit"
+      disabled={pending}
+      className="rounded px-2 py-1.5 font-medium text-accent-strong hover:bg-accent-soft disabled:opacity-50"
+    >
+      {pending ? 'Čuvam…' : '+ dodaj/izmeni godinu'}
+    </button>
   );
 }
 
@@ -281,18 +371,6 @@ function EmployeeRecordForm({
             <DateField
               name="terminationDate"
               defaultValue={toInputDate(employee?.terminationDate ?? null)}
-            />
-          </div>
-        </label>
-        <label className="text-ink-faint">
-          dodeljeni dani godišnjeg odmora
-          <div className="mt-1">
-            <input
-              type="number"
-              min={0}
-              name="annualLeaveDaysEntitled"
-              defaultValue={employee?.annualLeaveDaysEntitled ?? ''}
-              className="input"
             />
           </div>
         </label>
