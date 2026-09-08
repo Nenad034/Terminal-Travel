@@ -92,7 +92,9 @@ describe('CapacityService', () => {
 
     it('stop-sale spušta zaProdaju na nulu, a kapacitet ostaje netaknut (FIXED_LEASE ograda)', async () => {
       const { service } = makeService({
-        capacityDays: [{ date: new Date('2027-07-12'), saleStatus: 'STOP', stopReason: 'renoviranje' }],
+        capacityDays: [
+          { date: new Date('2027-07-12'), saleStatus: 'STOP', stopReason: 'renoviranje' },
+        ],
       });
 
       const { rows } = await service.grid(upit as any);
@@ -164,7 +166,12 @@ describe('CapacityService', () => {
       ]);
 
       const rezultat = await service.setStopSale(
-        { contractId: 'c1', dateFrom: '2027-07-12', dateTo: '2027-07-14', source: 'SUPPLIER_EMAIL' } as any,
+        {
+          contractId: 'c1',
+          dateFrom: '2027-07-12',
+          dateTo: '2027-07-14',
+          source: 'SUPPLIER_EMAIL',
+        } as any,
         'actor-1',
       );
 
@@ -197,7 +204,11 @@ describe('CapacityService', () => {
 
       expect(prisma.capacityDay.upsert).toHaveBeenCalledWith(
         expect.objectContaining({
-          update: expect.objectContaining({ saleStatus: 'OPEN', stopReason: null, stopSource: null }),
+          update: expect.objectContaining({
+            saleStatus: 'OPEN',
+            stopReason: null,
+            stopSource: null,
+          }),
         }),
       );
     });

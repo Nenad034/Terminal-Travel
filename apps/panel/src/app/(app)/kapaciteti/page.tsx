@@ -43,7 +43,12 @@ function poslednjiDanMeseca(): string {
 }
 
 export default async function KapacitetiPage(props: {
-  searchParams: Promise<{ from?: string; to?: string; supplierId?: string; allotmentMode?: string }>;
+  searchParams: Promise<{
+    from?: string;
+    to?: string;
+    supplierId?: string;
+    allotmentMode?: string;
+  }>;
 }) {
   const searchParams = await props.searchParams;
   const me = await getMe();

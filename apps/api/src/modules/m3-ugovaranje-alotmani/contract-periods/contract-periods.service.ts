@@ -116,8 +116,7 @@ export class ContractPeriodsService {
 
     // Prodato se ne čita iz `units_sold` nego se poredi sa njim: `units_sold` je period-nivo
     // brojač (§2.8c) i za ovu proveru je tačno ono što treba — koliko je jedinica već obećano.
-    const nextCapacity =
-      dto.totalCapacity === undefined ? before.totalCapacity : dto.totalCapacity;
+    const nextCapacity = dto.totalCapacity === undefined ? before.totalCapacity : dto.totalCapacity;
     const oversoldBy =
       nextCapacity !== null && nextCapacity !== undefined ? before.unitsSold - nextCapacity : 0;
 

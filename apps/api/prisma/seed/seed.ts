@@ -3013,8 +3013,7 @@ async function seedM3CapacityGridMock() {
 
   const danas = new Date();
   const prviUMesecu = new Date(Date.UTC(danas.getUTCFullYear(), danas.getUTCMonth(), 1));
-  const dan = (offset: number) =>
-    new Date(prviUMesecu.getTime() + offset * 24 * 60 * 60 * 1000);
+  const dan = (offset: number) => new Date(prviUMesecu.getTime() + offset * 24 * 60 * 60 * 1000);
 
   const HOTELI: {
     hotel: string;

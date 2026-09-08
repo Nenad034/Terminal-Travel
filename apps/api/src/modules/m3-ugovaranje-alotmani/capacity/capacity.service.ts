@@ -72,7 +72,9 @@ export class CapacityService {
 
   // ── Mreža ────────────────────────────────────────────────────────────────
 
-  async grid(query: CapacityGridQueryDto): Promise<{ from: string; to: string; rows: CapacityGridRow[] }> {
+  async grid(
+    query: CapacityGridQueryDto,
+  ): Promise<{ from: string; to: string; rows: CapacityGridRow[] }> {
     const from = startOfDay(new Date(query.from));
     const to = startOfDay(new Date(query.to));
     if (to < from) throw new BadRequestException('Datum „do" je pre datuma „od"');

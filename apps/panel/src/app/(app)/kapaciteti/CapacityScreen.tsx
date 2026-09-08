@@ -231,9 +231,7 @@ function Broj({
   return (
     <div className="rounded-lg border border-border bg-panel2 p-2">
       <div className="text-[10px] uppercase tracking-wide text-ink-faint">{naslov}</div>
-      <div
-        className={`font-mono text-lg font-semibold ${upozorenje ? 'text-danger' : 'text-ink'}`}
-      >
+      <div className={`font-mono text-lg font-semibold ${upozorenje ? 'text-danger' : 'text-ink'}`}>
         {vrednost}
       </div>
     </div>
@@ -344,7 +342,13 @@ function BlokadaForma({
       </label>
       <label className="flex flex-col gap-1 text-[11px] text-ink-faint">
         Drži do (obavezno — posle ovog datuma se sam oslobađa)
-        <input name="holdUntil" type="date" defaultValue={podrazumevaniRok} className="input" required />
+        <input
+          name="holdUntil"
+          type="date"
+          defaultValue={podrazumevaniRok}
+          className="input"
+          required
+        />
       </label>
 
       <Posalji label="Blokiraj" />
@@ -399,7 +403,9 @@ function KapacitetForma({
 function Poruke({ state }: { state: CapacityFormState }) {
   return (
     <>
-      {state.error && <p className="rounded bg-danger-bg p-2 text-[11px] text-danger">{state.error}</p>}
+      {state.error && (
+        <p className="rounded bg-danger-bg p-2 text-[11px] text-danger">{state.error}</p>
+      )}
       {state.ok && <p className="rounded bg-ok-bg p-2 text-[11px] text-ok">{state.ok}</p>}
     </>
   );
