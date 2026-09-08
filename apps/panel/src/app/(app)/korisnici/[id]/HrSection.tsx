@@ -84,7 +84,12 @@ export default function HrSection({
       {employee && (
         <div className="mt-4 border-t border-border pt-3">
           <div className="mb-2 flex items-center justify-between text-xs">
-            <span className="font-medium text-ink">Godišnji odmor</span>
+            <span className="flex items-center gap-2">
+              <span className="font-medium text-ink">Godišnji odmor</span>
+              <a href="/kalendar-odsustava" className="text-accent-strong hover:underline">
+                prikaži kalendar
+              </a>
+            </span>
             {leaveBalance.entitled != null ? (
               <span className="text-ink-dim">
                 preostalo {leaveBalance.remaining} od {leaveBalance.entitled} dana
@@ -281,13 +286,15 @@ function EmployeeRecordForm({
         </label>
         <label className="text-ink-faint">
           dodeljeni dani godišnjeg odmora
-          <input
-            type="number"
-            min={0}
-            name="annualLeaveDaysEntitled"
-            defaultValue={employee?.annualLeaveDaysEntitled ?? ''}
-            className="input mt-1"
-          />
+          <div className="mt-1">
+            <input
+              type="number"
+              min={0}
+              name="annualLeaveDaysEntitled"
+              defaultValue={employee?.annualLeaveDaysEntitled ?? ''}
+              className="input"
+            />
+          </div>
         </label>
         <label className="text-ink-faint">
           neposredni rukovodilac (ID korisnika)
@@ -355,7 +362,9 @@ function LeaveRecordForm({ userId }: { userId: string }) {
       </label>
       <label className="text-ink-faint">
         dana
-        <input type="number" min={1} name="daysCount" required className="input mt-1 w-16" />
+        <div className="mt-1">
+          <input type="number" min={1} name="daysCount" required className="input w-16" />
+        </div>
       </label>
       <label className="text-ink-faint">
         napomena
