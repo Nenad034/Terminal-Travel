@@ -7,6 +7,7 @@ import {
   Req,
   UnauthorizedException,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { ApiTags } from '@nestjs/swagger';
 import { Request } from 'express';
 import { JwtService } from '@nestjs/jwt';
@@ -18,6 +19,7 @@ import {
   assertAccessTokenPayload,
 } from '../../m1-core-identitet/auth/guards/jwt-auth.guard';
 import { Public } from '../../../common/decorators/public.decorator';
+import { throttleLimit } from '../../../common/security/auth-throttle';
 
 // M5 spec §11 dopuna (avgust 2026, priprema za M8) — pretraga je JAVNA, bez guard-a.
 // M8 spec poglavlje 3 korak 1 zahteva anonimnu pretragu (gost bez naloga); ranija verzija
@@ -110,7 +112,12 @@ export class SearchController {
     return this.search.suggestDestinationsByActivity(activity, (channel ?? 'B2C_SITE') as never);
   }
 
+  // Bezbednosna analiza (dok. 36, §3 tačka 1, 28.8.2026) — javan, neautentifikovan endpoint,
+  // svaki poziv može pogoditi spoljne M4 provajdere (naplaćuju se, imaju sopstven rate-limit).
+  // 30/min po IP-ju je znatno ispod globalnog limita (100/min) — dovoljno za pravog gosta koji
+  // menja filtere, premalo za skriptovano izvlačenje kataloga.
   @Get()
+  @Throttle({ default: { limit: throttleLimit(30), ttl: 60_000 } })
   async find(@Query() query: SearchQueryDto, @Req() req: Request) {
     await this.assertInternalPanelAccess(query.channel, req);
 

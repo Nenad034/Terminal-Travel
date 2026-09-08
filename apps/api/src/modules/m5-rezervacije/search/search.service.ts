@@ -235,9 +235,15 @@ export class SearchService {
       where.geoLng = { gte: minLon, lte: maxLon };
     }
 
+    // Bezbednosna analiza (dok. 36, §3 tačka 7, 28.8.2026) — upit nije imao gornju granicu;
+    // bezopasno dok katalog ima par stotina proizvoda, ali `GET /search` je javan i
+    // neautentifikovan (§11 dopuna) i katalog raste. Tvrd plafon, ne prava paginacija — ekran
+    // pretrage nema kontrolu za stranice (rezultat se prikazuje kao jedna lista/mapa), pa je
+    // ovo bezbednosna ograda, ne UX promena.
     let products = await this.prisma.product.findMany({
       where,
       include: { translations: true, sourceContract: true },
+      take: 300,
     });
 
     // M5 spec §11 v1.28 (17.8.2026) — filteri specifični po tipu proizvoda, ožičeni 22.8.2026

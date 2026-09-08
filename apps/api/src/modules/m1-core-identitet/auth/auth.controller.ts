@@ -1,4 +1,5 @@
 import { Body, Controller, Get, Post, Req, UseGuards } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Request } from 'express';
 import { PrismaService } from '../../../prisma/prisma.service';
@@ -10,6 +11,7 @@ import { ConfirmMfaSetupDto, StartMfaSetupDto } from './dto/mfa-setup.dto';
 import { RegisterDto } from './dto/register.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { Public } from '../../../common/decorators/public.decorator';
+import { throttleLimit } from '../../../common/security/auth-throttle';
 
 // M1 spec §6, prefiks /api/v1/iam (postavljen globalno u main.ts kao /api/v1)
 @ApiTags('auth')
@@ -40,14 +42,22 @@ export class AuthController {
     return this.auth.register(dto);
   }
 
+  // Bezbednosna analiza (dok. 36, §3 tačka 1, 28.8.2026) — nalog-nivo zaključavanje (5 pogrešnih
+  // → 15 min) štiti JEDAN nalog, ne sprečava "sporo, široko" pogađanje lozinki preko mnogo
+  // naloga sa istog IP-ja. 10/min je znatno ispod globalnog limita (100/min, app.module.ts) —
+  // dovoljno za legitimno ponovno kucanje, premalo za automatizovan pokušaj preko liste naloga.
   @Post('login')
   @Public()
+  @Throttle({ default: { limit: throttleLimit(10), ttl: 60_000 } })
   login(@Body() dto: LoginDto, @Req() req: Request) {
     return this.auth.login(dto.email, dto.password, req.ip ?? null);
   }
 
+  // Isti razlog kao login iznad — MFA kod je 6-cifreni broj (1.000.000 kombinacija), nalog-nivo
+  // zaključavanje već postoji (AuthService.verifyMfa), ovo je dodatan sloj po IP-ju.
   @Post('mfa/verify')
   @Public()
+  @Throttle({ default: { limit: throttleLimit(10), ttl: 60_000 } })
   verifyMfa(@Body() dto: MfaVerifyDto, @Req() req: Request) {
     return this.auth.verifyMfa(
       dto.mfaToken,
@@ -69,6 +79,7 @@ export class AuthController {
 
   @Post('mfa/setup/confirm')
   @Public()
+  @Throttle({ default: { limit: throttleLimit(10), ttl: 60_000 } })
   confirmMfaSetup(@Body() dto: ConfirmMfaSetupDto, @Req() req: Request) {
     return this.auth.confirmMfaSetup(
       dto.setupToken,
