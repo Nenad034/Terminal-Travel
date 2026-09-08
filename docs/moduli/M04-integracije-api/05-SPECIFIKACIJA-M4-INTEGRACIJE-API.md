@@ -3,6 +3,8 @@
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M4) i poglavlje 8 (Faza 1)
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje (pisano od nule — raniji "Travelgate predlog" pomenut u Master dokumentu nije pronađen)
+**Verzija:** 1.15 — **uparivanje provajderovog objekta i tipa sobe sa našim katalogom** (8.9.2026, novo poglavlje 3.3, na zahtev vlasnika). Nastalo iz potvrde da se **isti hotel nabavlja od više dobavljača istovremeno** i da uz ugovore idu API konekcije: hotel-first prikaz kapaciteta (M3 §2.9, ekran M17 §4b) prikazuje sve izvore jednog objekta na jednom mestu, što je moguće samo ako sistem zna da su tri različita naziva isti hotel. Bez toga ekran ne bi bio nepotpun nego **pogrešan**. Uvedeni `ProviderProductMapping` i `ProviderRoomTypeMapping` (naš M2 `Product` je jedini identitet, provajderove šifre pokazuju na njega), sa tri tvrde ograde: **nikad automatsko uparivanje po sličnosti naziva** (sistem predlaže uz mesto/državu/kategoriju, čovek potvrđuje, `matched_by` je uvek stvaran korisnik), **nemapiran objekat se ne prodaje** i ne nestaje tiho nego ide u red za pregled sa brojem viđenja (namerno strože od ponašanja opisanog u `05-ANALIZA-MCP-KONEKTORI-SMESTAJ.md`), i **„ovo je nov tip sobe" je ravnopravna opcija** pri uparivanju soba — jer bi uparivanje slabije sobe na bolji tip, uz pravilo prodaje po najnižoj ceni (M3 §2.10), sistematski prodavalo slabiju sobu pod imenom bolje. Dve nove dozvole (AI agent nikad ne dobija `EDIT`, sme samo `/mappings/suggest`), četiri endpoint-a, tri stavke izlaznog kriterijuma. **Čisto specifikaciona dopuna, bez koda u ovom prolazu.**
+
 **Verzija:** 1.14 — poglavlje 9 dopunjeno preduslovom identiteta za MCP konektore (28.8.2026) — pokazivač na novi M15 spec §6.5.6d/`TrustedMcpConnector` gate, nastao iz vlasnikovog pitanja "šta ako link nije to što se misli da jeste" o MCP konektoru pronađenom preko medija. Nema izmene tehničkog sadržaja postojeće M4 analize, samo eksplicitan bezbednosni preduslov pre bilo kakvog wiring-a.
 **Verzija:** 1.13 — `05-ANALIZA-MCP-KONEKTORI-SMESTAJ.md` dopunjena istog dana (28.8.2026) novim poglavljem o TravelgateX/HotelX (pravi B2B GraphQL API, ne isti MCP konektor kao Expedia/Novasol/Booking.com) — nalazi su iz dokumentacije (kapa.ai MCP samo pretražuje `docs.travelgate.com`, nema pristup live API-ju), izričito označeni kao "čeka live potvrdu" pre oslanjanja. Ključno za budući adapter ako se usvoji: obavezan Search→Quote→Book tok (cena iz Search NIJE garantovana), i kritičan nalaz da se nemapiran pansion tiho briše iz rezultata bez ikakve greške — ozbiljnije od tihog ignorisanja filtera kod Expedije (v1.12). I dalje čista referenca, ništa usvojeno.
 **Verzija:** 1.12 — poglavlje 9 dopunjeno zapisom o tri empirijski testirana MCP konektora za pretragu smeštaja (Expedia/Novasol/Booking.com, 28.8.2026, vlasnik dostavio nalaze) — pun nalaz u novom `05-ANALIZA-MCP-KONEKTORI-SMESTAJ.md` (ovaj folder). Čista referenca, ne usvajanje — nijedan adapter nije ovim dodat, čeka odluku vlasnika i, po usvajanju, sopstvenu implementacionu napomenu (MCP poziv je strukturno drugačiji obrazac od SOAP/REST adaptera u poglavljima 5/5a/5b).
@@ -116,6 +118,47 @@ Svrha: dijagnostika integracije (da li Travelgate usporava, da li određeni pozi
 
 ---
 
+### 3.3 Uparivanje provajderovog objekta sa našim katalogom (dopuna v1.15, 8.9.2026, na zahtev vlasnika — M3 poglavlje 2.9f)
+
+**Zašto ovo postoji.** Vlasnik je 8.9.2026. potvrdio da se **isti hotel nabavlja od više dobavljača istovremeno**, i da uz direktne ugovore idu i API konekcije. Novi hotel-first prikaz kapaciteta (M3 poglavlje 2.9, ekran M17 poglavlje 4b) prikazuje sve izvore jednog objekta na jednom mestu — a to je moguće samo ako sistem zna da su „Hotel Splendid", „SPLENDID CONFERENCE & SPA" i provajderova interna šifra isti objekat.
+
+Bez ovog mapiranja ekran ne bi bio nepotpun, nego **pogrešan**: prikazao bi tri hotela umesto jednog, i zbir po objektu (M3 poglavlje 2.9e) izgubio bi smisao.
+
+**Naš katalog je gazda.** M2 `Product` je jedini identitet objekta; provajderove šifre pokazuju na njega, nikad obrnuto. Ovo je ista podela koja već važi za ugovore (`Product.source_contract_id`, M3 poglavlje 3).
+
+#### 3.3.1 `ProviderProductMapping`
+
+| Polje                   | Tip                                          | Napomena                                                                          |
+| :---------------------- | :------------------------------------------- | :-------------------------------------------------------------------------------- |
+| id                      | UUID (PK)                                    |                                                                                   |
+| provider_code           | string (FK → `ProviderConfig.provider_code`) |                                                                                   |
+| external_id             | string                                       | provajderova šifra objekta; jedinstveno u paru sa `provider_code`                 |
+| external_name           | string                                       | naziv kako ga provajder šalje — čuva se **doslovno**, radi kasnijeg prepoznavanja |
+| product_id              | UUID, nullable (weak ref → M2 `Product`)     | `null` = još neupareno, čeka čoveka                                               |
+| status                  | enum: `PENDING`, `MAPPED`, `IGNORED`         | `IGNORED` = svesno odlučeno da ovaj objekat ne uvodimo u katalog                  |
+| matched_by / matched_at | UUID (FK → M1 User) / timestamp              | uvek čovek — vidi pravilo ispod                                                   |
+| created_at / updated_at | timestamp                                    |                                                                                   |
+
+#### 3.3.2 `ProviderRoomTypeMapping`
+
+Isti oblik, jedan nivo niže: `provider_code` + `external_product_id` + `external_room_code` → naš tip sobe. Ovaj deo je u praksi **teži** od uparivanja objekta („DBL Standard Sea View" naspram „Double Superior" — da li je to ista soba?), i odgovor zna samo čovek koji je video ugovor ili objekat.
+
+Ekran za uparivanje mora da ponudi **„ovo je nov tip sobe"** kao ravnopravnu opciju, ne kao izuzetak sakriven na dnu liste. Razlog je poslovni i objašnjen u M3 poglavlju 2.9g: ako se slabija soba upari na postojeći, bolji tip, pravilo prodaje po najnižoj ceni (M3 poglavlje 2.10) sistematski prodaje slabiju sobu pod imenom bolje — a posledica su reklamacije koje niko ne povezuje sa uzrokom.
+
+#### 3.3.3 Nikad automatsko uparivanje po sličnosti naziva
+
+„Splendid Palace, Rim" i „Splendid, Bečići" su tekstualno vrlo slični i suštinski nepovezani objekti. Svaka heuristika po nazivu pre ili kasnije spoji dva različita hotela, a takva greška se otkriva tek kad gost stigne na pogrešnu adresu.
+
+**Pravilo:** sistem sme da **predloži** kandidata (i da uz predlog prikaže mesto, državu i kategoriju, jer se po njima razlikuju), ali `status` prelazi u `MAPPED` isključivo ljudskom potvrdom, i `matched_by` je uvek stvaran korisnik. Nema praga pouzdanosti iznad kog se upisuje samo — isti stroži izbor kao kod uvoza cenovnika (M3 poglavlje 4.2.4), iz istog razloga: greška ovde ne otvara spor, nego pokvari putovanje.
+
+#### 3.3.4 Nemapiran objekat se ne prodaje
+
+Rezultat pretrage koji nema `MAPPED` mapiranje **ne ulazi u ponudu**. Ne prikazuje se kao „nepoznat hotel", ne pravi se privremen proizvod, i ne pretpostavlja se da je isti kao neki postojeći.
+
+Ovo je namerno strože od ponašanja nekih provajdera opisanog u `05-ANALIZA-MCP-KONEKTORI-SMESTAJ.md` (nemapiran pansion se tiho briše iz rezultata bez greške): kod nas nemapiran objekat **ne nestaje tiho** nego se pojavljuje u redu za pregled sa brojem koliko puta je viđen u pretragama. Tiho odbacivanje je isto što i gubitak podatka, samo bez traga.
+
+---
+
 ## 4. Otpornost na greške (M4 mora da pretpostavi da spoljni provajderi ponekad ne rade)
 
 - **Timeout po operaciji** — pretraga: kratak (npr. 8s), potvrda rezervacije: duži (npr. 15s), konfigurabilno po provajderu (`ProviderConfig`).
@@ -201,12 +244,14 @@ Za naš scenario (agencija, neto cena, konkretan set hotela) treba **Travel Agen
 
 ## 6. Dozvole (registruju se u M1 katalog dozvola)
 
-| Dozvola                                                            | Podrazumevana dodela po ulozi                                     |
-| :----------------------------------------------------------------- | :---------------------------------------------------------------- |
-| `M4/provider-config/VIEW`                                          | Vlasnik, Direktor                                                 |
-| `M4/provider-config/CREATE`, `EDIT`                                | Vlasnik, Direktor                                                 |
-| `M4/provider-call-log/VIEW`                                        | Vlasnik, Direktor                                                 |
-| **Operativni endpoint-i (`/internal/providers/...`, poglavlje 7)** | **zahtevaju `M4/provider-config/EDIT`** — dakle Vlasnik, Direktor |
+| Dozvola                                                            | Podrazumevana dodela po ulozi                                                                                                                                                                  |
+| :----------------------------------------------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `M4/provider-config/VIEW`                                          | Vlasnik, Direktor                                                                                                                                                                              |
+| `M4/provider-config/CREATE`, `EDIT`                                | Vlasnik, Direktor                                                                                                                                                                              |
+| `M4/provider-call-log/VIEW`                                        | Vlasnik, Direktor                                                                                                                                                                              |
+| `M4/product-mapping/VIEW`                                          | Vlasnik, Direktor, Sales Manager — radni red uparivanja gleda i operativa, ne samo administracija                                                                                              |
+| `M4/product-mapping/EDIT` (poglavlje 3.3)                          | Vlasnik, Direktor, Sales Manager — uparivanje je uvek ljudska potvrda i `matched_by` je stvaran korisnik; AI agent ovu dozvolu **nikad** ne dobija, sme samo da predloži (`/mappings/suggest`) |
+| **Operativni endpoint-i (`/internal/providers/...`, poglavlje 7)** | **zahtevaju `M4/provider-config/EDIT`** — dakle Vlasnik, Direktor                                                                                                                              |
 
 Napomena: M4 je pretežno mašina-mašini sloj (pozivaju ga M2/M5 interno) — ovlašćenja iznad su samo za administrativni uvid/podešavanje provajdera, ne za svakodnevnu upotrebu.
 
@@ -222,11 +267,15 @@ Prefiks: `/api/v1/integrations`
 
 **Administrativni (za interni panel):**
 
-| Endpoint              | Metod       | Opis                                                               |
-| :-------------------- | :---------- | :----------------------------------------------------------------- |
-| `/providers`          | GET / POST  | lista / dodavanje konfiguracije provajdera                         |
-| `/providers/:code`    | GET / PATCH | uključivanje/isključivanje, izmena kredencijala                    |
-| `/provider-call-logs` | GET         | filtrirano po provajderu/operaciji/datumu/statusu, za dijagnostiku |
+| Endpoint              | Metod       | Opis                                                                                                                                                                                             |
+| :-------------------- | :---------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/providers`          | GET / POST  | lista / dodavanje konfiguracije provajdera                                                                                                                                                       |
+| `/providers/:code`    | GET / PATCH | uključivanje/isključivanje, izmena kredencijala                                                                                                                                                  |
+| `/mappings`           | GET / POST  | uparivanje provajderovog objekta sa našim katalogom (poglavlje 3.3) — `GET` filtrira po `status`, `PENDING` je radni red za čoveka; `POST` upisuje ljudsku potvrdu i uvek popunjava `matched_by` |
+| `/mappings/:id`       | PATCH       | promena uparivanja ili prelazak u `IGNORED`; nikad automatski poziv                                                                                                                              |
+| `/mappings/suggest`   | GET         | **predlog** kandidata za nemapiran objekat — vraća naziv, mesto, državu i kategoriju uz svaki predlog; sam predlog ništa ne upisuje (poglavlje 3.3.3)                                            |
+| `/room-type-mappings` | GET / POST  | isto, jedan nivo niže (poglavlje 3.3.2) — ekran obavezno nudi „ovo je nov tip sobe" kao ravnopravnu opciju                                                                                       |
+| `/provider-call-logs` | GET         | filtrirano po provajderu/operaciji/datumu/statusu, za dijagnostiku                                                                                                                               |
 
 **Interni (poziva ih isključivo M2/M5, nisu izloženi kanalima poput sajta ili B2B portala) — svi zahtevaju `M4/provider-config/EDIT` (poglavlje 6, dopuna 3.9.2026):**
 
@@ -247,6 +296,9 @@ Prefiks: `/api/v1/integrations`
 - [x] Travelgate adapter implementiran, ispunjava `ProviderAdapter` interfejs u potpunosti. _(dokazano unit testom sa mokovanim `fetch`, avgust 2026; nema stvarnih Travelgate kredencijala — live poziv nije proveren, vidi §9)_
 - [ ] Rezultati pretrage se ispravno normalizuju i M2 lenjo keširanje radi kraj-do-kraja (vidi M2 spec). _(normalizacija dokazana; M4→M2 poziv koji stvarno kreira `CACHED` zapis u trenutku prve pretrage nije povezan — čeka M5, koji pokreće pretragu)_
 - [ ] `AvailabilityQuote` poštuje `quoteExpiresAt` — M5 odbija potvrdu rezervacije sa isteklom ponudom i traži novu proveru. _(M4 strana popunjava `quoteExpiresAt`; provera na potvrdi je M5 odgovornost, M5 još ne postoji)_
+- [ ] **Uparivanje (poglavlje 3.3):** rezultat pretrage sa provajdera koji nema `MAPPED` mapiranje **ne ulazi u ponudu** i pojavljuje se u redu `PENDING` sa brojem viđenja — ne nestaje tiho i ne pravi privremen proizvod.
+- [ ] **Nikad po sličnosti naziva:** dva objekta bliskog naziva u različitim mestima („Splendid Palace, Rim" i „Splendid, Bečići") sistem sme da ponudi kao kandidate, ali nijedan ne prelazi u `MAPPED` bez ljudske potvrde; `matched_by` je uvek stvaran korisnik, nikad AI agent.
+- [ ] **Tip sobe kao nov, ne kao najbliži:** ekran uparivanja tipova soba nudi „ovo je nov tip sobe" kao ravnopravnu opciju; test pokriva slučaj slabije sobe koja se ne sme upariti na postojeći bolji tip (M3 poglavlje 2.9g).
 - [x] Test simuliranog timeout-a pri `confirmBooking` sa ponovljenim pokušajem ne pravi duplu rezervaciju (provera preko `idempotency_key`). _(dokazano e2e testom, avgust 2026 — drugi poziv sa istim `idempotency_key` vraća sačuvan ishod bez ponovnog pozivanja adaptera, čak i kad bi adapter odbio poziv)_
 - [ ] Simulirani pad Travelgate-a ne ruši pretragu — ostali izvori i dalje vraćaju rezultate, greška je zabeležena. _(M4 sam po sebi ne agregira više provajdera u jednom pozivu — to je M5 posao (pozvati M4 po provajderu i uhvatiti pojedinačni neuspeh); M4 strana — da pad jednog provajdera ne obori M4 proces — dokazana kroz circuit breaker/error-handling testove)_
 - [x] Kredencijali provajdera enkriptovani u bazi, nikad u čistom tekstu u logovima (`ProviderCallLog.request_summary` redaktovan). _(dokazano e2e testom, avgust 2026 — `authConfigEncrypted` nikad u API odgovoru; `request_summary` redaktuje password/login/GUID/apiKey/guestName pre upisa)_

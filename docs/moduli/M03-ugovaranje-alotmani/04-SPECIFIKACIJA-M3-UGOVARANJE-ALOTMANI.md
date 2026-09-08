@@ -3,6 +3,8 @@
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M3) i poglavlje 8 (Faza 1)
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje
+**Verzija:** 1.19 — **isti hotel iz više izvora, redosled prodaje, i tri dopune AI podrške** (8.9.2026, na osnovu razgovora sa vlasnikom). Potvrđeno je da se **isti objekat nabavlja od više dobavljača istovremeno**, i da pored ugovora postoje API konekcije koje same povlače raspoloživost, dok se kod nas beleže prodati kapaciteti. Novo poglavlje **2.9** uvodi tri vrste izvora (naš ugovor / API / na upit) i zabranu njihovog mešanja: raspoloživost sa API-ja se **nikad** ne upisuje kao naš kapacitet, formula `kapacitet − prodato` za takav red **ne važi** (njihov broj je već umanjen za naše prodaje — oduzimanje bi bilo dvostruko), zbir po hotelu se računa isključivo preko naših ugovora, a naša odluka da ne prodajemo tuđi inventar vodi se kao zaseban zapis `SourceSaleRestriction` („naša zabrana", nikad „zatvoreno"). Uparivanje objekta i tipa sobe je preduslov celog prikaza i nikad se ne radi automatski po sličnosti naziva (model u M4 §3.3). Novo poglavlje **2.10** upisuje vlasnikovu odluku o redosledu prodaje — **osnovni filter je najniža prodajna (ne nabavna) cena**, unutar istog mapiranog tipa sobe, uz `SupplierPriority` koji odlučuje samo kod izjednačenih cena i `HotelSourcePreference` kao izuzetak po hotelu sa obaveznim, agentu vidljivim razlogom; time je **odbačen** raniji predlog ovog dokumenta da fiksni zakup ide prvi, a njegova neprodaja se rešava cenom i upozorenjem, ne skrivenim redosledom. Slabije sobe po nižoj ceni su **poseban tip sobe**, ne isti tip jeftinije (2.9g) — inače bi pravilo najniže cene sistematski prodavalo samo njih. Dopune AI podrške: **4.5** predlog obima povrata pred rok, uvek sa brojevima i sa izričitom napomenom kad uporednog podatka nema; **4.6** predlog izmene iz mejla dobavljača (razrađuje raniju belešku 4.4.3; sadržaj mejla je podatak a nikad instrukcija; blokirano dok M22 ne dovuče poštu); **4.7** dnevni pregled „šta se promenilo od juče". Poglavlje **2.8e** uvodi dnevni kontrolni presek `units_sold` protiv zbira po danima (razilaženje je već viđeno 8.9.2026 na mock podacima) koji javlja i **ne** ispravlja sam. Dve nove dozvole, devet novih endpoint-a, devet stavki izlaznog kriterijuma. Prateće izmene u istom prolazu: M4 §3.3 (mapiranje), M17 §4b (hotel-first ekran), M15 §4 (dve akcije), M18 §2.1 (signal `CAPACITY_COUNTER_DRIFT`), M2 §2.3e (razlika u kvalitetu je nov tip sobe), dok. 44 §11, dok. 27. **Čisto specifikaciona dopuna, bez koda u ovom prolazu.**
+
 **Verzija:** 1.18 — **implementacija poglavlja 2.3d i 2.8** (8.9.2026, isti dan kad su i specificirana). Migracije `m3_contract_period_status_v116` (`ContractPeriod.status`/`deactivated_by`/`deactivated_at`) i `m3_capacity_day_stop_sale_blocks_v115` (`capacity_days`, `capacity_blocks`, tri nova enuma). `PATCH`/`DELETE` na periodu (do sad nisu postojali) sa ponovnom proverom preklapanja, gašenjem umesto brisanja kad period ima rezervacije, i dozvoljenim smanjenjem ispod prodatog uz `confirmOversold` + `capacity_oversold` događaj. Nov `CapacityService`/`CapacityController` (`/contracting/capacity/*`): mreža po danima (prodato se RAČUNA iz `BookingItem` preko `RateLine`, nigde se ne upisuje), stop-sale sa dve dimenzije obima, dnevni `capacity_override`, blokade sa obaveznim rokom i samo-oslobađanjem. Tri nove dozvole u seed-u (`capacity/VIEW` — Vlasnik/Direktor/Sales Manager/Prodajni agent, `capacity/BLOCK` — + Sales Manager, `capacity/CLOSE_SALE` — Vlasnik/Direktor, dalje pojedinačno po korisniku). Ekran: M17 §4b. **Provera:** 24 nova unit testa (10 period + 14 kapacitet), 1165 backend testova prolazi, `tsc` čist za `apps/api` i `apps/panel`, ESLint bez grešaka; ekran viđen u pravom browseru nad mock podacima (`seedM3CapacityGridMock`), blokada uneta kroz formu potvrđena u bazi. **Poznat nedostatak, namerno neprikriven:** `reserve()` još proverava kapacitet po periodu, ne po danu — mreža prikazuje stop-sale i blokade, ali ih M5 pri potvrdi rezervacije još ne poštuje (izlazni kriterijum, stavka „Konkurentnost po danu").
 
 **Verzija:** 1.17 — **AI agent koji uređuje kapacitete na ljudski zahtev** (8.9.2026, na zahtev vlasnika, novo poglavlje 4.4). Ne agent koji sam odlučuje šta da zatvori, nego onaj kome se kaže ("zatvori Splendid, sve sobe, 12–15.7.") i koji jednu rečenicu prevede u tačne dnevne zapise — posao u kom čovek greši jer unos ima dve dimenzije obima. Čitanje je `AUTONOMOUS`, sve tri izmene (`capacity.stop_sale`/`block`/`override`) su `PROPOSE_THEN_APPROVE`, a potvrdu daje isti čovek koji je tražio. Šest obaveznih ograda, od kojih tri najvažnije: agent **nema sopstvene dozvole** nego radi pravima korisnika (ko nema `CLOSE_SALE` ne može ni preko agenta), pregled pre izvršenja je **prebrojan** a ne opisan, i prekoračenje traži **drugu, izričitu potvrdu** uz broj gostiju koji ostaju bez pokrića. Nejasan zahtev se pita, nikad ne pogađa; jedan zahtev je jedna transakcija; trag nosi i agenta i čoveka. Predlog iz mejla dobavljača (§4.4.3) zabeležen ali van prvog prolaza — M22 još ne dovlači poštu. Registar akcija u M15 §4 i pregled u dok. 32 dopunjeni u istom prolazu. **Čisto specifikaciona dopuna, bez koda u ovom prolazu.**
@@ -399,6 +401,170 @@ za_prodaju  = max(0, razlika)                          ← 0 ako je sale_status 
 
 ---
 
+#### 2.8e Kontrolni presek — dva brojača istog podatka moraju da se slažu (dopuna v1.19, 8.9.2026)
+
+Poglavlje 2.8c svesno zadržava redundansu: `ContractPeriod.units_sold` postoji uz izračun po danu. Redundansa je opravdana (zbir po periodu je tačno ono što treba upozorenju pred rok povrata i alarmu za nizak kapacitet), ali nosi poznatu cenu — dva broja koja opisuju istu stvar pre ili kasnije se raziđu.
+
+**Ovo nije teorijska bojazan, već se desilo.** 8.9.2026, pri prvom prikazu mreže nad mock podacima, ekran ugovora je prikazivao „0 od 12 prodato" dok je mreža istog perioda prikazivala prodate dane — mock je upisivao rezervacije, ali nije uvećavao `units_sold`. Uzrok je ispravljen, ali mogućnost razilaženja nije uklonjena, jer je redundansa namerna.
+
+**Dnevna tiha provera** (planiran posao, jednom dnevno, van radnog vremena): za svaki aktivan `ContractPeriod` uporediti `units_sold` sa zbirom potvrđenih `BookingItem.unit_count` koji pripadaju tom periodu. Kad se raziđu, emitovati `capacity_counter_drift` na Event Bus → M18 signal `CAPACITY_COUNTER_DRIFT`, `severity = WARNING`, sa oba broja u telu signala.
+
+**Provera ne ispravlja podatak sama.** Razilaženje može značiti i grešku u brojaču i grešku u rezervacijama, i tiho „ispravljanje" na jednu stranu bi uništilo trag koji je jedini način da se nađe uzrok. Sistem javlja; čovek gleda.
+
+### 2.9 Isti hotel iz više izvora — vrste izvora i zabrana njihovog mešanja (dopuna v1.19, 8.9.2026, na zahtev vlasnika)
+
+**Šta je potvrđeno.** Vlasnik je 8.9.2026. potvrdio da se **isti hotel nabavlja od više dobavljača istovremeno**, i da pored direktnih ugovora postoje i API konekcije koje same povlače kapacitet i raspoloživost, dok se **kod nas beleže prodati kapaciteti**. Poglavlja 2.8a–2.8d opisuju svet u kom je kapacitet uvek naš i uvek autorski; ovo poglavlje uvodi drugu vrstu izvora, kod koje to ne važi.
+
+#### 2.9a Tri vrste izvora, sa različitim vlasništvom nad brojem
+
+| Vrsta izvora                                       | Ko je vlasnik broja                      | Sme li se menjati kod nas                 | Gde živi                                      |
+| :------------------------------------------------- | :--------------------------------------- | :---------------------------------------- | :-------------------------------------------- |
+| **Naš ugovor** (`FIXED`, `CHARTER`, `FIXED_LEASE`) | mi — ugovorili smo ga i upisali          | da (poglavlje 2.8a)                       | `ContractPeriod` + `CapacityDay`              |
+| **API izvor** (bed bank, channel manager, portal)  | dobavljač — mi samo pitamo i prikazujemo | **ne** — samo naša zabrana prodaje (2.9d) | M4, `AvailabilityQuote`, nikad trajno kod nas |
+| **Na upit** (`ON_REQUEST`)                         | niko — broja nema                        | samo stop-sale ("ne šalji više upite")    | `ContractPeriod` bez kapaciteta               |
+
+**Ova tri se na ekranu nikad ne prikazuju kao ista vrsta broja.** Svaki red mreže obavezno nosi vidljivu oznaku izvora; kod API izvora uz broj stoji i **vreme poslednjeg odgovora**. Razlog je operativni, ne estetski: broj iz našeg ugovora važi dok ga neko ne promeni, a broj sa API-ja važi možda još nekoliko minuta. Kad izgledaju isto, čovek ih čita isto — i prodaje po podatku koji više ne postoji.
+
+#### 2.9b Šta se kod nas beleži, a šta nikad
+
+**Beleži se prodato, za sve izvore jednako.** Svaka naša rezervacija je naš dokument, naša marža i naša obaveza prema putniku bez obzira ko je hotel isporučio — M5 `Booking`/`BookingItem` nastaje isto i kod ugovora i kod API izvora (to je već tako, vidi M4 poglavlje 2.1 `BookingConfirmation`).
+
+**Ne beleži se raspoloživost sa API izvora.** Ona se ne prepisuje u `ContractPeriod.total_capacity`, ne materijalizuje u `CapacityDay`, i ne postaje naš kapacitet ni pod kojim uslovom. Ovo je već pravilo M2 (katalog ne drži cenu ni kapacitet, M2 poglavlje 4) i M4 (`AvailabilityQuote` se koristi odmah ili odbacuje, M4 poglavlje 2.1) — ovde se samo izričito proteže na mrežu kapaciteta, jer je mreža prvo mesto na kom bi keširanje delovalo primamljivo.
+
+Za prikaz (ne za prodaju) mreža sme da prikaže **poslednji poznat odgovor** uz obavezno vreme i dugme za osvežavanje. Potvrda rezervacije nikad ne sme da se osloni na taj prikazani broj — pred potvrdu se uvek ide u svež poziv (`checkAvailabilityAndPrice`, M4 poglavlje 2). Odgovor koji je doveo do rezervacije se čuva uz nju kao dokaz (M4 `ProviderCallLog`, poglavlje 3.2) — to je jedini trag kad kasnije nastane spor "vi ste to prodali, a mi nismo imali".
+
+#### 2.9c Formula iz 2.8c ne važi za API izvore — dvostruko oduzimanje
+
+Kod našeg ugovora `razlika = kapacitet − prodato − blokirano` ima smisla jer smo mi jedini koji od tog kapaciteta oduzimaju.
+
+Kod API izvora **nema**. Kad prodamo sobu preko bed banke, njihov sistem je već umanjio svoju raspoloživost — naša rezervacija je u tom broju sadržana. Ako od njihovih „5" oduzmemo naše „3 prodate", dobijemo 2, a stvarno stanje je 5: isti kapacitet je oduzet dvaput i agencija odbija goste bez razloga.
+
+**Pravilo:** za red čiji je izvor API, sistem prikazuje **dva nezavisna broja bez ijedne računske veze**:
+
+```
+dobavljač javlja:  5   (odgovor u 09:12)
+mi prodali:        3   (naše rezervacije preko ovog izvora)
+```
+
+Nikakva `razlika`, nikakav `za_prodaju` izračun. `za_prodaju` za API red je uvek ono što provajder kaže u tom trenutku, umanjeno eventualnom **našom** zabranom (2.9d).
+
+#### 2.9d `SourceSaleRestriction` — naša zabrana prodaje nad tuđim kapacitetom
+
+Stop-sale iz poglavlja 2.8a je prenos **dobavljačeve** informacije nad **našim** kapacitetom. Nad API izvorom to nije moguće — nemamo pravo da menjamo tuđ inventar. Ali potreba da se prodaja zaustavi postoji i tu, i ima realne poslovne razloge (loše iskustvo sa objektom, nerešena reklamacija, dug, privremena odluka uprave).
+
+| Polje                  | Tip                            | Napomena                                                       |
+| :--------------------- | :----------------------------- | :------------------------------------------------------------- |
+| id                     | UUID (PK)                      |                                                                |
+| product_id             | UUID (weak ref → M2 `Product`) | hotel na koji se zabrana odnosi                                |
+| provider_code          | string, nullable               | `null` = zabrana važi za **sve** API izvore tog hotela         |
+| room_type_code         | string, nullable               | `null` = svi tipovi soba                                       |
+| date_from / date_to    | date, nullable                 | `null`/`null` = bez vremenskog ograničenja, do ručnog skidanja |
+| reason                 | text                           | **obavezno** — piše se agentu na ekran, ne samo u dnevnik      |
+| status                 | enum: `ACTIVE`, `LIFTED`       |                                                                |
+| created_by / lifted_by | UUID (FK → M1 User)            |                                                                |
+| created_at / lifted_at | timestamp                      |                                                                |
+
+**Na ekranu se zove „naša zabrana", nikad „zatvoreno".** To su dve različite činjenice sa dva različita nastavka: „zatvoreno" znači da hotel nema mesta i nema se šta uraditi; „naša zabrana" znači da mi ne prodajemo iako mesta ima, i neko je sme skinuti. Prikaz koji ih izjednačava tera agenta da zove dobavljača bez potrebe.
+
+Zabrana se **ne šalje dobavljaču** — nema tok koji bi naše ograničenje gurnuo u tuđ sistem, i ne pretvara se u to. To je isključivo naša odluka o sopstvenoj prodaji.
+
+M5 mora da je poštuje pri sastavljanju ponude i pri potvrdi rezervacije, istim mehanizmom kojim poštuje stop-sale iz 2.8a (razlog odbijanja: „naša zabrana prodaje", treći slučaj pored dva iz poglavlja 2.8d).
+
+#### 2.9e Zbir po hotelu se računa samo preko naših ugovora
+
+Mreža prikazuje red „ukupno u hotelu". Taj zbir obuhvata **isključivo naše ugovorene kapacitete**, a API izvori se ispod njega navode pojedinačno, bez sabiranja.
+
+Razlog: alotman od 10 soba kod dobavljača A i „ima 5" kod dobavljača B mogu biti **iste fizičke sobe**, ponuđene na tržištu dva puta. Zbir „15" bi bio izmišljen broj koji izgleda kao merenje. Isti razlog važi i za dva naša ugovora sa preklapajućim datumima (star ugovor do 30.6., nov od 1.7. — ali sa preklapanjem od nedelju dana): zbir se računa, ali se uz njega prikazuje upozorenje kad ugovoreni zbir za jedan datum pređe **fizički broj jedinica objekta**, ako je taj podatak poznat iz M2.
+
+**Upozorenje, ne zabrana.** Preklapanje je ponekad namerno (prelazak sa dobavljača na dobavljača, rezerva za grupu), pa sistem na njega skreće pažnju i ne sprečava ga.
+
+#### 2.9f Uparivanje je preduslov za sve iznad
+
+Ceo hotel-first prikaz (M17 poglavlje 4b) stoji na pretpostavci da sistem **zna** da su „Hotel Splendid", „SPLENDID CONFERENCE & SPA" i provajderova interna šifra jedan te isti objekat. Ako to ne zna, ekran prikazuje tri hotela umesto jednog i lošiji je od stanja bez njega.
+
+**Naš katalog (M2 `Product`) je gazda.** Svaki izvor nosi svoju spoljnu šifru koja pokazuje na naš proizvod: kod ugovora to je već `Product.source_contract_id` (poglavlje 3), kod API izvora to je `ProviderProductMapping` (M4 poglavlje 3.3, dodato istom dopunom). Isto važi i za tipove soba, gde je posao teži (`ProviderRoomTypeMapping`).
+
+**Nikad automatsko uparivanje po sličnosti naziva.** „Splendid Palace, Rim" i „Splendid, Bečići" su po tekstu vrlo slični i po suštini nepovezani. Nemapiran ulaz ide u red za ljudski pregled (M4 poglavlje 3.3), ne u nagađanje.
+
+#### 2.9g Isti hotel, lošija soba, niža cena — to je drugi tip sobe, ne ista soba jeftinije
+
+Vlasnik je 8.9.2026. potvrdio da je moguće da jedan dobavljač ima u zakupu **slabije sobe po nižoj ceni** (druga zgrada, bez pogleda, stariji nameštaj), i da toga u dosadašnjoj praksi nije bilo, ali da je izvodljivo.
+
+Ovo direktno ugrožava pravilo iz poglavlja 2.10 (prodaja po najnižoj ceni): ako se slabije sobe vode kao **isti** tip sobe kao dobre, one po ceni sistematski izbijaju na prvo mesto, prodaje se uvek slabija soba, i posledica je niz reklamacija koje niko ne ume da poveže sa uzrokom.
+
+**Pravilo: cene se upoređuju isključivo unutar istog mapiranog tipa sobe.** Ako se soba stvarno razlikuje po onome što gost dobija, ona je **poseban tip sobe** u M2 katalogu, sa sopstvenim nazivom i opisom, i stoji pored bolje kao zasebna ponuda. Gost tada bira jeftinije svesno.
+
+Ovo je operativno pravilo uparivanja iz 2.9f, ne posebna funkcija: čovek koji upari „Standard Annex" na „Standard" umesto na nov tip sobe pravi upravo ovu grešku, pa ekran za uparivanje mora da ponudi „ovo je nov tip sobe" kao ravnopravnu opciju, ne kao izuzetak sakriven u dnu.
+
+---
+
+### 2.10 Redosled izvora pri prodaji — najniža cena, uz ručni prioritet (dopuna v1.19, 8.9.2026, vlasnikova odluka)
+
+**Vlasnikova odluka, doslovno:** _"Treba omogućiti ručno podešavanje prioriteta od kog dobavljača ćemo prodavati, ali osnovni filter je najniža cena, jer to tržište traži."_
+
+Ovim se **odbacuje** prethodni predlog ovog dokumenta (prvo `FIXED_LEASE`, pa alotman, pa API) — vlasnik je obrazložio da gost bira po ceni i da bi skuplja ponuda na prvom mestu značila izgubljenu prodaju.
+
+#### 2.10a Kaskada, tim redom
+
+1. **Najniža konačna prodajna cena za gosta** — osnovno pravilo, važi uvek.
+2. **Kad su cene u okviru praga jednakosti** (podesivo, podrazumevano 2%) — odlučuje `SupplierPriority` (2.10c).
+3. **Zakucavanje po hotelu** — `HotelSourcePreference` (2.10d) nadjačava cenu, uz obavezan razlog vidljiv agentu.
+
+Poređenje se izvodi **samo unutar istog mapiranog tipa sobe** (poglavlje 2.9g).
+
+#### 2.10b Koja cena — prodajna, ne nabavna
+
+Sortira se po **konačnoj ceni koju gost plaća**, posle primene marže, a ne po nabavnoj ceni.
+
+Razlog nije formalan: sa jednim dobavljačem se radi na neto ceni (`commission_model = NET`, poglavlje 2.2b), sa drugim na proviziji (`COMMISSIONABLE`). Nabavna cena tada nije uporediva između izvora, a prodajna jeste — i ona je jedini broj koji gost poredi sa konkurencijom. Sortiranje po nabavnoj ceni povremeno bi proizvelo **skuplju** ponudu za gosta, što je tačno ono što ovo pravilo treba da spreči.
+
+Interno, u istom redu, agent vidi i nabavnu cenu i zaradu — da bi mogao svesno da odstupi. Podatak se ne skriva, samo ne određuje redosled.
+
+#### 2.10c `SupplierPriority` — slab prioritet, radi samo kod izjednačenih cena
+
+| Polje                   | Tip                             | Napomena                                                       |
+| :---------------------- | :------------------------------ | :------------------------------------------------------------- |
+| id                      | UUID (PK)                       |                                                                |
+| supplier_id             | UUID (FK → `Supplier`)          | `null` nije dozvoljen                                          |
+| provider_code           | string, nullable                | popunjeno kad je izvor API provajder, a ne ugovoreni dobavljač |
+| priority                | integer                         | manji broj = ranije; jedinstven u okviru skupa                 |
+| note                    | text, nullable                  | zašto (bolji uslovi plaćanja, manje sporova oko otkaza)        |
+| updated_by / updated_at | UUID (FK → M1 User) / timestamp |                                                                |
+
+Ovaj prioritet **nikad ne nadjačava cenu van praga jednakosti.** Ako je razlika veća od praga, jeftiniji izvor pobeđuje bez obzira na prioritet — inače bi pravilo iz 2.10a bilo mrtvo slovo, a niko to ne bi primetio.
+
+#### 2.10d `HotelSourcePreference` — izuzetak po hotelu, sa obaveznim razlogom
+
+| Polje                   | Tip                             | Napomena                                              |
+| :---------------------- | :------------------------------ | :---------------------------------------------------- |
+| id                      | UUID (PK)                       |                                                       |
+| product_id              | UUID (weak ref → M2 `Product`)  | hotel                                                 |
+| supplier_id             | UUID, nullable                  | ugovoreni dobavljač koji ima prednost                 |
+| provider_code           | string, nullable                | ili API provajder; tačno jedno od ta dva je popunjeno |
+| reason                  | text                            | **obavezno**                                          |
+| valid_until             | date, nullable                  | `null` = do ručnog skidanja                           |
+| created_by / created_at | UUID (FK → M1 User) / timestamp |                                                       |
+
+**Razlog mora biti vidljiv agentu koji prodaje**, na samom redu ponude („prvo Adriatic DMC — sporne reklamacije sa X"), ne samo u dnevniku izmena. Bez toga, za pola godine niko ne zna zašto se jeftinija ponuda ne prikazuje prva, a pravilo nastavlja da radi godinama — to je tačno onaj obrazac "podešavanje koje niko ne razume, a niko se ne usuđuje da ga skine" iz `22-ANALIZA-PRIMETRAVEL-NALAZI.md`.
+
+#### 2.10e Neprodat `FIXED_LEASE` se rešava cenom, ne redosledom
+
+Zakupljene sobe su plaćene, pa je svaka neprodata čist gubitak — dok je neprodata alotmanska soba samo propuštena zarada. To je stvaran problem, ali se **ne rešava skrivenim preuređivanjem redosleda**.
+
+Rešenje je cena: ako fiksni zakup mora da se proda, spušta mu se prodajna cena i on **prirodno** izbija na prvo mesto po istom pravilu koje važi za sve. Vidljivo u brojkama, pošteno prema gostu, bez posebne logike.
+
+Sistem uz to daje **upozorenje, ne preuređivanje**: kad se približava polazak a zakupljeni kapacitet stoji neprodat, javlja se signal da bi čovek svesno odlučio o snižavanju cene (poglavlje 4.5).
+
+#### 2.10f Uslovi otkaza stoje uz cenu
+
+Najjeftinija ponuda ume da nosi uslove koji je čine skupljom (nepovratna, plaćanje odmah, bez povraćaja). Takva ponuda **zadržava svoje mesto u redosledu** — pravilo je cena — ali red obavezno prikazuje uslov otkaza pored cene, a nepovratne ponude nose izričitu oznaku. Podatak već postoji u oba sveta u istom obliku (`CancellationRule`, poglavlje 2.5; `AvailabilityQuote.cancellationPolicy`, M4 poglavlje 2.1), pa nije potrebno ništa novo.
+
+#### 2.10g Gde se ovo izvršava
+
+M3 **čuva pravilo**; sam redosled se primenjuje pri sastavljanju ponude u M5, jer M5 zna maržu i konačnu prodajnu cenu (M5 `MarkupRule`, poglavlje 2.1 te specifikacije). M3 nikad ne računa prodajnu cenu — to bi bilo dupliranje logike marže na dva mesta.
+
+---
+
 ## 3. Veza sa M2 (Katalog)
 
 Kad se ugovori nova sezona/tip sobe, kreira se (ili se ažurira) odgovarajući `Product` u M2 sa `source_type = CONTRACTED` i `source_contract_id` koji pokazuje na ovaj `Contract`. M2 ne duplira cenu ni kapacitet — to uvek čita iz M3 preko API-ja M3, u trenutku kad je to potrebno (pretraga, rezervacija).
@@ -511,30 +677,80 @@ Potvrdu daje **isti čovek koji je i tražio izmenu**, ne treće lice — isti o
 5. **Prekoračenje traži drugu, izričitu potvrdu.** Ako izmena ostavlja već potvrđene rezervacije bez pokrića (poglavlje 2.3d), pregled to mora reći **brojem** ("ovo ostavlja 3 gosta bez sobe 14–16.7.") i tražiti zasebnu potvrdu, ne istu kojom se potvrđuje ostatak. Agent nikad ne otkazuje rezervacije, ni na zahtev — to je M5 tok koji radi čovek.
 6. **Trag nosi oba imena.** Audit zapis i prikaz na ekranu vode i agenta i čoveka u čije ime je radio (`29-DIZAJN-SISTEM-UI.md` poglavlje 6a, M17 poglavlje 3.1) — "AI agent, po nalogu Marije Petrović". Nikad samo jedno od to dvoje.
 
-#### 4.4.3 Predlog iz mejla dobavljača — kasnija dopuna, ne sada
+#### 4.4.3 Predlog iz mejla dobavljača
 
-Prirodan nastavak: dobavljač pošalje mejl "stop sale za apartmane 12–15.7.", agent ga pročita (M22) i **predloži** tačnu izmenu sa već popunjenim `stop_source = SUPPLIER_EMAIL` i vezom ka poruci, a čovek potvrdi. To je isti `PROPOSE_THEN_APPROVE` nivo i ne traži nov mehanizam.
+Razrađeno u zasebnom poglavlju **4.6** (dopuna v1.19) — isti `PROPOSE_THEN_APPROVE` nivo i istih šest ograda iz 4.4.2, uz tri dodatne koje postoje samo zato što izvor teksta nije naš čovek. Preduslov (M22 još ne dovlači poštu) opisan je tamo.
 
-**Ne ulazi u prvi prolaz iz jednog konkretnog razloga:** M22 danas ume da pošalje, ali **ne i da dovuče pristiglu poštu** (`fetchNewMessages` ne postoji — vidi `docs/analize/27-BACKLOG-IDEJA-I-PREDLOZI.md`). Dok taj ulazni tok ne postoji, nema šta da se čita. Zabeleženo ovde da se ne izgubi.
+---
+
+### 4.5 Predlog šta vratiti dobavljaču pred rok povrata (dopuna v1.19, 8.9.2026, na zahtev vlasnika)
+
+Poglavlje 4.1 opisuje **upozorenje** da se rok bliži. Ova dopuna ide korak dalje, na vlasnikovu potvrdu predloga da sistem ne treba samo da izvršava naredbe nego i da skreće pažnju: agent uz upozorenje daje **predlog obima povrata**, sa brojevima na osnovu kojih je do njega došao.
+
+Oblik poruke (sadržaj, ne tačan tekst):
+
+> Sun Resort, DBL, 25–31.07: rok za vraćanje ističe za 3 dana. Prodato 12 od 25.
+> U istom periodu prošle godine, na isti broj dana pre polaska, bilo je prodato 19.
+> Predlog: vratiti 8 soba.
+
+**Tri obaveze ovog predloga:**
+
+1. **Nikad samo zaključak.** Uz predlog stoje brojevi iz kojih je izveden (prodato, ukupno, tempo, poređenje sa prošlom sezonom ako postoji). Predlog bez osnove se ili slepo prihvata ili slepo ignoriše, a oba su loša.
+2. **Kad poređenja nema, to se kaže.** Prva sezona za neki hotel nema prošlogodišnji podatak; agent tada daje predlog na osnovu samog tempa i **eksplicitno navodi** da uporednog podatka nema. Nikad izmišljen broj radi kompletnosti poruke.
+3. **Nivo autonomije ostaje `PROPOSE_THEN_APPROVE`**, isti kao 4.1 — povrat kapaciteta dobavljaču je poslovna odluka sa finansijskom posledicom. Agent nikad sam ne javlja dobavljaču.
+
+**Isti mehanizam pokriva i neprodat `FIXED_LEASE`** (poglavlje 2.10e): tu se ne predlaže povrat (nema kome da se vrati — plaćeno je), nego **snižavanje prodajne cene**, sa istim obrazloženjem u brojevima. Cenu menja čovek, u M3 cenovniku; agent je ne dira.
+
+Podaci koje ovo traži već postoje (`ContractPeriod`, `units_sold`, M5 rezervacije, M13 istorija) — ne uvodi se nijedan nov zapis.
+
+---
+
+### 4.6 Predlog izmene iz mejla dobavljača (dopuna v1.19, 8.9.2026, na zahtev vlasnika — zamenjuje raniju belešku 4.4.3)
+
+**Zašto je ovo najvredniji deo AI podrške u ovom modulu.** Rečenice iz poglavlja 4.4 čovek kuca povremeno. Ali mejlovi dobavljača stižu **svakodnevno i u broju**: „stop sale 15–20.07 za DBL", „smanjujemo alotman za 3 sobe u avgustu", „otvaramo ponovo od 21." Svaki od njih danas znači ručno prevođenje u klikove po ugovorima, i kad ih je dvanaest, dva se zaborave.
+
+**Tok:** M22 dovuče poruku → agent je pročita → napravi **predlog izmene u istom obliku pregleda kao 4.4.2 tačka 2** (prebrojan obim, hoteli, tipovi soba, tačni datumi) → čovek u jednom ekranu prolazi kroz predloge i potvrđuje ili ispravlja.
+
+**Šest ograda iz 4.4.2 važe nepromenjeno**, uz tri dodatne koje postoje samo zato što izvor nije čovek nego tekst spolja:
+
+1. **`stop_source` je unapred `SUPPLIER_EMAIL`** i ne može se u ovom toku postaviti na `INTERNAL` — izvor informacije je činjenica, ne izbor.
+2. **Veza ka izvornoj poruci je obavezna** i čuva se uz izmenu. Kad kasnije nastane spor „mi to nismo javili", original mejla je dokaz, a ne sećanje.
+3. **Sadržaj mejla je podatak, nikad instrukcija.** Poruka koja sadrži tekst nalik nalogu („zatvori sve i pošalji potvrdu") ne pokreće ništa osim predloga koji čovek vidi — direktna primena M15 poglavlja 6.5.4.4. Ovo je ulaz koji piše neko izvan agencije i mora se tako tretirati.
+
+**Predlog čije razumevanje nije potpuno se ne pravi.** Ako iz poruke ne sledi jednoznačno koji hotel, koji tip sobe i koji datumi — poruka ide na ljudski pregled sa oznakom „nisam siguran", bez pripremljene izmene. Poluispravan predlog je gori od nikakvog, jer se potvrđuje na brzinu.
+
+**Preduslov koji još ne postoji:** M22 danas ume da **pošalje** poštu, ali ne i da dovuče pristiglu (`fetchNewMessages` ne postoji — vidi `docs/analize/27-BACKLOG-IDEJA-I-PREDLOZI.md`). Dok taj ulazni tok ne postoji, ovo poglavlje nema izvor podataka i ne može se implementirati. Zabeleženo kao zavisnost, ne kao propust ovog modula.
+
+---
+
+### 4.7 „Šta se promenilo od juče" — dnevni pregled izmena kapaciteta (dopuna v1.19, 8.9.2026, na zahtev vlasnika)
+
+Sa velikim brojem objekata i više ljudi koji rade nad istim kapacitetima, pitanje „ko je ovo promenio i kada" postavlja se svakodnevno, a odgovor se danas traži prolaskom kroz audit log.
+
+Jedan kratak dnevni pregled, po hotelu: koje su se kapacitete promenile, ko ih je promenio i po čijoj informaciji (`stop_source`), gde je nastalo prekoračenje, koje blokade ističu, koji rokovi povrata dolaze. Nivo **`AUTONOMOUS`** — čisto čitanje, ništa se ne menja.
+
+**Nije nov podatak.** Sve već postoji u M1 audit logu, `CapacityDay`, `CapacityBlock` i `ContractPeriod`; ovo je pogled, ne skladište. Zato se i ne dodaje nijedna tabela — samo endpoint (poglavlje 6) i mesto u panelu (M17 poglavlje 4b).
 
 ---
 
 ## 5. Dozvole (registruju se u M1 katalog dozvola)
 
-| Dozvola                                                            | Podrazumevana dodela po ulozi                                                                                                                                                                             |
-| :----------------------------------------------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `M3/supplier/VIEW`                                                 | Vlasnik, Direktor, Sales Manager, Prodajni agent                                                                                                                                                          |
-| `M3/supplier/CREATE`, `EDIT`                                       | Vlasnik, Direktor                                                                                                                                                                                         |
-| `M3/contract/VIEW`                                                 | Vlasnik, Direktor, Sales Manager                                                                                                                                                                          |
-| `M3/contract/CREATE`, `EDIT`, `DELETE`                             | Vlasnik, Direktor                                                                                                                                                                                         |
-| `M3/contract-period/VIEW` (uključuje preostali alotman)            | Vlasnik, Direktor, Sales Manager, Prodajni agent — prodajni agent mora da vidi preostali kapacitet da bi prodavao                                                                                         |
-| `M3/contract-period/EDIT` (cene, alotman, rokovi)                  | Vlasnik, Direktor                                                                                                                                                                                         |
-| `M3/pricelist-import/CREATE`, `VIEW`                               | Vlasnik, Direktor; i AI agent zadužen za M3 (poglavlje 4.2.4 — samo ekstrakcija/predlog)                                                                                                                  |
-| `M3/pricelist-import/APPROVE_ROW`                                  | Vlasnik, Direktor — **nikad AI agent**, isti nosilac kao `M3/contract-period/EDIT` (poglavlje 4.2.4)                                                                                                      |
-| `M3/capacity/VIEW` (mreža kapaciteta po danima, poglavlje 2.8)     | Vlasnik, Direktor, Sales Manager, Prodajni agent — prodaja ovo gleda svakodnevno                                                                                                                          |
-| `M3/capacity/CLOSE_SALE` (zatvaranje/otvaranje prodaje po danu)    | Vlasnik, Direktor — **ali se namerno dodeljuje i pojedinačno** (M1 `user_permission_overrides`), vlasnikova odluka 8.9.2026: "svako kome to dozvolimo". Uvek uz obavezan `stop_source` i upis u audit log |
-| `M3/capacity/BLOCK` (blokada za nepotvrđenu grupu, poglavlje 2.8b) | Vlasnik, Direktor, Sales Manager — odvojena od `CLOSE_SALE` jer je to prodajna radnja (držanje za klijenta), ne prenos informacije od dobavljača                                                          |
-| `M3/supplier-contact/VIEW`, `CREATE`, `EDIT`                       | Vlasnik, Direktor, Sales Manager — dodela `linked_user_id` (portal pristup za chat) dodatno zahteva `M19/supplier-conversation/GRANT_ACCESS` (poglavlje 9.2 te specifikacije)                             |
+| Dozvola                                                                                         | Podrazumevana dodela po ulozi                                                                                                                                                                             |
+| :---------------------------------------------------------------------------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `M3/supplier/VIEW`                                                                              | Vlasnik, Direktor, Sales Manager, Prodajni agent                                                                                                                                                          |
+| `M3/supplier/CREATE`, `EDIT`                                                                    | Vlasnik, Direktor                                                                                                                                                                                         |
+| `M3/contract/VIEW`                                                                              | Vlasnik, Direktor, Sales Manager                                                                                                                                                                          |
+| `M3/contract/CREATE`, `EDIT`, `DELETE`                                                          | Vlasnik, Direktor                                                                                                                                                                                         |
+| `M3/contract-period/VIEW` (uključuje preostali alotman)                                         | Vlasnik, Direktor, Sales Manager, Prodajni agent — prodajni agent mora da vidi preostali kapacitet da bi prodavao                                                                                         |
+| `M3/contract-period/EDIT` (cene, alotman, rokovi)                                               | Vlasnik, Direktor                                                                                                                                                                                         |
+| `M3/pricelist-import/CREATE`, `VIEW`                                                            | Vlasnik, Direktor; i AI agent zadužen za M3 (poglavlje 4.2.4 — samo ekstrakcija/predlog)                                                                                                                  |
+| `M3/pricelist-import/APPROVE_ROW`                                                               | Vlasnik, Direktor — **nikad AI agent**, isti nosilac kao `M3/contract-period/EDIT` (poglavlje 4.2.4)                                                                                                      |
+| `M3/capacity/VIEW` (mreža kapaciteta po danima, poglavlje 2.8)                                  | Vlasnik, Direktor, Sales Manager, Prodajni agent — prodaja ovo gleda svakodnevno                                                                                                                          |
+| `M3/capacity/CLOSE_SALE` (zatvaranje/otvaranje prodaje po danu)                                 | Vlasnik, Direktor — **ali se namerno dodeljuje i pojedinačno** (M1 `user_permission_overrides`), vlasnikova odluka 8.9.2026: "svako kome to dozvolimo". Uvek uz obavezan `stop_source` i upis u audit log |
+| `M3/capacity/BLOCK` (blokada za nepotvrđenu grupu, poglavlje 2.8b)                              | Vlasnik, Direktor, Sales Manager — odvojena od `CLOSE_SALE` jer je to prodajna radnja (držanje za klijenta), ne prenos informacije od dobavljača                                                          |
+| `M3/capacity/RESTRICT_SOURCE` (naša zabrana prodaje nad tuđim kapacitetom, poglavlje 2.9d)      | Vlasnik, Direktor, Sales Manager — odvojena od `CLOSE_SALE` jer to nije prenos dobavljačeve informacije nego naša poslovna odluka; uvek uz obavezan `reason` vidljiv agentu koji prodaje                  |
+| `M3/source-priority/EDIT` (prioritet dobavljača i zakucavanje po hotelu, poglavlja 2.10c/2.10d) | Vlasnik, Direktor — menja koji se izvor prodaje prvi, što direktno utiče na maržu i na odnos sa dobavljačem                                                                                               |
+| `M3/supplier-contact/VIEW`, `CREATE`, `EDIT`                                                    | Vlasnik, Direktor, Sales Manager — dodela `linked_user_id` (portal pristup za chat) dodatno zahteva `M19/supplier-conversation/GRANT_ACCESS` (poglavlje 9.2 te specifikacije)                             |
 
 **Izmena samog kapaciteta po danu** (`capacity_override`, poglavlje 2.8a) namerno **ne dobija novu dozvolu** — to je izmena ugovorenog kapaciteta, pa koristi postojeću `M3/contract-period/EDIT`. Nova dozvola bi razdvojila istu odgovornost na dva mesta.
 
@@ -544,34 +760,43 @@ Prirodan nastavak: dobavljač pošalje mejl "stop sale za apartmane 12–15.7.",
 
 Prefiks: `/api/v1/contracting`
 
-| Endpoint                                              | Metod          | Opis                                                                                                                                                                                                                                                                                   |
-| :---------------------------------------------------- | :------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `/suppliers`                                          | GET / POST     | lista / kreiranje dobavljača                                                                                                                                                                                                                                                           |
-| `/suppliers/:id`                                      | GET / PATCH    |                                                                                                                                                                                                                                                                                        |
-| `/suppliers/:id/contacts`                             | GET / POST     | `SupplierContact` (poglavlje 2.1a) — lista / dodavanje kontakt-osobe                                                                                                                                                                                                                   |
-| `/suppliers/:id/contacts/:contactId`                  | GET / PATCH    | uključuje `status`; `linked_user_id` se popunjava isključivo preko M19 toka (poglavlje 9.2 te specifikacije), ne direktno ovde                                                                                                                                                         |
-| `/contracts`                                          | GET / POST     | lista / kreiranje ugovora — `GET` prima `q` (broj ugovora ILI naziv dobavljača), `status` i `supplierId` uz `page`/`limit` (dopuna 8.9.2026; filtriranje je na SERVERU jer je lista straničena — klijentski filter bi pretraživao samo trenutnu stranu)                                |
-| `/contracts/:id`                                      | GET / PATCH    |                                                                                                                                                                                                                                                                                        |
-| `/contracts/:id/periods/:periodId`                    | PATCH / DELETE | dopuna v1.16 — izmena perioda (ponovna provera preklapanja; smanjenje ispod prodatog **dozvoljeno** uz upozorenje i `capacity_oversold` događaj) i gašenje (`INACTIVE` ako period ima rezervacije, stvarno brisanje ako nema) — zahteva `M3/contract-period/EDIT`; vidi poglavlje 2.3d |
-| `/contracts/:id/periods`                              | GET / POST     | sezone unutar ugovora — `POST`/`PATCH` odbija period koji se datumski preklapa sa postojećim za isti `room_type` (poglavlje 2.3b)                                                                                                                                                      |
-| `/contracts/:id/periods/:periodId/rates`              | GET / PUT      | cenovne stavke                                                                                                                                                                                                                                                                         |
-| `/contracts/:id/periods/:periodId/cancellation-rules` | GET / PUT      | pravila otkazivanja — `rule_type` (`PRE_ARRIVAL`/`EARLY_DEPARTURE`, poglavlje 2.5, dopuna v1.12)                                                                                                                                                                                       |
-| `/contracts/:id/periods/:periodId/offers`             | GET / PUT      | dopuna v1.12 — `PricelistOffer` (poglavlje 2.4b), rana rezervacija/free-nights akcije                                                                                                                                                                                                  |
-| `/contracts/:id/periods/:periodId/ancillary-services` | GET / PUT      | dopuna v1.12 — `AncillaryService` (poglavlje 2.6)                                                                                                                                                                                                                                      |
-| `/contracts/:id/periods/:periodId/tourist-tax`        | GET / PUT      | dopuna v1.12 — `TouristTaxInfo` (poglavlje 2.7), isključivo informativno, vidi ogradu tog poglavlja                                                                                                                                                                                    |
-| `/contracts/:id/periods/:periodId/availability`       | GET            | preostali kapacitet — koristi M5 pri pretrazi                                                                                                                                                                                                                                          |
-| `/contracts/:id/periods/:periodId/reserve`            | POST           | interni poziv (samo M5) — atomski umanjuje `units_sold`, vraća grešku ako nema kapaciteta                                                                                                                                                                                              |
-| `/capacity/grid`                                      | GET            | mreža kapaciteta po danima (poglavlje 2.8) — filteri: raspon datuma, destinacija, hotel/proizvod, dobavljač, tip sobe, `allotment_mode`, stanje; vraća po danu: kapacitet, prodato, blokirano, slobodno, `sale_status`                                                                 |
-| `/capacity/days`                                      | PUT            | masovna izmena `capacity_override` za opseg (poglavlje 2.8a) — zahteva `M3/contract-period/EDIT`                                                                                                                                                                                       |
-| `/capacity/stop-sale`                                 | POST           | zatvaranje prodaje; telo nosi obim (jedan period ili ceo ugovor) + raspon datuma + `stop_source`/`stop_reason` — zahteva `M3/capacity/CLOSE_SALE`                                                                                                                                      |
-| `/capacity/stop-sale`                                 | DELETE         | ponovno otvaranje prodaje za isti obim — ista dozvola, isti upis u audit log                                                                                                                                                                                                           |
-| `/capacity/blocks`                                    | GET / POST     | blokade (poglavlje 2.8b) — `POST` odbija zahtev bez `reason` i `hold_until`; zahteva `M3/capacity/BLOCK`                                                                                                                                                                               |
-| `/capacity/blocks/:blockId`                           | PATCH          | ranije oslobađanje (`RELEASED`) ili pretvaranje u rezervaciju (`CONVERTED`, uz `converted_booking_id`)                                                                                                                                                                                 |
-| `/contracts/expiring-releases`                        | GET            | lista perioda kojima se bliži `release_days_before` rok, za AI agenta i za interni panel                                                                                                                                                                                               |
-| `/pricelist-imports`                                  | GET / POST     | lista / upload novog cenovnika (pokreće AI ekstrakciju, poglavlje 4.2)                                                                                                                                                                                                                 |
-| `/pricelist-imports/:id/rows`                         | GET            | pregled ekstraktovanih redova sa `match_confidence`                                                                                                                                                                                                                                    |
-| `/pricelist-imports/:id/rows/:rowId/approve`          | POST           | zahteva `M3/pricelist-import/APPROVE_ROW`; kreira/ažurira stvarni `ContractPeriod`/`RateLine`                                                                                                                                                                                          |
-| `/pricelist-imports/:id/rows/:rowId/reject`           | POST           | odbacuje red bez upisa                                                                                                                                                                                                                                                                 |
+| Endpoint                                              | Metod              | Opis                                                                                                                                                                                                                                                                                   |
+| :---------------------------------------------------- | :----------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/suppliers`                                          | GET / POST         | lista / kreiranje dobavljača                                                                                                                                                                                                                                                           |
+| `/suppliers/:id`                                      | GET / PATCH        |                                                                                                                                                                                                                                                                                        |
+| `/suppliers/:id/contacts`                             | GET / POST         | `SupplierContact` (poglavlje 2.1a) — lista / dodavanje kontakt-osobe                                                                                                                                                                                                                   |
+| `/suppliers/:id/contacts/:contactId`                  | GET / PATCH        | uključuje `status`; `linked_user_id` se popunjava isključivo preko M19 toka (poglavlje 9.2 te specifikacije), ne direktno ovde                                                                                                                                                         |
+| `/contracts`                                          | GET / POST         | lista / kreiranje ugovora — `GET` prima `q` (broj ugovora ILI naziv dobavljača), `status` i `supplierId` uz `page`/`limit` (dopuna 8.9.2026; filtriranje je na SERVERU jer je lista straničena — klijentski filter bi pretraživao samo trenutnu stranu)                                |
+| `/contracts/:id`                                      | GET / PATCH        |                                                                                                                                                                                                                                                                                        |
+| `/contracts/:id/periods/:periodId`                    | PATCH / DELETE     | dopuna v1.16 — izmena perioda (ponovna provera preklapanja; smanjenje ispod prodatog **dozvoljeno** uz upozorenje i `capacity_oversold` događaj) i gašenje (`INACTIVE` ako period ima rezervacije, stvarno brisanje ako nema) — zahteva `M3/contract-period/EDIT`; vidi poglavlje 2.3d |
+| `/contracts/:id/periods`                              | GET / POST         | sezone unutar ugovora — `POST`/`PATCH` odbija period koji se datumski preklapa sa postojećim za isti `room_type` (poglavlje 2.3b)                                                                                                                                                      |
+| `/contracts/:id/periods/:periodId/rates`              | GET / PUT          | cenovne stavke                                                                                                                                                                                                                                                                         |
+| `/contracts/:id/periods/:periodId/cancellation-rules` | GET / PUT          | pravila otkazivanja — `rule_type` (`PRE_ARRIVAL`/`EARLY_DEPARTURE`, poglavlje 2.5, dopuna v1.12)                                                                                                                                                                                       |
+| `/contracts/:id/periods/:periodId/offers`             | GET / PUT          | dopuna v1.12 — `PricelistOffer` (poglavlje 2.4b), rana rezervacija/free-nights akcije                                                                                                                                                                                                  |
+| `/contracts/:id/periods/:periodId/ancillary-services` | GET / PUT          | dopuna v1.12 — `AncillaryService` (poglavlje 2.6)                                                                                                                                                                                                                                      |
+| `/contracts/:id/periods/:periodId/tourist-tax`        | GET / PUT          | dopuna v1.12 — `TouristTaxInfo` (poglavlje 2.7), isključivo informativno, vidi ogradu tog poglavlja                                                                                                                                                                                    |
+| `/contracts/:id/periods/:periodId/availability`       | GET                | preostali kapacitet — koristi M5 pri pretrazi                                                                                                                                                                                                                                          |
+| `/contracts/:id/periods/:periodId/reserve`            | POST               | interni poziv (samo M5) — atomski umanjuje `units_sold`, vraća grešku ako nema kapaciteta                                                                                                                                                                                              |
+| `/capacity/grid`                                      | GET                | mreža kapaciteta po danima (poglavlje 2.8) — filteri: raspon datuma, destinacija, hotel/proizvod, dobavljač, tip sobe, `allotment_mode`, stanje; vraća po danu: kapacitet, prodato, blokirano, slobodno, `sale_status`                                                                 |
+| `/capacity/days`                                      | PUT                | masovna izmena `capacity_override` za opseg (poglavlje 2.8a) — zahteva `M3/contract-period/EDIT`                                                                                                                                                                                       |
+| `/capacity/stop-sale`                                 | POST               | zatvaranje prodaje; telo nosi obim (jedan period ili ceo ugovor) + raspon datuma + `stop_source`/`stop_reason` — zahteva `M3/capacity/CLOSE_SALE`                                                                                                                                      |
+| `/capacity/stop-sale`                                 | DELETE             | ponovno otvaranje prodaje za isti obim — ista dozvola, isti upis u audit log                                                                                                                                                                                                           |
+| `/capacity/blocks`                                    | GET / POST         | blokade (poglavlje 2.8b) — `POST` odbija zahtev bez `reason` i `hold_until`; zahteva `M3/capacity/BLOCK`                                                                                                                                                                               |
+| `/capacity/blocks/:blockId`                           | PATCH              | ranije oslobađanje (`RELEASED`) ili pretvaranje u rezervaciju (`CONVERTED`, uz `converted_booking_id`)                                                                                                                                                                                 |
+| `/capacity/hotel/:productId`                          | GET                | hotel-first prikaz (poglavlje 2.9, ekran M17 poglavlje 4b) — svi izvori jednog objekta na jednom mestu: naši ugovori (sa punom računicom) i API izvori (dva nezavisna broja, uz vreme odgovora); zbir isključivo preko naših ugovora (2.9e)                                            |
+| `/capacity/search-hotels`                             | GET                | prediktivna pretraga objekta za taj ekran — vraća naziv, kategoriju, **mesto i državu** (bez toga se hoteli istog imena ne razlikuju) i broj izvora; čita M2 katalog, ne duplira ga                                                                                                    |
+| `/capacity/work-queue`                                | GET                | početno stanje ekrana pre pretrage — samo ono što traži pažnju danas: prekoračeni kapaciteti, blokade kojima ističe rok, stop-sale koji se otvara, rokovi povrata, tipovi soba sa 0–2 preostale jedinice                                                                               |
+| `/capacity/restrictions`                              | GET / POST         | `SourceSaleRestriction` (poglavlje 2.9d) — `POST` odbija zahtev bez `reason`; zahteva `M3/capacity/RESTRICT_SOURCE`                                                                                                                                                                    |
+| `/capacity/restrictions/:id`                          | DELETE             | skidanje zabrane (prelazak u `LIFTED`, ne brisanje) — ista dozvola, isti upis u audit log                                                                                                                                                                                              |
+| `/capacity/changes`                                   | GET                | „šta se promenilo od juče" (poglavlje 4.7) — pogled nad audit logom i dnevnim zapisima, bez novog skladišta                                                                                                                                                                            |
+| `/capacity/release-suggestions`                       | GET                | predlog obima povrata pred rok (poglavlje 4.5) — uvek sa brojevima iz kojih je izveden; kad uporednog podatka iz prošle sezone nema, odgovor to izričito navodi                                                                                                                        |
+| `/source-priority`                                    | GET / PUT          | `SupplierPriority` (poglavlje 2.10c) — slab prioritet, primenjuje se samo unutar praga jednakosti cena                                                                                                                                                                                 |
+| `/hotels/:productId/source-preference`                | GET / PUT / DELETE | `HotelSourcePreference` (poglavlje 2.10d) — izuzetak po hotelu koji nadjačava cenu; `PUT` odbija zahtev bez `reason`                                                                                                                                                                   |
+| `/contracts/expiring-releases`                        | GET                | lista perioda kojima se bliži `release_days_before` rok, za AI agenta i za interni panel                                                                                                                                                                                               |
+| `/pricelist-imports`                                  | GET / POST         | lista / upload novog cenovnika (pokreće AI ekstrakciju, poglavlje 4.2)                                                                                                                                                                                                                 |
+| `/pricelist-imports/:id/rows`                         | GET                | pregled ekstraktovanih redova sa `match_confidence`                                                                                                                                                                                                                                    |
+| `/pricelist-imports/:id/rows/:rowId/approve`          | POST               | zahteva `M3/pricelist-import/APPROVE_ROW`; kreira/ažurira stvarni `ContractPeriod`/`RateLine`                                                                                                                                                                                          |
+| `/pricelist-imports/:id/rows/:rowId/reject`           | POST               | odbacuje red bez upisa                                                                                                                                                                                                                                                                 |
 
 ---
 
@@ -611,6 +836,15 @@ Prefiks: `/api/v1/contracting`
 - [x] Dopuna v1.12: moguće je kreirati `CancellationRule` sa `rule_type = EARLY_DEPARTURE` nezavisno od postojećih `PRE_ARRIVAL` pravila istog perioda (poglavlje 2.5). _(dokazano e2e testom, 31.8.2026)_
 - [x] Dopuna v1.12: moguće je kreirati `AncillaryService` sa oba `pricing_mode` (`FLAT_PER_UNIT`, `PERCENTAGE_OF_NIGHTLY_RATE`, poglavlje 2.6). _(dokazano unit + e2e testom, 31.8.2026)_
 - [x] Dopuna v1.12: moguće je kreirati `TouristTaxInfo` za period (poglavlje 2.7); potvrđeno testom da nijedan M10/M11 endpoint ne čita ovo polje kao osnovu za fakturisanje/prijavu. _(dokazano unit + e2e testom, 31.8.2026 — potvrđeno grep-om da nijedan M10/M11 endpoint ne referencira touristTaxInfo/TouristTaxInfo)_
+- [ ] **Isti hotel iz dva izvora (poglavlje 2.9):** hotel koji se nabavlja i preko našeg ugovora i preko API provajdera prikazuje se kao **jedan** objekat sa dva označena reda; red našeg ugovora nosi punu računicu, red API izvora nosi dva nezavisna broja (raspoloživo po provajderu + naše prodato) i vreme odgovora, **bez ijednog oduzimanja između njih**.
+- [ ] **Zbir ne meša izvore (2.9e):** red „ukupno u hotelu" sabira isključivo naše ugovorene kapacitete; dodavanje API izvora ne menja taj zbir. Kad ugovoreni zbir za jedan datum pređe poznat fizički broj jedinica objekta, prikazuje se upozorenje, a unos se **ne** odbija.
+- [ ] **Naša zabrana prodaje (2.9d):** `POST /capacity/restrictions` bez `reason` je odbijen; aktivna zabrana nad API izvorom sprečava prodaju tog hotela za zadate datume, prikazuje se kao „naša zabrana" (nikad kao „zatvoreno"), i M5 odbija rezervaciju sa tim razlogom kao trećim, odvojenim od „nema mesta" i „prodaja zatvorena".
+- [ ] **Uparivanje se ne pogađa (2.9f):** hotel sa provajdera koji nema mapiranje ne ulazi u prodaju i ne uparuje se automatski po sličnosti naziva — ide u red za ljudski pregled (M4 poglavlje 3.3). Dokazuje se testom nad dva objekta sličnog imena u različitim mestima.
+- [ ] **Redosled izvora (poglavlje 2.10):** za isti mapiran tip sobe, izvor sa nižom **prodajnom** cenom je prvi; kad je razlika unutar praga jednakosti, odlučuje `SupplierPriority`; `HotelSourcePreference` nadjačava cenu i njegov `reason` je vidljiv na redu ponude, ne samo u dnevniku.
+- [ ] **Kontrolni presek (2.8e):** namerno razilaženje `units_sold` od zbira po danima proizvodi `CAPACITY_COUNTER_DRIFT` signal sa oba broja, i **ne** ispravlja podatak automatski.
+- [ ] **Predlog povrata (poglavlje 4.5):** predlog uz rok povrata sadrži brojeve iz kojih je izveden; za period bez prošlogodišnjeg podatka odgovor izričito navodi da uporednog podatka nema, umesto da ga izostavi ili izmisli.
+- [ ] **Dnevni pregled izmena (poglavlje 4.7):** `GET /capacity/changes` za zadati dan vraća izmene kapaciteta sa autorom i `stop_source`, bez ijedne nove tabele.
+- [ ] **Predlog iz mejla dobavljača (poglavlje 4.6):** _blokirano zavisnošću — M22 još ne dovlači pristiglu poštu (`fetchNewMessages` ne postoji). Stavka ostaje na listi da se ne izgubi; ne broji se kao propust M3 dok taj ulazni tok ne postoji._
 - [x] API dokumentacija (`docs/api/M3-ugovaranje-alotmani.md`) postoji sa stvarnim primerima zahteva/odgovora za svaki endpoint iz poglavlja 6 — obavezna stavka po CLAUDE.md. _(napisana 3.9.2026; odgovori uhvaćeni stvarnim pozivima nad lokalnom bazom, osim `offers` i `ancillary-services` gde u bazi nema redova pa su primeri sastavljeni iz modela i tako i označeni u dokumentu)_
 - [x] Objašnjenje za vlasnika (`00-OBJASNJENJE-M3-ZA-VLASNIKA.md`) postoji — obavezna stavka po CLAUDE.md. _(napisano 3.9.2026)_
 
@@ -618,6 +852,10 @@ Prefiks: `/api/v1/contracting`
 
 ## 8. Otvoreno za dalje
 
+- **Prag jednakosti cena** (poglavlje 2.10a, podrazumevano 2%) — da li ostaje globalna konstanta ili se podešava po hotelu/tržištu, otvoreno dok se ne vidi iz prakse. Prevelik prag bi tiho pretvorio „najniža cena" u „prioritet dobavljača", što je suprotno vlasnikovoj odluci — vredi meriti koliko puta prioritet stvarno odluči.
+- **Fizički broj jedinica objekta** (poglavlje 2.9e, potreban za upozorenje kad ugovoreni zbir pređe ono što hotel ima) — M2 katalog to danas ne vodi kao pouzdan podatak. Dok ne postoji, upozorenje se prosto ne prikazuje; ne pretpostavlja se broj iz drugih izvora.
+- **Rok najave stop-sale-a iz ugovora** (npr. 48h za već predate rezervacije) i dalje nije modelovan — stop-sale se unosi kao činjenica, bez provere da li je dobavljač ispoštovao ugovoreni rok. Sa poglavljem 2.9 ovo postaje vidljivije: kad isti hotel imamo iz dva izvora, poštovanje roka je argument u odluci kome dati prioritet (2.10c).
+- **Slanje naše odluke dobavljaču** — `SourceSaleRestriction` (2.9d) se namerno ne šalje nikome. Ako se ikad pokaže potreba da dobavljač zna da smo ga isključili (npr. da bi popravio uslugu), to je M19 razgovor sa dobavljačem, ne automatski tok iz M3.
 - Tačan format `cancellation_terms_summary` (slobodan tekst vs. strukturirano) — dovoljno je slobodan tekst za sada; ako se pokaže potreba za automatskim tumačenjem uslova van `CancellationRule` tabele, revidira se.
 - Obračun konverzije valute za potrebe fakturisanja u RSD (kad ugovor nije u RSD) definiše se detaljno u specifikaciji M10, ne ovde — M3 samo čuva izvornu valutu i cenu.
 - **[REŠENO 31.8.2026, vlasnikova odluka]** Da li `PACKAGE` proizvodi (iz M2) mogu imati sopstveni ugovor u M3 nezavisno od komponenti koje ga čine, ili se uvek sastavljaju od već ugovorenih komponenti — **ne, `PACKAGE` nikad ne dobija sopstveni M3 ugovor**, cena se uvek izvodi iz komponenti u M5 (isti princip kao `Itinerary → Quote`). Puna odluka, obrazloženje i implementaciona posledica upisani u M5 spec (`docs/moduli/M05-rezervacije/06-SPECIFIKACIJA-M5-REZERVACIJE.md`, poglavlje 3.0d.6a) — tamo je pravo mesto jer M5 sastavlja paket, ne M3.

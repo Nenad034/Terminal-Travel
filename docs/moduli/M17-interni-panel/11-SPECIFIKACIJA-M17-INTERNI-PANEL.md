@@ -4,6 +4,8 @@
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje
 
+**Verzija:** 2.67 — **ekran „Kapaciteti" preokrenut oko hotela, sa više izvora po objektu** (8.9.2026, na vlasnikov nalaz _„Zamislite ovde 2000 hotela"_ i _„ne dopada mi se da nije sve na jednom mestu od kreiranja kapaciteta, do prikaza i izmene"_). Tri izmene poglavlja 4b. **(1) Dva radna stanja umesto spiska svega** (novo 4b.0): početno stanje je **radni spisak** onoga što traži pažnju danas (prekoračenja, blokade pred istek, rokovi povrata, 0–2 preostale jedinice), a pun kalendar se otvara tek za **pretražen hotel** — pretraga je prediktivna i uz naziv obavezno nosi kategoriju, **mesto i državu**, jer naziv sam po sebi nije identitet. Mreža bez izabranog objekta ili bez sužavajućeg filtera se ne prikazuje. **(2) Sve se radi sa istog ekrana** (4b.0b) — unos, izmena, zatvaranje i blokada; podatak se i dalje upisuje na `ContractPeriod` (menja se mesto rada, ne mesto čuvanja), ugovor ostaje vidljiv kao oznaka na redu. Varijanta „klik na hotel otvara ugovore pa se tamo menja" je razmotrena i odbačena kao isti odlazak sa ekrana koji je vlasnik i prijavio. **(3) Više izvora za isti hotel** (novo 4b.6, M3 §2.9): red našeg ugovora nosi pun izračun, red API izvora **dva nezavisna broja bez računske veze** (provajderov broj već sadrži naše prodaje — oduzimanje bi bilo dvostruko) uz obavezno vreme odgovora, a naša zabrana nad tuđim inventarom dobija zasebnu pilulu `ZABRANA` u neutralnoj boji, **nikad `--danger` kao dobavljačev `STOP`** — to su dve činjenice sa dva različita nastavka. Zbir po hotelu sabira isključivo naše ugovore. Novo 4b.7: izmena ide **po opsegu datuma** (dobavljač piše „od 15. do 20.", ne pojedinačne dane), potvrda ispisuje broj noći i dan odjave, svaka izmena po opsegu ima „poništi", a rok za vraćanje alotmana stoji kao odbrojavanje na redu. Dve nove radnje u tabeli 4b.4. **Čisto specifikaciona dopuna, bez koda u ovom prolazu.**
+
 **Verzija:** 2.66 — **ekran ugovora dodat u navigaciju i preimenovan u "Ugovori i kapaciteti"** (8.9.2026, na vlasnikovo pitanje "gde se definišu kapaciteti, to ne vidim"). Nalaz: ekran `/ugovori` postoji od Faze 1 i kapacitet se unosi upravo na njemu (ugovor → "Periodi / sezone" → "Ukupan kapacitet"), ali **nije bio ni u jednoj nav stavci** — do njega se stizalo samo preko sporednog dugmeta "ugovori" na ekranu Dobavljači. Ekran koji radi a nevidljiv je praktično ne postoji (zamka 7.6). Tri izmene: nova nav stavka `ugovori` (u `NAV_ITEMS` i u grupi "Katalog i nabavka", zamka 7.6), naslov i podnaslov ekrana sada kažu gde se kapacitet unosi, a ekran "Kapaciteti" nosi vezu "Kapacitet se unosi na ugovoru →" jer on stanje samo prikazuje. Red tabele poglavlja 4 razdvojen na "Dobavljači" i "Ugovori i kapaciteti" — to su dva ekrana, ne jedan. **Provera:** `/api/nav-items` za prijavljenog korisnika vraća i `ugovori` i `kapaciteti`; oba ekrana otvorena u browseru.
 
 **Verzija:** 2.65 — **ekran "Kapaciteti" napravljen** (8.9.2026, isti dan kad je specificiran). `apps/panel/src/app/(app)/kapaciteti/` — mreža (hotel kao zbirni red, klik razvija tipove soba), pilula sa brojem preostalih jedinica u tri stanja, `STOP` umesto broja kad je prodaja zatvorena, negativan broj sa minusom kad je prekoračeno, oznaka blokiranog, vikend kolone, legenda uvek vidljiva. Panel dana sa četiri broja, vezom ka "Kalendar rezervacija" i tri forme (stop-sale sa obaveznim izvorom informacije, blokada sa obaveznim razlogom i rokom, izmena kapaciteta) — sve u istom prolazu kao API, po standing pravilu iz CLAUDE.md. Nav stavka `kapaciteti` dodata i u `NAV_ITEMS` i u grupu "Katalog i nabavka" (zamka 7.6). **Provera:** viđeno u pravom browseru nad mock podacima, uključujući razvijanje hotela, panel dana i unos blokade kroz formu (potvrđen zapis u bazi); `tsc` i ESLint čisti.
@@ -490,6 +492,43 @@ Nova sekcija u navigaciji (tabela poglavlja 4, red **Kapaciteti — M3 — Faza 
 
 **Podaci se čitaju uživo iz M3/M5, ne iz M13 projekcije.** M13 je zbirni sloj koji kasni do sledeće rekonsilijacije — za pitanje "smem li ovo da prodam" kašnjenje nije prihvatljivo. Ovo je ujedno i granica: M13 ostaje analitika, ovaj ekran je operativa.
 
+### 4b.0 Ekran je organizovan oko hotela, ne oko spiska svega (dopuna 8.9.2026, na zahtev vlasnika)
+
+**Vlasnikov nalaz, doslovno:** _„Zamislite ovde 2000 hotela."_ Prva verzija ovog ekrana je spisak svih redova sa kapacitetom — to je upotrebljivo dok ih je dvadeset, a sa dve hiljade objekata postaje ekran koji niko ne otvara.
+
+Drugi deo istog nalaza: _„ne dopada mi se da nije sve na jednom mestu od kreiranja kapaciteta, do prikaza i izmene kapaciteta."_ Do ove dopune, kapacitet se unosio na ekranu Ugovori (ugovor → period → „Ukupan kapacitet"), a gledao ovde — dva mesta za jedan posao.
+
+**Odluka: ekran ima dva stanja, i oba su radna.**
+
+**1) Radni spisak (početno stanje, bez pretrage).** Samo ono što traži pažnju danas — prekoračeni kapaciteti, blokade kojima ističe rok, stop-sale koji se sutra otvara, rokovi povrata koji dolaze, tipovi soba sa 0–2 preostale jedinice u narednih 30 dana. To je posao koji operativa radi ujutru, i obično je 10–30 redova. Podaci: `GET /contracting/capacity/work-queue` (M3 §6).
+
+Prazan radni spisak je **dobra vest i mora tako da izgleda** — ispisuje se rečenicom („Ništa ne traži pažnju danas"), ne praznim ekranom koji se čita kao kvar (zamka 7.2).
+
+**2) Izabran hotel (posle pretrage).** Pun kalendar samo za taj objekat, sa svim izvorima (4b.6).
+
+**Nikad „svih 2000 odjednom".** Mreža bez izabranog objekta ili bez filtera koji sam po sebi sužava (destinacija + raspon datuma) se ne prikazuje.
+
+#### 4b.0a Pretraga hotela — prediktivna, sa mestom i državom
+
+Polje pretrage je na vrhu ekrana i radi prediktivno (`GET /contracting/capacity/search-hotels`, M3 §6). Uz naziv **obavezno** stoje kategorija, mesto i država:
+
+```
+Splendid Conference & Spa   ★★★★★   Bečići, Crna Gora     2 ugovora + 1 API izvor
+Splendid Palace             ★★★★    Rim, Italija          nema izvora
+```
+
+Mesto i država nisu ukras — hoteli istog imena postoje u više zemalja, i to je ista greška od koje štiti pravilo o uparivanju (M3 §2.9f, M4 §3.3.3). Naziv sam po sebi nije identitet.
+
+#### 4b.0b Kreiranje, izmena i zatvaranje — sve sa ovog ekrana
+
+Kad je hotel izabran, sa istog ekrana se radi **sve**: unosi nov kapacitet, menja postojeći, zatvara prodaja, blokira za grupu. Ne odlazi se na ekran Ugovori.
+
+**Gde se podatak upisuje ostaje nepromenjeno** — kapacitet i dalje živi na `ContractPeriod` (M3 §2.3), jer svaka prodata soba mora da zna iz kog ugovora dolazi (nabavna cena, rok plaćanja, rok otkaza, ko snosi štetu). Menja se **mesto rada, ne mesto čuvanja**: ekran zna u koji period kog ugovora upisuje, i to piše na redu.
+
+Ugovor ostaje vidljiv kao **oznaka na redu** i klikom vodi u pun ugovor (uslovi plaćanja, otkazi) — ali se ništa ne menja tamo. Varijanta „klik na hotel otvara ugovore pa se tamo menja" je razmotrena i **odbačena**: to je isti odlazak sa ekrana koji je vlasnik i prijavio kao problem.
+
+**Hotel bez ijednog ugovora** nije slepa ulica: ekran to kaže i nudi „napravi ugovor za ovaj hotel" (vodi u M3 tok sa unapred izabranim objektom). Ugovor se ne pravi automatski — to je pravni dokument i nastaje svesno.
+
 ### 4b.1 Oblik prikaza
 
 Redovi = ono što se prodaje, kolone = dani (podrazumevano mesec, raspon podesiv):
@@ -540,7 +579,7 @@ Prihod i prosečna cena su cenovno osetljivi, pa taj deo trake zahteva `M13/repo
 
 ### 4b.3 Filteri i grupisanje
 
-**Filteri:** raspon datuma, destinacija (država/grad), hotel/proizvod, dobavljač, tip sobe, usluga, `allotment_mode` (`FIXED`/`ON_REQUEST`/`CHARTER`/`FIXED_LEASE`), i stanje ("sve / ima mesta / popunjeno / zatvoreno").
+**Filteri:** raspon datuma, destinacija (država/grad), hotel/proizvod, dobavljač, tip sobe, usluga, `allotment_mode` (`FIXED`/`ON_REQUEST`/`CHARTER`/`FIXED_LEASE`), **vrsta izvora** ("naš ugovor / API / na upit" — dodato 8.9.2026, poglavlje 4b.6) i stanje ("sve / ima mesta / popunjeno / zatvoreno / naša zabrana").
 
 **Grupisanje redova** se bira, isti princip kao Dinamički izveštaj (M13 §4.2): podrazumevano destinacija → hotel → tip sobe; alternativno dobavljač → hotel → tip sobe (pogled nabavke) ili `allotment_mode` → hotel (pogled rizika).
 
@@ -548,21 +587,55 @@ Prihod i prosečna cena su cenovno osetljivi, pa taj deo trake zahteva `M13/repo
 
 ### 4b.4 Radnje sa ekrana
 
-| Radnja                               | Dozvola (M3 §5)                 | Napomena                                                                                               |
-| :----------------------------------- | :------------------------------ | :----------------------------------------------------------------------------------------------------- |
-| gledanje mreže                       | `M3/capacity/VIEW`              | uključujući prodajne agente                                                                            |
-| zatvaranje/otvaranje prodaje         | `M3/capacity/CLOSE_SALE`        | forma traži obim, raspon datuma i **izvor informacije**; upis u audit log                              |
-| blokada za grupu                     | `M3/capacity/BLOCK`             | forma traži razlog i **rok** — oba obavezna (M3 §2.8b)                                                 |
-| izmena kapaciteta za dan/raspon      | `M3/contract-period/EDIT`       | postojeća dozvola, ne nova                                                                             |
-| nova rezervacija iz izabranog dana   | postojeće M5 dozvole            | vodi u M5 tok, ne duplira ga                                                                           |
-| dodela kapaciteta subagentu          | `M7/capacity-allocation/MANAGE` | prikazuje se kao zaseban sloj (M7 §5a), da se vidi zašto partneru nešto nije vidljivo iako je slobodno |
-| AI agent uređuje kapacitet na zahtev | ista dozvola kao ručna radnja   | agent nema sopstvenu dozvolu — izvršava pravima korisnika koji traži (M3 §4.4.2)                       |
+| Radnja                               | Dozvola (M3 §5)                 | Napomena                                                                                                                   |
+| :----------------------------------- | :------------------------------ | :------------------------------------------------------------------------------------------------------------------------- |
+| gledanje mreže                       | `M3/capacity/VIEW`              | uključujući prodajne agente                                                                                                |
+| zatvaranje/otvaranje prodaje         | `M3/capacity/CLOSE_SALE`        | forma traži obim, raspon datuma i **izvor informacije**; upis u audit log                                                  |
+| blokada za grupu                     | `M3/capacity/BLOCK`             | forma traži razlog i **rok** — oba obavezna (M3 §2.8b)                                                                     |
+| izmena kapaciteta za dan/raspon      | `M3/contract-period/EDIT`       | postojeća dozvola, ne nova                                                                                                 |
+| nova rezervacija iz izabranog dana   | postojeće M5 dozvole            | vodi u M5 tok, ne duplira ga                                                                                               |
+| naša zabrana prodaje nad API izvorom | `M3/capacity/RESTRICT_SOURCE`   | forma traži **razlog** (obavezan, vidljiv agentu koji prodaje); prikazuje se kao `ZABRANA`, ne kao `STOP` (4b.6, M3 §2.9d) |
+| prioritet izvora za ovaj hotel       | `M3/source-priority/EDIT`       | zakucavanje dobavljača uz obavezan razlog; nadjačava cenu, pa razlog stoji i na redu ponude (M3 §2.10d)                    |
+| dodela kapaciteta subagentu          | `M7/capacity-allocation/MANAGE` | prikazuje se kao zaseban sloj (M7 §5a), da se vidi zašto partneru nešto nije vidljivo iako je slobodno                     |
+| AI agent uređuje kapacitet na zahtev | ista dozvola kao ručna radnja   | agent nema sopstvenu dozvolu — izvršava pravima korisnika koji traži (M3 §4.4.2)                                           |
 
 **AI agent za kapacitete (M3 §4.4, dopuna 8.9.2026).** Sa ovog ekrana se agentu može reći šta da uradi ("zatvori Splendid, sve sobe, 12–15.7.") umesto klikanja po mreži — ulaz je postojeće polje AI razgovora (M15 §6.5), ne nova komponenta. Pre izvršenja agent prikazuje **prebrojan** pregled ("3 perioda × 4 datuma = 12 dnevnih zapisa") i čeka potvrdu istog korisnika; izvršava **njegovim pravima**, pa korisnik bez `M3/capacity/CLOSE_SALE` dobija odbijanje i preko agenta. Izmena koja ostavlja goste bez pokrića traži drugu, izričitu potvrdu. Posle izvršenja izmenjena polja nose oznaku porekla (AI agent po nalogu čoveka — poglavlje 3.1, `ActorLabel`), isto kao svaka druga AI radnja u panelu.
 
 **Standing pravilo "logika i ekran u istom prolazu" (CLAUDE.md)** ovde znači: forme za stop-sale, blokadu i izmenu kapaciteta prave se **u istom prolazu** kao pripadajući M3 endpoint-i, ne kao poseban zadatak posle.
 
-### 4b.5 Šta ovaj ekran namerno ne pokriva u prvom prolazu
+### 4b.6 Više izvora za isti hotel — svaki red nosi oznaku odakle je (dopuna 8.9.2026, M3 §2.9)
+
+Vlasnik je potvrdio da se **isti hotel nabavlja od više dobavljača istovremeno**, i da pored ugovora postoje API konekcije koje same povlače raspoloživost. Ekran ih prikazuje **zajedno, ali nikad kao istu vrstu broja**.
+
+| Vrsta reda     | Oznaka na redu                  | Šta prikazuje                                                                                      | Šta se sa njega može uraditi            |
+| :------------- | :------------------------------ | :------------------------------------------------------------------------------------------------- | :-------------------------------------- |
+| **Naš ugovor** | broj ugovora + naziv dobavljača | pun izračun iz M3 §2.8c (kapacitet, prodato, blokirano, razlika — i minus kad je prekoračeno)      | sve radnje iz 4b.4                      |
+| **API izvor**  | naziv provajdera + `API`        | **dva nezavisna broja**: „dobavljač javlja: 5 (09:12)" i „mi prodali: 3", bez ijedne računske veze | samo naša zabrana prodaje + osvežavanje |
+| **Na upit**    | `NA UPIT`                       | bez broja                                                                                          | stop-sale („ne šalji više upite")       |
+
+**Kod API reda se ne računa razlika, i to je namerno.** Provajderov broj je već umanjen za naše prodaje; oduzimanje bi isti kapacitet skinulo dvaput i ekran bi pokazivao manje nego što stvarno postoji (M3 §2.9c). Zato taj red **nema** pilulu sa preostalim brojem u smislu 4b.2 — ima broj koji je provajder javio, uz **vreme odgovora** i dugme za osvežavanje.
+
+**Vreme odgovora je obavezan deo prikaza.** Broj iz našeg ugovora važi dok ga neko ne promeni; broj sa API-ja važi možda još nekoliko minuta. Bez vidljivog vremena, čovek ih čita isto.
+
+**Naša zabrana nije isto što i stop-sale.** Zabrana prodaje koju smo mi postavili nad tuđim inventarom (M3 §2.9d) prikazuje se kao zasebna pilula sa tekstom **`ZABRANA`** i katancem, u neutralnoj boji (`--ink-faint` podloga), **ne** u `--danger` kao dobavljačev `STOP`. Razlog je operativni: „STOP" znači da hotel nema mesta i nema se šta uraditi, „ZABRANA" znači da mi ne prodajemo iako mesta ima i neko je sme skinuti. Kad izgledaju isto, agent zove dobavljača bez potrebe. Razlog zabrane stoji na prelaz mišem i u dnevnom panelu, uvek — nikad samo u dnevniku izmena.
+
+**Zbirni red hotela sabira isključivo naše ugovore** (M3 §2.9e), a API izvori stoje ispod pojedinačno, bez sabiranja — alotman od 10 kod jednog i „ima 5" kod drugog mogu biti iste fizičke sobe. Kad je poznat fizički broj jedinica objekta i ugovoreni zbir ga pređe, iznad reda stoji upozorenje — **upozorenje, ne zabrana**, jer je preklapanje ponekad namerno.
+
+### 4b.7 Izmena ide po opsegu datuma, klik na dan je za proveru (dopuna 8.9.2026)
+
+Glavni alat za izmenu je forma **„od–do, tip sobe, radnja"**, ne klik po pojedinačnim danima.
+
+Razlog je iz prakse: dobavljač nikad ne piše „16.7."; piše „od 15. do 20.". Ako operativac mora da klikne šest dana pojedinačno, greška je pitanje vremena — a to je tačno onaj posao koji je M3 §2.8a i modelovao kao unos sa dve dimenzije (šta × kada).
+
+Klik na ćeliju **ostaje** (dnevni panel iz 4b.1) — on je za brzu proveru i sitnu ispravku jednog dana, ne za posao po opsegu.
+
+**Datumi se u potvrdi ispisuju do kraja**, sa brojem noći i izričito navedenim danom odjave („20.07.–29.07.2027, 10 noći, 30.07. je dan odjave"). „20–30.07." može da znači 10 ili 11 noći, i to je najčešći izvor grešaka u ovom poslu — isto pravilo koje važi za AI agenta (M3 §4.4.2), samo primenjeno na ručnu formu.
+
+**Svaka potvrđena izmena po opsegu dobija „poništi"** koje vraća ceo paket u prethodno stanje, dok god se u međuvremenu ništa nije prodalo na tim danima. Jedna radnja menja deset dana odjednom, pa greška nije sitna.
+
+**Rok za vraćanje alotmana stoji na redu** kao odbrojavanje („rok za vraćanje: za 4 dana"), a dan koji ulazi u rok je obeležen. Bez toga se rok propušta, a to je najskuplja greška u ovom poslu — ne izgleda kao greška, samo se na kraju sezone vidi manja zarada (M3 §4.1/§4.5).
+
+### 4b.8 Šta ovaj ekran namerno ne pokriva u prvom prolazu
 
 Kapacitet ne-smeštajnih proizvoda (izleti, transferi, krstarenja). Za njih danas postoji samo `max_participants`/`max_passengers` kao svojstvo proizvoda (M2 §2.3) — **polazak kao zapis sa datumom i brojem mesta ne postoji u modelu**. Da uđe u prvi prolaz, ekran bi za izlete prikazivao prazno i delovao pokvareno (zamka 7.2). Smeštaj i čarter letovi (koji imaju M3 `ContractPeriod` sa kapacitetom) su pun obim prvog prolaza; ostalo čeka dopunu M2/M3 modela.
 

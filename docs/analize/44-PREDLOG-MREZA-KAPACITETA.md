@@ -325,4 +325,111 @@ Vlasnik je priložio snimak gornje trake PrimeTravel ekrana "Operativni Izvešta
 
 ---
 
+## 11. Drugi krug razgovora sa vlasnikom (8.9.2026) — hotel-first ekran, više izvora, redosled prodaje
+
+Ovo poglavlje beleži razgovor koji je usledio pošto je vlasnik prvi put video mreža kapaciteta u radu. Svaka odluka je upisana u odgovarajuću Nivo 2 specifikaciju u istom prolazu (poglavlje 11.8); ovde stoje **razlozi**, da se za pola godine zna zašto je nešto izabrano — uključujući dva mesta gde je vlasnik odbacio predlog ovog dokumenta.
+
+### 11.1 Nalaz: ekran ne podnosi 2000 hotela, i posao je razbijen na dva mesta
+
+Vlasnikove reči: _„Zamislite ovde 2000 hotela"_ i _„Iskren da budem ne dopada mi se da nije sve na jednom mestu od kreiranja kapaciteta, do prikaza i izmene kapaciteta."_
+
+Oba nalaza su tačna i međusobno povezana. Prva verzija ekrana je spisak svih redova sa kapacitetom — upotrebljivo dok ih je dvadeset. A kapacitet se do tada unosio na ekranu Ugovori, a gledao na ekranu Kapaciteti.
+
+**Vlasnikov predlog** (doslovno): dodati polje za prediktivnu pretragu hotela iz kataloga, uz naziv obavezno prikazati kategoriju, mesto i državu, pa se otvore polja za kreiranje/izmenu/stopiranje kapaciteta. Katalog i ugovori ostaju gde su.
+
+**Prihvaćeno u celosti**, sa jednim dopunjenjem: pored pretrage, ekran bez pretrage prikazuje **radni spisak** onoga što traži pažnju danas (10–30 redova), da početno stanje ne bude prazan ekran. Upisano u M17 §4b.0.
+
+**Odbačena varijanta iz istog vlasnikovog poruke:** _„možda je bolja opcija da klikom na hotel... da se otvore ugovori gde se definišu kapaciteti pa da se tu izmeni."_ Ovo je razmotreno i odbačeno jer bi vratilo tačno onaj odlazak sa ekrana koji je vlasnik i prijavio kao smetnju. Umesto toga, ugovor je **oznaka na redu** (klikom se otvara ako trebaju uslovi plaćanja), a menja se na mestu.
+
+**Šta se nije menjalo:** gde se kapacitet **čuva**. Ostaje na `ContractPeriod`, jer svaka prodata soba mora da zna iz kog ugovora dolazi — nabavna cena, rok plaćanja, rok otkaza, ko snosi štetu pri stornu. Kapacitet koji „lebdi" iznad ugovora značio bi prodatu sobu za koju ne znamo po kojim uslovima smo je kupili. Menja se **mesto rada, ne mesto čuvanja**.
+
+### 11.2 Vlasnikov zahtev: kapacitet vezan za više ugovora jednog hotela
+
+Zahtev je razdvojen na dva različita značenja, jer razlika ima posledicu:
+
+| Značenje                                                                 | Odluka                                                                                                                                                                                     |
+| :----------------------------------------------------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **(a)** vidi i menjaj kapacitete svih ugovora tog hotela na jednom mestu | **Prihvaćeno** — to je ceo smisao hotel-first ekrana (M17 §4b.0)                                                                                                                           |
+| **(b)** više ugovora **deli** isti bazen kapaciteta                      | **Odbijeno.** Bazen laže čim se ugovori preklope (star ugovor do 30.6., nov od 1.7., sa nedelju dana preklapanja) — prva prodaja bi umanjila kapacitet i onom ugovoru na koji se ne odnosi |
+
+Umesto bazena: zbirni red „ukupno u hotelu" preko naših ugovora, uz **upozorenje** (ne zabranu) kad ugovoreni zbir pređe fizički broj jedinica objekta — jer je preklapanje ponekad namerno. Upisano u M3 §2.9e.
+
+### 11.3 Isti hotel od više dobavljača + API konekcije koje same povlače raspoloživost
+
+Vlasnik: _„Da, moguće je da jedan hotel dobavljamo od više dobavljača... Ovde je pravi trenutak da se dotaknemo api konekcija koje same po sebi povlače kapacitete i raspoloživost, a kod nas treba da se beleže prodati kapaciteti."_
+
+Ovo je najveća izmena celog kruga, jer uvodi izvor kod kog **broj nije naš**. Tri vrste izvora i zabrana njihovog mešanja upisani su u M3 §2.9.
+
+**Najvažniji nalaz, i ispravka ranijeg dela ovog dokumenta:** formula `razlika = kapacitet − prodato − blokirano` (poglavlje 5, i M3 §2.8c) **ne važi za API izvore**. Provajderov broj je već umanjen za naše prodaje; ponovnim oduzimanjem bi isti kapacitet bio skinut dvaput i agencija bi odbijala goste za sobe koje postoje. Zato API red prikazuje **dva nezavisna broja bez računske veze**, uz vreme odgovora.
+
+Uz to: naša odluka da ne prodajemo tuđi inventar vodi se kao zaseban zapis (`SourceSaleRestriction`, M3 §2.9d) i na ekranu se zove **„naša zabrana", nikad „zatvoreno"** — to su dve činjenice sa dva različita nastavka, a izjednačen prikaz tera agenta da zove dobavljača bez potrebe.
+
+### 11.4 Uparivanje je preduslov, ne administracija
+
+Ceo hotel-first prikaz stoji na pretpostavci da sistem zna da su „Hotel Splendid", „SPLENDID CONFERENCE & SPA" i provajderova šifra isti objekat. Ako ne zna, ekran prikazuje tri hotela umesto jednog i **gori je** od stanja bez njega.
+
+Odluka: naš katalog (M2 `Product`) je jedini identitet; provajderove šifre pokazuju na njega (M4 §3.3). **Nikad automatsko uparivanje po sličnosti naziva** — „Splendid Palace, Rim" i „Splendid, Bečići" su tekstualno bliski i suštinski nepovezani. Nemapiran objekat se **ne prodaje** i ne nestaje tiho, nego ide u red za ljudski pregled.
+
+### 11.5 Redosled prodaje — vlasnik je odbacio predlog ovog dokumenta
+
+Predlog je bio: prvo `FIXED_LEASE` (te sobe su plaćene, svaka neprodata je čist gubitak), pa alotman, pa API.
+
+**Vlasnikova odluka:** _„Treba omogućiti ručno podešavanje prioriteta od kog dobavljača ćemo prodavati, ali osnovni filter je najniža cena, jer to tržište traži."_
+
+Odluka je usvojena i predlog odbačen. Obrazloženje vlasnika je jače od tehničkog argumenta: gost bira po ceni, i skuplja ponuda na prvom mestu je izgubljena prodaja kod konkurencije.
+
+Tri stvari su uz to razjašnjene, jer bi bez njih pravilo radilo protiv njega (M3 §2.10):
+
+1. **Koja cena** — **prodajna**, ne nabavna. Sa jednim dobavljačem se radi na neto ceni, sa drugim na proviziji; nabavne cene tada nisu uporedive, a prodajna jeste i jedina je koju gost poredi sa konkurencijom. Sortiranje po nabavnoj bi povremeno proizvelo skuplju ponudu za gosta.
+2. **Neprodat fiksni zakup** se rešava **cenom, ne skrivenim redosledom** — spusti mu se prodajna cena i prirodno izbija prvi, po istom pravilu koje važi za sve. Vidljivo u brojkama, uz upozorenje pred polazak (M3 §4.5).
+3. **Ručni prioritet** radi samo unutar praga jednakosti cena; zakucavanje po hotelu sme da nadjača cenu, ali uz **obavezan razlog vidljiv agentu na redu ponude** — inače za pola godine niko ne zna zašto se jeftinija ponuda ne prikazuje, a pravilo nastavlja da radi godinama (obrazac iz dok. 22).
+
+### 11.6 Slabije sobe po nižoj ceni — jedina stvar koja može da pokvari pravilo iz 11.5
+
+Vlasnik: _„moguće je da neki dobavljač ima u zakupu neki broj da kažemo lošijih soba po nižoj ceni."_
+
+Ako se te sobe vode kao **isti** tip sobe kao dobre, pravilo najniže cene ih gura na prvo mesto **uvek**, agencija prodaje isključivo njih, i posledica je niz reklamacija koje se u podacima ne vide kao greška.
+
+Odluka: cene se upoređuju **isključivo unutar istog mapiranog tipa sobe**, a razlika u kvalitetu je **nov tip sobe** u katalogu (M2 §2.3e, M3 §2.9g, M4 §3.3.2).
+
+### 11.7 AI agent — dva različita posla, i pet dodatnih predloga
+
+Vlasnikov zahtev: _„izvuci mi po danima koliko soba izlazi između 15 i 20.07.2027 u hotelu Sun Resort i koji su to tipovi soba"_ i _„umanji kapacitet u hotelu Sun Resort u terminu 20-30.07.2027, za 5 dvokrevetnih soba sa balkonom"_.
+
+Podela koja je iz toga izvedena: **pitanja se izvršavaju odmah** (`AUTONOMOUS`), **naredbe nikad** — agent pretvori rečenicu u prebrojan pregled sa potvrdom (`PROPOSE_THEN_APPROVE`, M3 §4.4, već upisano v1.17). Ovaj krug je dodao:
+
+- **Datumi se u pregledu ispisuju do kraja**, sa brojem noći i danom odjave — „20–30.07." može značiti 10 ili 11 noći, i to je najčešći izvor grešaka u ovom poslu. Prošireno i na ručnu formu (M17 §4b.7).
+- **Iz kog ugovora** — kad hotel imamo od dva dobavljača, „umanji kapacitet u Sun Resortu" nema jedan tačan smisao; agent pita.
+- **Poništi** za svaku izmenu po opsegu — jedna rečenica menja deset dana, pa greška nije sitna.
+- **Agent sme kapacitete, stop-sale i blokade; ne sme cene, ugovore i rezervacije.**
+
+Na vlasnikovo pitanje _„da li biste vi još nešto dodali"_ predloženo je pet stvari, sve prihvaćene:
+
+| #   | Predlog                                                                                                                                         | Upisano u                            |
+| :-- | :---------------------------------------------------------------------------------------------------------------------------------------------- | :----------------------------------- |
+| 0   | **Prvo zatvoriti postojeću rupu:** `reserve()` još proverava kapacitet po periodu, pa ekran kaže „zatvoreno" a sistem i dalje primi rezervaciju | M3 §7 (već otvorena stavka), dok. 27 |
+| 1   | Agent čita **mejlove dobavljača** i priprema predloge izmena (najveća stvarna ušteda)                                                           | M3 §4.6, M15 §4                      |
+| 2   | **Rok za vraćanje alotmana** kao odbrojavanje na ekranu — najskuplja greška koja ne izgleda kao greška                                          | M17 §4b.7                            |
+| 3   | Agent **predlaže šta vratiti**, ne samo izvršava — sa brojevima iz kojih je izveden                                                             | M3 §4.5, M15 §4                      |
+| 4   | **„Šta se promenilo od juče"** — dnevni pregled izmena                                                                                          | M3 §4.7                              |
+| 5   | **Kontrolni presek** dva brojača istog podatka (razilaženje je već viđeno istog dana)                                                           | M3 §2.8e, M18                        |
+
+**Dve stvari koje se namerno ne rade:** agent koji menja kapacitete bez potvrde (šteta se vidi tek kad se javi gost kome je prodata soba koje nema — tada je nepovratna), i sabiranje kapaciteta različitih dobavljača u jedan broj.
+
+### 11.8 Gde je svaka odluka upisana
+
+| Odluka                                                  | Dokument                                       |
+| :------------------------------------------------------ | :--------------------------------------------- |
+| Tri vrste izvora, zabrana mešanja, dvostruko oduzimanje | M3 §2.9 (v1.19)                                |
+| `SourceSaleRestriction` — naša zabrana                  | M3 §2.9d                                       |
+| Zbir samo preko naših ugovora                           | M3 §2.9e                                       |
+| Redosled prodaje po najnižoj prodajnoj ceni             | M3 §2.10 (v1.19)                               |
+| Kontrolni presek brojača                                | M3 §2.8e, M18 v1.15 (`CAPACITY_COUNTER_DRIFT`) |
+| Predlog povrata / iz mejla / dnevni pregled             | M3 §4.5, §4.6, §4.7; M15 v1.53                 |
+| Uparivanje objekta i tipa sobe                          | M4 §3.3 (v1.15)                                |
+| Kvalitet sobe = nov tip sobe                            | M2 §2.3e (v1.24), M3 §2.9g                     |
+| Hotel-first ekran, radni spisak, izmena po opsegu       | M17 §4b.0, §4b.6, §4b.7 (v2.67)                |
+
+---
+
 _Ovaj dokument je predlog, ne odluka. Ništa iz njega se ne implementira dok vlasnik ne potvrdi obim i dok odgovarajuće Nivo 2 specifikacije (poglavlje 6) ne budu dopunjene._

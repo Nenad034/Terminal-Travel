@@ -3,6 +3,8 @@
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M2) i poglavlje 8 (Faza 1)
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje
+**Verzija:** 1.24 — novo poglavlje **2.3e**: razlika u kvalitetu sobe je **nov tip sobe u `room_types[]`**, nikad isti tip po nižoj ceni (8.9.2026, vlasnikova potvrda da jedan dobavljač može imati u zakupu slabije sobe jeftinije u istom objektu). Nije stvar urednog kataloga nego posledice u prodaji: M3 §2.10 (istog dana) uvodi pravilo da se prodaje po najnižoj ceni, unutar istog tipa sobe — pa bi slabije sobe upisane kao isti tip **sistematski** izbijale na prvo mesto i agencija bi prodavala isključivo njih, uz reklamacije koje se u podacima ne vide kao greška. Isto pravilo se prenosi na ekran uparivanja soba sa spoljnog provajdera (M4 §3.3.2): „ovo je nov tip sobe" je ravnopravna opcija, ne izuzetak na dnu liste. **Čisto specifikaciona dopuna, bez koda u ovom prolazu.**
+
 **Verzija:** 1.23 — **Straničenje kataloga, NAMERNO OPCIONO** (5.9.2026, dok. 39 nalaz 2.2). `GET /catalog/products` prima `page`/`limit` i vraća `{ data, total, ... }` umesto golog niza. **Bez `page`/`limit` i dalje vraća SVE redove** — jer filteri kataloga u panelu (vrsta/država/destinacija/konekcija) rade trenutno, nad celom već dovučenom listom, po vlasnikovoj odluci od 4.9.2026; podrazumevano straničenje bi ih tiho svelo na jednu stranu i korisnik bi filtrirao 50 od 217 proizvoda misleći da vidi sve. **Ograničenje koje ostaje otvoreno:** čim se uključi API dobavljač (M4), „sve" postaje desetine hiljada zapisa i ta odluka prestaje da važi — tada filtriranje mora na server, a straničenje postati podrazumevano. Zavedeno u backlogu, nije prećutano.
 **Verzija:** 1.22 — "Putovanja" — grupni paket sa vodičem i programom po danima (5.9.2026, vlasnikov zahtev, uz konkretan primer sa olympic.rs — Gruzija/Jermenija 8 dana/7 noćenja). Ne nov `Product.type` — `PACKAGE` (§2.3) dobija tri nova opciona polja: **`has_expert_guide`**/`guide_language` (putovanje u pratnji stručnog vodiča, sopstvena ikonica u M5 pretrazi pored "Grupni paketi", isti obrazac kao `RENT_A_CAR` pod `TRANSPORT`); **`optional_products[]`** (fakultativni izleti — reference na proizvode koji se NE sabiraju u osnovnu cenu paketa kao `included_products[]`, gost ih bira i plaća posebno pri pravljenju Ponude); **`daily_program[]`** (strukturiran program po danima — dan, naslov/destinacije, opis aktivnosti, obroci, noćenje — ne slobodan tekst, isti princip kao `itinerary_ports[]` kod `CRUISE`). Detalji: §2.3 tabela (red `PACKAGE`) i novo poglavlje 2.3f ispod. M5 §3.0d.6b (isti prolaz) definiše ekran/pretragu.
 **Verzija:** 1.21 — pretraga po aktivnosti (5.9.2026, vlasnikov zahtev: "mnogi se odlučuju da idu na destinaciju na osnovu aktivnosti — biciklizam, planinarenje, lov"). Nov enum **`ActivityTag`** (§2.1c dopuna) i novo polje **`DestinationProfile.activities[]`** — destinacija dobija spisak aktivnosti koje podržava, isti "AI predlaže/čovek potvrđuje" tok kao `destination_type`. `EXCURSION.attributes` (§2.3) dobija **`activity_type`** — konkretan izlet JESTE ta aktivnost, uneto ručno kao i `difficulty_level`. `AmenityTag` (§2.3c) dobija novu grupu "Aktivnosti u okolini" (`BIKE_RENTAL`/`BIKE_STORAGE`) za hotelsku pogodnost, namerno ODVOJENO od `ActivityTag` — destinacija "podržava" aktivnost nezavisno od toga da li baš taj hotel iznajmljuje opremu. M5 §3.0c.3e (isti prolaz) definiše novi ulaz u pretragu.
@@ -259,6 +261,18 @@ Lista je namerno polazna, ne konačna — proširuje se pri stvarnoj izradi ekra
 | address | string, nullable | slobodan tekst (ulica/mesto), ne strukturiran — dovoljno za prikaz, nije geolokacija (za to već postoje `geo_lat`/`geo_lng` na `Product`, poglavlje 2.1) |
 
 Sva tri podpolja su opciona — proizvod bez ijednog ne prikazuje grešku, samo poruku "kontakt nije unet" (desni panel) ili odgovarajuću izjavu (AI agent, nikad izmišljen podatak). Nema migracije postojećih proizvoda — polje se popunjava ubuduće, ručno ili kroz `ProductContentImport` (proširenje na `field_type = CONTACT` je razmatrano naredni prolaz ako se pokaže potreba, van obima ove dopune).
+
+### 2.3e Razlika u kvalitetu je nov tip sobe, ne isti tip po nižoj ceni (dopuna, 8.9.2026, vlasnikova potvrda)
+
+Vlasnik je 8.9.2026. potvrdio da je moguće da jedan dobavljač ima u zakupu **slabije sobe po nižoj ceni** u istom objektu (druga zgrada, bez pogleda, stariji nameštaj) — u dosadašnjoj praksi toga nije bilo, ali je izvodljivo.
+
+**Pravilo: ako se razlikuje ono što gost dobija, to je zaseban unos u `room_types[]`**, sa sopstvenim nazivom i opisom, a ne isti tip sobe koji se negde vodi jeftinije.
+
+Razlog nije uredno vođenje kataloga nego posledica u prodaji. M3 §2.10 uvodi vlasnikovo pravilo da se prodaje po **najnižoj ceni**, a poređenje se izvodi unutar istog tipa sobe. Ako se slabije sobe upišu kao isti tip kao dobre, one po ceni **sistematski** izbijaju na prvo mesto, agencija prodaje isključivo njih, i posledica je niz reklamacija koje niko ne povezuje sa uzrokom — jer u podacima ništa ne izgleda pogrešno.
+
+Isto važi i pri uparivanju soba sa spoljnog provajdera (M4 §3.3.2): ekran za uparivanje mora da nudi „ovo je nov tip sobe" kao ravnopravnu opciju, ne kao izuzetak sakriven na dnu liste ponuđenih postojećih tipova.
+
+---
 
 ### 2.3f `PACKAGE` — "Putovanja" (vodič, fakultativni izleti, program po danima) (dopuna, 5.9.2026, vlasnikov zahtev)
 

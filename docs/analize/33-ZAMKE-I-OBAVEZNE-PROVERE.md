@@ -221,6 +221,14 @@ Brojevi 5.6, 5.7, 5.11–5.14, 9.4 i 12.2 i dalje postoje — nose **drugi** od 
 
 ---
 
+**3.8 Broj sa spoljnog izvora već sadrži naše prodaje — ponovno oduzimanje skida isti kapacitet dvaput**
+
+- _Simptom:_ ekran pokazuje manje slobodnih mesta nego što ih stvarno ima; agencija odbija goste za sobe koje postoje. Ništa u kodu ne izgleda pogrešno — formula je ista ona koja radi tačno na drugom mestu.
+- _Uzrok:_ ista formula (`kapacitet − prodato − blokirano`) primenjena na dve različite vrste izvora. Kod našeg ugovora kapacitet je autorski broj od kog samo mi oduzimamo, pa formula važi. Kod spoljnog izvora (bed bank, channel manager) provajder vraća **neto raspoloživost** — u njoj su naše rezervacije već oduzete, jer ih je njegov sistem primio. Naše dodatno oduzimanje je drugo po redu. Pronađeno pri projektovanju hotel-first ekrana kapaciteta, 8.9.2026 (M3 §2.9c), pre nego što je napisan kod — što je jedini razlog zašto nije završilo kao pogrešan ekran.
+- _Provera:_ pre nego što se ijedan broj iz spoljnog sistema uvede u računicu, odgovori na pitanje **„šta je u tom broju već uračunato"**. Ako je neto, on se prikazuje, ne obračunava. Šire pravilo: dva broja različitog porekla ne ulaze u istu formulu dok se ne utvrdi da mere istu stvar na isti način — i ne prikazuju se istim vizuelnim oblikom, jer se tada i čitaju kao ista vrsta broja.
+
+---
+
 ## 4. Obeležavanje AI poteza (cross-modularno)
 
 **4.1 Poreklo AI teksta se mora upisati u trenutku slanja**
