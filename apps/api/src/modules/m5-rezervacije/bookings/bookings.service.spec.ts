@@ -52,6 +52,10 @@ describe('BookingsService (M5 spec §4/§6.4)', () => {
         findUnique: jest.fn().mockResolvedValue(null),
         findMany: jest.fn().mockResolvedValue([]),
       },
+      // M5 spec v2.44 — `findAll` (INTERNAL_PANEL) razrešava branchName/assignedUserName/
+      // buyerEmail/buyerPhone preko posebnog upita (weak-ref, nema Prisma include).
+      branch: { findMany: jest.fn().mockResolvedValue([]) },
+      clientAccount: { findMany: jest.fn().mockResolvedValue([]) },
       subagent: { findUnique: jest.fn().mockResolvedValue(null) },
       userRole: { findFirst: jest.fn().mockResolvedValue(null) },
       bookingHandoffRequest: {
@@ -630,6 +634,80 @@ describe('BookingsService (M5 spec §4/§6.4)', () => {
           where: expect.objectContaining({ clientAccountId: 'bilo-koji' }),
         }),
       );
+    });
+  });
+
+  describe('findAll — branchName/assignedUserName/buyerEmail/buyerPhone (dok. 42 nalaz 1, M5 spec v2.44)', () => {
+    it('razrešava prava polja preko Branch/User/ClientAccount za INTERNAL_PANEL, ne izmišlja ih', async () => {
+      const { service, prisma } = makeService();
+      prisma.user.findUnique.mockResolvedValue({ accountType: 'STAFF', linkedProfileId: null });
+      prisma.booking.findMany.mockResolvedValue([
+        {
+          id: 'b1',
+          branchId: 'branch-1',
+          assignedToId: 'user-1',
+          clientAccountId: 'client-1',
+          items: [],
+        },
+      ]);
+      prisma.branch.findMany.mockResolvedValue([{ id: 'branch-1', name: 'Novi Sad' }]);
+      prisma.user.findMany.mockResolvedValue([{ id: 'user-1', fullName: 'Ana Radulović' }]);
+      prisma.clientAccount.findMany.mockResolvedValue([
+        { id: 'client-1', email: 'gost@primer.rs', phone: '+381601234567' },
+      ]);
+
+      const result = await service.findAll({}, { userId: 'staff-1' });
+
+      expect(result.data[0]).toMatchObject({
+        branchName: 'Novi Sad',
+        assignedUserName: 'Ana Radulović',
+        buyerEmail: 'gost@primer.rs',
+        buyerPhone: '+381601234567',
+      });
+    });
+
+    it('vraća null umesto izmišljanja kad rezervacija nema poslovnicu/zaduženog', async () => {
+      const { service, prisma } = makeService();
+      prisma.user.findUnique.mockResolvedValue({ accountType: 'STAFF', linkedProfileId: null });
+      prisma.booking.findMany.mockResolvedValue([
+        { id: 'b1', branchId: null, assignedToId: null, clientAccountId: 'client-1', items: [] },
+      ]);
+      prisma.clientAccount.findMany.mockResolvedValue([
+        { id: 'client-1', email: null, phone: null },
+      ]);
+
+      const result = await service.findAll({}, { userId: 'staff-1' });
+
+      expect(result.data[0]).toMatchObject({
+        branchName: null,
+        assignedUserName: null,
+        buyerEmail: null,
+        buyerPhone: null,
+      });
+    });
+
+    it('B2C/gost odgovor NE dobija ova polja (§6.2 ograda ostaje)', async () => {
+      const { service, prisma } = makeService();
+      prisma.user.findUnique.mockResolvedValue({
+        accountType: 'GUEST',
+        linkedProfileId: 'client-1',
+      });
+      prisma.booking.findMany.mockResolvedValue([
+        {
+          id: 'b1',
+          branchId: 'branch-1',
+          assignedToId: 'user-1',
+          clientAccountId: 'client-1',
+          items: [],
+        },
+      ]);
+
+      const result = await service.findAll({}, { userId: 'guest-1' });
+
+      expect(result.data[0]).not.toHaveProperty('branchName');
+      expect(result.data[0]).not.toHaveProperty('buyerEmail');
+      expect(prisma.branch.findMany).not.toHaveBeenCalled();
+      expect(prisma.clientAccount.findMany).not.toHaveBeenCalled();
     });
   });
 

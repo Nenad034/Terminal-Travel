@@ -15,7 +15,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { deriveEmail, derivePhoneFromSeed } from './mock-data';
+import { derivePhoneFromSeed } from './mock-data';
 import UrgentModal from './UrgentModal';
 import ExportButton from './ExportButton';
 
@@ -42,10 +42,13 @@ export interface RealBooking {
   currency: string;
   createdAt: string;
   items: RealBookingItem[];
+  // Dok. 42 nalaz 1 / M5 spec v2.44 (8.9.2026) — prava polja sa API-ja (BookingsService.findAll,
+  // INTERNAL_PANEL grana), zamenjuju ranije izmišljene vrednosti iz hash-a broja rezervacije.
+  branchName: string | null;
+  assignedUserName: string | null;
+  buyerEmail: string | null;
+  buyerPhone: string | null;
 }
-
-const BRANCHES = ['Beograd — centrala', 'Novi Sad', 'Niš'];
-const USERS = ['Marija Nikolić', 'Petar Stevanović', 'Ana Radulović'];
 
 function hashSeed(seed: string): number {
   let h = 0;
@@ -82,11 +85,13 @@ function decorate(b: RealBooking) {
     stayFrom,
     stayTo,
     productType,
-    // Demo (bez pravog izvora):
-    buyerEmail: deriveEmail(b.buyerName),
-    buyerPhone: derivePhoneFromSeed(b.bookingNumber),
-    branch: BRANCHES[h % BRANCHES.length],
-    assignedUser: USERS[h % USERS.length],
+    // Pravi izvor (dok. 42 nalaz 1 / M5 spec v2.44) — API vraća null kad rezervacija nema
+    // poslovnicu/zaduženog/kontakt, prikaz ispod pretvara null u "—", ne u izmišljenu vrednost.
+    buyerEmail: b.buyerEmail,
+    buyerPhone: b.buyerPhone,
+    branch: b.branchName,
+    assignedUser: b.assignedUserName,
+    // I dalje demo (bez pravog izvora):
     hotelName: destinationCity ? `Hotel ${destinationCity} (demo naziv)` : 'Hotel (demo naziv)',
     supplierName: 'Dobavljač (demo)',
     supplierEmail: `demo.dobavljac@primer.local`,
@@ -317,8 +322,8 @@ export default function RealBookingsTable({
       travelers: [],
       paidAmount: 0,
       owedAmount: b.totalPrice,
-      branch: b.branch,
-      assignedUser: b.assignedUser,
+      branch: b.branch ?? undefined,
+      assignedUser: b.assignedUser ?? undefined,
     });
   }
 
@@ -534,8 +539,8 @@ export default function RealBookingsTable({
           bookingNumber={urgentFor.bookingNumber}
           notifications={urgentFor.demoUrgent}
           buyerName={urgentFor.buyerName}
-          buyerEmail={urgentFor.buyerEmail}
-          buyerPhone={urgentFor.buyerPhone}
+          buyerEmail={urgentFor.buyerEmail ?? '(nema kontakta)'}
+          buyerPhone={urgentFor.buyerPhone ?? '(nema kontakta)'}
           supplierName={urgentFor.supplierName}
           supplierEmail={urgentFor.supplierEmail}
           supplierPhone={urgentFor.supplierPhone}

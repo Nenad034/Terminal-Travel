@@ -11,7 +11,7 @@ Izgrađen je 21 modul (backend), interni panel sa oko 75 ekrana i javni sajt sa 
 
 |                          | Stanje                                                                                   |
 | :----------------------- | :--------------------------------------------------------------------------------------- |
-| Testovi                  | 1071 (backend) + 13 (panel), svi prolaze                                                 |
+| Testovi                  | 1079 (backend) + 13 (panel), svi prolaze                                                 |
 | CI (GitHub Actions)      | zelen                                                                                    |
 | Fazni plan               | Faza 0 zatvorena 7.9.2026 (infrastruktura opisana kodom); moduli izgrađeni kroz sve faze |
 | Fiskalizacija (SEF/ESIR) | **simulacija** — čeka firmu i ugovor                                                     |
@@ -130,13 +130,9 @@ Fiskalizacija i platni provajder se, po odluci vlasnika, rade **na kraju**, pred
 
 Otvoreno i zabeleženo (pun indeks: `docs/analize/27-BACKLOG-IDEJA-I-PREDLOZI.md`):
 
-- **Naziv agencije u sistemskim upitima AI asistenata** — 8 mesta i dalje zakucano. Nije zamena
-  teksta: ti upiti imaju ogradu protiv prompt-injection-a, pa vrednost koja se menja kroz panel
-  traži odluku o čišćenju. Vidi M1 spec §3.9c, odeljak „Poznat nedostatak".
-- **Izmišljena kontakt polja na listi rezervacija** (`buyerEmail`, `buyerPhone`, `branch`,
-  `assignedUser`) — izgledaju kao pravi podaci, a nisu. Čekaju da API vrati prava polja. Dok. 42.
-- **31 ranjivost u bibliotekama (9 ozbiljnih)** + CORS, ograničenje prijave, Row-Level Security —
-  svesno odloženo do servera (dok. 39, poglavlje 6).
+- **31 ranjivost u bibliotekama (9 ozbiljnih)** + CORS, M6 bulk-view dozvola, M19 upload allowlist,
+  Row-Level Security — svesno odloženo do servera (dok. 36 §3, dok. 39 poglavlje 6). Throttle na
+  login/MFA/pretragu i tvrd plafon rezultata pretrage su zatvoreni (8.9.2026, dok. 36 §1.4).
 - **Izgled pretrage** (`/rezervacije/pretraga`) — vlasnik tražio izmenu izgleda, pauzirano.
 
 ---

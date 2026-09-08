@@ -815,9 +815,63 @@ export class BookingsService {
       }),
       this.prisma.booking.count({ where }),
     ]);
+
+    // Dok. 42 nalaz 1 (7.9.2026) — Lista rezervacija je do sada IZMIŠLJALA poslovnicu/zaduženog/
+    // kontakt gosta (hash izveden iz booking broja), bez ijedne vizuelne oznake da je demo, na
+    // inače pravom ekranu. Sva četiri polja imaju pravi izvor (`branchId`/`assignedToId` su
+    // stvarne kolone na `Booking`, §6.9.2026/31.8.2026 dopune; `clientAccountId` vodi ka M6
+    // `ClientAccount.email/phone`) — namerno weak-ref bez Prisma FK (isti obrazac kao owner_id/
+    // created_by), pa se razrešavaju posebnim upitom, ne preko `include`. SAMO za INTERNAL_PANEL
+    // (§6.2 ograda) — B2C/B2B/gost odgovor ova polja nikad nije imao i ne dobija ih ni sada.
+    let enrichment: {
+      branchNames: Map<string, string>;
+      assignedUserNames: Map<string, string>;
+      buyerContacts: Map<string, { email: string | null; phone: string | null }>;
+    } | null = null;
+    if (isInternal) {
+      const branchIds = [...new Set(bookings.map((b) => b.branchId).filter((v): v is string => !!v))];
+      const assignedToIds = [
+        ...new Set(bookings.map((b) => b.assignedToId).filter((v): v is string => !!v)),
+      ];
+      const clientAccountIds = [...new Set(bookings.map((b) => b.clientAccountId))];
+      const [branches, assignedUsers, clientAccounts] = await Promise.all([
+        branchIds.length > 0
+          ? this.prisma.branch.findMany({ where: { id: { in: branchIds } }, select: { id: true, name: true } })
+          : [],
+        assignedToIds.length > 0
+          ? this.prisma.user.findMany({
+              where: { id: { in: assignedToIds } },
+              select: { id: true, fullName: true },
+            })
+          : [],
+        this.prisma.clientAccount.findMany({
+          where: { id: { in: clientAccountIds } },
+          select: { id: true, email: true, phone: true },
+        }),
+      ]);
+      enrichment = {
+        branchNames: new Map(branches.map((br) => [br.id, br.name])),
+        assignedUserNames: new Map(assignedUsers.map((u) => [u.id, u.fullName])),
+        buyerContacts: new Map(clientAccounts.map((c) => [c.id, { email: c.email, phone: c.phone }])),
+      };
+    }
+
     const { serializeBooking } = await import('./booking-visibility');
     return paginated(
-      bookings.map((b) => serializeBooking(b as any, context)),
+      bookings.map((b) => {
+        const withEnrichment = enrichment
+          ? {
+              ...b,
+              branchName: b.branchId ? (enrichment.branchNames.get(b.branchId) ?? null) : null,
+              assignedUserName: b.assignedToId
+                ? (enrichment.assignedUserNames.get(b.assignedToId) ?? null)
+                : null,
+              buyerEmail: enrichment.buyerContacts.get(b.clientAccountId)?.email ?? null,
+              buyerPhone: enrichment.buyerContacts.get(b.clientAccountId)?.phone ?? null,
+            }
+          : b;
+        return serializeBooking(withEnrichment as any, context);
+      }),
       total,
       page,
       limit,
