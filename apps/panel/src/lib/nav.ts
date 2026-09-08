@@ -360,7 +360,7 @@ export const NAV_GROUPS: NavGroup[] = [
     id: 'administracija',
     label: 'Administracija',
     icon: 'settings-gear',
-    itemIds: ['korisnici', 'poslovnice', 'audit-log', 'mcp', 'integracije'],
+    itemIds: ['korisnici', 'poslovnice', 'podaci-agencije', 'audit-log', 'mcp', 'integracije'],
   },
 ];
 
