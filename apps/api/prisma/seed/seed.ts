@@ -1337,9 +1337,10 @@ const M23_PERMISSIONS: { module: string; resource: string; action: string; descr
     },
   ];
 
-// M24 spec §4 — dozvole HR modula. `employee-record/VIEW` je namerno bez ownership varijante
-// (Vlasnik/Direktor/HR vide sve dosijee) — sam zaposleni koji gleda SOPSTVENI dosije je otvoreno
-// pitanje van obima ove verzije (M24 spec §7).
+// M24 spec §4/§5 — dozvole HR modula. `employee-record/VIEW` pokriva uvid Vlasnika/Direktora/HR
+// u TUĐ dosije; sopstveni dosije (`actorId === userId`) prolazi bez ove dozvole, kroz ownership
+// proveru u `HrService.assertCanView` (dopunjeno 8.9.2026, ispravka zastarelog komentara —
+// prvobitna verzija je pogrešno tvrdila da je sopstveni uvid otvoreno pitanje van obima).
 const M24_PERMISSIONS: { module: string; resource: string; action: string; description: string }[] =
   [
     {
