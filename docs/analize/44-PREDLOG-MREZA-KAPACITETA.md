@@ -432,4 +432,46 @@ Na vlasnikovo pitanje _„da li biste vi još nešto dodali"_ predloženo je pet
 
 ---
 
+## 12. Čarobnjak „Kreiraj Kapacitet" sa uzora, pročitan u kodu (8.9.2026, na zahtev vlasnika)
+
+Vlasnik je uputio na `http://localhost:5175/operational-reports`, dugme **„Kreiraj Kapacitet"**. Pročitano u izvoru (`src/modules/production/OperationalReports.tsx`, redovi ~2475–3030), ne sa snimka ekrana.
+
+### 12.1 Šta čarobnjak traži, tim redom
+
+| #   | Korak                  | Sadržaj kod njih                                                                   |
+| :-- | :--------------------- | :--------------------------------------------------------------------------------- |
+| 1   | **Lokacija i hotel**   | država → destinacija → pretraga hotela → izbor iz liste                            |
+| 2   | **Rezervacije od…do**  | prozor prijave — **stoji prvi**, iznad boravka                                     |
+| 3   | **Period boravka**     | od…do                                                                              |
+| 4   | **Tip smeštaja**       | čipovi, više odjednom                                                              |
+| 5   | **Vrsta ugovora**      | „Zajednička kvota — primeni na sve ugovore" ili specifična distribucija po ugovoru |
+| 6   | **Broj soba + status** | količina i status prodaje                                                          |
+| 7   | **Prebriši postojeće** | izričit prekidač: „Nove vrednosti menjaju stare (bez sabiranja)" + audit trail     |
+
+### 12.2 Tri nalaza koja su promenila našu specifikaciju
+
+**(1) Prozor prijave je nedostajao kod nas.** Ovo je vlasnik i prijavio (_„zaboravili smo jednu važnu stvar da kapacitet može da vredi za rezervacije od...do"_), a čitanje koda je potvrdilo da nije reč o sitnici: u njihovom kodu polje nosi komentar da je postavljeno **prvo na izričit zahtev korisnika**. Upisano kao M3 §2.3e (`booking_from`/`booking_to` na `ContractPeriod`), sa tri posledice koje se ne vide odmah — prošireno pravilo preklapanja, zabrana sabiranja tranši, i datum prijave kao nov ulaz u izračun raspoloživosti.
+
+**(2) „Zajednička kvota" nije deljeni bazen nego masovni unos.** Ovo direktno odgovara na vlasnikovo ranije pitanje o vezivanju kapaciteta za više ugovora jednog hotela (§11.2): uzor jednim potezom upisuje istu vrednost u više ugovora, ali svaki ugovor i dalje drži **svoj** broj. To je tačno rešenje koje je i ovde izabrano — i potvrda da odbijanje deljenog bazena nije bilo preterana opreznost.
+
+**(3) Prepisivanje mora da bude napisano na ekranu.** Uzor ispisuje „Nove vrednosti menjaju stare (bez sabiranja)" kao vidljiv tekst u samoj formi. Preuzeto doslovno (M17 §4b.0c) — greška na ovom mestu je tiha: čovek misli da je dodao 5 soba na postojećih 10, a ostalo je 5.
+
+### 12.3 Ispravka reda iz §10
+
+Tabela u poglavlju 10 je za „Kreiraj Kapacitet" zaključila: _„postoji, ali vezano za ugovor… Ostaje tako."_ **To više ne važi.** Posle §11 (hotel-first ekran) i ove dopune, unos kapaciteta se radi sa ekrana Kapaciteti, sa istim redosledom polja kao na uzoru — menja se mesto rada, dok mesto čuvanja (period ugovora) ostaje isto. Red se ostavlja u tabeli radi traga, sa ovom napomenom.
+
+### 12.4 Ostala tri taba — odgovor na pitanje „kada ćemo to raditi"
+
+Vlasnik je pitao kada dolaze dinamički izveštaji, rooming liste i PAX & statistika. **Sva tri već postoje i rade nad pravim podacima**, što je provereno u kodu i u dok. 42:
+
+| Traženo               | Gde je kod nas                                                                                      | Stanje                                                                   |
+| :-------------------- | :-------------------------------------------------------------------------------------------------- | :----------------------------------------------------------------------- |
+| **Dynamic Analytics** | Izveštaji → Dinamički izveštaj (M13 §4.2) — `DynamicTree.tsx`, `DimensionsPicker.tsx`, `/izvestaji` | radi, nad pravim podacima; kod nas širi (tri nivoa, preseti, ikonice)    |
+| **Rooming lista**     | Rezervacije → Najave dobavljačima (M5 §8) — `/rezervacije/najave`                                   | radi; kod nas jače (SR/EN manifest kao zapis, sa tokom slanja i potvrde) |
+| **PAX & Statistika**  | Izveštaji (M13 §4.1/§4.2) — isti brojevi kao kod njih                                               | radi kao izveštaj                                                        |
+
+**Jedino što stvarno nedostaje** je traka sa ta četiri broja **iznad mreže kapaciteta** (M17 §4b.2a): ukupno putnika, noćenja, prosečna cena po putniku i prihod, za isti filter koji je već postavljen na mreži. Specificirano, nenapravljeno — ulazi u isti prolaz kad se pravi hotel-first ekran, jer čita M13 podatke koji već postoje i ne traži nov izvor.
+
+---
+
 _Ovaj dokument je predlog, ne odluka. Ništa iz njega se ne implementira dok vlasnik ne potvrdi obim i dok odgovarajuće Nivo 2 specifikacije (poglavlje 6) ne budu dopunjene._

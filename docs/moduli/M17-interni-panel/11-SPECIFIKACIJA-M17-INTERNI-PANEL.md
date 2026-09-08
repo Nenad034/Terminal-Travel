@@ -4,6 +4,8 @@
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje
 
+**Verzija:** 2.68 — forma za unos kapaciteta dobija utvrđen redosled polja i izričito pravilo prepisivanja (8.9.2026, novo 4b.0c, izvor M3 v1.20 §2.3e). **„Rezervacije od…do" stoji iznad perioda boravka** — isto kao na uzoru, i isti je redosled kojim se o kontingentu govori u ugovoru. Unos preko datuma koji već imaju kapacitet je **prepisivanje, ne sabiranje**, i to stoji kao vidljiv tekst uz dugme potvrde, ne kao prećutna konvencija. „Primeni na sve ugovore ovog hotela" je **masovni unos**, ne deljeni bazen — svaki ugovor zadržava svoj broj. Mreža dobija filter „Rezervacije od…do" i **uvek ispisuje na koji datum prijave se prikaz odnosi**, jer isti datumi boravka mogu imati različit kapacitet za različite datume prijave. **Čisto specifikaciona dopuna, bez koda u ovom prolazu.**
+
 **Verzija:** 2.67 — **ekran „Kapaciteti" preokrenut oko hotela, sa više izvora po objektu** (8.9.2026, na vlasnikov nalaz _„Zamislite ovde 2000 hotela"_ i _„ne dopada mi se da nije sve na jednom mestu od kreiranja kapaciteta, do prikaza i izmene"_). Tri izmene poglavlja 4b. **(1) Dva radna stanja umesto spiska svega** (novo 4b.0): početno stanje je **radni spisak** onoga što traži pažnju danas (prekoračenja, blokade pred istek, rokovi povrata, 0–2 preostale jedinice), a pun kalendar se otvara tek za **pretražen hotel** — pretraga je prediktivna i uz naziv obavezno nosi kategoriju, **mesto i državu**, jer naziv sam po sebi nije identitet. Mreža bez izabranog objekta ili bez sužavajućeg filtera se ne prikazuje. **(2) Sve se radi sa istog ekrana** (4b.0b) — unos, izmena, zatvaranje i blokada; podatak se i dalje upisuje na `ContractPeriod` (menja se mesto rada, ne mesto čuvanja), ugovor ostaje vidljiv kao oznaka na redu. Varijanta „klik na hotel otvara ugovore pa se tamo menja" je razmotrena i odbačena kao isti odlazak sa ekrana koji je vlasnik i prijavio. **(3) Više izvora za isti hotel** (novo 4b.6, M3 §2.9): red našeg ugovora nosi pun izračun, red API izvora **dva nezavisna broja bez računske veze** (provajderov broj već sadrži naše prodaje — oduzimanje bi bilo dvostruko) uz obavezno vreme odgovora, a naša zabrana nad tuđim inventarom dobija zasebnu pilulu `ZABRANA` u neutralnoj boji, **nikad `--danger` kao dobavljačev `STOP`** — to su dve činjenice sa dva različita nastavka. Zbir po hotelu sabira isključivo naše ugovore. Novo 4b.7: izmena ide **po opsegu datuma** (dobavljač piše „od 15. do 20.", ne pojedinačne dane), potvrda ispisuje broj noći i dan odjave, svaka izmena po opsegu ima „poništi", a rok za vraćanje alotmana stoji kao odbrojavanje na redu. Dve nove radnje u tabeli 4b.4. **Čisto specifikaciona dopuna, bez koda u ovom prolazu.**
 
 **Verzija:** 2.66 — **ekran ugovora dodat u navigaciju i preimenovan u "Ugovori i kapaciteti"** (8.9.2026, na vlasnikovo pitanje "gde se definišu kapaciteti, to ne vidim"). Nalaz: ekran `/ugovori` postoji od Faze 1 i kapacitet se unosi upravo na njemu (ugovor → "Periodi / sezone" → "Ukupan kapacitet"), ali **nije bio ni u jednoj nav stavci** — do njega se stizalo samo preko sporednog dugmeta "ugovori" na ekranu Dobavljači. Ekran koji radi a nevidljiv je praktično ne postoji (zamka 7.6). Tri izmene: nova nav stavka `ugovori` (u `NAV_ITEMS` i u grupi "Katalog i nabavka", zamka 7.6), naslov i podnaslov ekrana sada kažu gde se kapacitet unosi, a ekran "Kapaciteti" nosi vezu "Kapacitet se unosi na ugovoru →" jer on stanje samo prikazuje. Red tabele poglavlja 4 razdvojen na "Dobavljači" i "Ugovori i kapaciteti" — to su dva ekrana, ne jedan. **Provera:** `/api/nav-items` za prijavljenog korisnika vraća i `ugovori` i `kapaciteti`; oba ekrana otvorena u browseru.
@@ -529,6 +531,25 @@ Ugovor ostaje vidljiv kao **oznaka na redu** i klikom vodi u pun ugovor (uslovi 
 
 **Hotel bez ijednog ugovora** nije slepa ulica: ekran to kaže i nudi „napravi ugovor za ovaj hotel" (vodi u M3 tok sa unapred izabranim objektom). Ugovor se ne pravi automatski — to je pravni dokument i nastaje svesno.
 
+#### 4b.0c Forma za unos kapaciteta — redosled polja i pravilo prepisivanja (dopuna 8.9.2026)
+
+Forma koja se otvara sa ovog ekrana ima **utvrđen redosled**, preuzet sa uzora posle vlasnikovog nalaza da kapacitet može da važi za rezervacije od…do (M3 §2.3e):
+
+1. **Hotel** — država → destinacija → pretraga hotela (već izabran ako se ušlo iz kalendara)
+2. **Rezervacije od…do** — prozor prijave, **pre** perioda boravka
+3. **Period boravka** — od…do
+4. **Tipovi soba** — više odjednom, kao čipovi
+5. **Ugovor** — jedan konkretan, ili „primeni na sve ugovore ovog hotela"
+6. **Broj jedinica i status prodaje**
+
+Prozor prijave stoji **iznad** boravka namerno. Na uzoru je isto (`OperationalReports.tsx`, uz komentar da je tako postavljeno na izričit zahtev korisnika), i to prati redosled kojim se o kontingentu govori u ugovoru: prvo „za prijave do 31.3.", pa tek onda „za boravak u julu".
+
+**Forma mora da kaže šta radi sa postojećim vrednostima.** Unos preko datuma koji već imaju kapacitet je **prepisivanje, ne sabiranje** (M3 §2.3e.3) — i to piše na samoj formi, kao vidljiv tekst uz dugme potvrde, ne kao prećutna konvencija. Uzor to takođe ispisuje („Nove vrednosti menjaju stare, bez sabiranja"), i to je jedna od retkih poruka koju vredi preuzeti doslovno: greška u ovom mestu je tiha i skupa.
+
+**„Primeni na sve ugovore ovog hotela" je masovni unos, ne deljeni kapacitet.** Jedan potez upisuje istu vrednost u više ugovora, ali svaki ugovor i dalje ima **svoj** broj (M3 §2.9e — zbir preko naših ugovora, nikad zajednički bazen). Pregled pre potvrde nabraja u koje ugovore i periode se tačno upisuje, prebrojano.
+
+**Potvrda ispisuje sve što je izvedeno**, ne samo ono što je ukucano: broj noći, dan odjave, broj pogođenih dnevnih zapisa, i **prozor prijave** za koji vrednost važi.
+
 ### 4b.1 Oblik prikaza
 
 Redovi = ono što se prodaje, kolone = dani (podrazumevano mesec, raspon podesiv):
@@ -579,7 +600,7 @@ Prihod i prosečna cena su cenovno osetljivi, pa taj deo trake zahteva `M13/repo
 
 ### 4b.3 Filteri i grupisanje
 
-**Filteri:** raspon datuma, destinacija (država/grad), hotel/proizvod, dobavljač, tip sobe, usluga, `allotment_mode` (`FIXED`/`ON_REQUEST`/`CHARTER`/`FIXED_LEASE`), **vrsta izvora** ("naš ugovor / API / na upit" — dodato 8.9.2026, poglavlje 4b.6) i stanje ("sve / ima mesta / popunjeno / zatvoreno / naša zabrana").
+**Filteri:** raspon datuma **boravka**, **„Rezervacije od…do"** (datum prijave za koji se prikaz računa; podrazumevano danas — M3 §2.3e.4, i mreža uvek ispisuje na koji datum prijave se odnosi), destinacija (država/grad), hotel/proizvod, dobavljač, tip sobe, usluga, `allotment_mode` (`FIXED`/`ON_REQUEST`/`CHARTER`/`FIXED_LEASE`), **vrsta izvora** ("naš ugovor / API / na upit" — dodato 8.9.2026, poglavlje 4b.6) i stanje ("sve / ima mesta / popunjeno / zatvoreno / naša zabrana").
 
 **Grupisanje redova** se bira, isti princip kao Dinamički izveštaj (M13 §4.2): podrazumevano destinacija → hotel → tip sobe; alternativno dobavljač → hotel → tip sobe (pogled nabavke) ili `allotment_mode` → hotel (pogled rizika).
 
