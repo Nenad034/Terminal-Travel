@@ -73,6 +73,7 @@ DOC_MAP = {
     "m21": DOCS / "moduli/M21-centar-za-pomoc/23-SPECIFIKACIJA-M21-CENTAR-ZA-POMOC.md",
     "m22": DOCS / "moduli/M22-email-inbox/25-SPECIFIKACIJA-M22-EMAIL-INBOX.md",
     "m23": DOCS / "moduli/M23-znanje/28-SPECIFIKACIJA-M23-ZNANJE.md",
+    "m24": DOCS / "moduli/M24-ljudski-resursi/43-SPECIFIKACIJA-M24-LJUDSKI-RESURSI.md",
 }
 
 

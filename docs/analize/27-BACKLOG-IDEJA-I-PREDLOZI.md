@@ -487,6 +487,17 @@ _(§10, `docs/moduli/M23-znanje/28-SPECIFIKACIJA-M23-ZNANJE.md` — backend impl
 - Tačan prag/algoritam za grupisanje ponovljenih `QUESTION_GAP` pitanja na istu temu — v1 namerno ne kreira `ArticleRevision` automatski iz zahteva, samo audit trag.
 - Da li `Article` za destinaciju/zemlju treba hijerarhiju (država sadrži destinacije) ili ravna lista sa filterom je dovoljna.
 
+## M24 — Ljudski resursi
+
+_(§8, `docs/moduli/M24-ljudski-resursi/43-SPECIFIKACIJA-M24-LJUDSKI-RESURSI.md` — nacrt, kod nije pisan)_
+
+- Da li `REFERENT_PRODAJE` ima stvarno uži skup RBAC dozvola od `PRODAJNI_AGENT` (npr. bez izmene cene/otkazivanja bez odobrenja), ili je čisto organizaciona titula bez uticaja na pristup — pretpostavka upisana u spec, čeka vlasnikovu potvrdu.
+- Pravo skladište fajla ugovora o radu (MVP čuva samo URL-referencu, ne fajl) — ista vrsta odluke kao logo-upload (namerno van obima, M1 spec §3.9c), čeka izbor skladišta (S3-kompatibilan servis, EU rezidencija).
+- Formalni workflow odobravanja odsustva (zaposleni podnosi zahtev → rukovodilac odobrava) — v1 je ručna evidencija.
+- GDPR/Zakon o zaštiti podataka — tačan rok čuvanja HR dosijea posle prestanka radnog odnosa i procedura brisanja/anonimizacije — pravno pitanje, čeka potvrdu pravnika/knjigovođe.
+- Prikazni (čitljiv) naziv uloge u UI umesto doslovnog imena konstante (npr. "Samostalni referent prodaje" umesto `PRODAJNI_AGENT` na bedžu) — mala, nezavisna UI izmena.
+- Tačan broj dana unapred za AI podsetnik o isteku ugovora/probnog roka — predlog 30/7 dana u spec-u, čeka vlasnikovu potvrdu.
+
 ## Dizajn sistem UI (cross-modularno)
 
 _(§8, `docs/analize/29-DIZAJN-SISTEM-UI.md`)_
