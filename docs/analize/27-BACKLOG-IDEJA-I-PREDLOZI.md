@@ -489,11 +489,12 @@ _(§10, `docs/moduli/M23-znanje/28-SPECIFIKACIJA-M23-ZNANJE.md` — backend impl
 
 ## M24 — Ljudski resursi
 
-_(§8, `docs/moduli/M24-ljudski-resursi/43-SPECIFIKACIJA-M24-LJUDSKI-RESURSI.md` — nacrt, kod nije pisan)_
+_(§7, `docs/moduli/M24-ljudski-resursi/43-SPECIFIKACIJA-M24-LJUDSKI-RESURSI.md` — uloge/RBAC ograda/HR ekran/godišnji odmor implementirani 8.9.2026, AI agent deo ispod i dalje otvoren)_
 
+- **AI HR agent (podsetnici o rokovima — probni rad, istek ugovora, obuke/sertifikati).** Vlasnik potvrdio 8.9.2026: "uradite AI HR agenta kad M15 bude spreman." M15 OKVIR već postoji i radi (M18/M21/M22/M23 imaju agente ožičene preko njega) — stvarna prepreka je Master dokument poglavlje 7 tačka 4 (modul mora biti deterministički stabilan, raditi u produkciji bez agenta bar jedan poslovni ciklus). M24 dobio kod 8.9.2026, nula stvarne upotrebe — kad prođe taj ciklus stvarne upotrebe, ovo se gradi. Detalji nivoa autonomije: M24 spec §3.
 - Formalni workflow odobravanja odsustva (zaposleni podnosi zahtev → rukovodilac odobrava) — v1 je ručna evidencija.
 - GDPR/Zakon o zaštiti podataka — tačan rok čuvanja HR dosijea posle prestanka radnog odnosa i procedura brisanja/anonimizacije — pravno pitanje, čeka potvrdu pravnika/knjigovođe.
-- Prikazni (čitljiv) naziv uloge u UI umesto doslovnog imena konstante (npr. "Samostalni referent prodaje" umesto `PRODAJNI_AGENT` na bedžu) — mala, nezavisna UI izmena.
+- Prikazni (čitljiv) naziv uloge u UI umesto doslovnog imena konstante (npr. "Agent prodaje" umesto `PRODAJNI_AGENT` na bedžu) — mala, nezavisna UI izmena.
 - Tačan broj dana unapred za AI podsetnik o isteku ugovora/probnog roka — predlog 30/7 dana u spec-u, čeka vlasnikovu potvrdu.
 
 ## Dizajn sistem UI (cross-modularno)
