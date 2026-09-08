@@ -3,6 +3,8 @@
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M7) i poglavlje 8 (Faza 4)
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Implementirano (avgust 2026) — poglavlja 2.1/3/3.1/3.2/4/5/6/7/8/9/10 i deo 11 (backend API); poglavlja 2.0.1–2.0.4 (portal frontend, omnisearch, AI chat) čekaju izgradnju portal frontend-a (sad M17-obrazac, ne M8, poglavlje 2.0.6) i M15, vidi poglavlje 12
+**Verzija:** 1.12 — **definisana raspoloživost po subagentu** (8.9.2026, na zahtev vlasnika, novo poglavlje 5a). Do sad je subagent video katalog filtriran isključivo po `visible_channels` — pravilo po proizvodu, isto za sve subagente; nije postojao način da se kaže "ovom partneru je od naših 20 soba vidljivo 5". Nov `SubagentCapacityAllocation`: kome (svi subagenti ili jedan) × na šta (ceo ugovor ili jedan tip smeštaja) × raspon datuma × broj jedinica, uže pravilo pobeđuje opšte. **Dodela je gornja granica, ne rezervacija** — kapacitet se ne izdvaja i ne stoji neprodat (garantovan deo se rešava M3 blokadom, M3 §2.8b), i zadaje se u jedinicama, ne procentu (kapacitet se od iste dopune menja po danu, M3 §2.8a). **Semafor je podrazumevani prikaz** (ima / na upit / nema), tačan broj samo uz `show_exact_numbers` — vlasnikova odluka; subagent nikad ne vidi razlog (stop-sale, blokadu, tuđu kvotu), samo ishod. Prodaja sub-subagenta troši kvotu roditelja. Dve nove dozvole, tri endpoint-a, tri stavke izlaznog kriterijuma. Zavisi od M3 v1.15 (kapacitet po danu). Analiza: `docs/analize/44-PREDLOG-MREZA-KAPACITETA.md`. **Čisto specifikaciona dopuna, bez koda u ovom prolazu.**
+
 **Verzija:** 1.11 — Franšizni subagent implementiran u kodu (31.8.2026, isti prolaz kao M1 v1.10/M5 v1.85). `Subagent.privilegeLevel` (Prisma), `ApproveSubagentDto.privilegeLevel` (bira Vlasnik/Direktor pri odobravanju). **Provera:** e2e (`test/m5-booking-ownership-franchise.e2e-spec.ts`) — franšizni Direktor poziva sopstvene STAFF naloge, odbijen za tuđe/matičnu agenciju; franšizni STAFF nalog vidi podrazumevano samo rezervacije sopstvene franšize. `SubagentBranding`/tri stalna izuzetka (poglavlje 2.0.5/2.0.6) ostaju nepromenjeni — nova privilegija ih ne dira. v1.10 — Franšizni subagent, novo poglavlje 2.0.7 (31.8.2026, na zahtev vlasnika: druga agencija koja nastupa u naše ime na drugoj lokaciji, sopstveni brend, ali komercijalno/fiskalno identična obična M7 stavka — "oni su subagenti naši, ne organizator putovanja"). Nov `Subagent.privilege_level` (`STANDARD`/`FRANCHISE`, poglavlje 2.1) — `FRANCHISE` otvara pun M17 pristup više sopstvenih `STAFF` naloga (Prodajni agent/Sales Manager/Direktor) umesto jednog `SUBAGENT_ADMIN` portala, sa samostalnim upravljanjem sopstvenim zaposlenima (poglavlje 10 dopuna) i vidljivošću rezervacija ograničenom na sopstvenu franšizu (M5 poglavlje 6.6, `Booking.franchise_subagent_id`). Ponovo koristi postojeći `SubagentBranding` (poglavlje 2.0.5) i tri stalna izuzetka marže/nabavne cene/dobavljača (poglavlje 2.0.6) bez izmene tih mehanizama. Ideja "TT kao softver za tuđe agencije" svesno razdvojena i zavedena u backlog, ne meša se sa ovim. Isti prolaz kao M1 §3.1a/§3.9a i M5 §6.5/§6.6. Čisto specifikaciona dopuna, bez koda u ovom prolazu. v1.9 — dopuna poglavlja 2.0.4c, korak 4 (18.8.2026, na zahtev vlasnika): ručne (`MANUAL`) stavke van kataloga koje kreira subagent (M5 poglavlje 3.0f) uvek prolaze kroz isti krug pregleda osoblja kao "Gejt B", bez obzira na prag — mehanizam definisan u M5 spec (poglavlje 3.0f.4), ovde samo cross-referenca da izbegne dupliranje. v1.8 — poglavlje 2.0.6 (vlasnikova odluka, 17.8.2026): portal koristi identičan vizuelni/interakcioni obrazac kao M17 (`29-DIZAJN-SISTEM-UI.md` poglavlje 7), ne pojednostavljen M8-stila izlog kako je poglavlje 2.0 do sad opisivalo; obim podataka izričito potvrđen — subagent vidi sve iz prodajnog toka (pretraga/ponuda/rezervacija/vaučer/sopstvena faktura-provizija) sem marže/nabavne cene/naziva dobavljača, dok moduli van prodajnog toka (M10 knjiga agencije, M13 BI, M18 nadzor, cela M6 CRM baza) ostaju potpuno nevidljivi, ne samo skriveni po polju; poglavlje 2.0.5 fallback paleta ispravljena sa "Zalazak" (M8) na "Horizont" (M17) — bila je nedosledna sa prethodnom namerom pre ove odluke. v1.7 — dodato poglavlje 2.0.5 (vizuelni identitet po subagentu — "beli-label" logo/boje, samostalno podešavanje bez odobrenja, isti tehnički obrazac kao M17 "Horizont" tokeni), na zahtev vlasnika (avgust 2026) — čeka izgradnju portal frontend-a (poglavlje 2.0.1), isto kao ostatak poglavlja 2.0.x; v1.6 — kraj-do-kraja povezivanje `CommissionRebate` sa M10 `KNJIZNO_ODOBRENJE` (avgust 2026, poglavlje 3.2 dopuna): `approve()` sad ide `DRAFT → APPROVED` (ne direktno `APPLIED`), sinhrono pokreće M10 nacrt preko `FiscalDocumentStubService`; `APPLIED` se postavlja tek kad M10 stvarno pošalje taj dokument (Event Bus `M10 credit_note.submitted`, `M7EventSubscribersService`/`CommissionRebatesService.markApplied`) — zatvara stavku koja je čekala M7 implementaciju u M10 spec §5.1a/§11; e2e dokazano (`apps/api/test/m7-exit-criteria.e2e-spec.ts`, 18/18); v1.5 — implementacija (avgust 2026): Prisma modeli `Subagent`/`CommissionVolumeTier`/`SubagentVolumeStatus`/`CommissionRebate`, `SUBAGENT_ADMIN` uloga (M1 katalog), M5 izmene (`SubagentStubService`, kreditni limit pre M3/M4, provizija umesto M6 lojalnosti), e2e testovi (`apps/api/test/m7-exit-criteria.e2e-spec.ts`, 17/17); poglavlje 12 ažurirano — vidi tačan spisak stavki koje čekaju M15/portal frontend; v1.4 dodato poglavlje 2.0.4 (AI agent chat za subagente sa izvršnim ovlašćenjem — pretraga/rezervacija/plaćanje/vaučer unutar kreditnog limita, dva gejta: potvrda subagenta uvek, pregled osoblja iznad praga), zatvara problem #8 iz `Problemi koje zelimo da resimo ovom aplikacijom.md`, na zahtev vlasnika (avgust 2026); v1.3 dodato poglavlje 2.0.3 (univerzalna pretraga i AI razgovor — omnisearch), dopunjuje M15 poglavlje 6.5 (avgust 2026, na zahtev vlasnika); v1.2 dodato poglavlje 2.0 (struktura portala i tok rezervacije korak po korak, ekvivalent M8 poglavlja 2/3), pojašnjeno prepoznavanje Subagenta u M5 toku (poglavlje 5), rešava strukturni nalaz iz `VALIDACIJA-WORKFLOW-B2B.md` (avgust 2026, na zahtev vlasnika); v1.1 dodata stavka izlaznog kriterijuma za responsive prikaz (Master dokument poglavlje 5.1)
 **Zavisi od:** M1, M2, M5, M6, M10 (poglavlje 3.2, `CommissionRebate` → `KNJIZNO_ODOBRENJE`, dodato avgust 2026), M15 (poglavlje 2.0.3, omnisearch; poglavlje 2.0.4, AI agent chat sa izvršnim ovlašćenjem)
 
@@ -288,6 +290,73 @@ Isti obrazac kao popust lojalnosti u M6 (primenjuje se kao poslednji korak posle
 
 ---
 
+## 5a. Definisana raspoloživost po subagentu (dopuna v1.12, 8.9.2026, na zahtev vlasnika)
+
+**Šta je vlasnik tražio:** _"Subagenti treba da vide raspoloživost koju smo za njih definisali koju mogu da vide"_, dopunjeno istog dana: _"treba omogućiti da se i na nivou svih ili pojedinačnih subagenata dodeli jedan deo kapaciteta koji smo uzeli, od ukupnog kapaciteta, za neki tip smeštaja ili za sve tipove smeštaja jednog hotela."_
+
+**Šta je postojalo do ove verzije:** subagent vidi katalog filtriran po `visible_channels` koji uključuje `B2B_PORTAL` (M2 poglavlje 5, poglavlje 2.0.1 ovog dokumenta) — pravilo **po proizvodu, isto za svakog subagenta**. Nije postojao nijedan način da se kaže "subagentu X je od naših 20 soba vidljivo najviše 5". Ovo poglavlje uvodi taj mehanizam.
+
+### 5a.1 `SubagentCapacityAllocation`
+
+| Polje                   | Tip                                     | Napomena                                                                                      |
+| :---------------------- | :-------------------------------------- | :-------------------------------------------------------------------------------------------- |
+| id                      | UUID (PK)                               |                                                                                               |
+| subagent_id             | UUID, nullable (FK → Subagent)          | `null` = **opšte pravilo, važi za sve subagente**; popunjeno = pravilo za tog jednog          |
+| contract_id             | UUID (FK → M3 Contract)                 | ceo objekat — svi tipovi smeštaja tog ugovora                                                 |
+| contract_period_id      | UUID, nullable (FK → M3 ContractPeriod) | popunjeno = samo taj tip smeštaja; `null` = svi tipovi iz `contract_id`                       |
+| date_from / date_to     | date                                    | raspon na koji dodela važi                                                                    |
+| units                   | integer                                 | koliko jedinica je subagentu **najviše** vidljivo/dostupno — vidi 5a.2                        |
+| show_exact_numbers      | boolean, default `false`                | `false` = subagent vidi semafor; `true` = vidi tačan broj slobodnih (vlasnikova odluka, 5a.3) |
+| status                  | enum: `ACTIVE`, `INACTIVE`              | gašenje bez brisanja, da ostane trag                                                          |
+| created_by              | UUID (FK → M1 User)                     |                                                                                               |
+| created_at / updated_at | timestamp                               |                                                                                               |
+
+**Oblik unosa je namerno isti kao kod M3 stop-sale** (M3 poglavlje 2.8a) — dve nezavisne dimenzije, "kome" i "na šta". Tim se isti obrazac ekrana i istog načina razmišljanja koristi na oba mesta, umesto dva različita.
+
+**Uže pravilo pobeđuje opšte.** Kad za isti ugovor/period i datum postoji i opšte pravilo (`subagent_id = null`) i pravilo za konkretnog subagenta, primenjuje se ono za subagenta. Bez toga se ne bi moglo napraviti "svima 3 sobe, ali partneru koji nam donosi pola prometa 8". Kad za istog subagenta postoje i pravilo na nivou ugovora i pravilo na nivou perioda, opet važi uže (period).
+
+### 5a.2 Dodela je gornja granica, ne rezervacija
+
+Dodela **ne izdvaja** kapacitet za subagenta — ona samo ograničava koliko on sme da uzme. Ako subagent sa dodelom od 5 soba ne proda nijednu, tih 5 soba slobodno prodaje agencija ili bilo ko drugi.
+
+Suprotno rešenje (kapacitet fizički odvojen i rezervisan po partneru) bio je standard u distribuciji pre otprilike petnaest godina i danas se izbegava upravo zato što ostavlja kapacitet neprodat dok postoji tražnja. **Ako za nekog partnera stvarno treba garantovan deo, to se rešava M3 blokadom** (M3 poglavlje 2.8b) — koja već postoji, ima obavezan rok i vidi se u mreži kao blokirano; ne uvodi se drugi mehanizam za istu stvar.
+
+**Broj se zadaje u jedinicama, ne u procentu.** Kapacitet se od 8.9.2026. može menjati iz dana u dan (M3 poglavlje 2.8a); procenat od promenljivog broja znači da bi se partnerova kvota tiho menjala svaki put kad hotel promeni kapacitet, što niko ne bi mogao da isprati.
+
+**Koliko subagent stvarno može da uzme za jednu noć:**
+
+```
+ostalo_od_kvote     = units − (potvrđene jedinice tog subagenta koje pokrivaju tu noć)
+stvarno_slobodno    = M3 slobodno za tu noć (M3 poglavlje 2.8c)
+raspoloživo_subagentu = min(ostalo_od_kvote, stvarno_slobodno)
+```
+
+Kvota 5 uz 2 stvarno slobodne sobe daje 2, ne 5. Zbir svih dodela **sme** premašiti kapacitet (to je i smisao gornje granice) — sistem to ne sprečava i ne upozorava, jer bi upozorenje sugerisalo da je preklapanje greška, a nije.
+
+**Subagent bez ijedne dodele** vidi raspoloživost kao i do sada (puna, po `visible_channels`) — dodela je ograničenje koje se uvodi namerno, ne uslov da se uopšte prodaje. Ako se ikad poželi obrnuto ("bez dodele ne vidi ništa"), to je poslovna odluka koja traži novu potvrdu vlasnika, ne tiha promena ponašanja.
+
+### 5a.3 Koliko precizno subagent vidi — semafor je podrazumevano
+
+Vlasnikova odluka 8.9.2026: **semafor podrazumevano, tačan broj samo kome se izričito odobri** (`show_exact_numbers = true`).
+
+| Prikaz                  | Šta subagent vidi                                                                           |
+| :---------------------- | :------------------------------------------------------------------------------------------ |
+| semafor (podrazumevano) | **ima** (raspoloživo ≥ 1) / **na upit** (`ON_REQUEST` period) / **nema** (0, ili stop-sale) |
+| tačan broj              | isto, plus broj raspoloživih jedinica izračunat po formuli iz 5a.2                          |
+
+Razlog za semafor kao podrazumevano: tačan broj otkriva partneru koliko robe imamo na stanju — pregovaračka informacija, i podatak koji se lako preuzima automatski. Isti princip kao dozvole: podrazumevano zatvoreno, otvara se namerno.
+
+**Subagent nikad ne vidi razlog** zašto nečega nema — ni stop-sale, ni blokadu, ni tuđu kvotu. Vidi samo ishod. Isto pravilo kao skrivanje nabavne cene i identiteta dobavljača (poglavlje 2.0.6).
+
+### 5a.4 Veza sa ostatkom sistema
+
+- **M3 je i dalje jedini izvor istine o kapacitetu.** M7 ne drži kopiju stanja — dodela je ograničenje koje se primenjuje **povrh** rezultata M3 izračuna, u trenutku pretrage/rezervacije.
+- **Rezervacija subagenta koja bi prekoračila kvotu se odbija** u istom koraku kao provera kreditnog limita (poglavlje 4), pre poziva ka M3 `reserve` — razlog odbijanja je "prekoračena dodela", odvojen od "nema kapaciteta".
+- **Sub-subagenti (poglavlje 6):** dodela se odnosi na subagenta kome je data, ne na njegovu mrežu. Ako subagent sa kvotom 5 ima svog sub-subagenta, prodaja sub-subagenta troši kvotu roditelja — inače bi se kvota zaobišla otvaranjem jednog nivoa niže.
+- **Mreža kapaciteta u panelu (M17)** prikazuje dodele kao zaseban sloj, da se vidi zašto subagentu nešto nije vidljivo iako u mreži stoji slobodno.
+
+---
+
 ## 6. Vidljivost kroz hijerarhiju (potvrđeno: strogo razdvojena)
 
 - Subagent portal nalog vidi: sopstveni profil, sopstvene rezervacije, i **listu svojih direktnih sub-subagenata** (naziv, status, njihova provizija, kreditni limit) — isključivo radi upravljanja tom proviziom (poglavlje 3).
@@ -320,17 +389,19 @@ Novi subagent se registruje sa statusom `PENDING_APPROVAL` — ne može da naru�
 
 ## 10. Dozvole (registruju se u M1 katalog dozvola)
 
-| Dozvola                                                                                       | Podrazumevana dodela po ulozi                                                                                                                      |
-| :-------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `M7/subagent/VIEW` (ceo lanac)                                                                | Vlasnik, Direktor, Sales Manager                                                                                                                   |
-| `M7/subagent/CREATE`, `APPROVE`, `EDIT` (kreditni limit, Tier 1 provizija, `privilege_level`) | Vlasnik, Direktor                                                                                                                                  |
-| `M7/subagent/MANAGE_OWN_NETWORK` (sopstveni sub-subagenti)                                    | `SUBAGENT_ADMIN` — samo za sopstvenu decu u hijerarhiji                                                                                            |
-| `M1/user/CREATE`, `EDIT` za franšizne `STAFF` naloge (dopuna 31.8.2026, poglavlje 2.0.7)      | Vlasnik, Direktor agencije (bezuslovno); franšizni lokalni `Direktor` — samo za `STAFF` naloge sa istim `linked_profile_id` (M1 spec, poglavlje 5) |
-| `M7/commission-rebate/VIEW`                                                                   | Vlasnik, Direktor, Računovođa                                                                                                                      |
-| `M7/commission-rebate/APPROVE`                                                                | Vlasnik, Direktor, Računovođa — **nikad AI agent**                                                                                                 |
-| `M7/subagent-chat/VIEW`                                                                       | Vlasnik, Direktor, Sales Manager (svi); `SUBAGENT_ADMIN` — samo sopstveni `subagent_id`                                                            |
-| `M7/subagent-chat/CONFIRM`                                                                    | `SUBAGENT_ADMIN` — isključivo sopstveni `subagent_id` (poglavlje 2.0.4b/c)                                                                         |
-| `M7/subagent-chat/STAFF_REVIEW`                                                               | Vlasnik, Direktor, Sales Manager — odobrenje/odbijanje zahteva iznad praga (poglavlje 2.0.4c, korak 4) — **nikad AI agent**                        |
+| Dozvola                                                                                       | Podrazumevana dodela po ulozi                                                                                                                                                                      |
+| :-------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `M7/subagent/VIEW` (ceo lanac)                                                                | Vlasnik, Direktor, Sales Manager                                                                                                                                                                   |
+| `M7/subagent/CREATE`, `APPROVE`, `EDIT` (kreditni limit, Tier 1 provizija, `privilege_level`) | Vlasnik, Direktor                                                                                                                                                                                  |
+| `M7/subagent/MANAGE_OWN_NETWORK` (sopstveni sub-subagenti)                                    | `SUBAGENT_ADMIN` — samo za sopstvenu decu u hijerarhiji                                                                                                                                            |
+| `M1/user/CREATE`, `EDIT` za franšizne `STAFF` naloge (dopuna 31.8.2026, poglavlje 2.0.7)      | Vlasnik, Direktor agencije (bezuslovno); franšizni lokalni `Direktor` — samo za `STAFF` naloge sa istim `linked_profile_id` (M1 spec, poglavlje 5)                                                 |
+| `M7/capacity-allocation/VIEW` (dodela kapaciteta subagentu, poglavlje 5a)                     | Vlasnik, Direktor, Sales Manager                                                                                                                                                                   |
+| `M7/capacity-allocation/MANAGE` (kreiranje/izmena dodele, uklj. `show_exact_numbers`)         | Vlasnik, Direktor — odluka koliko kapaciteta ide kom partneru je komercijalna, ne operativna; **nikad `SUBAGENT_ADMIN`** (subagent ne sme menjati sopstvenu kvotu, ni kvotu svojih sub-subagenata) |
+| `M7/commission-rebate/VIEW`                                                                   | Vlasnik, Direktor, Računovođa                                                                                                                                                                      |
+| `M7/commission-rebate/APPROVE`                                                                | Vlasnik, Direktor, Računovođa — **nikad AI agent**                                                                                                                                                 |
+| `M7/subagent-chat/VIEW`                                                                       | Vlasnik, Direktor, Sales Manager (svi); `SUBAGENT_ADMIN` — samo sopstveni `subagent_id`                                                                                                            |
+| `M7/subagent-chat/CONFIRM`                                                                    | `SUBAGENT_ADMIN` — isključivo sopstveni `subagent_id` (poglavlje 2.0.4b/c)                                                                                                                         |
+| `M7/subagent-chat/STAFF_REVIEW`                                                               | Vlasnik, Direktor, Sales Manager — odobrenje/odbijanje zahteva iznad praga (poglavlje 2.0.4c, korak 4) — **nikad AI agent**                                                                        |
 
 ---
 
@@ -338,23 +409,26 @@ Novi subagent se registruje sa statusom `PENDING_APPROVAL` — ne može da naru�
 
 Prefiks: `/api/v1/b2b`
 
-| Endpoint                                                  | Metod              | Opis                                                                                                                   |
-| :-------------------------------------------------------- | :----------------- | :--------------------------------------------------------------------------------------------------------------------- |
-| `/subagents`                                              | GET / POST         | lista (agencija vidi sve) / registracija novog (status `PENDING_APPROVAL`)                                             |
-| `/subagents/:id/approve`                                  | POST               | Vlasnik/Direktor — postavlja kreditni limit i (ako Tier 1) proviziju                                                   |
-| `/subagents/:id`                                          | GET / PATCH        |                                                                                                                        |
-| `/subagents/:id/children`                                 | GET / POST         | sopstveni sub-subagenti — dostupno agenciji i roditeljskom `SUBAGENT_ADMIN`-u                                          |
-| `/subagents/:id/children/:childId/commission`             | PATCH              | roditeljski subagent menja proviziju deteta, uz ogradu iz poglavlja 3                                                  |
-| `/subagents/:id/outstanding-balance`                      | GET                | uživo izračunato stanje duga naspram kreditnog limita                                                                  |
-| `/subagents/:id/volume-tiers`                             | GET / POST / PATCH | pragovi obimskog bonusa (poglavlje 3.1) — postavlja ih isti autoritet kao osnovnu proviziju                            |
-| `/subagents/:id/volume-status`                            | GET                | tekući obim, dostignut prag, i `effective_commission_percentage` — koristi ga M5 pri kreiranju ponude                  |
-| `/subagents/:id/commission-rebates`                       | GET                | lista rabata, svih statusa                                                                                             |
-| `/subagents/:id/commission-rebates/:rebateId/approve`     | POST               | ljudska potvrda, zahteva `M7/commission-rebate/APPROVE`                                                                |
-| `/subagents/:id/commission-rebates/:rebateId/reject`      | POST               | odbijanje, sa razlogom                                                                                                 |
-| `/subagents/:id/chat-messages`                            | GET / POST         | transkript razgovora (poglavlje 2.0.4b), zahteva `M7/subagent-chat/VIEW`                                               |
-| `/subagents/:id/booking-requests`                         | GET / POST         | pregled / kreiranje `SubagentBookingRequest` (agent priprema, poglavlje 2.0.4c koraci 1–2)                             |
-| `/subagents/:id/booking-requests/:requestId/confirm`      | POST               | potvrda subagenta (Gejt A), zahteva `M7/subagent-chat/CONFIRM`, samo sopstveni nalog                                   |
-| `/subagents/:id/booking-requests/:requestId/staff-review` | POST               | odobrenje/odbijanje osoblja (Gejt B), zahteva `M7/subagent-chat/STAFF_REVIEW`, samo kad `requires_staff_review = true` |
+| Endpoint                                                  | Metod              | Opis                                                                                                                     |
+| :-------------------------------------------------------- | :----------------- | :----------------------------------------------------------------------------------------------------------------------- |
+| `/subagents`                                              | GET / POST         | lista (agencija vidi sve) / registracija novog (status `PENDING_APPROVAL`)                                               |
+| `/subagents/:id/approve`                                  | POST               | Vlasnik/Direktor — postavlja kreditni limit i (ako Tier 1) proviziju                                                     |
+| `/subagents/:id`                                          | GET / PATCH        |                                                                                                                          |
+| `/subagents/:id/children`                                 | GET / POST         | sopstveni sub-subagenti — dostupno agenciji i roditeljskom `SUBAGENT_ADMIN`-u                                            |
+| `/subagents/:id/children/:childId/commission`             | PATCH              | roditeljski subagent menja proviziju deteta, uz ogradu iz poglavlja 3                                                    |
+| `/subagents/:id/outstanding-balance`                      | GET                | uživo izračunato stanje duga naspram kreditnog limita                                                                    |
+| `/subagents/:id/volume-tiers`                             | GET / POST / PATCH | pragovi obimskog bonusa (poglavlje 3.1) — postavlja ih isti autoritet kao osnovnu proviziju                              |
+| `/subagents/:id/volume-status`                            | GET                | tekući obim, dostignut prag, i `effective_commission_percentage` — koristi ga M5 pri kreiranju ponude                    |
+| `/subagents/:id/commission-rebates`                       | GET                | lista rabata, svih statusa                                                                                               |
+| `/subagents/:id/commission-rebates/:rebateId/approve`     | POST               | ljudska potvrda, zahteva `M7/commission-rebate/APPROVE`                                                                  |
+| `/subagents/:id/commission-rebates/:rebateId/reject`      | POST               | odbijanje, sa razlogom                                                                                                   |
+| `/subagents/:id/chat-messages`                            | GET / POST         | transkript razgovora (poglavlje 2.0.4b), zahteva `M7/subagent-chat/VIEW`                                                 |
+| `/subagents/:id/booking-requests`                         | GET / POST         | pregled / kreiranje `SubagentBookingRequest` (agent priprema, poglavlje 2.0.4c koraci 1–2)                               |
+| `/subagents/:id/booking-requests/:requestId/confirm`      | POST               | potvrda subagenta (Gejt A), zahteva `M7/subagent-chat/CONFIRM`, samo sopstveni nalog                                     |
+| `/subagents/:id/booking-requests/:requestId/staff-review` | POST               | odobrenje/odbijanje osoblja (Gejt B), zahteva `M7/subagent-chat/STAFF_REVIEW`, samo kad `requires_staff_review = true`   |
+| `/subagents/:id/capacity-allocations`                     | GET / POST         | dodela kapaciteta jednom subagentu (poglavlje 5a) — zahteva `M7/capacity-allocation/MANAGE`                              |
+| `/capacity-allocations`                                   | GET / POST         | opšta pravila (`subagent_id = null`, važe za sve subagente) i pregled svih dodela sa filterima po ugovoru/periodu/datumu |
+| `/capacity-allocations/:allocationId`                     | PATCH              | izmena (`units`, `show_exact_numbers`, `status`) — gašenje ide preko `status = INACTIVE`, ne brisanjem, da ostane trag   |
 
 ---
 
@@ -385,6 +459,9 @@ sopstvenim identitetom) i dalje nije građen — ovo je isključivo strana koju 
 - [x] Kad subagent u posmatranom periodu pređe postavljeni prag obima, `effective_commission_percentage` se automatski podigne i sledeća ponuda odražava novu cenu — bez ljudske intervencije.
 - [x] Ako roditeljev obimski bonus istekne i njegova efektivna provizija padne ispod već postavljene provizije deteta, sistem to prijavljuje kao upozorenje (audit log `M7/subagent.commission_ceiling_warning`), ne menja tiho postojeći odnos.
 - [x] Prelazak `retroactive` praga usred perioda automatski kreira `CommissionRebate` u statusu `DRAFT` sa ispravno izračunatim iznosom; rabat se ne primeni (`APPLIED`) bez ljudskog odobrenja; nijedan već poslat fiskalni dokument (M10) se ne dira.
+- [ ] **Dodela kapaciteta (poglavlje 5a, čeka M3 v1.15):** subagent sa dodelom od N jedinica ne može potvrditi rezervaciju koja bi tu granicu prekoračila — odbijanje nosi razlog "prekoračena dodela", različit od "nema kapaciteta". _(nije implementirano — dopuna v1.12)_
+- [ ] **Uže pravilo pobeđuje opšte:** kad postoji opšte pravilo (`subagent_id = null`) i pravilo za tog subagenta, primenjuje se ono za subagenta; kad postoji i na nivou ugovora i na nivou perioda, primenjuje se period. _(nije implementirano — dopuna v1.12)_
+- [ ] **Semafor je podrazumevan:** subagent bez `show_exact_numbers` ne dobija broj slobodnih jedinica ni u jednom odgovoru API-ja (ni u pretrazi, ni u detalju proizvoda), a subagent sa uključenim vidi broj izračunat kao `min(ostatak kvote, stvarno slobodno)` — test dokazuje i da subagent nikad ne dobija razlog nedostupnosti (stop-sale/blokada). _(nije implementirano — dopuna v1.12)_
 - [ ] **Čeka M8/portal (frontend)** — Portal se instalira kao PWA i ostaje potpuno upotrebljiv na telefonu i tabletu — subagent poručuje i prati proviziju/kreditni limit bez potrebe za desktop računarom (Master dokument poglavlje 5.1).
 - [ ] **Čeka M8/portal (frontend)** — Ceo tok iz poglavlja 2.0.2 (pretraga → ponuda → putnici → uslovi → potvrda) radi kraj-do-kraja kroz rute iz poglavlja 2.0.1, bez ijednog koraka koji zaobilazi interne API-je M2/M5/M6 — backend API koji bi ga servisirao je implementiran i testiran (§4/§5 gore), sama portal ruta/PWA nije.
 - [x] Rezervacija sa `LEGAL_ENTITY` `ClientAccount` koji **nema** `Subagent` zapis dobija standardnu M5/M6 cenu (marža + eventualna lojalnost), ne proviziju — potvrđuje da se prepoznavanje radi po postojanju zapisa, ne po tipu naloga.

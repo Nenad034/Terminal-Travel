@@ -4,6 +4,8 @@
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje
 
+**Verzija:** 2.60 — **nov ekran "Kapaciteti"** (8.9.2026, na zahtev vlasnika, novo poglavlje 4b + red u tabeli poglavlja 4). Mreža po danima nad M3 §2.8 (kapacitet po danu, stop-sale, blokade): redovi hotel → tip sobe, kolone dani, jačina boje = popunjenost, status = šrafura/oznaka (namerno NE boja pozadine, da se dva različita jezika ne bore na istoj ćeliji), bez treperenja. Čita M3/M5 **uživo**, ne M13 projekciju — operativa, ne analitika; to je i granica prema toplotnoj mapi iz M13 §4.4 (koja gleda unazad i zbirno). Radnje sa ekrana pokrivene postojećim i novim M3 dozvolama (`capacity/VIEW`, `capacity/CLOSE_SALE`, `capacity/BLOCK`), dodela kapaciteta subagentu kao zaseban sloj (M7 §5a). Prvi prolaz namerno pokriva samo smeštaj i čarter — ne-smeštajni proizvodi nemaju polazak kao zapis u modelu, pa bi ekran za njih prikazivao prazno (zamka 7.2). Analiza: `docs/analize/44-PREDLOG-MREZA-KAPACITETA.md`. **Čisto specifikaciona dopuna, bez koda u ovom prolazu.**
+
 **Verzija:** 2.59 — Pinovanje tabova, preživljava gašenje i ponovno pokretanje aplikacije (5.9.2026, vlasnikov zahtev: "omoguci pinovanje tabova koje zelimo da imamo i kada se aplikacija ugasi pa ponovo pokrene"). Do sad su se otvoreni tabovi pamtili isključivo preko `sessionStorage` (§5a, 21.8.2026) — namerno, da ne prežive zatvaranje browsera, samo osvežavanje stranice u toku iste smene. Kačenje dodaje DRUGI, trajniji sloj pamćenja BEZ menjanja tog postojećeg ponašanja za nezakačene tabove:
 
 - **`TabsContext.tsx`** — `OpenTab` dobija opciono `pinned?: boolean`. Zakačeni tabovi se dodatno upisuju u `localStorage` (nov ključ `tt-panel-pinned-tabs`, samo `{id, path, label}` — bez `dirty`, koji je svojstvo TRENUTNOG stanja forme, ne nešto što ima smisla vratiti posle restarta) svaki put kad se `tabs` promeni. Pri učitavanju: `sessionStorage` (ako postoji, sesija nastavljena preko refresh-a) se spaja sa zakačenim tabovima iz `localStorage` (poklapanje po `path`-u, ne po `id`-ju — posle punog restarta stari `id` gubi značaj) — zakačen tab koji sesija nije zatekla se DODAJE, zakačen tab koji sesija VEĆ ima samo dobija `pinned: true` oznaku.
@@ -399,6 +401,7 @@ Razlog nije estetski: M15 poglavlje 1 propisuje da je AI agent formalan M1 nalog
 | Korisnici i uloge                                       | M1              | Faza 0      |
 | Katalog proizvoda                                       | M2              | Faza 1      |
 | Dobavljači i ugovori                                    | M3              | Faza 1      |
+| Kapaciteti (mreža po danima, stop-sale, blokade)        | M3 (+ M5, M7)   | Faza 1      |
 | Pretraga i rezervacije                                  | M5 (+ M4 uživo) | Faza 1      |
 | Kalendar rezervacija (dolasci/odlasci/u toku po datumu) | M5              | Faza 1      |
 | Finansije (fakture, plaćanja)                           | M10             | Faza 2      |
@@ -466,6 +469,63 @@ Klik na grupu prikazuje njene sekcije u levom panelu; klik na jednu sekciju skup
 
 ---
 
+## 4b. Ekran "Kapaciteti" — mreža po danima (dopuna, 8.9.2026, na zahtev vlasnika)
+
+Nova sekcija u navigaciji (tabela poglavlja 4, red **Kapaciteti — M3 — Faza 1**), uz "Dobavljači i ugovori". Prikazuje ono što M3 poglavlje 2.8 uvodi kao model: stanje kapaciteta po danu, zatvaranje prodaje i blokade. Analiza, poređenje sa PrimeTravel-om i sa industrijskom praksom (tape chart / inventory grid): `docs/analize/44-PREDLOG-MREZA-KAPACITETA.md`.
+
+**Zašto zaseban ekran, a ne tab u Izveštajima.** Izveštaji odgovaraju na pitanje "šta se desilo" i čitaju se povremeno; ovo je radni alat koji prodaja drži otvoren ceo dan i sa kog se **radi** (otvara rezervacija, zatvara prodaja, drži kapacitet). Isti razlog zašto ovo nije proširenje toplotne mape iz M13 §4.4, iako je vizuelno srodno: ta mapa gleda unazad i zbirno, ova mreža gleda unapred i po konkretnom datumu.
+
+**Podaci se čitaju uživo iz M3/M5, ne iz M13 projekcije.** M13 je zbirni sloj koji kasni do sledeće rekonsilijacije — za pitanje "smem li ovo da prodam" kašnjenje nije prihvatljivo. Ovo je ujedno i granica: M13 ostaje analitika, ovaj ekran je operativa.
+
+### 4b.1 Oblik prikaza
+
+Redovi = ono što se prodaje, kolone = dani (podrazumevano mesec, raspon podesiv):
+
+- prva kolona je zalepljena pri horizontalnom skrolu; vikend kolone su vizuelno odvojene;
+- **hotel je zbirni red, klik ga razvija na tipove soba** (jedan `ContractPeriod` po tipu, M3 §2.3); skupljen red pokazuje najnepovoljnije stanje svojih redova (zatvoreno > popunjeno > slobodno), da se problem vidi i kad je red zatvoren;
+- ćelija nosi četiri broja iz M3 §2.8c — kapacitet, prodato, blokirano, slobodno — ali se pri mesečnom rasponu prikazuje samo boja i oznaka, a brojevi na prelaz mišem i u nedeljnom rasponu (isto pravilo kao toplotna mapa: 168 brojeva na ekranu poništava svrhu prikaza);
+- klik na ćeliju otvara taj dan: koje rezervacije čine taj broj, sa vezom ka svakoj (M5), i koje blokade stoje.
+
+### 4b.2 Boja i oznaka — jačina je popunjenost, status je oznaka
+
+Ovo je jedina tačka na kojoj ekran svesno odstupa od PrimeTravel uzora (koji status nosi bojom pozadine):
+
+| Šta se prikazuje               | Kako                                                                                     |
+| :----------------------------- | :--------------------------------------------------------------------------------------- |
+| popunjenost (0–100%)           | jačina jedne nijanse (`--accent`), sekvencijalna skala — isto kao toplotna mapa M13 §4.4 |
+| prodaja zatvorena (`STOP`)     | šrafura + oznaka, **ne** sopstvena boja pozadine                                         |
+| blokirano                      | oznaka sa brojem blokiranih jedinica                                                     |
+| period ne postoji za taj datum | prazna ćelija bez ikakve boje (nije isto što i "popunjeno")                              |
+
+Razlog: kad bi "crveno = zatvoreno" i "tamno = puno" delili isti jezik na istoj ćeliji, čitalac ne bi znao šta gleda. Legenda je uvek vidljiva na ekranu, ne samo u verziji za štampu. Nema treperenja ni animacije za kritična polja — ekran se gleda ceo dan (dizajn dokument `29-DIZAJN-SISTEM-UI.md`, i zamka 1.11 za tekst na poluprovidnoj boji).
+
+### 4b.3 Filteri i grupisanje
+
+**Filteri:** raspon datuma, destinacija (država/grad), hotel/proizvod, dobavljač, tip sobe, usluga, `allotment_mode` (`FIXED`/`ON_REQUEST`/`CHARTER`/`FIXED_LEASE`), i stanje ("sve / ima mesta / popunjeno / zatvoreno").
+
+**Grupisanje redova** se bira, isti princip kao Dinamički izveštaj (M13 §4.2): podrazumevano destinacija → hotel → tip sobe; alternativno dobavljač → hotel → tip sobe (pogled nabavke) ili `allotment_mode` → hotel (pogled rizika).
+
+**Izdvojen pogled za `CHARTER` i `FIXED_LEASE`** — tamo neprodato nije propuštena prilika nego trošak agencije (M3 §2.3a), pa ćelija pored broja jedinica prikazuje i novčanu izloženost. Taj pogled zahteva `M13/report:profitability/VIEW` pored `M3/capacity/VIEW`, jer prikazuje cenovno osetljiv podatak.
+
+### 4b.4 Radnje sa ekrana
+
+| Radnja                             | Dozvola (M3 §5)                 | Napomena                                                                                               |
+| :--------------------------------- | :------------------------------ | :----------------------------------------------------------------------------------------------------- |
+| gledanje mreže                     | `M3/capacity/VIEW`              | uključujući prodajne agente                                                                            |
+| zatvaranje/otvaranje prodaje       | `M3/capacity/CLOSE_SALE`        | forma traži obim, raspon datuma i **izvor informacije**; upis u audit log                              |
+| blokada za grupu                   | `M3/capacity/BLOCK`             | forma traži razlog i **rok** — oba obavezna (M3 §2.8b)                                                 |
+| izmena kapaciteta za dan/raspon    | `M3/contract-period/EDIT`       | postojeća dozvola, ne nova                                                                             |
+| nova rezervacija iz izabranog dana | postojeće M5 dozvole            | vodi u M5 tok, ne duplira ga                                                                           |
+| dodela kapaciteta subagentu        | `M7/capacity-allocation/MANAGE` | prikazuje se kao zaseban sloj (M7 §5a), da se vidi zašto partneru nešto nije vidljivo iako je slobodno |
+
+**Standing pravilo "logika i ekran u istom prolazu" (CLAUDE.md)** ovde znači: forme za stop-sale, blokadu i izmenu kapaciteta prave se **u istom prolazu** kao pripadajući M3 endpoint-i, ne kao poseban zadatak posle.
+
+### 4b.5 Šta ovaj ekran namerno ne pokriva u prvom prolazu
+
+Kapacitet ne-smeštajnih proizvoda (izleti, transferi, krstarenja). Za njih danas postoji samo `max_participants`/`max_passengers` kao svojstvo proizvoda (M2 §2.3) — **polazak kao zapis sa datumom i brojem mesta ne postoji u modelu**. Da uđe u prvi prolaz, ekran bi za izlete prikazivao prazno i delovao pokvareno (zamka 7.2). Smeštaj i čarter letovi (koji imaju M3 `ContractPeriod` sa kapacitetom) su pun obim prvog prolaza; ostalo čeka dopunu M2/M3 modela.
+
+---
+
 ## 5. Kontrolna tabla (dashboard) i objedinjena upozorenja
 
 Nekoliko modula već proizvodi sopstvena upozorenja o rokovima:
@@ -516,6 +576,8 @@ Pošto M17 raste sa fazama, izlazni kriterijum je vezan za svaku fazu, ne za jed
 - [x] **Faza 5:** tim vidi upravljačke izveštaje (M13 — profitabilnost/prodaja/smeštaj/dinamički/marketing) i može da otvori/odgovori/reši tiket podrške (M14), uz zakonski rok reklamacije jasno istaknut. _(avgust 2026 — potvrđeno uživo protiv prave baze: `/izvestaji` pet tabova, svaki gejtovan sopstvenom `M13/report:*/VIEW` dozvolom, sa filterima perioda/dimenzija i `lastSyncedAt` prikazom; ručno pokretanje rekonsilijacije potvrđeno; `/podrska` lista+filter, `/podrska/novi` STAFF_ON_BEHALF unos, `/podrska/[id]` detalj sa ZZP rokom (M14 spec §3.1), nit poruka i formom za status/prioritet/`refundDecision` (§3.2) — nova STAFF poruka i status/refund izmena potvrđene kroz prave Server Action forme protiv stvarnog tiketa.)_
 - [x] **Faza 6:** tim vidi kalendar marketinškog sadržaja (M12), ručno kreira/uređuje nacrt, i odobrava objavu — nikad AI agent. _(avgust 2026 — potvrđeno uživo protiv prave baze: `/marketing` kalendar sa filterom tip/status; `/marketing/nov` ručno kreiranje; `/marketing/[id]` detalj sa prevodima (§2.2) i dugmetom "odobri" (`M12/content/APPROVE_PUBLISH`, §3 korak 4) — odobrenje `PENDING_APPROVAL→PUBLISHED` potvrđeno kroz pravu formu, sa `approved_by` popunjenim; upozorenje za `contains_ai_generated_media=true` (§3c) prikazano; `/marketing/kanali` konfiguracija distribucionih kanala (§4).)_
 - [x] **Faza 7:** tim vidi operativna upozorenja i AI troškove (M18), razgovara uživo sa timom i dobavljačima (M19), upravlja bazom znanja za korišćenje platforme (M21), radi u centralizovanom email inbox-u (M22), i upravlja bazom sadržaja o destinacijama/proizvodima sa javnim deljenim linkom (M23). _(avgust 2026 — kod napisan i pušovan za svih pet ekrana: `/nadzor` (signali/kanali/trendovi/ai-troskovi, `4e5c82c`), `/chat` (lista/uživo razgovor preko `/ws/chat`/dobavljači, `a0138ee`), `/pomoc` (članci/prevodi/predlozi/pitanja, `420f650`), `/email` (inbox/nit/sanduke+pristup, `da1a521`), `/znanje` (članci/izvori/revizije/deljeni link, `a90522d`); `nav.ts` svih pet stavki `implemented: true`; `tsc`/`next build` čist za sve. **Naknadno potvrđeno uživo protiv prave baze** (16.8.2026, posle privremenog prekida jer je Docker servis na razvojnoj mašini bio zaustavljen — ponovo pokrenut, pa nastavljena provera): pravi M17 login tok (registracija→MFA enroll preko pravog TOTP koda→unapređenje na VLASNIK ulogu→prijava lozinka+MFA verifikacija→BFF sesijski kolačić), sva 5 ekrana vraćaju HTTP 200 kroz pravu sesiju. `/nadzor` prikazao stvarnih 705 `HealthSignal` zapisa iz baze (rezidualni podaci ranijih e2e prolaza) i pravi nedeljni pregled; za svaki od preostala četiri ekrana kreiran je svež test zapis preko pravog API-ja i potvrđeno da se odmah pojavljuje na listi/detalju u panelu: M18 — nov `TrendSuggestion` odobren, `approvedBy` popunjen pravim korisnikom; M19 — nova GROUP `Conversation` sa porukom, vidljiva u listi i detalju; M21 — nov `HelpArticle` sa prevodom objavljen (`PUBLISHED`, `approvedBy` popunjen); M22 — nova `EmailThread` sa dolaznom porukom (simulirana direktno u bazi jer `receiveInboundMessage` namerno nema HTTP rutu u ovom prolazu — mock adapter, nema žive konekcije) i ručan STAFF odgovor poslat i prikazan; M23 — nov `Article` objavljen sa `shareToken`, javna ruta `/knowledge/public/:token` potvrđena bez autentikacije. Svi test zapisi i test nalog obrisani posle provere. Usput otkriveni (ne prećutno zaobiđeni) stvarni nedostaci u API-ju ovih pet modula, dokumentovani u kodu/commit porukama za budući potvrđeni prolaz — **rešeno 16.8.2026 (isti dan, potvrđen prolaz):** M21 `GET /help/articles` sada prima opcioni `status` parametar (DRAFT/PENDING_APPROVAL/ARCHIVED za EDIT nosioca, ograničeno na sopstvene segmente; bez parametra nepromenjeno ponašanje) i `GET /help/articles/:id` vraća `translations` (pun niz) pored rešenog `translation`; M22 `GET /email/threads` i `GET /email/threads/:id` uključuju `mailbox.address`/`mailbox.displayName` (isti scoping preko `MailboxAccess`, prošireni payload, bez potrebe za `M22/mailbox/VIEW`); M23 dobio `POST /knowledge/articles/:id/research` (opcioni `revisionId` popunjava postojeći `PENDING_REVIEW` placeholder, npr. `SCHEDULED_REFRESH`, umesto da pravi nov). Panel ekrani ažurirani da koriste nove parametre/polja umesto ranijih zaobilaženja (poziv po jeziku za M21 prevode, best-effort admin poziv za M22 naziv sandučeta, napomena bez forme za M23 istraživanje). Jedinični i e2e testovi dodati za sve tri izmene.)_
+- [ ] **Ekran "Kapaciteti" (poglavlje 4b, dopuna 8.9.2026):** mreža prikazuje kapacitet/prodato/blokirano/slobodno po danu za izabrani raspon; zatvoren dan se prepoznaje bez oslanjanja na boju (šrafura + oznaka + legenda); klik na ćeliju otvara taj dan sa vezama ka rezervacijama koje čine broj. _(nije implementirano — čeka M3 v1.15)_
+- [ ] **Radnje sa ekrana rade u istom prolazu kao API** (CLAUDE.md standing pravilo): forme za stop-sale (sa obaveznim izvorom informacije), blokadu (sa obaveznim razlogom i rokom) i izmenu kapaciteta postoje i rade kroz prave M3 endpoint-e, ne samo u API-ju. _(nije implementirano — čeka M3 v1.15)_
 - [x] Svaka naredna faza dodaje svoju sekciju bez izmene already postojećih. _(nav.ts već sadrži kompletnu tabelu poglavlja 4 sa `implemented: false` za Faze 2-6 — dodavanje sekcije je izmena samo tog jednog polja + novi ekran, bez diranja Faze 0/1 koda)_
 - [ ] Panel se instalira kao PWA i ostaje potpuno upotrebljiv na telefonu i tabletu (fluidan raspored, ne samo skalirana desktop verzija) — Master dokument poglavlje 5.1. **Odloženo za naredni prolaz** — svesna odluka da se PWA manifest/service worker doda kad bude više ekrana da opravda test na stvarnom uređaju.
 - [x] Omnisearch polje je dostupno sa svakog ekrana; prazan upit + Enter prikazuje navigaciju filtriranu na ulogu; upit sa tekstom vraća rezultate/AI odgovor koji nikad prekoračuju prava trenutnog korisnika (poglavlje 5.5). _(avgust 2026 — M15 sada postoji u kodu; prazan upit + Enter i dalje čisto lokalna navigacija, upit sa tekstom poziva pravi `POST /ai-orchestration/omnisearch`; ako gate nije aktiviran, panel prikazuje smirenu poruku umesto greške i lokalna navigacija ostaje kao fallback)_
