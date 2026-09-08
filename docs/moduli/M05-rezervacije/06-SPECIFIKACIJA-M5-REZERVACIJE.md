@@ -4,6 +4,8 @@
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje
 
+**Verzija:** 2.47 — Nov `SearchLog` (poglavlje 3.0i, 8.9.2026, vlasnikov zahtev — AI agent treba da analizira "u koje doba dana je bilo najviše upita") — svaki `GET /search` poziv upisuje pun zapis (vreme, kanal, kriterijum, broj rezultata), uklj. anonimne B2C posetioce BEZ IP-a/kolačić-identifikatora (vlasnikova odluka, potvrđeno preko `AskUserQuestion`). Čita ga M13 poglavlje 4.4 ("Vremenski obrasci") i M15 `BiTerminalAgent` (§6.9.6, nov `query_view` red). Retencija namerno neodređena, upisana u poglavlje 13. **Čisto specifikaciona dopuna, bez koda u ovom prolazu.**
+
 **Verzija:** 2.46 — Straničenje na `GET /sales/supplier-manifests` i `GET /sales/supplier-change-notices` (8.9.2026, dok. 27 nastavak nalaza 2.2 iz dok. 39) — oba rastu sa svakom generisanom najavom/izmenom-stornom stavke; pozivani bez `supplierId`/`bookingItemId` (kao na ekranu "Najave dobavljačima") su vraćali sve od početka. Sad `{ data, total, page, limit, pageCount, hasMore }`. Panel (`/rezervacije/najave`) dobija `Pagination` za listu najava; spisak izmena/storna nosi tvrd plafon (`?limit=200`) bez navigacionih kontrola — sekundarna tabela na istom ekranu, "najave čekaju slanje" indikator ostaje tačan jer su čekajuće stavke uvek among najskorije (`generatedAt`/`createdAt desc`). **Provera:** novi `.service.spec.ts` za `SupplierChangeNoticesService` (ranije nije imao nijedan test) + nov test u `supplier-manifests.service.spec.ts`, `tsc --noEmit` čist, 1096 backend testova prolazi.
 
 **Verzija:** 2.45 — Uska revizija v2.44 (8.9.2026, dok. 40 §10 prvi red — okidač "ekran prešao sa mock na prave podatke", primenjen na sopstvenu izmenu istog dana): nabrojani svi ulazi koji koriste `branchName`/`assignedUserName`/`buyerEmail`/`buyerPhone`, nađena dva ista-obrasca-kao-zamka-8.6 nedostatka (funkcija koju je mock imao nije prenesena, samo unapred umesto unazad). (1) **Filter "zadužen"** — stari mock modal je filtrirao rezervacije po zaduženom čoveku; novi `RealFilterFields.tsx` je imao samo "Zaposleni" (`ownerId` — vlasnik/kreator), ne i `assignedToId` (zadužen — različito polje, menja se preko `reassign()`/predaje zaduženja, §6.5). Dodat filter "Zadužen" (isti `employees` niz, novi `assignedToId` query parametar, `BookingsService.findAll`/`BookingsController`). (2) **Excel izvoz** — `RealBookingsTable.tsx` je izvoz "Poslovnica"/"Zaduženi" izričito isključivao komentarom "nemaju pravi izvor... vraćaju se kad dobiju pravi izvor" — taj uslov je ispunjen u v2.44, komentar/kod nije ažuriran u istom prolazu. Vraćene kolone "Poslovnica"/"Zadužen" u izvoz. `buyerEmail`/`buyerPhone` NAMERNO ostaju izvan Excel fajla (van obima ove dopune) — prikaz u panelu (INTERNAL_PANEL maska) nije ista odluka kao puštanje ličnih podataka gosta u fajl koji fizički napušta sistem; čeka vlasnikovu potvrdu. `hotelName`/`supplierName`/dobavljač i dalje demo, i dalje van izvoza (nepromenjeno). **Provera:** `tsc --noEmit` čist za `apps/api` i `apps/panel`; `bookings.service.spec.ts` 80/80 (1 nov test — filter po `assignedToId`, potvrđuje da se ne meša sa `ownerId`); `npm run lint` 0 grešaka u oba app-a.
@@ -986,6 +988,41 @@ Rešeno tako što je ceo ekran pretrage postao **flex kolona do dna `<main>`-a**
 3. **Povezivanje kartice i tačke** — prelaz mišem preko rezultata da istakne tačku i obrnuto (Airbnb obrazac). Traži da lista i mapa stoje jedna pored druge, a danas se smenjuju.
 4. **Trajno geokodiranje novih proizvoda** — proizvod unet sutra nema koordinate; nije odlučeno da li se geokodira pri objavi, periodično, ili ručno.
 5. **Gde fajl mape živi u produkciji** — čeka izbor hosting provajdera, koji je namerno odložen (CLAUDE.md).
+
+---
+
+## 3.0i Log pretraga (`SearchLog`) — vremenska analitika upita (dopuna, 8.9.2026, na zahtev vlasnika, istraženo naspram prakse contact-center/hotel-pace analitike)
+
+Do sada M13 (poglavlje 4) izveštava isključivo o REZERVACIJAMA — ne postoji nigde trag da je neko nešto TRAŽIO a nije rezervisao. Vlasnikov zahtev je da AI agent na upit ume da kaže i "u koje doba dana je bilo najviše upita", što traži nov, samostalan zapis (ne izvodi se iz `Booking`).
+
+### 3.0i.1 Model podataka — `SearchLog`
+
+| Polje               | Tip                               | Napomena                                                                                                                                             |
+| :------------------ | :-------------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------- |
+| id                  | UUID (PK)                         |                                                                                                                                                      |
+| occurred_at         | timestamp                         | pun trenutak poziva (ne samo datum) — nosilac cele analize "doba dana"                                                                               |
+| channel             | string (isti `M5Channel` katalog) | `B2C_SITE`/`B2B_PORTAL`/`MOBILE`/`INTERNAL_PANEL`/`PHONE`/`MCP_AGENT` — `PHONE` se ne beleži ovde (nema `GET /search` poziv), ostaje van ovog zapisa |
+| actor_id            | UUID, nullable                    | popunjeno za prijavljen STAFF/B2B poziv (M1 `User`); `null` za anonimnog B2C posetioca                                                               |
+| client_account_id   | UUID, nullable                    | popunjeno kad je pozivalac prijavljen B2C gost (M6 `ClientAccount`); `null` za anonimnog                                                             |
+| product_type        | string, nullable                  | iz upita, ako je zadat                                                                                                                               |
+| destination_country | string, nullable                  | iz upita, ako je zadat                                                                                                                               |
+| destination_city    | string, nullable                  | iz upita, ako je zadat                                                                                                                               |
+| result_count        | integer                           | broj vraćenih `SearchResultProduct` — omogućava razliku "upit bez rezultata" od "upit sa rezultatima koji nije postao rezervacija"                   |
+
+**Vlasnikova odluka (8.9.2026, potvrđeno preko `AskUserQuestion`), namerno zapisana kao granica koja se ne pomera bez nove odluke:**
+
+1. **Pun zapis po pretrazi**, ne samo agregat po satu — omogućava kasniju analizu (npr. "koliko upita za Grčku nije postalo rezervacija"), ne samo brojanje.
+2. **Anonimni B2C posetioci SE beleže**, ali **bez IP adrese i bez ikakvog kolačić/sesijskog identifikatora** — `actor_id`/`client_account_id` ostaju `null`, zapis nosi samo vreme+kriterijume+kanal. Ovo je namerna, minimalna mera (dovoljna za "doba dana" analizu), ne puno praćenje ponašanja posetioca.
+
+**Nije rešeno u ovom prolazu, otvoreno za dalje (poglavlje 13):** period čuvanja (retencija) — zapis se danas ne briše automatski; GDPR obaveza je manja nego kod `ClientAccount`/`EmployeeRecord` pošto anonimni redovi ne nose lični podatak, ali `actor_id`/`client_account_id` redovi ipak jesu lični podatak i trebalo bi retenciju definisati u istom prolazu kad se M6/M22 retencija reši (`docs/analize/26-PRAVNA-I-KNJIGOVODSTVENA-OTVORENA-PITANJA.md`).
+
+### 3.0i.2 Kad se zapisuje
+
+Jedno mesto — `SearchService.search()` (poglavlje 11, `GET /search`), posle uspešnog izvršavanja, pre vraćanja odgovora. Ne blokira odgovor (upis je "fire and forget" preko internog event-a, isti obrazac kao M13 event bus, poglavlje 4 M13 spec) — kvar upisa loga ne sme srušiti pretragu.
+
+### 3.0i.3 Odnos prema M13/M15
+
+`SearchLog` je M5 entitet (upiti su deo toka prodaje), ali ga čita M13 (poglavlje 4.4 M13 spec, "Vremenski obrasci") kao dodatni izvor pored `FactBooking` — isti princip odvajanja izvor/projekcija kao ostatak M13. `BiTerminalAgent` (M15 spec §6.9.6) dobija nov `query_view` red da odgovori na pitanja tipa "u koje doba dana je bilo najviše upita" bez fiksnog UI ekrana.
 
 ---
 
@@ -1978,6 +2015,7 @@ Prefiks: `/api/v1/sales`
 
 ## 13. Otvoreno za dalje
 
+- **`SearchLog` retencija** (§3.0i, 8.9.2026) — period čuvanja nije definisan; redovi sa `actor_id`/`client_account_id` nose lični podatak i trebaju retencionu politiku, isto pitanje kao M6/M22 (`docs/analize/26-PRAVNA-I-KNJIGOVODSTVENA-OTVORENA-PITANJA.md`), čeka pravnika.
 - **Automatsko osvežavanje ponuda bez klika, uz preporuku sistema** (pitanje vlasnika, 2.9.2026, tokom implementacije §3.0g — _"da li se može napraviti algoritam koji će sam osvežavati svakih 10 minuta i sistem da da preporuku da li svakako treba osvežiti ako u api konekciji se primeti da je došlo do promene"_). Poređenje koje bi to koristilo **već postoji** (§3.0g.3, `SearchRefreshNotice.tsx`) — danas ga pokreće klik na "Osveži podatke"; automatska varijanta bi ga pokretala sat. Moja preporuka (data vlasniku, **nije još odluka**, ne implementirati pre potvrde i dopune ovog poglavlja):
   1. **Ne fiksnih 10 minuta.** Svaka ponuda već nosi sopstveni rok (`SearchResultOffer.quote_expires_at`, §3.0b.2) — neke ističu za nekoliko minuta, neke traju satima. Provera se vezuje za taj rok, ne za fiksan takt.
   2. **Osvežavaju se samo stavke u desnom panelu** (§3.0e.3), ne cela lista rezultata — ono što agent stvarno sastavlja u putovanje, njih par, a ne pedeset redova koje je neko ostavio otvorene.
