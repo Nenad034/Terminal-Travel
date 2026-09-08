@@ -1,6 +1,7 @@
 # Predlog — mreža kapaciteta ("ko je gde slobodan, kog dana")
 
 **Status:** Predlog, bez koda. Nastao 8.9.2026. na zahtev vlasnika, odmah pošto je M13 §4.4 dobio toplotnu mapu za vremenske obrasce: _"dopada mi se ova mapa i mislim da možemo da je iskoristimo za pregled smeštajnih i kapaciteta drugih proizvoda, po više kriterijuma. Za sada samo zapišite i razradite, konsultujući relevantne izvore na internetu ali i PrimeTravel jer mislim da je to tamo jako dobro urađeno."_
+**Ažurirano isti dan (8.9.2026):** vlasnik je odgovorio na sva četiri pitanja iz poglavlja 7 — odgovori i šta menjaju su u **poglavlju 9**. Najvažnija posledica: preporuka iz poglavlja 0 i 4 je time **promenjena** — dnevni kapacitet i stop-sale nisu više "drugi korak za kasnije" nego uslov da prvi korak uopšte ima smisla.
 **Dodiruje module:** M3 (kapacitet i ugovori — izvor istine), M5 (rezervacije — šta je prodato), M2 (šta je proizvod uopšte), M13 (izveštajni sloj), M17 (panel/ekran), M7 (verzija za subagente), M18 (alarmi).
 **Šta je pregledano:** PrimeTravel `src/modules/production/OperationalReports.tsx` (3568 linija, `Inventory Orchestrator` tab) i prateći `OperationalReports.css`; naš `apps/api/prisma/schema.prisma` (M3 `ContractPeriod`, M5 `BookingItem`, M13 `FactBooking`); M3 spec §2.3/§2.3a/§4.3/§8, M2 spec §2.3, M13 spec §4.1/§4.4; javni izvori navedeni u poglavlju 4.
 
@@ -102,6 +103,8 @@ Sve četiri stavke traže **novi zapis: kapacitet po danu** (radno ime `Capacity
 
 Obrnut redosled (prvo baza) košta više, a ne daje ništa brže — jer ekran ionako mora prvo da postoji.
 
+> **Ova preporuka je ispravljena istog dana, posle vlasnikovog odgovora (poglavlje 9.1).** Stop-sale nije redak slučaj nego svakodnevica, i stiže čak i kod fiksnog zakupa. Mreža koja ga ne zna prikazivala bi "slobodno 6" za datum koji je zatvoren — a pogrešan podatak na ekranu prodaje je gori od nepostojećeg ekrana. Zato `CapacityDay` + stop-sale ulaze u **prvi** prolaz, zajedno sa izvedenim izračunom, ne posle njega. Izvedeni izračun ostaje kao osnova (odgovara na "koliko je prodato"), a `CapacityDay` nosi ono što se izračunom ne može znati (koliko je otvoreno i da li je uopšte otvoreno).
+
 ---
 
 ## 5. Predlog ekrana
@@ -182,6 +185,8 @@ Redosled je bitan — tvrdo pravilo iz CLAUDE.md (nema koda bez oslonca u specif
 
 ## 7. Otvorena pitanja — samo za vlasnika (poslovne odluke)
 
+> **Sva četiri odgovorena istog dana — vidi poglavlje 9.** Pitanja ostaju ovde u izvornom obliku, radi traga; četvrto je bilo loše postavljeno i ponovo je napisano u 9.4, gde i dalje čeka odgovor.
+
 1. **Da li dobavljači stvarno menjaju kapacitet unutar sezone i šalju stop-sale?** Ako da — koliko često? Od toga zavisi da li je korak 2 hitan ili može da čeka.
 2. **Ko sme da zatvori prodaju u sistemu** — samo nabavka, ili i šef prodaje?
 3. **Da li subagenti (M7) uopšte treba da vide raspoloživost po danima**, ili samo rezultat pretrage? PrimeTravel im šalje ceo dokument sa statusima po danu; to je poslovna odluka o tome koliko se pokazuje partnerima, ne tehnička.
@@ -197,6 +202,67 @@ Redosled je bitan — tvrdo pravilo iz CLAUDE.md (nema koda bez oslonca u specif
 | Sažeta verzija za slanje (M7/M22)                                                   | mali dodatak na korak 1   | ono što PrimeTravel šalje subagentima                                 |
 | Korak 2 — `CapacityDay`, stop-sale, blokade, izmena sa ekrana                       | zaseban prolaz, dira bazu | ekran postaje alat za rad, ne samo prikaz                             |
 | Ne-smeštajni proizvodi (polasci)                                                    | ide uz korak 2            | izleti, transferi, krstarenja                                         |
+
+> **Ispravljeno posle vlasnikovog odgovora (poglavlje 9).** Tabela iznad je pisana pod pretpostavkom da je stop-sale redak. Nije. Novi redosled: **prvi prolaz = `CapacityDay` + stop-sale + mreža za smeštaj i čarter** (jedan zaokružen posao, dira bazu); **drugi prolaz** = definisana raspoloživost za subagente (poglavlje 9.3) i ne-smeštajni polasci. Sažeta verzija za slanje ostaje mali dodatak, bilo kom od ta dva.
+
+---
+
+## 9. Odgovori vlasnika (8.9.2026) i šta menjaju
+
+### 9.1 Stop-sale je svakodnevica, ne izuzetak — i pogađa i fiksni zakup
+
+Vlasnik: _"Menjaju i to često izuzev kada je fiksni zakup u pitanju, ali i kod tog zakupa mogu da pošalju stop sale informaciju za sve sobe, ili pojedinačne, za sve termine ili pojedinačne."_
+
+Ovo je najvažniji odgovor i on menja redosled posla (poglavlje 4, ispravka; poglavlje 8, ispravka). Dva zaključka:
+
+1. **Kapacitet se menja unutar sezone kod svih modova osim `FIXED_LEASE`** — dakle izvedeni izračun (jedan `total_capacity` za ceo period) nije dovoljan ni za osnovnu tačnost, ne samo za "napredne" slučajeve.
+2. **Stop-sale je odvojena stvar od kapaciteta i stiže i kod `FIXED_LEASE`.** To je bitna finesa: kod fiksnog zakupa mi smo kapacitet već platili, pa se broj soba ne menja — ali hotel svejedno može reći "ovih dana ove sobe ne primam". Znači stop-sale **ne sme** biti modelovan kao "kapacitet spušten na nulu", nego kao **zaseban status** povrh kapaciteta. Inače bi se, kad se stop-sale skine, izgubio podatak koliko je soba bilo pre njega, i finansijska obaveza po zakupu (koja ostaje!) ne bi imala pokriće u podacima.
+
+**Šta iz toga sledi za model (predlog za M3 spec, čeka potvrdu):** stop-sale ima **dve nezavisne dimenzije obima**, tačno kako je vlasnik opisao:
+
+| Dimenzija | Vrednosti                                                      | Primer                                             |
+| :-------- | :------------------------------------------------------------- | :------------------------------------------------- |
+| **Šta**   | ceo objekat (sve sobe iz ugovora) **ili** pojedinačni tip sobe | "zatvoreno sve" / "zatvorene samo apartmani"       |
+| **Kada**  | ceo period **ili** pojedinačni datumi/raspon                   | "zatvoreno do kraja sezone" / "zatvoreno 12–15.7." |
+
+Sve četiri kombinacije se moraju moći uneti, i sve četiri se svode na isti zapis po danu — "zatvori sve za ceo period" je samo masovni unos, ne poseban tip zapisa. Uz svaki zapis ide **ko ga je uneo, kada, i po čijoj informaciji** (dobavljač — mejl, telefon, portal), jer je to podatak koji se kasnije traži kad nastane spor.
+
+### 9.2 Ko sme da zatvori prodaju — dozvola, ne uloga
+
+Vlasnik: _"Svako kome to dozvolimo."_
+
+Znači ne fiksni spisak uloga, nego **dozvola koja se dodeljuje** — što je tačno ono što M1 već ume: dozvola ide uz ulogu, ali postoji i pojedinačno odstupanje po korisniku (`user_permission_overrides`), pa se sme dati baš jednoj osobi bez menjanja cele uloge.
+
+Predlog: dve odvojene dozvole, jer to nisu iste odgovornosti:
+
+- `M3/capacity/VIEW` — gledanje mreže (široko: prodaja, nabavka, uprava),
+- `M3/capacity/CLOSE_SALE` — zatvaranje/otvaranje prodaje i blokada (usko, i uvek uz obavezan razlog + audit log).
+
+Podrazumevano ide Vlasnik/Direktor/nabavka; svako drugo dodeljivanje je tvoja odluka po osobi.
+
+### 9.3 Subagenti vide raspoloživost koju im mi definišemo — ovo je nov mehanizam, ne postoji danas
+
+Vlasnik: _"Subagenti treba da vide raspoloživost koju smo za njih definisali koju mogu da vide."_
+
+**Iskren nalaz: toga danas nema.** M7 subagent vidi katalog filtriran po tome da li je proizvod uopšte otvoren za B2B kanal (M2 `visible_channels`) — to je pravilo **po proizvodu, isto za sve subagente**. Nema mesta gde bi se reklo "ovaj subagent vidi ovih 10 hotela, i to samo 5 od 20 soba".
+
+To traži nov zapis u M7 (radno ime "definisana raspoloživost po subagentu") sa dve odluke koje su poslovne, ne tehničke, i koje ti treba da potvrdiš pre nego što se to upiše u M7 specifikaciju:
+
+1. **Šta se definiše** — samo koje proizvode/hotele subagent sme da vidi, ili i **koliki deo kapaciteta** (npr. "od 20 naših soba, subagentu X je vidljivo najviše 5")? Drugo je jače i uobičajeno u B2B distribuciji, ali traži da se prati i "koliko je taj subagent već potrošio od svoje kvote".
+2. **Koliko precizno vidi** — tačan broj slobodnih ("ostalo 3"), ili samo semafor ("ima / na upit / nema")? Semafor je uobičajeniji jer ne otkriva partneru koliko ti je robe ostalo na stanju, što je pregovaračka informacija.
+
+Moja preporuka: **semafor kao podrazumevano, tačan broj samo za subagente kojima to izričito uključiš** (isto se ponaša kao dozvola iz 9.2 — podrazumevano zatvoreno, otvara se namerno).
+
+### 9.4 Četvrto pitanje — postavljeno nejasno, evo ga razumljivije
+
+Vlasnik: _"ne razumem pitanje"_ — greška je moja, pitanje je bilo napisano tehnički. Ovako glasi:
+
+Kad se drži smeštaj za grupu koja **još nije potvrđena** (npr. škola pita za 10 soba u maju, treba im nedelju dana da se izjasne), sistem to može voditi na dva načina:
+
+- **kao rezervaciju** u statusu "na čekanju" — soba je zauzeta jer za nju postoji zapis o gostu (koji još nije poznat po imenu), ili
+- **kao blokadu kapaciteta** — soba je izuzeta iz prodaje, ali nema rezervacije ni gosta; samo stoji razlog ("držimo za školu iz Kragujevca do 20.5.").
+
+Razlika se vidi na mreži: u prvom slučaju ta soba je "prodata", u drugom je "blokirana" — i u izveštajima se ponaša drugačije (blokada nije prihod i ne ulazi u popunjenost kao prodaja). Odgovor određuje da li mreža uopšte treba treću vrstu polja pored "slobodno/prodato".
 
 ---
 
