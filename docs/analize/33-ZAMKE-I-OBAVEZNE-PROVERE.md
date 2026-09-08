@@ -272,6 +272,12 @@ Brojevi 5.6, 5.7, 5.11–5.14, 9.4 i 12.2 i dalje postoje — nose **drugi** od 
 - _Provera:_ privremene skripte za proveru (login/MFA tok, provera podataka i sl.) piši **van** `apps/api` (npr. scratchpad direktorijum), sa apsolutnim `require()` putanjama i ručno pročitanim `.env` umesto uvoza iz `src/` — ako baš mora unutra, sačekaj par sekundi posle kreiranja/brisanja fajla pre poziva.
 - _Povezano:_ ne meša se sa 8.3 (izgubljen pozadinski zadatak) — ovde je API i dalje živ, samo je privremeno u rebuild-u.
 
+**5.19 Rezervacije ubačene mock skriptom ne pune M13 izveštaje — `/izvestaji` ostaje prazan**
+
+- _Simptom:_ (8.9.2026) `/rezervacije/lista`, kalendar i `/izvestaji` prazni posle svežeg podizanja baze; `seed:mock-lista-rezervacija`/`mock-b2c` su vraćeni podaci uspešno, ali `/izvestaji` i dalje prikazuje "nikad (projekcija prazna)".
+- _Uzrok:_ M13 izveštaji (`ReportsService`) ne čitaju `Booking`/`BookingItem` direktno — čitaju projekciju `FactBooking`/`FactPayment` koju puni `FactSyncService`, a taj se poziva iz NestJS event bus-a KAD rezervacija/uplata nastane KROZ API. Mock seed skripte pišu direktno preko Prisma-e (bez API poziva, bez event bus-a), pa projekcija ostaje prazna dok se ne pokrene rekonsilijacija.
+- _Provera:_ posle bilo koje mock skripte koja pravi rezervacije/uplate direktno u bazi, pokrenuti `npm run bi:reconcile --workspace=apps/api` (ili dugme "Ručna rekonsilijacija" na `/izvestaji`, dostupno Vlasniku/Direktoru). Ako `FactPayment` i dalje izostaje za EUR uplate ("Nema kursa za EUR..." u logu), prvo `npm run rates:backfill --workspace=apps/api -- <od-datuma>` (M13 spec §2, isti obrazac kao 5.1 ranije).
+
 **5.18 `npm run build` (produkcioni) preko iste `.next` fascikle dok `next dev` radi je kvari**
 
 - _Simptom:_ posle build-a, dev server i dalje vraća HTTP 200 na stranice, ali API rute (`route.ts`) unutar `app/api/**` pucaju sa `Cannot find module './XXXX.js'` — ID modula iz produkcionog build-a se sudaraju sa dev webpack keš-om.
