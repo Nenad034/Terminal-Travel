@@ -24,11 +24,13 @@ import { CreateMessageDto } from './dto/create-message.dto';
 import { UpdateMessageDto } from './dto/update-message.dto';
 import { JwtAuthGuard } from '../../m1-core-identitet/auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
+import { unlinkSync } from 'fs';
 import {
+  ALLOWED_ATTACHMENT_EXTENSIONS,
   ATTACHMENT_UPLOAD_ROOT,
-  BLOCKED_ATTACHMENT_EXTENSIONS,
   MAX_ATTACHMENT_BYTES,
   ensureConversationUploadDir,
+  matchesMagicBytes,
   sanitizeAttachmentFileName,
 } from './attachment-storage';
 
@@ -79,9 +81,10 @@ export class ConversationsController {
           cb(null, `${randomUUID()}-${sanitizeAttachmentFileName(file.originalname)}`),
       }),
       limits: { fileSize: MAX_ATTACHMENT_BYTES },
+      // Dok. 36 §3 tačka 4 — allowlist, ne blocklist (v. attachment-storage.ts).
       fileFilter: (_req, file, cb) => {
         const ext = extname(file.originalname).toLowerCase();
-        if (BLOCKED_ATTACHMENT_EXTENSIONS.includes(ext)) {
+        if (!ALLOWED_ATTACHMENT_EXTENSIONS.includes(ext)) {
           return cb(
             new BadRequestException(`Tip fajla "${ext}" nije dozvoljen kao prilog.`),
             false,
@@ -97,6 +100,19 @@ export class ConversationsController {
     @CurrentUser() user: { userId: string },
     @UploadedFile() file?: Express.Multer.File,
   ) {
+    // Dok. 36 §3 tačka 4 (magic bytes) — `fileFilter` iznad radi nad strimom PRE upisa na disk
+    // (multer `diskStorage` ograničenje: sadržaj još nije dostupan tamo), pa se stvaran potpis
+    // proverava OVDE, posle upisa — fajl koji ne odgovara svojoj ekstenziji (npr. HTML sadržaj
+    // preimenovan u "slika.png") se odmah briše i poruka se NIKAD ne kreira.
+    if (file) {
+      const ext = extname(file.originalname).toLowerCase();
+      if (!matchesMagicBytes(ext, file.path)) {
+        unlinkSync(file.path);
+        throw new BadRequestException(
+          `Sadržaj fajla ne odgovara ekstenziji "${ext}" — prilog odbijen.`,
+        );
+      }
+    }
     return this.conversations.createMessage(id, dto, user.userId, file);
   }
 

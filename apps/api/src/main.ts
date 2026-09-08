@@ -22,6 +22,22 @@ async function bootstrap() {
   // JSON (ne HTML koji CSP štiti), pa je taj kompromis bezbedan ovde.
   app.use(helmet({ contentSecurityPolicy: false }));
 
+  // Bezbednosna analiza (dok. 36 §3 tačka 2, 28.8.2026) — REST API do sada nije imao NIJEDAN
+  // CORS poziv, što je "slučajno bezbedno" (default ponašanje bez CORS-a odbija browser pozive
+  // sa drugog porekla), ne namerno podešeno. Eksplicitna allowlist: `PANEL_BASE_URL`/
+  // `WEB_BASE_URL` iz env-a (isti izvor kao mejl linkovi, `mailer.service.ts`) sa lokalnim
+  // dev portovima kao rezervom — sigurno je čitati `process.env` ovde jer `NestFactory.create`
+  // iznad već instancira `ConfigModule` (isti redosled kao svaki drugi servis koji čita env
+  // posle bootstrap-a; za razliku od `@WebSocketGateway` dekoratora, koji se evaluira RANIJE,
+  // pri uvozu modula — vidi komentar u `chat-gateway.service.ts`).
+  const allowedOrigins = [
+    ...new Set([
+      process.env.PANEL_BASE_URL ?? 'http://localhost:3100',
+      process.env.WEB_BASE_URL ?? 'http://localhost:3001',
+    ]),
+  ];
+  app.enableCors({ origin: allowedOrigins });
+
   app.setGlobalPrefix('api/v1');
   app.useGlobalPipes(
     new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }),

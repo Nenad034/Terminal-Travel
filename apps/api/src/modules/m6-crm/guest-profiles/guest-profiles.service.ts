@@ -3,6 +3,7 @@ import { PrismaService } from '../../../prisma/prisma.service';
 import { CreateGuestProfileDto } from './dto/create-guest-profile.dto';
 import { UpdateGuestProfileDto } from './dto/update-guest-profile.dto';
 import { resolveCallerIdentity } from '../../../common/auth/resolve-caller-identity';
+import { type PaginationQueryDto, paginated, paginationArgs } from '../../../common/pagination/pagination';
 
 // M6 spec §2.2, §5, §7 dopuna — Gost. Istorija putovanja se čita uživo iz M5 preko
 // BookingItemGuest. Gost (account_type GUEST) sme da vidi/menja/pravi isključivo
@@ -19,14 +20,26 @@ export class GuestProfilesService {
     return { isGuest: identity.accountType === 'GUEST', ownAccountId: identity.ownProfileId };
   }
 
-  async findMany(filter: { linkedClientAccountId?: string }, actorUserId?: string) {
+  // Bezbednosna analiza (dok. 36 §3 tačka 3, 28.8.2026) — bez straničenja, `M6/guest-profile/VIEW`
+  // nije razlikovalo "pogledaj jednog gosta" od "izvuci PIB/pasoš podatke SVIH gostiju u bazi
+  // jednim pozivom" (bez `linkedClientAccountId` filtera). Isto straničenje kao svaka druga lista
+  // (`common/pagination`, dok. 39 nalaz 2.2) — tvrd `MAX_PAGE_SIZE` čini "sve odjednom" strukturno
+  // nemogućim, jeftinije od posebne `VIEW_BULK` dozvole za isti efekat.
+  async findMany(
+    filter: { linkedClientAccountId?: string },
+    actorUserId?: string,
+    pagination?: PaginationQueryDto,
+  ) {
     const { isGuest, ownAccountId } = await this.ownAccountIdIfGuest(actorUserId);
-    return this.prisma.guestProfile.findMany({
-      where: {
-        linkedClientAccountId: isGuest ? (ownAccountId ?? undefined) : filter.linkedClientAccountId,
-      },
-      orderBy: { createdAt: 'desc' },
-    });
+    const where = {
+      linkedClientAccountId: isGuest ? (ownAccountId ?? undefined) : filter.linkedClientAccountId,
+    };
+    const { skip, take, page, limit } = paginationArgs(pagination);
+    const [data, total] = await this.prisma.$transaction([
+      this.prisma.guestProfile.findMany({ where, orderBy: { createdAt: 'desc' }, skip, take }),
+      this.prisma.guestProfile.count({ where }),
+    ]);
+    return paginated(data, total, page, limit);
   }
 
   async findOne(id: string, actorUserId?: string) {

@@ -4,6 +4,7 @@ import { getMe, hasPermission } from '@/lib/me';
 import RegisterTab from '@/components/RegisterTab';
 import Icon from '@/components/Icon';
 import TabLink from '@/components/TabLink';
+import Pagination from '@/components/Pagination';
 import { Button } from '@/components/ui/button';
 
 interface GuestProfile {
@@ -19,19 +20,39 @@ interface GuestProfile {
 
 // M6 spec §2.2, §9 — GET /guest-profiles (opciono filtrirano po linkedClientAccountId).
 export default async function GuestProfilesPage(props: {
-  searchParams: Promise<{ linkedClientAccountId?: string }>;
+  searchParams: Promise<{ linkedClientAccountId?: string; page?: string }>;
 }) {
   const searchParams = await props.searchParams;
   const me = await getMe();
   const canCreate = hasPermission(me, 'M6', 'guest-profile', 'CREATE');
 
   let guests: GuestProfile[] = [];
+  // Straničenje (dok. 36 §3 tačka 3, 8.9.2026) — endpoint više ne vraća sve profile odjednom
+  // (bezbednosni nalaz, "bulk" PIB/pasoš čitanje); traka ispod pokazuje ukupan broj, ne samo
+  // prikazanu stranicu, isti obrazac kao Lista rezervacija (dok. 39 nalaz 2.2).
+  let total = 0;
+  let page = 1;
+  let pageCount = 1;
+  let limit = 50;
   let error: string | null = null;
   try {
-    const qs = searchParams?.linkedClientAccountId
-      ? `?linkedClientAccountId=${encodeURIComponent(searchParams.linkedClientAccountId)}`
-      : '';
-    guests = await apiFetch<GuestProfile[]>(`/crm/guest-profiles${qs}`);
+    const params = new URLSearchParams();
+    if (searchParams?.linkedClientAccountId)
+      params.set('linkedClientAccountId', searchParams.linkedClientAccountId);
+    if (searchParams?.page) params.set('page', searchParams.page);
+    const qs = params.toString() ? `?${params.toString()}` : '';
+    const result = await apiFetch<{
+      data: GuestProfile[];
+      total: number;
+      page: number;
+      pageCount: number;
+      limit: number;
+    }>(`/crm/guest-profiles${qs}`);
+    guests = result.data;
+    total = result.total;
+    page = result.page;
+    pageCount = result.pageCount;
+    limit = result.limit;
   } catch {
     error = 'Nemate dozvolu za uvid u profile gostiju (M6/guest-profile/VIEW).';
   }
@@ -99,6 +120,19 @@ export default async function GuestProfilesPage(props: {
             </TabLink>
           ))}
         </div>
+      )}
+
+      {!error && (
+        <Pagination
+          page={page}
+          pageCount={pageCount}
+          total={total}
+          shown={guests.length}
+          limit={limit}
+          basePath="/crm/gosti"
+          searchParams={searchParams ?? {}}
+          itemLabel="gostiju"
+        />
       )}
     </div>
   );

@@ -7,6 +7,7 @@ import { JwtAuthGuard } from '../../m1-core-identitet/auth/guards/jwt-auth.guard
 import { PermissionsGuard } from '../../../common/guards/permissions.guard';
 import { RequirePermission } from '../../../common/decorators/require-permission.decorator';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
+import { parsePagination } from '../../../common/pagination/pagination';
 
 // M6 spec §9, prefiks /api/v1/crm
 @ApiTags('crm-guest-profiles')
@@ -20,9 +21,15 @@ export class GuestProfilesController {
   @RequirePermission('M6', 'guest-profile', 'VIEW')
   findMany(
     @Query('linkedClientAccountId') linkedClientAccountId: string | undefined,
+    @Query('page') page: string | undefined,
+    @Query('limit') limit: string | undefined,
     @CurrentUser() actor: { userId: string },
   ) {
-    return this.guestProfiles.findMany({ linkedClientAccountId }, actor.userId);
+    return this.guestProfiles.findMany(
+      { linkedClientAccountId },
+      actor.userId,
+      parsePagination(page, limit),
+    );
   }
 
   @Get(':id')

@@ -95,9 +95,11 @@ export default async function ClientAccountDetailPage(props: { params: Promise<{
 
   const [guests, loyalty, tiers, history, log] = await Promise.all([
     account && canViewGuests
-      ? apiFetch<GuestProfile[]>(`/crm/guest-profiles?linkedClientAccountId=${account.id}`).catch(
-          () => [],
+      ? apiFetch<{ data: GuestProfile[] }>(
+          `/crm/guest-profiles?linkedClientAccountId=${account.id}`,
         )
+          .then((r) => r.data)
+          .catch(() => [])
       : Promise.resolve([]),
     account && canViewLoyalty
       ? apiFetch<LoyaltyStatus>(`/crm/loyalty-status/${account.id}`).catch(() => null)

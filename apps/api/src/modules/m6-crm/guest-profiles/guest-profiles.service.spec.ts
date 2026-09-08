@@ -7,11 +7,13 @@ describe('GuestProfilesService', () => {
     const prisma: any = {
       guestProfile: {
         findUnique: jest.fn(),
-        findMany: jest.fn(),
+        findMany: jest.fn().mockResolvedValue([]),
+        count: jest.fn().mockResolvedValue(0),
         create: jest.fn(),
         update: jest.fn(),
       },
       user: { findUnique: jest.fn() },
+      $transaction: jest.fn((ops: Promise<unknown>[]) => Promise.all(ops)),
     };
     const service = new GuestProfilesService(prisma);
     return { service, prisma };
@@ -40,6 +42,32 @@ describe('GuestProfilesService', () => {
       const result = await service.findOne('gp-1', 'guest-1');
 
       expect(result.id).toBe('gp-1');
+    });
+  });
+
+  describe('findMany — straničenje (dok. 36 §3 tačka 3, "bulk" PIB/pasoš nalaz)', () => {
+    it('vraća stranicu, ne sve redove odjednom, i prijavljuje stvaran ukupan broj', async () => {
+      const { service, prisma } = makeService();
+      prisma.guestProfile.findMany.mockResolvedValue([{ id: 'gp-1' }, { id: 'gp-2' }]);
+      prisma.guestProfile.count.mockResolvedValue(2500);
+
+      const result = await service.findMany({}, undefined, { page: 1, limit: 50 });
+
+      expect(prisma.guestProfile.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ skip: 0, take: 50 }),
+      );
+      expect(result).toMatchObject({ data: [{ id: 'gp-1' }, { id: 'gp-2' }], total: 2500, page: 1 });
+    });
+
+    it('gost i dalje dobija SAMO sopstvene profile, straničeno preko istog filtera', async () => {
+      const { service, prisma } = makeService();
+      prisma.user.findUnique.mockResolvedValue({ accountType: 'GUEST', linkedProfileId: 'acc-1' });
+
+      await service.findMany({}, 'guest-1');
+
+      expect(prisma.guestProfile.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { linkedClientAccountId: 'acc-1' } }),
+      );
     });
   });
 

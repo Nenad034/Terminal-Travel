@@ -24,7 +24,18 @@ import {
 // JwtAuthGuard radi za HTTP, §3.7 — access token nosi samo sub/sessionId) jer standardni Nest
 // Guard-ovi ne rade nad WS handshake kontekstom bez dodatnog adaptera — ručna provera je
 // jednostavnija i dovoljna za prvi prolaz.
-@WebSocketGateway({ namespace: '/ws/chat', cors: { origin: '*' } })
+//
+// Bezbednosna analiza (dok. 36 §3 tačka 2, 28.8.2026) — bilo `origin: '*'`, svaki sajt na
+// internetu je mogao da otvori WS vezu ka internom chat-u (JWT i dalje traži validan token, ali
+// "svako sme da pokuša" nije nameravano ponašanje). M19 je isključivo interni tim-chat (samo
+// `apps/panel` se ikad povezuje) — lista je NAMERNO statička, ne `process.env.PANEL_BASE_URL`:
+// `@WebSocketGateway` dekorator se evaluira pri uvozu modula, PRE nego što `ConfigModule` stigne
+// da popuni `process.env` iz `.env` (isti nalaz kao komentar u `env-drift-check.ts`). Kad se
+// izabere produkcioni domen panela (CLAUDE.md — hosting još nije zakupljen), dodati ga ovde.
+@WebSocketGateway({
+  namespace: '/ws/chat',
+  cors: { origin: ['http://localhost:3100'] },
+})
 export class ChatGatewayService implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server!: Server;
