@@ -1,5 +1,6 @@
 import { Body, Controller, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { ContractStatus } from '@prisma/client';
 import { ContractsService } from './contracts.service';
 import { CreateContractDto } from './dto/create-contract.dto';
 import { UpdateContractDto } from './dto/update-contract.dto';
@@ -23,8 +24,20 @@ export class ContractsController {
 
   @Get()
   @RequirePermission('M3', 'contract', 'VIEW')
-  findAll(@Query('page') page?: string, @Query('limit') limit?: string) {
-    return this.contracts.findAll(parsePagination(page, limit));
+  findAll(
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    // 8.9.2026 — filteri na serveru (spec §6): lista je straničena, pa bi klijentsko
+    // filtriranje pretraživalo samo trenutnu stranu i tiho krilo ostalo.
+    @Query('q') q?: string,
+    @Query('status') status?: string,
+    @Query('supplierId') supplierId?: string,
+  ) {
+    return this.contracts.findAll(parsePagination(page, limit), {
+      q,
+      status: status ? (status as ContractStatus) : undefined,
+      supplierId,
+    });
   }
 
   @Post()

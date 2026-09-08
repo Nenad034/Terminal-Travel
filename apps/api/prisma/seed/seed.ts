@@ -3218,6 +3218,14 @@ async function seedM3CapacityGridMock() {
           unitCount: r.jedinica,
         },
       });
+      // `units_sold` je period-nivo brojač koji inače uvećava `reserve()` (M3 §2.3). Mock
+      // upisuje rezervacije direktno, pa ga ovde održavamo ručno — inače bi ekran ugovora
+      // pokazivao "0/12 prodato" dok mreža istovremeno prikazuje prodate dane, i to bi
+      // izgledalo kao kvar umesto kao mock.
+      await prisma.contractPeriod.update({
+        where: { id: veza.id },
+        data: { unitsSold: { increment: r.jedinica } },
+      });
       napravljenoRezervacija += 1;
     }
   }

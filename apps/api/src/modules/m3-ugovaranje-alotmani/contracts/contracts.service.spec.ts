@@ -206,4 +206,54 @@ describe('ContractsService.findAll — straničenje (8.9.2026, dok. 27 nastavak 
     );
     expect(result).toMatchObject({ data: [{ id: 'c1' }], total: 1, page: 1, limit: 50 });
   });
+
+  // Filteri liste ugovora (8.9.2026, vlasnikov nalaz: "ovde ne mogu da isfiltriram ugovore kao
+  // na primer u katalogu"). Ključno je da filtriranje ide u UPIT: lista je straničena, pa bi
+  // filter primenjen posle dovlačenja pretraživao samo trenutnu stranu.
+  describe('findAll — filteri (M3 spec §6)', () => {
+    it('bez filtera ne šalje nijedan uslov osim straničenja', async () => {
+      const { service, prisma } = makeService();
+      prisma.contract.findMany.mockResolvedValue([]);
+
+      await service.findAll(undefined, {});
+
+      expect(prisma.contract.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { status: undefined, supplierId: undefined } }),
+      );
+    });
+
+    it('traži isti pojam i po broju ugovora i po nazivu dobavljača', async () => {
+      const { service, prisma } = makeService();
+      prisma.contract.findMany.mockResolvedValue([]);
+
+      await service.findAll(undefined, { q: '  Splendid  ' });
+
+      const arg = prisma.contract.findMany.mock.calls[0][0];
+      expect(arg.where.OR).toEqual([
+        { contractNumber: { contains: 'Splendid', mode: 'insensitive' } },
+        { supplier: { name: { contains: 'Splendid', mode: 'insensitive' } } },
+      ]);
+    });
+
+    it('isti uslov ide i u count, da broj u straničenju ne laže', async () => {
+      const { service, prisma } = makeService();
+      prisma.contract.findMany.mockResolvedValue([]);
+
+      await service.findAll(undefined, { status: 'ACTIVE' as any, supplierId: 's1' });
+
+      const whereFindMany = prisma.contract.findMany.mock.calls[0][0].where;
+      const whereCount = prisma.contract.count.mock.calls[0][0].where;
+      expect(whereCount).toEqual(whereFindMany);
+      expect(whereFindMany).toEqual({ status: 'ACTIVE', supplierId: 's1' });
+    });
+
+    it('prazan pojam se ne pretvara u pretragu praznog stringa', async () => {
+      const { service, prisma } = makeService();
+      prisma.contract.findMany.mockResolvedValue([]);
+
+      await service.findAll(undefined, { q: '   ' });
+
+      expect(prisma.contract.findMany.mock.calls[0][0].where.OR).toBeUndefined();
+    });
+  });
 });

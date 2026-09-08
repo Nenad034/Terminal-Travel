@@ -1,4 +1,5 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
+import { ContractStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { AuditLogService } from '../../m1-core-identitet/audit-log/audit-log.service';
 import { CreateContractDto } from './dto/create-contract.dto';
@@ -8,6 +9,12 @@ import {
   paginated,
   paginationArgs,
 } from '../../../common/pagination/pagination';
+
+export interface ContractFilters {
+  q?: string;
+  status?: ContractStatus;
+  supplierId?: string;
+}
 
 @Injectable()
 export class ContractsService {
@@ -19,11 +26,32 @@ export class ContractsService {
   // Razvrstavanje 8.9.2026 (dok. 27, nastavak nalaza 2.2) — raste sa svakim novim ugovorom;
   // jedini pozivalac ove liste (`/ugovori` u panelu) traži pun spisak dobavljača da bi imenom
   // razrešio `supplierId` svakog reda (`SuppliersService.findAll` ispod), ne obrnuto.
-  async findAll(pagination?: PaginationQueryDto) {
+  /**
+   * Filteri (8.9.2026, vlasnikov nalaz: "ovde ne mogu da isfiltriram ugovore kao na primer u
+   * katalogu"). Filtriranje ide na SERVER, ne nad dovučenom stranom — lista je straničena, pa
+   * bi klijentsko filtriranje pretraživalo samo trenutnih N redova i tiho krilo ostalo.
+   *
+   * `q` gađa broj ugovora I naziv dobavljača, jer se u praksi traži i jedno i drugo, a čovek
+   * ne zna unapred koje polje pamti.
+   */
+  async findAll(pagination?: PaginationQueryDto, filters?: ContractFilters) {
     const { skip, take, page, limit } = paginationArgs(pagination);
+    const q = filters?.q?.trim();
+    const where: Prisma.ContractWhereInput = {
+      status: filters?.status,
+      supplierId: filters?.supplierId,
+      ...(q
+        ? {
+            OR: [
+              { contractNumber: { contains: q, mode: 'insensitive' as const } },
+              { supplier: { name: { contains: q, mode: 'insensitive' as const } } },
+            ],
+          }
+        : {}),
+    };
     const [data, total] = await this.prisma.$transaction([
-      this.prisma.contract.findMany({ orderBy: { createdAt: 'desc' }, skip, take }),
-      this.prisma.contract.count(),
+      this.prisma.contract.findMany({ where, orderBy: { createdAt: 'desc' }, skip, take }),
+      this.prisma.contract.count({ where }),
     ]);
     return paginated(data, total, page, limit);
   }

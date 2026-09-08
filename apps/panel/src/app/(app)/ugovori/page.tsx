@@ -5,6 +5,7 @@ import RegisterTab from '@/components/RegisterTab';
 import Icon from '@/components/Icon';
 import { Badge } from '@/components/ui/badge';
 import Pagination from '@/components/Pagination';
+import ContractsFilterBar from './ContractsFilterBar';
 
 interface Contract {
   id: string;
@@ -22,13 +23,16 @@ interface Supplier {
 }
 
 // M17 spec §4/§7 (Faza 1) — "Dobavljači i ugovori", M3 §6 ugovori.
-export default async function ContractsPage(props: { searchParams: Promise<{ page?: string }> }) {
+export default async function ContractsPage(props: {
+  searchParams: Promise<{ page?: string; q?: string; status?: string; supplierId?: string }>;
+}) {
   const searchParams = await props.searchParams;
   const me = await getMe();
   const canCreate = hasPermission(me, 'M3', 'contract', 'CREATE');
 
   let contracts: Contract[] = [];
   let suppliersById = new Map<string, string>();
+  let suppliers: Supplier[] = [];
   // Razvrstavanje 8.9.2026 (dok. 27, nastavak nalaza 2.2) — `GET /contracting/contracts` sad
   // vraća `{ data, total, ... }`. Spisak dobavljača ostaje traženo sa `?limit=200`: ovde služi
   // ISKLJUČIVO kao mapa imena za `supplierId` svakog ugovora na trenutnoj strani, ne kao
@@ -39,7 +43,13 @@ export default async function ContractsPage(props: { searchParams: Promise<{ pag
   let limit = 50;
   let error: string | null = null;
   try {
-    const qs = searchParams?.page ? `?page=${searchParams.page}` : '';
+    // Filteri idu na server (8.9.2026) — vidi ContractsFilterBar.tsx za obrazloženje.
+    const qsParams = new URLSearchParams();
+    if (searchParams?.page) qsParams.set('page', searchParams.page);
+    if (searchParams?.q) qsParams.set('q', searchParams.q);
+    if (searchParams?.status) qsParams.set('status', searchParams.status);
+    if (searchParams?.supplierId) qsParams.set('supplierId', searchParams.supplierId);
+    const qs = qsParams.toString() ? `?${qsParams.toString()}` : '';
     const [contractsRes, suppliersRes] = await Promise.all([
       apiFetch<{
         data: Contract[];
@@ -55,6 +65,7 @@ export default async function ContractsPage(props: { searchParams: Promise<{ pag
     page = contractsRes.page;
     pageCount = contractsRes.pageCount;
     limit = contractsRes.limit;
+    suppliers = suppliersRes.data;
     suppliersById = new Map(suppliersRes.data.map((s) => [s.id, s.name]));
   } catch {
     error = 'Nemate dozvolu za uvid u ugovore (M3/contract/VIEW).';
@@ -95,12 +106,16 @@ export default async function ContractsPage(props: { searchParams: Promise<{ pag
         </div>
       </div>
 
+      {!error && <ContractsFilterBar suppliers={suppliers} />}
+
       {error && <p className="rounded bg-danger-bg p-3 text-sm text-danger">{error}</p>}
 
       {!error && (
         <div className="overflow-hidden rounded-lg border border-border">
           {contracts.length === 0 && (
-            <p className="p-4 text-center text-xs text-ink-faint">Nema ugovora.</p>
+            <p className="p-4 text-center text-xs text-ink-faint">
+              Nema ugovora koji odgovaraju filterima.
+            </p>
           )}
           {contracts.map((c) => (
             // `id` (23.8.2026, na zahtev vlasnika: "ovo treba da ima linkove ka stavkama na koje
@@ -125,7 +140,12 @@ export default async function ContractsPage(props: { searchParams: Promise<{ pag
                   {new Date(c.validTo).toLocaleDateString('sr-RS')}
                 </div>
               </div>
-              <StatusBadge status={c.status} />
+              <span className="flex items-center gap-2">
+                <StatusBadge status={c.status} />
+                {/* 8.9.2026 — red JESTE bio klikabilan, ali ništa to nije pokazivalo; a period
+                    sa kapacitetom se unosi tek unutra. */}
+                <span className="text-[11px] text-accent-strong">otvori →</span>
+              </span>
             </Link>
           ))}
         </div>
