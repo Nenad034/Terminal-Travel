@@ -4,6 +4,7 @@ import { AuditLogService } from '../../m1-core-identitet/audit-log/audit-log.ser
 import { AnthropicClientService } from '../../m15-ai-orkestracija/anthropic/anthropic-client.service';
 import { AgentInvocationLogService } from '../../m18-operativni-nadzor/agent-invocations/agent-invocation-log.service';
 import { DraftReplyDto } from './dto/draft-reply.dto';
+import { AgencySettingsService } from '../../m1-core-identitet/agency-settings/agency-settings.service';
 
 const MESSAGE_HISTORY_LIMIT = 20;
 
@@ -20,6 +21,7 @@ export class SupplierDraftService {
     private readonly auditLog: AuditLogService,
     private readonly anthropic: AnthropicClientService,
     private readonly invocationLog: AgentInvocationLogService,
+    private readonly agencySettings: AgencySettingsService,
   ) {}
 
   async draftReply(
@@ -83,8 +85,9 @@ export class SupplierDraftService {
       })
       .join('\n');
 
+    const agencyName = await this.agencySettings.getSanitizedBrandName();
     const systemPrompt =
-      'Ti si SupplierDraftAgent za internu komunikacionu platformu agencije Terminal Travel. Sažimaš prepisku sa ' +
+      `Ti si SupplierDraftAgent za internu komunikacionu platformu agencije ${agencyName}. Sažimaš prepisku sa ` +
       'dobavljačem i predlažeš nacrt sledećeg odgovora zaposlenom, na srpskom. Ti NIKAD ne šalješ poruku — samo ' +
       'predlažeš tekst koji zaposleni ručno pregleda i pošalje. Ako nacrt pominje cenu ili obavezu, jasno na kraju ' +
       'napomeni "Proveri cenu/obavezu pre slanja" — potvrda ostaje na zaposlenom, ne na tebi. Ne izmišljaj podatke ' +

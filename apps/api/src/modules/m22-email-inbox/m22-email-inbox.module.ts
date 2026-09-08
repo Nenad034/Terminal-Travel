@@ -17,6 +17,7 @@ import { AuditLogModule } from '../m1-core-identitet/audit-log/audit-log.module'
 import { AnthropicClientService } from '../m15-ai-orkestracija/anthropic/anthropic-client.service';
 import { M18OperativniNadzorModule } from '../m18-operativni-nadzor/m18-operativni-nadzor.module';
 import { M14HelpdeskModule } from '../m14-helpdesk/m14-helpdesk.module';
+import { AgencySettingsModule } from '../m1-core-identitet/agency-settings/agency-settings.module';
 
 // docs/moduli/M22-email-inbox/25-SPECIFIKACIJA-M22-EMAIL-INBOX.md — prvi prolaz implementacije
 // (avgust 2026, backend, isti flat-modul obrazac kao M18/M19/M21). AuthModule (JwtAuthGuard)/
@@ -32,6 +33,7 @@ import { M14HelpdeskModule } from '../m14-helpdesk/m14-helpdesk.module';
     AuditLogModule,
     M18OperativniNadzorModule,
     M14HelpdeskModule,
+    AgencySettingsModule,
   ],
   controllers: [MailboxesController, EmailThreadsController, TicketConversionController],
   providers: [

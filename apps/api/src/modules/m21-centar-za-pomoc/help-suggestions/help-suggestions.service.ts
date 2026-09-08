@@ -12,6 +12,7 @@ import { AuditLogService } from '../../m1-core-identitet/audit-log/audit-log.ser
 import { PermissionsService } from '../../m1-core-identitet/permissions/permissions.service';
 import { AnthropicClientService } from '../../m15-ai-orkestracija/anthropic/anthropic-client.service';
 import { AgentInvocationLogService } from '../../m18-operativni-nadzor/agent-invocations/agent-invocation-log.service';
+import { AgencySettingsService } from '../../m1-core-identitet/agency-settings/agency-settings.service';
 
 const GROUPING_WINDOW_DAYS = 30;
 // M21 spec §8 — "prag/algoritam grupisanja... određuje se kad postoji stvarna količina pitanja
@@ -36,6 +37,7 @@ export class HelpSuggestionsService {
     private readonly permissions: PermissionsService,
     private readonly anthropic: AnthropicClientService,
     private readonly invocationLog: AgentInvocationLogService,
+    private readonly agencySettings: AgencySettingsService,
   ) {}
 
   @Cron(CronExpression.EVERY_DAY_AT_6AM)
@@ -113,8 +115,9 @@ export class HelpSuggestionsService {
 
     try {
       const client = this.anthropic.getClient();
+      const agencyName = await this.agencySettings.getSanitizedBrandName();
       const systemPrompt =
-        'Ti si HelpCenterAgent za Terminal Travel. Zaposleni/subagenti/klijenti su više puta postavili slična ' +
+        `Ti si HelpCenterAgent za ${agencyName}. Zaposleni/subagenti/klijenti su više puta postavili slična ` +
         'pitanja na koja baza znanja nije imala dobar odgovor. Napiši KRATAK nacrt naslova i tela članka baze ' +
         'znanja (markdown) koji bi odgovorio na ta pitanja — jasno, praktično, na srpskom. Format odgovora: prvi ' +
         'red je naslov (bez markdown # oznake), prazan red, zatim telo.';

@@ -23,13 +23,15 @@ describe('EmailAiAssistantService (M22 spec §4)', () => {
       }),
     };
     const invocationLog = { record: jest.fn() };
+    const agencySettings = { getSanitizedBrandName: jest.fn().mockResolvedValue('Terminal Travel') };
     const service = new EmailAiAssistantService(
       prisma as any,
       auditLog as any,
       anthropic as any,
       invocationLog as any,
+      agencySettings as any,
     );
-    return { service, prisma, auditLog, anthropic, invocationLog };
+    return { service, prisma, auditLog, anthropic, invocationLog, agencySettings };
   }
 
   const inboundMessage = {

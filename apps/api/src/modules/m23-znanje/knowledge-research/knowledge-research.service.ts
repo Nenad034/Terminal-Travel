@@ -11,6 +11,7 @@ import { AnthropicClientService } from '../../m15-ai-orkestracija/anthropic/anth
 import { AgentInvocationLogService } from '../../m18-operativni-nadzor/agent-invocations/agent-invocation-log.service';
 import { ProductContentImportsService } from '../../m2-katalog-proizvoda/product-content-imports/product-content-imports.service';
 import { CreateImportDto } from '../../m2-katalog-proizvoda/product-content-imports/dto/create-import.dto';
+import { AgencySettingsService } from '../../m1-core-identitet/agency-settings/agency-settings.service';
 
 export interface ResearchFromTextParams {
   articleId: string;
@@ -51,6 +52,7 @@ export class KnowledgeResearchService {
     private readonly anthropic: AnthropicClientService,
     private readonly invocationLog: AgentInvocationLogService,
     private readonly productContentImports: ProductContentImportsService,
+    private readonly agencySettings: AgencySettingsService,
   ) {}
 
   // M23 spec §4 — AI istraživanje NAD tekstom koji je zaposleni ručno dostavio (nema žive
@@ -191,8 +193,9 @@ export class KnowledgeResearchService {
     latencyMs: number;
   }> {
     const client = this.anthropic.getClient();
+    const agencyName = await this.agencySettings.getSanitizedBrandName();
     const systemPrompt =
-      'Ti si KnowledgeAgent za bazu znanja agencije Terminal Travel. Dobijaš sirov tekst koji je zaposleni kopirao ' +
+      `Ti si KnowledgeAgent za bazu znanja agencije ${agencyName}. Dobijaš sirov tekst koji je zaposleni kopirao ` +
       'sa zvaničnog sajta/društvene mreže hotela ili turističke organizacije. Strukturiraj ga u kratak, koristan ' +
       'članak — JEDAN naslov (do 100 karaktera) i sažet, praktičan opis u markdown-u (do 400 reči), ISKLJUČIVO na ' +
       'osnovu prosleđenog teksta, ništa iz opšteg znanja. Odgovori TAČNO u formatu:\nNASLOV: <naslov>\nOPIS:\n<opis>\n' +

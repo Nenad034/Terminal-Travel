@@ -15,6 +15,7 @@ import { AuditLogModule } from '../m1-core-identitet/audit-log/audit-log.module'
 import { EventBusModule } from '../../common/events/event-bus.module';
 import { AnthropicClientService } from '../m15-ai-orkestracija/anthropic/anthropic-client.service';
 import { M18OperativniNadzorModule } from '../m18-operativni-nadzor/m18-operativni-nadzor.module';
+import { AgencySettingsModule } from '../m1-core-identitet/agency-settings/agency-settings.module';
 
 // docs/moduli/M19-komunikaciona-platforma/20-SPECIFIKACIJA-M19-KOMUNIKACIONA-PLATFORMA.md — prvi
 // prolaz implementacije (avgust 2026, backend + WS gateway, bez panel/mobilne UI — vidi §10/§11).
@@ -32,6 +33,7 @@ import { M18OperativniNadzorModule } from '../m18-operativni-nadzor/m18-operativ
     AuditLogModule,
     EventBusModule,
     M18OperativniNadzorModule,
+    AgencySettingsModule,
   ],
   controllers: [
     ConversationsController,

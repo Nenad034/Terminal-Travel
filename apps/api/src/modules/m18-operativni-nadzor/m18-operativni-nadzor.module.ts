@@ -27,6 +27,7 @@ import { AuthModule } from '../m1-core-identitet/auth/auth.module';
 import { PermissionsModule } from '../m1-core-identitet/permissions/permissions.module';
 import { AuditLogModule } from '../m1-core-identitet/audit-log/audit-log.module';
 import { EventBusModule } from '../../common/events/event-bus.module';
+import { AgencySettingsModule } from '../m1-core-identitet/agency-settings/agency-settings.module';
 
 // docs/moduli/M18-operativni-nadzor/19-SPECIFIKACIJA-M18-OPERATIVNI-NADZOR.md — prvi prolaz
 // implementacije (avgust 2026). Flat modul (isti stil kao M15), read-only nad ostalim
@@ -34,7 +35,7 @@ import { EventBusModule } from '../../common/events/event-bus.module';
 // zahteva uvoz M3/M4/M9/M10/M11 modula, samo AuthModule/PermissionsModule/AuditLogModule
 // (guard-ovi + ručni override trag) i EventBusModule (pretplata, poglavlje "Nalazi istraživanja").
 @Module({
-  imports: [AuthModule, PermissionsModule, AuditLogModule, EventBusModule],
+  imports: [AuthModule, PermissionsModule, AuditLogModule, EventBusModule, AgencySettingsModule],
   controllers: [
     HealthSignalsController,
     ProviderHealthController,

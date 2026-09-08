@@ -13,13 +13,15 @@ describe('SupplierDraftService (M19 spec §9.5 — nikad izvršenje, samo nacrt)
     const auditLog = { write: jest.fn() };
     const anthropic = { isConfigured: jest.fn(), getClient: jest.fn() };
     const invocationLog = { record: jest.fn() };
+    const agencySettings = { getSanitizedBrandName: jest.fn().mockResolvedValue('Terminal Travel') };
     const service = new SupplierDraftService(
       prisma as any,
       auditLog as any,
       anthropic as any,
       invocationLog as any,
+      agencySettings as any,
     );
-    return { service, prisma, auditLog, anthropic, invocationLog };
+    return { service, prisma, auditLog, anthropic, invocationLog, agencySettings };
   }
 
   it('baca NotFoundException za razgovor koji nije EXTERNAL_SUPPLIER', async () => {

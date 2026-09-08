@@ -18,6 +18,7 @@ import { GeminiEmbeddingService } from '../m15-ai-orkestracija/gemini/gemini-emb
 import { AssistantEngineService } from '../m15-ai-orkestracija/assistant-engine/assistant-engine.service';
 import { M18OperativniNadzorModule } from '../m18-operativni-nadzor/m18-operativni-nadzor.module';
 import { ProductContentImportsModule } from '../m2-katalog-proizvoda/product-content-imports/product-content-imports.module';
+import { AgencySettingsModule } from '../m1-core-identitet/agency-settings/agency-settings.module';
 
 // docs/moduli/M23-znanje/28-SPECIFIKACIJA-M23-ZNANJE.md — prvi prolaz implementacije (avgust
 // 2026, backend), isti flat-modul obrazac kao M18/M19/M21/M22. AuthModule/PermissionsModule/
@@ -35,6 +36,7 @@ import { ProductContentImportsModule } from '../m2-katalog-proizvoda/product-con
     AuditLogModule,
     M18OperativniNadzorModule,
     ProductContentImportsModule,
+    AgencySettingsModule,
   ],
   controllers: [
     ArticlesController,

@@ -28,13 +28,15 @@ describe('ConversationsService', () => {
     const auditLog = { write: jest.fn() };
     const permissions = { hasPermission: jest.fn() };
     const eventBus = { emit: jest.fn() };
+    const agencySettings = { getSanitizedBrandName: jest.fn().mockResolvedValue('Terminal Travel') };
     const service = new ConversationsService(
       prisma as any,
       auditLog as any,
       permissions as any,
       eventBus as any,
+      agencySettings as any,
     );
-    return { service, prisma, auditLog, permissions, eventBus };
+    return { service, prisma, auditLog, permissions, eventBus, agencySettings };
   }
 
   describe('findAllForUser (M19 spec §2.2/§9.3 scoping)', () => {

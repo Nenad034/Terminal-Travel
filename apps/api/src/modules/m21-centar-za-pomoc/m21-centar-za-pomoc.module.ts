@@ -14,6 +14,7 @@ import { GeminiEmbeddingService } from '../m15-ai-orkestracija/gemini/gemini-emb
 import { AssistantEngineService } from '../m15-ai-orkestracija/assistant-engine/assistant-engine.service';
 import { M18OperativniNadzorModule } from '../m18-operativni-nadzor/m18-operativni-nadzor.module';
 import { M14HelpdeskModule } from '../m14-helpdesk/m14-helpdesk.module';
+import { AgencySettingsModule } from '../m1-core-identitet/agency-settings/agency-settings.module';
 
 // docs/moduli/M21-centar-za-pomoc/23-SPECIFIKACIJA-M21-CENTAR-ZA-POMOC.md — prvi prolaz
 // implementacije (avgust 2026, backend, isti flat-modul obrazac kao M18/M19). AuthModule
@@ -34,6 +35,7 @@ import { M14HelpdeskModule } from '../m14-helpdesk/m14-helpdesk.module';
     AuditLogModule,
     M18OperativniNadzorModule,
     M14HelpdeskModule,
+    AgencySettingsModule,
   ],
   controllers: [HelpArticlesController, HelpAssistantController, HelpSuggestionsController],
   providers: [

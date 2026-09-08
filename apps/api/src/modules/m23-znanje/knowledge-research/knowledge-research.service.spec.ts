@@ -16,14 +16,24 @@ describe('KnowledgeResearchService.researchFromProvidedText (M23 spec §4/§4d/�
     const anthropic = { isConfigured: jest.fn().mockReturnValue(false), getClient: jest.fn() };
     const invocationLog = { record: jest.fn() };
     const productContentImports = { create: jest.fn() };
+    const agencySettings = { getSanitizedBrandName: jest.fn().mockResolvedValue('Terminal Travel') };
     const service = new KnowledgeResearchService(
       prisma as any,
       auditLog as any,
       anthropic as any,
       invocationLog as any,
       productContentImports as any,
+      agencySettings as any,
     );
-    return { service, prisma, auditLog, anthropic, invocationLog, productContentImports };
+    return {
+      service,
+      prisma,
+      auditLog,
+      anthropic,
+      invocationLog,
+      productContentImports,
+      agencySettings,
+    };
   }
 
   it('kreira ArticleSource(CANDIDATE) i ArticleRevision(PENDING_REVIEW) iz dostavljenog teksta', async () => {

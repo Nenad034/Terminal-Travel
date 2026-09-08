@@ -4,6 +4,7 @@ import { PrismaService } from '../../../prisma/prisma.service';
 import { AuditLogService } from '../../m1-core-identitet/audit-log/audit-log.service';
 import { AnthropicClientService } from '../../m15-ai-orkestracija/anthropic/anthropic-client.service';
 import { AgentInvocationLogService } from '../../m18-operativni-nadzor/agent-invocations/agent-invocation-log.service';
+import { AgencySettingsService } from '../../m1-core-identitet/agency-settings/agency-settings.service';
 
 // M22 spec §4 — na svaku novu INBOUND poruku, AI agent sme samostalno (nivo "Autonomno") da
 // sažme sadržaj (ai_summary) i pripremi nacrt odgovora (EmailMessage senderType=AI_DRAFT,
@@ -54,6 +55,7 @@ export class EmailAiAssistantService {
     private readonly auditLog: AuditLogService,
     private readonly anthropic: AnthropicClientService,
     private readonly invocationLog: AgentInvocationLogService,
+    private readonly agencySettings: AgencySettingsService,
   ) {}
 
   /**
@@ -131,8 +133,9 @@ export class EmailAiAssistantService {
     // spreman-za-slanje ako pominje cenu/obavezu/promenu rezervacije. Prompt-nivo instrukcija
     // NIJE jedina zaštita — keyword-heuristika iznad (containsSensitiveTopic) sprovodi se bez
     // obzira šta model vrati, isti dvoslojni princip kao M21 HelpAssistantService.
+    const agencyName = await this.agencySettings.getSanitizedBrandName();
     const systemPrompt =
-      'Ti si EmailInboxAgent za centralizovani email klijent agencije Terminal Travel. Za svaku dolaznu poruku ' +
+      `Ti si EmailInboxAgent za centralizovani email klijent agencije ${agencyName}. Za svaku dolaznu poruku ` +
       'radiš dve stvari, na srpskom: (1) kratak sažetak (2-3 rečenice) i (2) nacrt odgovora. Nacrt NIKAD ne sme ' +
       'delovati kao gotov, spreman-za-slanje odgovor ako pominje cenu, uplatu, popust, otkazivanje, refundaciju ili ' +
       'bilo koju promenu rezervacije — u tom slučaju nacrt mora eksplicitno reći da zaposleni treba da proveri ' +

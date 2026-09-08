@@ -27,11 +27,18 @@ describe('NotificationDispatchService (M18 spec §2.2, §3)', () => {
     };
     const telegram = { send: jest.fn().mockResolvedValue(undefined) };
     const email = { send: jest.fn().mockResolvedValue(undefined) };
+    const agencySettings = { getSanitizedBrandName: jest.fn().mockResolvedValue('Terminal Travel') };
     return {
-      service: new NotificationDispatchService(prisma as any, telegram as any, email as any),
+      service: new NotificationDispatchService(
+        prisma as any,
+        telegram as any,
+        email as any,
+        agencySettings as any,
+      ),
       prisma,
       telegram,
       email,
+      agencySettings,
     };
   }
 

@@ -29,13 +29,15 @@ describe('KnowledgeAssistantService (M23 spec §3.2/§3.3/§9)', () => {
       }),
     };
     const invocationLog = { record: jest.fn() };
+    const agencySettings = { getSanitizedBrandName: jest.fn().mockResolvedValue('Terminal Travel') };
     const service = new KnowledgeAssistantService(
       prisma as any,
       auditLog as any,
       engine as any,
       invocationLog as any,
+      agencySettings as any,
     );
-    return { service, prisma, auditLog, engine, invocationLog };
+    return { service, prisma, auditLog, engine, invocationLog, agencySettings };
   }
 
   it('vraća confidence=NONE i offerResearch=true kad nema objavljenih članaka', async () => {

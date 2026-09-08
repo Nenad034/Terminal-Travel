@@ -14,6 +14,7 @@ import { CreateConversationDto } from './dto/create-conversation.dto';
 import { CreateMessageDto } from './dto/create-message.dto';
 import { UpdateMessageDto } from './dto/update-message.dto';
 import { ATTACHMENT_UPLOAD_ROOT } from './attachment-storage';
+import { AgencySettingsService } from '../../m1-core-identitet/agency-settings/agency-settings.service';
 
 // M19 spec §2/§8/§9.3/§9.7 — REST prefiks /chat, primarni izvor istine za razgovore/poruke.
 // WS ChatGateway poziva iste metode (createMessage) da ne duplira logiku slanja — WS je samo
@@ -25,6 +26,7 @@ export class ConversationsService {
     private readonly auditLog: AuditLogService,
     private readonly permissions: PermissionsService,
     private readonly eventBus: EventBusService,
+    private readonly agencySettings: AgencySettingsService,
   ) {}
 
   // §2.2/§9.3 — DIRECT/GROUP: isključivo STAFF; EXTERNAL_SUPPLIER: STAFF (uz grant, §9.4) +
@@ -344,7 +346,7 @@ export class ConversationsService {
           conversationId,
           messageId: message.id,
           recipientUserId: participant.userId,
-          senderName: sender?.fullName ?? 'Terminal Travel',
+          senderName: sender?.fullName ?? (await this.agencySettings.getSanitizedBrandName()),
           bodyPreview: dto.body?.slice(0, 120) ?? (file ? `[prilog] ${file.originalname}` : ''),
         });
       }

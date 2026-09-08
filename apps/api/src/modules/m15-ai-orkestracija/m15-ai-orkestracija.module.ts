@@ -26,6 +26,7 @@ import { SubagentsModule } from '../m7-b2b-subagenti/subagents/subagents.module'
 import { M19KomunikacionaPlatformaModule } from '../m19-komunikaciona-platforma/m19-komunikaciona-platforma.module';
 import { SearchModule } from '../m5-rezervacije/search/search.module';
 import { ExchangeRatesModule } from '../m10-finansije/exchange-rates/exchange-rates.module';
+import { AgencySettingsModule } from '../m1-core-identitet/agency-settings/agency-settings.module';
 
 // docs/moduli/M15-ai-orkestracija/18-SPECIFIKACIJA-M15-AI-ORKESTRACIJA.md
 // v1.10 (Faza 7 prvi prolaz) dodaje pun AgentActionType registar (seed), sprovedbu na nivou
@@ -50,6 +51,7 @@ import { ExchangeRatesModule } from '../m10-finansije/exchange-rates/exchange-ra
     M19KomunikacionaPlatformaModule,
     SearchModule,
     ExchangeRatesModule,
+    AgencySettingsModule,
   ],
   controllers: [
     ModuleActivationController,

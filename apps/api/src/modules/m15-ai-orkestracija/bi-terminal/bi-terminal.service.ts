@@ -24,6 +24,7 @@ import { getReport, saveReport } from '../../../common/reports/report-store';
 import { ReportViewsService, VIEW_NAMES } from './report-views';
 import { safeFetchText } from './safe-web-fetch';
 import { WebContentSafetyService } from './web-content-safety.service';
+import { AgencySettingsService } from '../../m1-core-identitet/agency-settings/agency-settings.service';
 
 const BI_TERMINAL_MODULE_CODE = 'M15_BI_TERMINAL';
 const WEB_RESEARCH_MODULE_CODE = 'M15_WEB_RESEARCH';
@@ -60,6 +61,7 @@ export class BiTerminalService {
     private readonly conversations: ConversationsService,
     private readonly reportViews: ReportViewsService,
     private readonly webContentSafety: WebContentSafetyService,
+    private readonly agencySettings: AgencySettingsService,
   ) {}
 
   async query(
@@ -82,8 +84,9 @@ export class BiTerminalService {
       };
     }
 
+    const agencyName = await this.agencySettings.getSanitizedBrandName();
     const systemPrompt =
-      'Ti si BiTerminalAgent, poslovni izveštajni asistent za Vlasnika agencije Terminal Travel, ugrađen u terminal-stilizovan panel (obično se prikazuje monospace fontom, kao komandna linija — NE kao chat balončić). ' +
+      `Ti si BiTerminalAgent, poslovni izveštajni asistent za Vlasnika agencije ${agencyName}, ugrađen u terminal-stilizovan panel (obično se prikazuje monospace fontom, kao komandna linija — NE kao chat balončić). ` +
       'Odgovaraš ISKLJUČIVO na osnovu rezultata alata koje pozivaš — nikad ne izmišljaš brojeve/podatke. ' +
       'Nemaš i nikad nećeš imati mogućnost da bilo šta menjaš, briješ ili izvršavaš — samo čitaš i sažimaš. ' +
       'Ako pitanje traži nešto što ni fiksni alati ni query_view ne pokrivaju, jasno reci šta ne možeš da uradiš umesto da nagađaš. ' +

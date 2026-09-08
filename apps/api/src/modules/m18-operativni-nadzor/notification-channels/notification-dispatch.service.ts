@@ -4,6 +4,7 @@ import { PrismaService } from '../../../prisma/prisma.service';
 import { decryptSecret } from '../../../common/crypto/secret-box';
 import { TelegramClientService } from './telegram-client.service';
 import { EmailClientService } from './email-client.service';
+import { AgencySettingsService } from '../../m1-core-identitet/agency-settings/agency-settings.service';
 
 // M18 spec §2.2/§3/§4.1 — jedno mesto koje zna kako da isporuči tekst preko svih ACTIVE
 // kanala. Koristi ga HealthSignalsService (pojedinačan signal) i WeeklyReviewsService (nedeljni
@@ -16,6 +17,7 @@ export class NotificationDispatchService {
     private readonly prisma: PrismaService,
     private readonly telegram: TelegramClientService,
     private readonly email: EmailClientService,
+    private readonly agencySettings: AgencySettingsService,
   ) {}
 
   async dispatch(
@@ -38,9 +40,10 @@ export class NotificationDispatchService {
       if (channel.channelType === 'TELEGRAM') {
         await this.telegram.send(String(config.chatId ?? ''), text);
       } else if (channel.channelType === 'EMAIL') {
+        const agencyName = await this.agencySettings.getSanitizedBrandName();
         await this.email.send(
           String(config.email ?? ''),
-          'Terminal Travel — operativno obaveštenje',
+          `${agencyName} — operativno obaveštenje`,
           text,
         );
       } else {

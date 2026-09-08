@@ -47,6 +47,7 @@ describe('OmnisearchService (M15 spec §6.5, §10)', () => {
       record: jest.fn().mockResolvedValue({ tier: 'LIGHT', estimatedCostEur: 0 }),
     };
     const helpAssistant = { ask: jest.fn().mockRejectedValue(new ForbiddenException()) };
+    const agencySettings = { getSanitizedBrandName: jest.fn().mockResolvedValue('Terminal Travel') };
 
     const service = new OmnisearchService(
       prisma as any,
@@ -57,6 +58,7 @@ describe('OmnisearchService (M15 spec §6.5, §10)', () => {
       anthropic as any,
       invocationLog as any,
       helpAssistant as any,
+      agencySettings as any,
     );
     return {
       service,
@@ -68,6 +70,7 @@ describe('OmnisearchService (M15 spec §6.5, §10)', () => {
       anthropic,
       invocationLog,
       helpAssistant,
+      agencySettings,
     };
   }
 

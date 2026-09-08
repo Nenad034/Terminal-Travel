@@ -42,6 +42,20 @@ export class AgencySettingsService {
     };
   }
 
+  // M1 spec §3.9c, "Poznat, izričito zabeležen nedostatak" (7.9.2026) — naziv agencije ubačen u
+  // sistemske upite AI asistenata (8 mesta: M15 omnisearch/BiTerminal, M19 SupplierDraftAgent,
+  // M21 HelpCenterAgent, M22 EmailInboxAgent, M23 KnowledgeAgent). Minimalna ograda koju je spec
+  // tražio pre te izmene: bez preloma reda (upit je jedan pasus prostog teksta — prelom reda bi
+  // mogao odvojiti "novi" deo upita od originalnog) i tvrda gornja dužina (`MaxLength(200)` već
+  // postoji na DTO-u, ponovljeno ovde kao odbrana u dubinu). Ovo NIJE potpuna prompt-injection
+  // zaštita — polje menja isključivo Vlasnik/Direktor (`M1/agency-settings/EDIT`), već najviše
+  // poverljive uloge u sistemu, pa je rizik svesno prihvaćen na tom nivou, ne uklonjen do nule.
+  async getSanitizedBrandName(): Promise<string> {
+    const s = await this.get();
+    const cleaned = s.brandName?.replace(/[\r\n\t\x00-\x1F\x7F]/g, ' ').trim();
+    return cleaned ? cleaned.slice(0, 200) : 'Terminal Travel';
+  }
+
   async update(dto: UpdateAgencySettingsDto, actorId: string) {
     const before = await this.get();
     const after = await this.prisma.agencySettings.update({
