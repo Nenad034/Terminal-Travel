@@ -52,13 +52,21 @@ model User {
 
 // M1 spec dopuna (6.9.2026, vlasnikov zahtev) — Poslovnica. TT može imati jednu ili više
 // poslovnica; podešava se na globalnom nivou (Podešavanja → Poslovnice, Vlasnik/Direktor).
-// Namerno minimalan entitet (naziv + aktivna) — proširuje se tek ako se pokaže potreba (adresa,
-// kontakt...), isti princip kao ostali "polazni, ne konačan" entiteti u ovom dokumentu.
+// M1 spec §3.9b, dopuna 8.9.2026 (vlasnikov zahtev: "kompletni poslovni podaci za svaku
+// poslovnicu") — bio namerno minimalan (naziv + aktivna) do potvrde stvarne potrebe.
+// `taxId` je NAMERNO neiskorišćen u fiskalizaciji (M10 i dalje čita isključivo
+// `AgencySettings.taxId`) — vidi napomenu u spec-u, čeka potvrdu knjigovođe pre upotrebe.
 model Branch {
-  id        String   @id @default(uuid())
-  name      String
-  active    Boolean  @default(true)
-  createdAt DateTime @default(now()) @map("created_at")
+  id                    String   @id @default(uuid())
+  name                  String
+  active                Boolean  @default(true)
+  address               String?
+  phone                 String?
+  email                 String?
+  responsiblePersonName String?  @map("responsible_person_name")
+  taxId                 String?  @map("tax_id")
+  licenseNumber         String?  @map("license_number")
+  createdAt             DateTime @default(now()) @map("created_at")
 
   users User[]
 

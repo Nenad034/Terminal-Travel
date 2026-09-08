@@ -30,20 +30,35 @@ export async function createBranch(_prev: FormState, formData: FormData): Promis
   return { error: null };
 }
 
-// PATCH /iam/branches/:id — izmena naziva i/ili aktivna/neaktivna (meko gašenje, ne brisanje —
-// `Booking.branchId`/`User.branchId` se oslanjaju na postojeće redove).
+function optionalText(formData: FormData, field: string): string | null | undefined {
+  const value = formData.get(field);
+  if (typeof value !== 'string') return undefined;
+  return value.trim() === '' ? null : value.trim();
+}
+
+// PATCH /iam/branches/:id sa kompletnim poslovnim podacima (meko gašenje preko `active`, ne
+// brisanje — `Booking.branchId`/`User.branchId` se oslanjaju na postojeće redove). M1 spec §3.9b
+// dopuna (8.9.2026), korišćeno sa detaljnog ekrana `/podesavanja/poslovnice/[id]`.
 export async function updateBranch(
   id: string,
   _prev: FormState,
   formData: FormData,
 ): Promise<FormState> {
   const name = formData.get('name');
+  if (typeof name !== 'string' || name.trim() === '')
+    return { error: 'Naziv poslovnice je obavezan.' };
   try {
     await apiFetch(`/iam/branches/${id}`, {
       method: 'PATCH',
       body: {
-        name: typeof name === 'string' && name.trim() !== '' ? name.trim() : undefined,
+        name: name.trim(),
         active: formData.get('active') === 'on',
+        address: optionalText(formData, 'address'),
+        phone: optionalText(formData, 'phone'),
+        email: optionalText(formData, 'email'),
+        responsiblePersonName: optionalText(formData, 'responsiblePersonName'),
+        taxId: optionalText(formData, 'taxId'),
+        licenseNumber: optionalText(formData, 'licenseNumber'),
       },
     });
   } catch (err) {
@@ -52,5 +67,6 @@ export async function updateBranch(
     };
   }
   revalidatePath('/podesavanja/poslovnice');
+  revalidatePath(`/podesavanja/poslovnice/${id}`);
   return { error: null };
 }

@@ -1,7 +1,7 @@
+import Link from 'next/link';
 import { apiFetch } from '@/lib/api-client';
 import { getMe, hasPermission } from '@/lib/me';
 import RegisterTab from '@/components/RegisterTab';
-import BranchRow from './BranchRow';
 import NewBranchForm from './NewBranchForm';
 
 interface BranchRowData {
@@ -34,7 +34,8 @@ export default async function PoslovnicePage() {
       <h1 className="mb-1 text-lg font-semibold text-ink">Poslovnice</h1>
       <p className="mb-4 text-xs text-ink-faint">
         TT može imati jednu ili više poslovnica. Rezervacija nasleđuje poslovnicu zaposlenog koji je
-        kreira, u trenutku kreiranja.
+        kreira, u trenutku kreiranja. Klik na poslovnicu otvara kompletne poslovne podatke i spisak
+        dodeljenih korisnika.
       </p>
 
       {error && <p className="rounded bg-danger-bg p-3 text-sm text-danger">{error}</p>}
@@ -44,21 +45,30 @@ export default async function PoslovnicePage() {
           {branches.length === 0 && (
             <p className="text-xs text-ink-faint">Nijedna poslovnica još nije dodata.</p>
           )}
-          {canManage
-            ? branches.map((b) => (
-                <BranchRow key={b.id} id={b.id} name={b.name} active={b.active} />
-              ))
-            : branches.map((b) => (
-                <div
-                  key={b.id}
-                  className="flex items-center justify-between border-b border-border py-2 text-xs last:border-0"
-                >
-                  <span>{b.name}</span>
-                  <span className={b.active ? 'text-ok' : 'text-ink-faint'}>
-                    {b.active ? 'aktivna' : 'neaktivna'}
-                  </span>
-                </div>
-              ))}
+          {branches.map((b) =>
+            canManage ? (
+              <Link
+                key={b.id}
+                href={`/podesavanja/poslovnice/${b.id}`}
+                className="flex items-center justify-between border-b border-border py-2 text-xs last:border-0 hover:text-accent-strong"
+              >
+                <span>{b.name}</span>
+                <span className={b.active ? 'text-ok' : 'text-ink-faint'}>
+                  {b.active ? 'aktivna' : 'neaktivna'}
+                </span>
+              </Link>
+            ) : (
+              <div
+                key={b.id}
+                className="flex items-center justify-between border-b border-border py-2 text-xs last:border-0"
+              >
+                <span>{b.name}</span>
+                <span className={b.active ? 'text-ok' : 'text-ink-faint'}>
+                  {b.active ? 'aktivna' : 'neaktivna'}
+                </span>
+              </div>
+            ),
+          )}
 
           {canCreate && (
             <div className="mt-4 border-t border-border pt-4">
