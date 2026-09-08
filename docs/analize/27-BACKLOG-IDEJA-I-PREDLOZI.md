@@ -327,6 +327,7 @@ _(§12, `docs/moduli/M10-finansije/07-SPECIFIKACIJA-M10-FINANSIJE.md`)_
 - BSP poravnanje — mehanizam definiše se kad M4 dobije avio/GDS adapter.
 - Da li obaveze prema van-M3 dobavljačima ulaze u `SupplierObligation`.
 - Izbor platnog provajdera za `VIRTUAL_CARD` isplate dobavljačima. Vidi Travelsoft Pay kandidat iznad.
+- **Jednokratne virtuelne kartice ("disposable cards") kao mogućnost za `VIRTUAL_CARD` isplate dobavljačima** (8.9.2026, vlasnikova beleška) — broj kartice se automatski menja posle svake online transakcije, sprečava zloupotrebu/krađu podataka sa strane sajta dobavljača kome se plaća. Relevantno kao dodatan kriterijum pri izboru provajdera iznad (Travelsoft Pay i ostali PCI-DSS kandidati) — proveriti da li nudi ovu opciju uz multi-currency isplate. Nije istraženo dalje, samo zabeleženo da se ideja ne izgubi.
 - Tačan tehnički format kojim SEF prihvata `KNJIZNO_ODOBRENJE` — potvrditi sa knjigovođom.
 - FX rizik kod `BANK_TRANSFER` isplata u stranoj valuti — potvrditi sa knjigovođom.
 - `buyer_acceptance_status → EXPIRED` prelazak nije implementiran (nema periodičnog posla koji proverava istekle 15-dnevne rokove) — dodato pri implementaciji, avgust 2026.
