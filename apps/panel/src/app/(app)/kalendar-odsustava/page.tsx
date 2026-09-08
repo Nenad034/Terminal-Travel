@@ -59,9 +59,7 @@ export default async function KalendarOdsustavaPage(props: {
   const view = searchParams.view === 'year' ? 'year' : 'month';
   const branchId = searchParams.branchId?.trim() || undefined;
 
-  const branches = await apiFetch<{ id: string; name: string }[]>('/iam/branches').catch(
-    () => [],
-  );
+  const branches = await apiFetch<{ id: string; name: string }[]>('/iam/branches').catch(() => []);
 
   return (
     <div className="p-6">
@@ -260,7 +258,11 @@ async function YearView({
             Nazad na mesečni prikaz
           </Link>
         </div>
-        <BranchFilterForm branches={branches} branchId={branchId} hidden={{ view: 'year', y: String(y) }} />
+        <BranchFilterForm
+          branches={branches}
+          branchId={branchId}
+          hidden={{ view: 'year', y: String(y) }}
+        />
       </div>
 
       <Legend />

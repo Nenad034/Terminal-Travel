@@ -108,7 +108,9 @@ export default function HrSection({
                 preostalo {leaveBalance.remaining} od {leaveBalance.entitled} dana
               </span>
             ) : (
-              <span className="text-ink-faint">nije dodeljen broj dana za {new Date().getFullYear()}.</span>
+              <span className="text-ink-faint">
+                nije dodeljen broj dana za {new Date().getFullYear()}.
+              </span>
             )}
           </div>
 

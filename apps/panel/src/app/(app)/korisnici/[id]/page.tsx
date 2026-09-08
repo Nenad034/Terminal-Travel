@@ -131,39 +131,39 @@ export default async function KorisnikDetailPage(props: { params: Promise<{ id: 
     leaveBalance,
     leaveEntitlements,
   ] = await Promise.all([
-      canEdit
-        ? apiFetch<RoleOption[]>('/iam/roles').catch(() => [])
-        : Promise.resolve<RoleOption[]>([]),
-      canViewOverrides
-        ? apiFetch<PermissionOverrideRow[]>(`/iam/users/${params.id}/permission-overrides`).catch(
-            () => [],
-          )
-        : Promise.resolve<PermissionOverrideRow[]>([]),
-      canCreateOverride
-        ? apiFetch<PermissionOption[]>('/iam/permissions').catch(() => [])
-        : Promise.resolve<PermissionOption[]>([]),
-      canEdit
-        ? apiFetch<{ id: string; name: string }[]>('/iam/branches').catch(() => [])
-        : Promise.resolve<{ id: string; name: string }[]>([]),
-      canViewHr
-        ? apiFetch<EmployeeRecord | null>(`/hr/employees/${params.id}`).catch(() => null)
-        : Promise.resolve<EmployeeRecord | null>(null),
-      canViewHr
-        ? apiFetch<LeaveRecord[]>(`/hr/employees/${params.id}/leave`).catch(() => [])
-        : Promise.resolve<LeaveRecord[]>([]),
-      canViewHr
-        ? apiFetch<LeaveBalance>(`/hr/employees/${params.id}/leave-balance`).catch(() => ({
-            entitled: null,
-            used: 0,
-            remaining: null,
-          }))
-        : Promise.resolve<LeaveBalance>({ entitled: null, used: 0, remaining: null }),
-      canViewHr
-        ? apiFetch<LeaveEntitlement[]>(`/hr/employees/${params.id}/leave-entitlements`).catch(
-            () => [],
-          )
-        : Promise.resolve<LeaveEntitlement[]>([]),
-    ]);
+    canEdit
+      ? apiFetch<RoleOption[]>('/iam/roles').catch(() => [])
+      : Promise.resolve<RoleOption[]>([]),
+    canViewOverrides
+      ? apiFetch<PermissionOverrideRow[]>(`/iam/users/${params.id}/permission-overrides`).catch(
+          () => [],
+        )
+      : Promise.resolve<PermissionOverrideRow[]>([]),
+    canCreateOverride
+      ? apiFetch<PermissionOption[]>('/iam/permissions').catch(() => [])
+      : Promise.resolve<PermissionOption[]>([]),
+    canEdit
+      ? apiFetch<{ id: string; name: string }[]>('/iam/branches').catch(() => [])
+      : Promise.resolve<{ id: string; name: string }[]>([]),
+    canViewHr
+      ? apiFetch<EmployeeRecord | null>(`/hr/employees/${params.id}`).catch(() => null)
+      : Promise.resolve<EmployeeRecord | null>(null),
+    canViewHr
+      ? apiFetch<LeaveRecord[]>(`/hr/employees/${params.id}/leave`).catch(() => [])
+      : Promise.resolve<LeaveRecord[]>([]),
+    canViewHr
+      ? apiFetch<LeaveBalance>(`/hr/employees/${params.id}/leave-balance`).catch(() => ({
+          entitled: null,
+          used: 0,
+          remaining: null,
+        }))
+      : Promise.resolve<LeaveBalance>({ entitled: null, used: 0, remaining: null }),
+    canViewHr
+      ? apiFetch<LeaveEntitlement[]>(`/hr/employees/${params.id}/leave-entitlements`).catch(
+          () => [],
+        )
+      : Promise.resolve<LeaveEntitlement[]>([]),
+  ]);
 
   const assignedRoleIds = new Set(user.roles.map((r) => r.roleId));
   const availableRoles = allRoles.filter((r) => !assignedRoleIds.has(r.id));
@@ -237,7 +237,10 @@ export default async function KorisnikDetailPage(props: { params: Promise<{ id: 
             userId={user.id}
             canEdit={canEditHr}
             canRequestLeave={canEditHr || isSelf}
-            canApprove={canEditHr || (employee?.reportsToUserId != null && employee.reportsToUserId === me?.userId)}
+            canApprove={
+              canEditHr ||
+              (employee?.reportsToUserId != null && employee.reportsToUserId === me?.userId)
+            }
             employee={employee}
             leaveRecords={leaveRecords}
             leaveBalance={leaveBalance}

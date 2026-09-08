@@ -303,7 +303,8 @@ export class HrService {
     const carriedOverStillValid =
       entitlement.carriedOverDays != null &&
       (!entitlement.carriedOverExpiresAt || entitlement.carriedOverExpiresAt >= new Date());
-    const entitled = entitlement.daysEntitled + (carriedOverStillValid ? entitlement.carriedOverDays! : 0);
+    const entitled =
+      entitlement.daysEntitled + (carriedOverStillValid ? entitlement.carriedOverDays! : 0);
 
     const yearStart = new Date(targetYear, 0, 1);
     const yearEnd = new Date(targetYear + 1, 0, 1);

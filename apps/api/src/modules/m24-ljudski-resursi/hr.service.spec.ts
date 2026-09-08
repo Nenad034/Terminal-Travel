@@ -252,7 +252,11 @@ describe('HrService', () => {
       const { service, prisma, auditLog } = makeService();
       prisma.employeeRecord.findUnique.mockResolvedValue({ id: 'er-1' });
       prisma.leaveEntitlement.findUnique.mockResolvedValue(null);
-      prisma.leaveEntitlement.upsert.mockResolvedValue({ id: 'le-1', year: 2026, daysEntitled: 20 });
+      prisma.leaveEntitlement.upsert.mockResolvedValue({
+        id: 'le-1',
+        year: 2026,
+        daysEntitled: 20,
+      });
 
       await service.upsertLeaveEntitlement('user-1', 2026, { daysEntitled: 20 }, 'hr-actor');
 

@@ -63,8 +63,7 @@ export async function upsertLeaveEntitlement(
 ): Promise<FormState> {
   const year = formData.get('year');
   const daysEntitled = formData.get('daysEntitled');
-  if (typeof year !== 'string' || year.trim() === '')
-    return { error: 'Godina je obavezna.' };
+  if (typeof year !== 'string' || year.trim() === '') return { error: 'Godina je obavezna.' };
   if (typeof daysEntitled !== 'string' || daysEntitled.trim() === '')
     return { error: 'Dodeljeni dani su obavezni.' };
 
