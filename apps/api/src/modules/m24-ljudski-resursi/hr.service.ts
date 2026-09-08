@@ -1,6 +1,7 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuditLogService } from '../m1-core-identitet/audit-log/audit-log.service';
+import { PermissionsService } from '../m1-core-identitet/permissions/permissions.service';
 
 export interface UpsertEmployeeRecordDto {
   employmentType: 'PUNO_RADNO_VREME' | 'NEPUNO_RADNO_VREME' | 'UGOVOR_O_DELU';
@@ -21,16 +22,34 @@ export interface CreateLeaveRecordDto {
   note?: string | null;
 }
 
-// M24 spec — HR dosije zaposlenog (§2.2), odsustva (§2.3). `EmployeeRecord` NE postoji za
-// svakog korisnika (samo popunjen kad HR/Vlasnik/Direktor unese podatke) — `getEmployeeRecord`
-// vraća `null` umesto 404, isti princip kao "prazan ekran je prazna baza, ne pokvaren kod"
+const BLANKET_LEAVE_PERMISSION = ['M24', 'leave-record', 'CREATE'] as const;
+
+// M24 spec — HR dosije zaposlenog (§2.2), odsustva (§2.3), zahtev/odobrenje (§3a), timski
+// kalendar (§3b). `EmployeeRecord` NE postoji za svakog korisnika (samo popunjen kad HR/
+// Vlasnik/Direktor ili sâm zaposleni unese podatke) — `getEmployeeRecord` vraća `null` umesto
+// 404, isti princip kao "prazan ekran je prazna baza, ne pokvaren kod"
 // (`33-ZAMKE-I-OBAVEZNE-PROVERE.md` 7.2) primenjen na API nivou.
 @Injectable()
 export class HrService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly auditLog: AuditLogService,
+    private readonly permissions: PermissionsService,
   ) {}
+
+  private hasBlanketLeaveAuthority(actorId: string) {
+    return this.permissions.hasPermission(actorId, ...BLANKET_LEAVE_PERMISSION);
+  }
+
+  // M24 spec §5 — VIEW rute dozvoljavaju i ownership (sopstveni dosije), ne samo
+  // M24/employee-record/VIEW. Poziva se iz kontrolera PRE poziva servisne metode.
+  async assertCanView(userId: string, actorId: string) {
+    if (actorId === userId) return;
+    const allowed = await this.permissions.hasPermission(actorId, 'M24', 'employee-record', 'VIEW');
+    if (!allowed) {
+      throw new ForbiddenException('Nema dozvolu M24/employee-record/VIEW');
+    }
+  }
 
   getEmployeeRecord(userId: string) {
     return this.prisma.employeeRecord.findUnique({
@@ -41,11 +60,7 @@ export class HrService {
 
   // PATCH radi upsert (isti obrazac kao AgencySettings — nema posebnog "kreiraj" koraka za
   // korisnika koji dosad nije imao HR dosije, formular se prosto prvi put čuva).
-  async upsertEmployeeRecord(
-    userId: string,
-    dto: UpsertEmployeeRecordDto,
-    actorId: string,
-  ) {
+  async upsertEmployeeRecord(userId: string, dto: UpsertEmployeeRecordDto, actorId: string) {
     const data = {
       employmentType: dto.employmentType,
       contractBasis: dto.contractBasis,
@@ -88,7 +103,19 @@ export class HrService {
     });
   }
 
+  // M24 spec §3a — zaposleni traži SOPSTVENO odsustvo (ownership, bez dozvole) ILI nosilac
+  // M24/leave-record/CREATE traži u ime nekog drugog. Uvek nastaje kao PENDING — HR unos više
+  // NIJE automatski odobren (razlika od v1.2).
   async createLeaveRecord(userId: string, dto: CreateLeaveRecordDto, actorId: string) {
+    if (actorId !== userId) {
+      const allowed = await this.hasBlanketLeaveAuthority(actorId);
+      if (!allowed) {
+        throw new ForbiddenException(
+          'Nemate dozvolu da podnesete zahtev u ime drugog zaposlenog (M24/leave-record/CREATE).',
+        );
+      }
+    }
+
     const record = await this.prisma.employeeRecord.findUnique({ where: { userId } });
     if (!record) {
       throw new BadRequestException(
@@ -99,6 +126,7 @@ export class HrService {
       data: {
         employeeRecordId: record.id,
         type: dto.type,
+        status: 'PENDING',
         startDate: new Date(dto.startDate),
         endDate: new Date(dto.endDate),
         daysCount: dto.daysCount,
@@ -110,7 +138,7 @@ export class HrService {
       actorType: 'HUMAN',
       actorId,
       module: 'M24',
-      action: 'leave-record.created',
+      action: 'leave-record.requested',
       resourceType: 'LeaveRecord',
       resourceId: leave.id,
       afterState: leave,
@@ -119,8 +147,87 @@ export class HrService {
     return leave;
   }
 
-  // M24 spec §2.3 — preostali dani = dodeljeno − suma GODISNJI_ODMOR tekuće godine, izračunato,
-  // ne čuvano polje (princip #1, jedan izvor istine).
+  // M24 spec §3a — odobravalac je EmployeeRecord.reportsToUserId TOG zaposlenog (ownership,
+  // bez dozvole) ILI nosilac M24/leave-record/CREATE (blanket, isti obrazac kao VIEW_ALL — M1
+  // §3.9a).
+  private async assertCanDecide(
+    leave: { employeeRecord: { reportsToUserId: string | null } },
+    actorId: string,
+  ) {
+    if (leave.employeeRecord.reportsToUserId === actorId) return;
+    const allowed = await this.hasBlanketLeaveAuthority(actorId);
+    if (!allowed) {
+      throw new ForbiddenException(
+        'Nemate ovlašćenje da odlučite o ovom zahtevu — niste neposredni rukovodilac, niti nosilac M24/leave-record/CREATE.',
+      );
+    }
+  }
+
+  private async loadLeaveForDecision(leaveId: string) {
+    const leave = await this.prisma.leaveRecord.findUniqueOrThrow({
+      where: { id: leaveId },
+      include: { employeeRecord: true },
+    });
+    if (leave.status !== 'PENDING') {
+      throw new BadRequestException('Zahtev je već obrađen (nije više na čekanju).');
+    }
+    return leave;
+  }
+
+  async approveLeaveRecord(leaveId: string, actorId: string) {
+    const leave = await this.loadLeaveForDecision(leaveId);
+    await this.assertCanDecide(leave, actorId);
+
+    const after = await this.prisma.leaveRecord.update({
+      where: { id: leaveId },
+      data: { status: 'APPROVED', approvedByUserId: actorId, approvedAt: new Date() },
+    });
+    await this.auditLog.write({
+      actorType: 'HUMAN',
+      actorId,
+      module: 'M24',
+      action: 'leave-record.approved',
+      resourceType: 'LeaveRecord',
+      resourceId: leaveId,
+      beforeState: { status: leave.status },
+      afterState: { status: after.status },
+      context: { employeeRecordId: leave.employeeRecordId },
+    });
+    return after;
+  }
+
+  async rejectLeaveRecord(leaveId: string, reason: string, actorId: string) {
+    if (!reason?.trim()) {
+      throw new BadRequestException('Razlog odbijanja je obavezan.');
+    }
+    const leave = await this.loadLeaveForDecision(leaveId);
+    await this.assertCanDecide(leave, actorId);
+
+    const after = await this.prisma.leaveRecord.update({
+      where: { id: leaveId },
+      data: {
+        status: 'REJECTED',
+        approvedByUserId: actorId,
+        approvedAt: new Date(),
+        rejectionReason: reason.trim(),
+      },
+    });
+    await this.auditLog.write({
+      actorType: 'HUMAN',
+      actorId,
+      module: 'M24',
+      action: 'leave-record.rejected',
+      resourceType: 'LeaveRecord',
+      resourceId: leaveId,
+      beforeState: { status: leave.status },
+      afterState: { status: after.status, rejectionReason: after.rejectionReason },
+      context: { employeeRecordId: leave.employeeRecordId },
+    });
+    return after;
+  }
+
+  // M24 spec §2.3 — preostali dani = dodeljeno − suma GODISNJI_ODMOR tekuće godine gde
+  // status=APPROVED, izračunato, ne čuvano polje (princip #1, jedan izvor istine).
   async getLeaveBalance(userId: string) {
     const record = await this.prisma.employeeRecord.findUnique({ where: { userId } });
     if (!record || record.annualLeaveDaysEntitled == null) {
@@ -132,6 +239,7 @@ export class HrService {
       where: {
         employeeRecordId: record.id,
         type: 'GODISNJI_ODMOR',
+        status: 'APPROVED',
         startDate: { gte: yearStart, lt: yearEnd },
       },
       select: { daysCount: true },
@@ -141,6 +249,69 @@ export class HrService {
       entitled: record.annualLeaveDaysEntitled,
       used,
       remaining: record.annualLeaveDaysEntitled - used,
+    };
+  }
+
+  // M24 spec §3b — timski kalendar. APPROVED vidljivo svima (bez `note` van kruga koji sme da
+  // vidi pun zapis), PENDING samo actor-relevantnim licima (podnosilac/odobravalac/blanket).
+  async getTeamCalendar(actorId: string, from: string, to: string, branchId?: string) {
+    const fromDate = new Date(from);
+    const toDate = new Date(to);
+    const dateOverlap = { startDate: { lte: toDate }, endDate: { gte: fromDate } };
+    const branchFilter = branchId ? { employeeRecord: { user: { branchId } } } : {};
+    const include = {
+      employeeRecord: {
+        include: { user: { select: { id: true, fullName: true, branchId: true } } },
+      },
+    } as const;
+
+    const hasBlanket = await this.hasBlanketLeaveAuthority(actorId);
+
+    const approvedRows = await this.prisma.leaveRecord.findMany({
+      where: { status: 'APPROVED', ...dateOverlap, ...branchFilter },
+      include,
+      orderBy: { startDate: 'asc' },
+    });
+
+    const pendingWhere = hasBlanket
+      ? { status: 'PENDING' as const, ...dateOverlap, ...branchFilter }
+      : {
+          status: 'PENDING' as const,
+          ...dateOverlap,
+          ...branchFilter,
+          OR: [
+            { recordedByUserId: actorId },
+            { employeeRecord: { reportsToUserId: actorId } },
+            { employeeRecord: { userId: actorId } },
+          ],
+        };
+    const pendingRows = await this.prisma.leaveRecord.findMany({
+      where: pendingWhere,
+      include,
+      orderBy: { startDate: 'asc' },
+    });
+
+    // `note` je vidljiva samo licima koja bi inače smela da vide pun zapis — sopstveni,
+    // rukovodilac, ili nosilac blanket ovlašćenja (M24 spec §3b).
+    const canSeeNote = (row: (typeof approvedRows)[number]) =>
+      hasBlanket ||
+      row.employeeRecord.userId === actorId ||
+      row.employeeRecord.reportsToUserId === actorId;
+
+    const toEntry = (row: (typeof approvedRows)[number]) => ({
+      id: row.id,
+      type: row.type,
+      status: row.status,
+      startDate: row.startDate,
+      endDate: row.endDate,
+      daysCount: row.daysCount,
+      note: canSeeNote(row) ? row.note : null,
+      employee: { id: row.employeeRecord.user.id, fullName: row.employeeRecord.user.fullName },
+    });
+
+    return {
+      approved: approvedRows.map(toEntry),
+      pending: pendingRows.map(toEntry),
     };
   }
 }

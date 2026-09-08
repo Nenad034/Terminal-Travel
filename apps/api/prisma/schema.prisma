@@ -3934,17 +3934,23 @@ enum ContractBasis {
 
 // M24 spec §2.3 — odsustva (godišnji odmor, bolovanje, neplaćeno). `daysCount` se računa pri
 // unosu (radni dani u periodu), ne ručno prebrojava. Preostali dani godišnjeg odmora se
-// izračunavaju u servisu (entitled − suma daysCount tekuće godine), ne čuvaju kao polje.
+// izračunavaju u servisu (entitled − suma daysCount tekuće godine gde status=APPROVED), ne
+// čuvaju kao polje. `status`/`approvedByUserId`/`approvedAt`/`rejectionReason` dodati 8.9.2026
+// (M24 spec §3a) — zahtev/odobrenje, zamenjuje mejl prepisku.
 model LeaveRecord {
-  id               String    @id @default(uuid())
-  employeeRecordId String    @map("employee_record_id")
+  id               String             @id @default(uuid())
+  employeeRecordId String             @map("employee_record_id")
   type             LeaveType
-  startDate        DateTime  @map("start_date")
-  endDate          DateTime  @map("end_date")
-  daysCount        Int       @map("days_count")
+  status           LeaveRequestStatus @default(PENDING)
+  startDate        DateTime           @map("start_date")
+  endDate          DateTime           @map("end_date")
+  daysCount        Int                @map("days_count")
   note             String?
-  recordedByUserId String    @map("recorded_by_user_id") // weak ref -> M1 User
-  createdAt        DateTime  @default(now()) @map("created_at")
+  recordedByUserId String             @map("recorded_by_user_id") // weak ref -> M1 User (podnosilac)
+  approvedByUserId String?            @map("approved_by_user_id") // weak ref -> M1 User
+  approvedAt       DateTime?          @map("approved_at")
+  rejectionReason  String?            @map("rejection_reason")
+  createdAt        DateTime           @default(now()) @map("created_at")
 
   employeeRecord EmployeeRecord @relation(fields: [employeeRecordId], references: [id], onDelete: Cascade)
 
@@ -3958,6 +3964,12 @@ enum LeaveType {
   BOLOVANJE
   NEPLACENO_ODSUSTVO
   OSTALO
+}
+
+enum LeaveRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
 }
 
 // M24 spec §2.4 — obuke/sertifikati sa rokom (opciono). `expiresAt = null` znači da AI HR agent

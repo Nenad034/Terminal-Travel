@@ -73,6 +73,19 @@ export const NAV_ITEMS: NavItem[] = [
     implemented: true,
   },
   {
+    // M24 spec §3b (8.9.2026, vlasnikov zahtev) — timski/deljen kalendar odsustava. Bez
+    // dozvole u meniju (`permission: null`) — otvoren svakom prijavljenom STAFF nalogu, isti
+    // obrazac kao API (`GET /hr/leave/calendar` bez @RequirePermission); vidljivost
+    // APPROVED/PENDING razdvaja sam servis, ne stavka menija.
+    id: 'kalendar-odsustava',
+    label: 'Kalendar odsustava',
+    icon: 'calendar',
+    href: '/kalendar-odsustava',
+    permission: null,
+    phase: 0,
+    implemented: true,
+  },
+  {
     id: 'katalog',
     label: 'Katalog proizvoda',
     icon: 'package',
@@ -360,7 +373,15 @@ export const NAV_GROUPS: NavGroup[] = [
     id: 'administracija',
     label: 'Administracija',
     icon: 'settings-gear',
-    itemIds: ['korisnici', 'poslovnice', 'podaci-agencije', 'audit-log', 'mcp', 'integracije'],
+    itemIds: [
+      'korisnici',
+      'kalendar-odsustava',
+      'poslovnice',
+      'podaci-agencije',
+      'audit-log',
+      'mcp',
+      'integracije',
+    ],
   },
 ];
 

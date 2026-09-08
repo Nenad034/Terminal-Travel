@@ -2,8 +2,8 @@
 
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M24) i poglavlje 8 (poprečan modul, bez fiksne faze)
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj, uz izuzetak tačno navedenih mesta gde je potrebna potvrda pravnika/knjigovođe pre implementacije (poglavlje 7)
-**Status:** Delimično implementiran (8.9.2026) — uloge/RBAC ograda/HR ekran/godišnji odmor gotovi (poglavlje 6), AI HR agent (poglavlje 3) čeka M15.
-**Verzija:** 1.2 — implementacija (8.9.2026): Prisma šema (`EmployeeRecord`/`LeaveRecord`/`TrainingCertification`), nove M1 uloge (`SEF_POSLOVNICE` sa backend ogradom, `FINANSIJSKI_DIREKTOR`) sa dozvolama u `seed.ts`, `HrModule`/`HrController`/`HrService` (`/api/v1/hr`), HR sekcija na `/korisnici/[id]`, 8 novih jediničnih testova (`users.service.spec.ts` +5, `hr.service.spec.ts` +3), sve dokazano i uživo u panelu. Detalji po stavci: poglavlje 6. v1.1 — dopuna (8.9.2026, isti dan): vlasnik uklonio link ka ugovoru o radu iz obima ("Uklonite link za ugovor o radu") i uklonio `REFERENT_PRODAJE` kao zasebnu ulogu ("Uklonite referenta prodaje, neka ostane samo agent prodaje") — prodajna hijerarhija sad ima samo jedan nivo (`PRODAJNI_AGENT`, prikazno "Agent prodaje"), ne dva. `employment_contract_url`/poglavlje 3/`VIEW-CONTRACT` dozvola i sve povezane stavke izlaznog kriterijuma/otvorenih pitanja uklonjeni. v1.0 — prvi zapis (8.9.2026), na zahtev vlasnika: "svakom zaposlenom treba da dodelimo ulogu [...] treba i da postoji link prema ugovoru o radu [...] želim ovaj deo da uredimo po evropskim i svetskim standardima". Predlog nastao u razgovoru (Master dokument v1.25), ovaj dokument ga razrađuje u Nivo 2 detalje.
+**Status:** Delimično implementiran (8.9.2026) — uloge/RBAC ograda/HR ekran/godišnji odmor gotovi, zahtev-odobrenje odsustva i timski kalendar (poglavlje 3a/3b) specificirani, čekaju implementaciju; AI HR agent (poglavlje 3) čeka M15.
+**Verzija:** 1.4 — dopuna (8.9.2026, isti dan): vlasnikov zahtev "dodajte i link Prikaži koji otvara kalendar za celu godinu... traženi i odobreni a nerealizovani i realizovani" — godišnji prikaz (poglavlje 3b) sa TRI stanja (traženo/odobreno-nerealizovano/realizovano, poslednja dva izvedena poređenjem datuma sa danas, bez novog polja). Ispravka: polja za unos datuma u M24 formama moraju koristiti postojeću `DateField.tsx` komponentu (već korišćenu u M5), ne goli `<input type="date">` — prvi prolaz implementacije to nije poštovao. v1.3 — dopuna (8.9.2026, isti dan kao implementacija): vlasnikov zahtev "omogućite prikaz u kalendaru kada je korišćen/traženo korišćenje odmora... uvesti odobrenje od strane ovlašćenog lica... može da zameni prepisku mejlom" — novo poglavlje 3a (zahtev/odobrenje odsustva, ownership pravo, ne dozvola: zaposleni traži sopstveno, `reports_to_user_id` odobrava) i 3b (timski/deljen kalendar, `APPROVED` vidljivo svima, `PENDING` samo actor-relevantnim licima), `LeaveRecord` dobija `status`/`approved_by_user_id`/`approved_at`/`rejection_reason` (poglavlje 2.3), dozvole i API tabela dopunjeni. Odluke potvrđene preko `AskUserQuestion`: timski kalendar (ne samo lični), samouslužni zahtev zaposlenog (ne samo HR unos). v1.2 — implementacija (8.9.2026): Prisma šema (`EmployeeRecord`/`LeaveRecord`/`TrainingCertification`), nove M1 uloge (`SEF_POSLOVNICE` sa backend ogradom, `FINANSIJSKI_DIREKTOR`) sa dozvolama u `seed.ts`, `HrModule`/`HrController`/`HrService` (`/api/v1/hr`), HR sekcija na `/korisnici/[id]`, 8 novih jediničnih testova (`users.service.spec.ts` +5, `hr.service.spec.ts` +3), sve dokazano i uživo u panelu. Detalji po stavci: poglavlje 6. v1.1 — dopuna (8.9.2026, isti dan): vlasnik uklonio link ka ugovoru o radu iz obima ("Uklonite link za ugovor o radu") i uklonio `REFERENT_PRODAJE` kao zasebnu ulogu ("Uklonite referenta prodaje, neka ostane samo agent prodaje") — prodajna hijerarhija sad ima samo jedan nivo (`PRODAJNI_AGENT`, prikazno "Agent prodaje"), ne dva. `employment_contract_url`/poglavlje 3/`VIEW-CONTRACT` dozvola i sve povezane stavke izlaznog kriterijuma/otvorenih pitanja uklonjeni. v1.0 — prvi zapis (8.9.2026), na zahtev vlasnika: "svakom zaposlenom treba da dodelimo ulogu [...] treba i da postoji link prema ugovoru o radu [...] želim ovaj deo da uredimo po evropskim i svetskim standardima". Predlog nastao u razgovoru (Master dokument v1.25), ovaj dokument ga razrađuje u Nivo 2 detalje.
 **Zavisi od:** M1 (identitet, uloge/RBAC — HR dosije je vezan 1:1 na `User`, nove sistemske uloge žive u M1 katalogu). Meko od M18 (dostava podsetnika o rokovima) i M15 (AI HR agent) — bez njih modul radi kao čista evidencija, samo bez automatskih podsetnika.
 
 ---
@@ -17,7 +17,7 @@ M24 čuva **HR dosije zaposlenog** — organizacionu poziciju, ključne datume r
 - **Payroll** (obračun plate, bankovni računi, poreske prijave) — ostaje u specijalizovanom knjigovodstvenom softveru. TT nije računovodstveni servis; mešanje payroll-a u sistem bi povuklo ozbiljnu bezbednosnu/pravnu težinu (bankovni podaci, poreski identifikatori) bez jasne koristi, i duplirao bi izvor istine koji već postoji negde drugde.
 - **Link/dokument samog ugovora o radu** — bio u prvom nacrtu (v1.0), uklonjen na vlasnikov zahtev (8.9.2026). Ugovor o radu ostaje van sistema, gde god se danas čuva.
 - **Regrutacija/oglasi za posao** — ako se pokaže potreba, zaseban predlog.
-- **Formalni workflow odobravanja odsustva** (zahtev → odobrenje pretpostavljenog → obaveštenje) — prvi prolaz je čista evidencija (HR/Vlasnik/Direktor upisuje), radni tok ide u "Otvoreno za dalje" dok se ne pokaže da je ručni unos nedovoljan.
+- ~~Formalni workflow odobravanja odsustva~~ — **uveden 8.9.2026** (poglavlje 3a), na vlasnikov zahtev: "uvesti odobrenje od strane ovlašćenog lica za korišćenje odmora... ovo može da zameni prepisku mejlom".
 
 M24 ne duplira RBAC — sistemske uloge i mehanizam dodele/uklanjanja ostaju u M1 (`/korisnici/[id]`, već postojeći `RoleAssignment`), M24 samo **dodaje nove uloge u taj katalog** (poglavlje 2.1) i **dodaje HR podatke** koji u M1 nikad nisu bili u obimu (M1 spec §3.9c izričito kaže "logo kao slika... i bilo kakav pojam 'više agencija'" van obima — HR dosije nikad nije ni bio pomenut kao mogući obim M1, princip "moduli su granice" važi i ovde: M1 = pristup, M24 = radni odnos).
 
@@ -29,15 +29,15 @@ M24 ne duplira RBAC — sistemske uloge i mehanizam dodele/uklanjanja ostaju u M
 
 Postojeće uloge (`VLASNIK`, `DIREKTOR`, `HR`, `SALES_MANAGER`, `PRODAJNI_AGENT`, `RACUNOVODJA`) se **ne brišu ni ne preimenuju** — nova hijerarhija se dodaje pored njih, da se ne pokvari nijedna postojeća dozvola/seed/test koji već zavisi od tačnog imena uloge (`grep -rn "PRODAJNI_AGENT\|SALES_MANAGER" apps/api/src` pre implementacije, da se vidi stvaran broj mesta).
 
-| Tražena uloga (vlasnikova lista) | Odluka | Napomena |
-| :--- | :--- | :--- |
-| Vlasnik | `VLASNIK` (postojeća) | bez izmene |
-| Direktor | `DIREKTOR` (postojeća) | bez izmene |
-| Finansijski direktor | **nova: `FINANSIJSKI_DIREKTOR`** | iznad `RACUNOVODJA` u hijerarhiji ovlašćenja — implementirano (8.9.2026, `seed.ts`) kao isti VIEW/CREATE_DRAFT/RECORD/APPROVE/REVIEW skup kao Računovođa plus PUN M13 izveštajni pristup; namerno BEZ SUBMIT/EXECUTE (M10 spec §9 rezerviše stvaran prenos novca isključivo za Vlasnika/Direktora, ovaj prolaz to ne menja) |
-| Računovođa | `RACUNOVODJA` (postojeća) | bez izmene |
-| Menadžer prodaje | `SALES_MANAGER` (postojeća) | bez izmene naziva u kodu; prikazni naziv u HR ekranu može biti "Menadžer prodaje" bez izmene same konstante (vidi napomenu ispod) |
-| Šef poslovnice | **nova: `SEF_POSLOVNICE`** | **kombinovana uloga — vidi ogradu ispod, nikad samostalna** |
-| Agent prodaje | `PRODAJNI_AGENT` (postojeća) | bez izmene naziva u kodu. Jedini nivo u prodajnom timu ispod Menadžera prodaje — vlasnik uklonio raniji predlog dvoslojne hijerarhije ("Referent"/"Samostalni referent", 8.9.2026: "uklonite referenta prodaje, neka ostane samo agent prodaje") |
+| Tražena uloga (vlasnikova lista) | Odluka                           | Napomena                                                                                                                                                                                                                                                                                                                    |
+| :------------------------------- | :------------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Vlasnik                          | `VLASNIK` (postojeća)            | bez izmene                                                                                                                                                                                                                                                                                                                  |
+| Direktor                         | `DIREKTOR` (postojeća)           | bez izmene                                                                                                                                                                                                                                                                                                                  |
+| Finansijski direktor             | **nova: `FINANSIJSKI_DIREKTOR`** | iznad `RACUNOVODJA` u hijerarhiji ovlašćenja — implementirano (8.9.2026, `seed.ts`) kao isti VIEW/CREATE_DRAFT/RECORD/APPROVE/REVIEW skup kao Računovođa plus PUN M13 izveštajni pristup; namerno BEZ SUBMIT/EXECUTE (M10 spec §9 rezerviše stvaran prenos novca isključivo za Vlasnika/Direktora, ovaj prolaz to ne menja) |
+| Računovođa                       | `RACUNOVODJA` (postojeća)        | bez izmene                                                                                                                                                                                                                                                                                                                  |
+| Menadžer prodaje                 | `SALES_MANAGER` (postojeća)      | bez izmene naziva u kodu; prikazni naziv u HR ekranu može biti "Menadžer prodaje" bez izmene same konstante (vidi napomenu ispod)                                                                                                                                                                                           |
+| Šef poslovnice                   | **nova: `SEF_POSLOVNICE`**       | **kombinovana uloga — vidi ogradu ispod, nikad samostalna**                                                                                                                                                                                                                                                                 |
+| Agent prodaje                    | `PRODAJNI_AGENT` (postojeća)     | bez izmene naziva u kodu. Jedini nivo u prodajnom timu ispod Menadžera prodaje — vlasnik uklonio raniji predlog dvoslojne hijerarhije ("Referent"/"Samostalni referent", 8.9.2026: "uklonite referenta prodaje, neka ostane samo agent prodaje")                                                                            |
 
 **Prikazni naziv uloge (dopuna, van obima ove verzije, upisano da se ne izgubi):** role badge u panelu danas prikazuje doslovno ime konstante (`PRODAJNI_AGENT`, ne "Agent prodaje") — vidi `apps/panel/src/app/(app)/korisnici/[id]/page.tsx`. Uvođenje čitljivog prikaznog imena (mapa `SYSTEM_ROLES → čitljiv naziv`, npr. `{ PRODAJNI_AGENT: 'Agent prodaje', SALES_MANAGER: 'Menadžer prodaje' }`) je nezavisna, mala UI izmena — ide u istom prolazu kad se M24 implementira, da HR ekran i `/korisnici` odmah govore istim jezikom.
 
@@ -52,47 +52,53 @@ Sprovodi se u M1 `UsersService`/`RoleAssignment` akciji (backend, ne samo UI —
 
 ### 2.2 `EmployeeRecord` — HR dosije, 1:1 sa M1 `User`
 
-| Polje | Tip | Napomena |
-| :--- | :--- | :--- |
-| id | UUID (PK) | |
-| user_id | UUID (FK → M1 User), unique | samo za `accountType = STAFF` naloge |
-| employment_type | enum: `PUNO_RADNO_VREME`, `NEPUNO_RADNO_VREME`, `UGOVOR_O_DELU` | pravni značaj po Zakonu o radu RS |
-| contract_basis | enum: `NEODREDJENO`, `ODREDJENO` | određuje da li je `contract_end_date` obavezno |
-| hire_date | date | datum zasnivanja radnog odnosa |
-| probation_end_date | date, nullable | kraj probnog rada, ako postoji |
-| contract_end_date | date, nullable | obavezno ako `contract_basis = ODREDJENO` — ovo je polje koje AI HR agent prati (poglavlje 3) |
-| termination_date | date, nullable | kraj radnog odnosa (offboarding) — popunjeno = zaposleni više nije aktivan u HR smislu, nezavisno od `User.status` (M1) koji kontroliše pristup sistemu |
-| reports_to_user_id | UUID (FK → M1 User), nullable | neposredni rukovodilac — eksplicitno polje, odvojeno od organizacione uloge (npr. Agent prodaje u poslovnici Beograd izveštava se Šefu te poslovnice) |
-| annual_leave_days_entitled | integer, nullable | dodeljeni dani godišnjeg odmora za tekuću godinu (RS minimum 20 radnih dana) |
-| created_at / updated_at | timestamp | |
-| updated_by_user_id | UUID, nullable | izmena ide u audit log (M1 §3.8), isti obrazac kao `AgencySettings` |
+| Polje                      | Tip                                                             | Napomena                                                                                                                                                |
+| :------------------------- | :-------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| id                         | UUID (PK)                                                       |                                                                                                                                                         |
+| user_id                    | UUID (FK → M1 User), unique                                     | samo za `accountType = STAFF` naloge                                                                                                                    |
+| employment_type            | enum: `PUNO_RADNO_VREME`, `NEPUNO_RADNO_VREME`, `UGOVOR_O_DELU` | pravni značaj po Zakonu o radu RS                                                                                                                       |
+| contract_basis             | enum: `NEODREDJENO`, `ODREDJENO`                                | određuje da li je `contract_end_date` obavezno                                                                                                          |
+| hire_date                  | date                                                            | datum zasnivanja radnog odnosa                                                                                                                          |
+| probation_end_date         | date, nullable                                                  | kraj probnog rada, ako postoji                                                                                                                          |
+| contract_end_date          | date, nullable                                                  | obavezno ako `contract_basis = ODREDJENO` — ovo je polje koje AI HR agent prati (poglavlje 3)                                                           |
+| termination_date           | date, nullable                                                  | kraj radnog odnosa (offboarding) — popunjeno = zaposleni više nije aktivan u HR smislu, nezavisno od `User.status` (M1) koji kontroliše pristup sistemu |
+| reports_to_user_id         | UUID (FK → M1 User), nullable                                   | neposredni rukovodilac — eksplicitno polje, odvojeno od organizacione uloge (npr. Agent prodaje u poslovnici Beograd izveštava se Šefu te poslovnice)   |
+| annual_leave_days_entitled | integer, nullable                                               | dodeljeni dani godišnjeg odmora za tekuću godinu (RS minimum 20 radnih dana)                                                                            |
+| created_at / updated_at    | timestamp                                                       |                                                                                                                                                         |
+| updated_by_user_id         | UUID, nullable                                                  | izmena ide u audit log (M1 §3.8), isti obrazac kao `AgencySettings`                                                                                     |
 
 `branch_id` se **ne duplira ovde** — već postoji na `User.branch_id` (M1 §3.9b), M24 ga čita preko `user_id` relacije, princip #1 (jedan izvor istine).
 
 ### 2.3 `LeaveRecord` — odsustva (godišnji odmor, bolovanje, neplaćeno)
 
-| Polje | Tip | Napomena |
-| :--- | :--- | :--- |
-| id | UUID (PK) | |
-| employee_record_id | UUID (FK → EmployeeRecord) | |
-| type | enum: `GODISNJI_ODMOR`, `BOLOVANJE`, `NEPLACENO_ODSUSTVO`, `OSTALO` | |
-| start_date / end_date | date | |
-| days_count | integer | radni dani u periodu — izračunato pri unosu (bez vikenda/praznika), ne ručno prebrojano |
-| note | string, nullable | |
-| recorded_by_user_id | UUID (FK → User) | ko je uneo zapis — prvi prolaz je ručna evidencija (HR/Vlasnik/Direktor), ne samouslužni zahtev zaposlenog (poglavlje 1) |
-| created_at | timestamp | |
+Dopunjeno 8.9.2026 (poglavlje 3a) — odsustvo sad ima **status**, ne nastaje direktno kao gotova činjenica.
 
-Preostali dani godišnjeg odmora = `annual_leave_days_entitled` − suma `days_count` gde `type = GODISNJI_ODMOR` za tekuću godinu — izračunato, ne čuvano polje (isti princip kao `current_outstanding_balance` u M7 §2 — jedan izvor istine, ne duplirano stanje).
+| Polje                 | Tip                                                                 | Napomena                                                                                                                               |
+| :-------------------- | :------------------------------------------------------------------ | :------------------------------------------------------------------------------------------------------------------------------------- |
+| id                    | UUID (PK)                                                           |                                                                                                                                        |
+| employee_record_id    | UUID (FK → EmployeeRecord)                                          |                                                                                                                                        |
+| type                  | enum: `GODISNJI_ODMOR`, `BOLOVANJE`, `NEPLACENO_ODSUSTVO`, `OSTALO` |                                                                                                                                        |
+| status                | enum: `PENDING`, `APPROVED`, `REJECTED`                             | vidi poglavlje 3a                                                                                                                      |
+| start_date / end_date | date                                                                |                                                                                                                                        |
+| days_count            | integer                                                             | radni dani u periodu — izračunato pri unosu (bez vikenda/praznika), ne ručno prebrojano                                                |
+| note                  | string, nullable                                                    | napomena podnosioca (razlog, kontekst)                                                                                                 |
+| recorded_by_user_id   | UUID (FK → User)                                                    | ko je podneo zahtev — sad **tipično sam zaposleni** (poglavlje 3a), i dalje može i HR/Vlasnik/Direktor u njegovo ime                   |
+| approved_by_user_id   | UUID (FK → User), nullable                                          | ko je odobrio/odbio — popunjeno tek kad `status` napusti `PENDING`                                                                     |
+| approved_at           | timestamp, nullable                                                 |                                                                                                                                        |
+| rejection_reason      | string, nullable                                                    | obavezno popunjeno kad `status = REJECTED` (sprovedeno u servisu, ne DB constraint — isti obrazac kao ostala uslovna polja u projektu) |
+| created_at            | timestamp                                                           |                                                                                                                                        |
+
+Preostali dani godišnjeg odmora = `annual_leave_days_entitled` − suma `days_count` gde `type = GODISNJI_ODMOR` **I `status = APPROVED`** za tekuću godinu — izračunato, ne čuvano polje (isti princip kao `current_outstanding_balance` u M7 §2, jedan izvor istine). `PENDING` zahtevi se **ne** oduzimaju od preostalih dana — vide se odvojeno u kalendaru (poglavlje 3b) kao "traženo", ne kao "iskorišćeno"; sistem namerno ne sprečava preklapanje dva `PENDING` zahteva u istom periodu, to rešava odobravalac na osnovu onoga što vidi u kalendaru, ne automatska ograda.
 
 ### 2.4 `TrainingCertification` — obuke/sertifikati sa rokom (opciono, npr. za vodiče)
 
-| Polje | Tip | Napomena |
-| :--- | :--- | :--- |
-| id | UUID (PK) | |
-| employee_record_id | UUID (FK → EmployeeRecord) | |
-| name | string | naziv obuke/sertifikata |
-| issued_at | date, nullable | |
-| expires_at | date, nullable | polje koje AI HR agent prati (poglavlje 3) — obavezna obuka bez roka ima `expires_at = null` i agent je ne prati |
+| Polje              | Tip                        | Napomena                                                                                                         |
+| :----------------- | :------------------------- | :--------------------------------------------------------------------------------------------------------------- |
+| id                 | UUID (PK)                  |                                                                                                                  |
+| employee_record_id | UUID (FK → EmployeeRecord) |                                                                                                                  |
+| name               | string                     | naziv obuke/sertifikata                                                                                          |
+| issued_at          | date, nullable             |                                                                                                                  |
+| expires_at         | date, nullable             | polje koje AI HR agent prati (poglavlje 3) — obavezna obuka bez roka ima `expires_at = null` i agent je ne prati |
 
 ---
 
@@ -100,24 +106,58 @@ Preostali dani godišnjeg odmora = `annual_leave_days_entitled` − suma `days_c
 
 Master dokument poglavlje 7 (Model upravljanja AI agentima) definiše tri nivoa autonomije po AKCIJI — M24 domenski agent ih primenjuje ovako. **Vlasnik potvrdio (8.9.2026): "uradite AI HR agenta kad M15 bude spreman."** Napomena zapisana ovde da se ne izgubi: M15 OKVIR već postoji i radi (M18/M21/M22/M23 već imaju agente ožičene preko njega) — stvarna prepreka je Master dokument poglavlje 7, tačka 4 ("AI agenti se uvode postepeno... tek kada je taj modul deterministički stabilan... radi u produkciji bez agenta bar jedan poslovni ciklus"), ne M15 sam po sebi. M24 je dobio kod 8.9.2026, nula stvarne upotrebe u produkciji — ovaj uslov je taj koji stvarno čekamo. Kad prođe bar jedan poslovni ciklus stvarne upotrebe (HR stvarno unosi dosijee/odsustva), agent se gradi.
 
-| Akcija | Nivo | Napomena |
-| :--- | :--- | :--- |
-| Podsetnik pre isteka probnog rada (`probation_end_date`) | **Autonomno** | isti obrazac kao M18 signali/upozorenja — deterministički izračun datuma, nula rizika |
-| Podsetnik pre isteka ugovora na određeno (`contract_end_date`) | **Autonomno** | zakonski rok, propuštanje ima pravne posledice — agent NIKAD ne sme da bude jedini kanal (dostavlja se kroz M18 notifikacioni kanal ljudima, ne zamenjuje ljudsku odluku) |
-| Podsetnik pre isteka obuke/sertifikata | **Autonomno** | |
-| Nacrt odgovora zaposlenom na opšte HR pitanje (radno vreme, politika odmora) | **Predloži pa čovek odobri** | isti obrazac kao M19 `SupplierDraftAgent`/M22 `EmailInboxAgent` — agent piše nacrt, čovek šalje |
-| Predlog raspodele godišnjeg odmora (kad više ljudi traži isti period) | **Predloži pa čovek odobri** | |
-| Izmena ugovora, otkaz, bilo šta sa pravnim dejstvom | **Nikad autonomno** | eksplicitno u Master dokumentu poglavlje 7, tačka 2 — "potpisivanje ugovora" je već navedeno kao primer koji AI agent nikad ne sme sam da izvrši |
+| Akcija                                                                       | Nivo                         | Napomena                                                                                                                                                                  |
+| :--------------------------------------------------------------------------- | :--------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Podsetnik pre isteka probnog rada (`probation_end_date`)                     | **Autonomno**                | isti obrazac kao M18 signali/upozorenja — deterministički izračun datuma, nula rizika                                                                                     |
+| Podsetnik pre isteka ugovora na određeno (`contract_end_date`)               | **Autonomno**                | zakonski rok, propuštanje ima pravne posledice — agent NIKAD ne sme da bude jedini kanal (dostavlja se kroz M18 notifikacioni kanal ljudima, ne zamenjuje ljudsku odluku) |
+| Podsetnik pre isteka obuke/sertifikata                                       | **Autonomno**                |                                                                                                                                                                           |
+| Nacrt odgovora zaposlenom na opšte HR pitanje (radno vreme, politika odmora) | **Predloži pa čovek odobri** | isti obrazac kao M19 `SupplierDraftAgent`/M22 `EmailInboxAgent` — agent piše nacrt, čovek šalje                                                                           |
+| Predlog raspodele godišnjeg odmora (kad više ljudi traži isti period)        | **Predloži pa čovek odobri** |                                                                                                                                                                           |
+| Izmena ugovora, otkaz, bilo šta sa pravnim dejstvom                          | **Nikad autonomno**          | eksplicitno u Master dokumentu poglavlje 7, tačka 2 — "potpisivanje ugovora" je već navedeno kao primer koji AI agent nikad ne sme sam da izvrši                          |
 
 ---
 
-## 4. Dozvole (registruju se u M1 katalog dozvola)
+## 3a. Zahtev i odobrenje odsustva (dopuna 8.9.2026, vlasnikov zahtev)
 
-| Dozvola | Podrazumevana dodela po ulozi |
-| :--- | :--- |
-| `M24/employee-record/VIEW` | Vlasnik, Direktor, HR — opšti HR podaci (pozicija, datumi, godišnji odmor) |
-| `M24/employee-record/EDIT` | Vlasnik, Direktor, HR |
-| `M24/leave-record/CREATE` | Vlasnik, Direktor, HR — prvi prolaz je ručna evidencija (poglavlje 1), ne samoposluživanje zaposlenog |
+Vlasnikova formulacija: _"Uvesti ako nije i odobrenje od strane ovlašćenog lica za korišćenje odmora. Ovo može da zameni prepisku mejlom."_ Odgovori na `AskUserQuestion` (8.9.2026): zaposleni **sam** podnosi zahtev (ne samo HR u njegovo ime), kalendar je **timski/deljen** (poglavlje 3b).
+
+**Ko podnosi.** Svaki `STAFF` nalog sa popunjenim `EmployeeRecord` sme da zatraži SOPSTVENO odsustvo — ovo je **ownership pravo, ne dozvola iz kataloga** (isti obrazac kao Gost koji vidi sopstvenu rezervaciju, ili korisnik koji menja sopstveni profil): ruta ne nosi `@RequirePermission`, samo `JwtAuthGuard` (mora biti prijavljen), servis proverava `actorId === userId` iz putanje. HR/Vlasnik/Direktor (nosioci `M24/leave-record/CREATE`) i dalje mogu podneti zahtev U IME zaposlenog (npr. gost zvao telefonom, ne koristi panel) — ta dva puta dele isti servisni metod, razlikuju se samo u tome ko je `recorded_by_user_id`. Novi zahtev uvek nastaje sa `status = PENDING`, bez obzira ko ga je podneo — HR unos više NE znači automatsko odobrenje (razlika od v1.2, gde je HR unos bio odmah konačan).
+
+**Ko odobrava.** Odobravalac je `EmployeeRecord.reports_to_user_id` (neposredni rukovodilac) TOG zaposlenog — ownership provera, ne dozvola: bilo koji `STAFF` nalog sme da odobri/odbije zahtev **ako je on baš taj rukovodilac**, bez obzira koju sistemsku ulogu inače nosi. Pored toga, nosioci `M24/leave-record/CREATE` (HR/Vlasnik/Direktor) smeju da odobre/odbiju BILO ČIJI zahtev (blanket ovlašćenje, isti obrazac kao `VIEW_ALL` konvencija iz M1 §3.9a) — pokriva slučaj kad `reports_to_user_id` nije popunjen, ili kad rukovodilac nije dostupan. Ako `reports_to_user_id` nije popunjen I zaposleni nije sam Vlasnik/Direktor/HR, zahtev čeka dok ga neko iz tog kruga ne odobri — sistem ne izmišlja odobravaoca.
+
+**Odbijanje traži razlog** (`rejection_reason`, obavezno polje pri odbijanju) — zamenjuje mejl prepisku, pa razlog mora ostati zapisan na istom mestu gde je i zahtev, ne u odvojenoj niti.
+
+**Šta odobrenje NE radi:** ne menja `EmployeeRecord`, ne šalje pravi mejl (van obima ove verzije — obaveštenje ide kroz panel, isti obrazac kao Agent Inbox "čeka odobrenje" indikator koji panel već ima za AI predloge, ovde primenjen na ljudski zahtev), i nije pravno obavezujući dokument (to ostaje ugovor o radu, van sistema, poglavlje 1).
+
+---
+
+## 3b. Timski kalendar odsustava (dopuna 8.9.2026, vlasnikov zahtev)
+
+Vlasnikova formulacija: _"omogućite i prikaz u kalendaru kada je korišćen godišnji odmor odnosno pre toga [prikaz] kada je pisano [zatraženo] korišćenje odmora."_ Znači: kalendar razlikuje **zatraženo** (`PENDING`) od **stvarno korišćeno/odobreno** (`APPROVED`) — dva vizuelno različita stanja, ne jedna lista.
+
+**Doseg (potvrđeno vlasnikom):** deljen, timski kalendar — ne samo lični prikaz po zaposlenom. Ponovna upotreba postojeće kalendarske logike (`apps/panel/src/lib/calendar-date.ts`, već deljena između `rezervacije/kalendar` i brzog filtera na `rezervacije/lista`) — ne piše se nova mesečna/nedeljna aritmetika.
+
+**Vidljivost (dva sloja, namerno različita):**
+
+- **`APPROVED` odsustva** — vidljiva CELOM timu (bilo koji `STAFF` nalog), bez posebne dozvole: ime zaposlenog, tip odsustva, datumi. Namena je da svako vidi ko je odsutan, ne da čuva tajnu. `note` (razlog) se NE prikazuje van kruga koji već sme da vidi pun `LeaveRecord` (ispod).
+- **`PENDING` zahtevi** — vidljivi samo: podnosiocu (sopstveni zahtev), njegovom `reports_to_user_id` odobravaocu, i nosiocima `M24/leave-record/CREATE`. Namerno se ne emituju timski dok nisu odobreni — zahtev koji čeka odluku nije još potvrđena informacija.
+- Filter po `branchId` (opciono, koristi `User.branch_id`) — kalendar cele agencije po difoltu, poslovnica kao sužavanje, isti obrazac kao filter na listi rezervacija.
+
+**Godišnji prikaz (dopuna 8.9.2026, isti dan, vlasnikov zahtev: "dodajte i link Prikaži koji otvara kalendar za celu godinu vizuelno... obeleženi dani koji su traženi i odobreni a nerealizovani i oni realizovani").** Mesečni prikaz iznad ostaje podrazumevan; link "Prikaži" otvara godišnji prikaz (12 mini-mesečnih mreža) sa **tri** vizuelno razdvojena stanja po danu, ne dva:
+
+1. **Traženo** (`status = PENDING`) — čeka odluku.
+2. **Odobreno, nerealizovano** (`status = APPROVED`, datum ≥ danas) — odobreno, gost/tim ga još nije "iskoristio".
+3. **Realizovano** (`status = APPROVED`, datum < danas) — odobreno i period je već prošao.
+
+Razlika 2↔3 je izvedena poređenjem datuma sa "danas" u trenutku prikaza, ne novo polje u `LeaveRecord` — nema promene modela podataka (poglavlje 2.3), samo prikazna logika. Ista pravila vidljivosti iz tabele iznad važe i ovde (traženo vidi samo actor-relevantan krug, odobreno vidi ceo tim) — godišnji prikaz ne menja ko šta sme da vidi, samo raspon i grupisanje.
+
+**Obrazac za unos datuma (dopuna 8.9.2026, vlasnikov zahtev: "forma kalendara za odabir datuma uvek treba da bude kako smo već u aplikaciji izdefinisali, pogledajte na primer listu rezervacija").** Svako polje za unos datuma u M24 ekranima (zahtev za odsustvo, HR dosije) koristi postojeću `apps/panel/src/components/DateField.tsx` (DD-MM-GGGG maskiran unos + iskačući kalendar, već korišćeno u M5 rezervacijama) — **ne** goli `<input type="date">`. Ovo ispravlja prvi prolaz implementacije (8.9.2026, isti dan), koji je greškom koristio native `<input type="date">` pre nego što je ova napomena zapisana.
+
+| Dozvola                    | Podrazumevana dodela po ulozi                                                                                                                                                                                                                                               |
+| :------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `M24/employee-record/VIEW` | Vlasnik, Direktor, HR — opšti HR podaci (pozicija, datumi, godišnji odmor)                                                                                                                                                                                                  |
+| `M24/employee-record/EDIT` | Vlasnik, Direktor, HR                                                                                                                                                                                                                                                       |
+| `M24/leave-record/CREATE`  | Vlasnik, Direktor, HR — podnošenje zahteva U IME BILO KOG zaposlenog i ODOBRAVANJE BILO ČIJEG zahteva (blanket, poglavlje 3a). Zaposleni podnosi SOPSTVENI zahtev i njegov neposredni rukovodilac ga odobrava preko ownership provere, BEZ ove dozvole — vidi poglavlje 3a. |
 
 ---
 
@@ -125,12 +165,16 @@ Master dokument poglavlje 7 (Model upravljanja AI agentima) definiše tri nivoa 
 
 Prefiks: `/api/v1/hr`
 
-| Endpoint | Metod | Opis |
-| :--- | :--- | :--- |
-| `/hr/employees/:userId` | GET | HR dosije jednog zaposlenog — iza `M24/employee-record/VIEW` |
-| `/hr/employees/:userId` | PATCH | iza `M24/employee-record/EDIT` |
-| `/hr/employees/:userId/leave` | GET / POST | spisak odsustava / novi zapis, iza `LEAVE-RECORD/CREATE` za POST |
-| `/hr/employees/:userId/leave-balance` | GET | preostali dani godišnjeg odmora (izračunato, poglavlje 2.3) |
+| Endpoint                              | Metod | Opis                                                                                                                                                                                    |
+| :------------------------------------ | :---- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/hr/employees/:userId`               | GET   | HR dosije jednog zaposlenog — `M24/employee-record/VIEW` ILI ownership (`actorId === userId`, sopstveni dosije)                                                                         |
+| `/hr/employees/:userId`               | PATCH | iza `M24/employee-record/EDIT`                                                                                                                                                          |
+| `/hr/employees/:userId/leave`         | GET   | spisak odsustava tog zaposlenog — iza `M24/employee-record/VIEW` ili ownership (sopstveni)                                                                                              |
+| `/hr/employees/:userId/leave`         | POST  | nov zahtev (`status = PENDING`) — BEZ `@RequirePermission`; servis dozvoljava ako `actorId === userId` (sopstveni zahtev) ILI actor nosi `M24/leave-record/CREATE` (u ime nekog drugog) |
+| `/hr/employees/:userId/leave-balance` | GET   | preostali dani godišnjeg odmora (izračunato, poglavlje 2.3, broji samo `APPROVED`) — ista ownership provera kao gornji GET                                                              |
+| `/hr/leave/:leaveId/approve`          | PATCH | odobrenje — dozvoljeno ako je actor `reports_to_user_id` tog zaposlenog ILI nosi `M24/leave-record/CREATE` (poglavlje 3a)                                                               |
+| `/hr/leave/:leaveId/reject`           | PATCH | odbijanje, telo zahteva `rejectionReason` — ista ownership provera kao `approve`                                                                                                        |
+| `/hr/leave/calendar`                  | GET   | timski kalendar (poglavlje 3b) — query `from`/`to`/opciono `branchId`; vraća `APPROVED` za ceo pozvani opseg svima, `PENDING` samo za actor-relevantne zapise (poglavlje 3b)            |
 
 ---
 
@@ -141,13 +185,16 @@ Prefiks: `/api/v1/hr`
 - [x] HR ekran u panelu — dodat kao sekcija na `/korisnici/[id]` (odluka pri implementaciji: isto mesto gde se već uređuje profil/uloge, ne novi zaseban ekran), prikazuje i uređuje sva polja iz poglavlja 2.2, samo za nosioca `M24/employee-record/EDIT` (`M24/employee-record/VIEW` bez `EDIT` dobija read-only prikaz). Dokazano uživo: forma čuva i vraća podatke posle osvežavanja stranice.
 - [x] Preostali dani godišnjeg odmora se tačno izračunavaju (dodeljeno − iskorišćeno), ne čuvaju kao ručno ažurirano polje (`HrService.getLeaveBalance`) — dokazano testom (`hr.service.spec.ts`) i uživo (20 dodeljenih − 3 iskorišćena = 17 preostalih, ekran se ažurirao odmah po unosu odsustva).
 - [ ] Podsetnik pre isteka ugovora na određeno/probnog roka stiže kroz M18 kanal najmanje X dana unapred — NIJE implementirano ovim prolazom (AI HR agent iz poglavlja 3 čeka M15 okvir, isto pravilo kao svaki drugi domenski agent — poglavlje 1/3). Ovaj prolaz je izgradio deterministički deo (podaci, RBAC, ekran); agent deo ostaje sledeći korak.
+- [x] Zaposleni sme da podnese SOPSTVENI zahtev za odsustvo (`status = PENDING`), neposredni rukovodilac (`reports_to_user_id`) ili HR/Vlasnik/Direktor ga odobri/odbije — dokazano sa 16 jediničnih testova ownership provere (`hr.service.spec.ts`: samo-podnošenje uvek dozvoljeno, podnošenje za drugog traži `M24/leave-record/CREATE`, odobravanje/odbijanje traži `reportsToUserId` podudaranje ili tu istu dozvolu, već obrađen zahtev se ne može ponovo odlučivati, odbijanje traži razlog) i uživo (Marko Prodajni zatražio odsustvo preko sopstvenog profila bez `user/VIEW` dozvole — omogućeno ownership izuzetkom na `GET /iam/users/:id`, M1 spec v1.23 — Vlasnik odobrio, status/preostali dani/kalendar odmah ažurirani).
+- [x] Timski kalendar (poglavlje 3b) prikazuje `APPROVED` odsustva celom timu i `PENDING` samo actor-relevantnim licima — dokazano testom razdvajanja vidljivosti (`getTeamCalendar` u `hr.service.spec.ts`: treće lice bez veze sa zapisom ne dobija `PENDING` zapis niti napomenu u odgovoru API-ja) i uživo (`/kalendar-odsustava`, mesečni i godišnji prikaz). Godišnji prikaz (novi zahtev, isti prolaz) sa tri odvojena vizuelna stanja — traženo/žuto, odobreno-nerealizovano/tirkizno, realizovano/zeleno — dokazano uživo po danu (kategorija se računa po pojedinačnom danu unutar perioda, ne po celom zapisu, da bi period koji preseca "danas" ispravno prikazao deo dana kao realizovan a deo kao ne). Sva polja za unos datuma u M24 formama (HR dosije, zahtev za odsustvo) koriste postojeću `DateField.tsx` komponentu (isti obrazac kao Lista rezervacija), ne goli `<input type="date">` — ispravljeno posle prvog prolaza, dokazano uživo popunjavanjem forme za zahtev odsustva do kraja.
 
 ---
 
 ## 7. Otvoreno za dalje
 
-- **Formalni workflow odobravanja odsustva** (zaposleni sam podnosi zahtev, rukovodilac odobrava, kalendar tima) — prvi prolaz je ručna evidencija (poglavlje 1); ako se pokaže da to nije dovoljno, ovo postaje zaseban predlog.
 - **GDPR/Zakon o zaštiti podataka — tačan rok čuvanja HR dosijea posle prestanka radnog odnosa** i procedura brisanja/anonimizacije — pravno pitanje, čeka potvrdu pravnika/knjigovođe pre nego što se bilo šta automatizuje (CLAUDE.md — ne izmišljati regulatorne detalje bez te potvrde). Do tada: `termination_date` samo označava neaktivnost, ništa se ne briše automatski.
 - **Prikazni (čitljivi) naziv uloge u UI** umesto doslovnog imena konstante (poglavlje 2.1, napomena) — mala, nezavisna izmena, ide u istom prolazu kad M24 dobije kod.
 - ~~Da li Šef poslovnice/Finansijski direktor treba da imaju svoju liniju u `ROLES_REQUIRING_MANDATORY_MFA`~~ — **rešeno pri implementaciji (8.9.2026):** obe dodate, isti krug kao ostale interne uloge.
 - **Tačan broj dana unapred za podsetnik o isteku ugovora/probnog roka** (poglavlje 6 izlaznog kriterijuma) — razuman podrazumevan predlog je 30 dana za ugovor na određeno, 7 dana za probni rad, ali ovo je vlasnikova odluka, ne tehnička pretpostavka.
+- **Pravo obaveštenje odobravaocu da ga čeka zahtev** (poglavlje 3a) — v1 (ova dopuna) oslanja se na to da odobravalac sâm otvori kalendar/spisak i vidi šta čeka, isti obrazac kao Agent Inbox pregled u panelu. Prava, aktivna notifikacija (mejl preko M22, interna poruka preko M19, ili bedž na navigaciji) je odvojena odluka, van obima ove dopune — ako pasivan pregled ne bude dovoljan, dodaje se kad se pokaže potreba, isti princip kao ostale namerno odložene stavke ovog dokumenta.
+- **Tačna lokacija ekrana za timski kalendar u navigaciji panela** (poglavlje 3b) — odlučuje se pri implementaciji (kandidati: novi ekran u grupi "Administracija" pored Korisnika, ili sekcija unutar postojećeg `/korisnici`).

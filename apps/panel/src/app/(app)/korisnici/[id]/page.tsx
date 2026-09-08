@@ -61,10 +61,12 @@ interface EmployeeRecord {
 interface LeaveRecord {
   id: string;
   type: 'GODISNJI_ODMOR' | 'BOLOVANJE' | 'NEPLACENO_ODSUSTVO' | 'OSTALO';
+  status: 'PENDING' | 'APPROVED' | 'REJECTED';
   startDate: string;
   endDate: string;
   daysCount: number;
   note: string | null;
+  rejectionReason: string | null;
 }
 
 interface LeaveBalance {
@@ -79,12 +81,16 @@ interface LeaveBalance {
 export default async function KorisnikDetailPage(props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
   const me = await getMe();
-  const canView = hasPermission(me, 'M1', 'user', 'VIEW');
+  // M24 spec §3a dopuna (8.9.2026) — sopstveni profil vidljiv bez M1/user/VIEW (ownership),
+  // isti obrazac kao API (`UsersController.findOne`) — inače zaposleni bez te dozvole ne bi
+  // mogao ni da otvori sopstvenu stranicu i zatraži odsustvo.
+  const isSelf = me?.userId === params.id;
+  const canView = hasPermission(me, 'M1', 'user', 'VIEW') || isSelf;
   const canEdit = hasPermission(me, 'M1', 'user', 'EDIT');
   const canDelete = hasPermission(me, 'M1', 'user', 'DELETE');
   const canViewOverrides = hasPermission(me, 'M1', 'permission-override', 'VIEW');
   const canCreateOverride = hasPermission(me, 'M1', 'permission-override', 'CREATE');
-  const canViewHr = hasPermission(me, 'M24', 'employee-record', 'VIEW');
+  const canViewHr = hasPermission(me, 'M24', 'employee-record', 'VIEW') || isSelf;
   const canEditHr = hasPermission(me, 'M24', 'employee-record', 'EDIT');
 
   if (!canView) {
@@ -208,6 +214,8 @@ export default async function KorisnikDetailPage(props: { params: Promise<{ id: 
           <HrSection
             userId={user.id}
             canEdit={canEditHr}
+            canRequestLeave={canEditHr || isSelf}
+            canApprove={canEditHr || (employee?.reportsToUserId != null && employee.reportsToUserId === me?.userId)}
             employee={employee}
             leaveRecords={leaveRecords}
             leaveBalance={leaveBalance}

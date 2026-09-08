@@ -11,12 +11,14 @@ import {
   Query,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { ForbiddenException } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { UserPreferencesService } from './user-preferences.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { CreatePermissionOverrideDto } from './dto/create-permission-override.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../../common/guards/permissions.guard';
+import { PermissionsService } from '../permissions/permissions.service';
 import { RequirePermission } from '../../../common/decorators/require-permission.decorator';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import { parsePagination } from '../../../common/pagination/pagination';
@@ -30,6 +32,7 @@ export class UsersController {
   constructor(
     private readonly users: UsersService,
     private readonly preferences: UserPreferencesService,
+    private readonly permissions: PermissionsService,
   ) {}
 
   // M1 spec §3.9/§6 — lična podešavanja, bez RBAC iznad "sopstveni nalog" (userId iz JWT-a, ne
@@ -69,9 +72,15 @@ export class UsersController {
     return this.users.invite(dto, actor.userId);
   }
 
+  // M24 spec §3a dopuna (8.9.2026) — sopstveni profil dostupan bez M1/user/VIEW (ownership),
+  // isti obrazac kao M24 employee-record VIEW — potrebno da zaposleni bez te dozvole (npr.
+  // običan Agent prodaje) uopšte može da otvori sopstvenu stranicu i zatraži odsustvo.
   @Get(':id')
-  @RequirePermission('M1', 'user', 'VIEW')
-  findOne(@Param('id') id: string) {
+  async findOne(@Param('id') id: string, @CurrentUser() actor: { userId: string }) {
+    if (actor.userId !== id) {
+      const allowed = await this.permissions.hasPermission(actor.userId, 'M1', 'user', 'VIEW');
+      if (!allowed) throw new ForbiddenException('Nema dozvolu M1/user/VIEW');
+    }
     return this.users.findOne(id);
   }
 

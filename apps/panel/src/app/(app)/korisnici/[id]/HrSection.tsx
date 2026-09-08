@@ -2,8 +2,15 @@
 
 import { useActionState } from 'react';
 import { useFormStatus } from 'react-dom';
-import { upsertEmployeeRecord, createLeaveRecord, type FormState } from './hr-actions';
+import {
+  upsertEmployeeRecord,
+  createLeaveRecord,
+  approveLeaveRecord,
+  rejectLeaveRecord,
+  type FormState,
+} from './hr-actions';
 import { Badge } from '@/components/ui/badge';
+import DateField from '@/components/DateField';
 
 interface EmployeeRecord {
   employmentType: 'PUNO_RADNO_VREME' | 'NEPUNO_RADNO_VREME' | 'UGOVOR_O_DELU';
@@ -19,10 +26,12 @@ interface EmployeeRecord {
 interface LeaveRecord {
   id: string;
   type: 'GODISNJI_ODMOR' | 'BOLOVANJE' | 'NEPLACENO_ODSUSTVO' | 'OSTALO';
+  status: 'PENDING' | 'APPROVED' | 'REJECTED';
   startDate: string;
   endDate: string;
   daysCount: number;
   note: string | null;
+  rejectionReason: string | null;
 }
 
 interface LeaveBalance {
@@ -41,16 +50,21 @@ const LEAVE_TYPE_LABEL: Record<LeaveRecord['type'], string> = {
 const toInputDate = (v: string | null) => (v ? v.slice(0, 10) : '');
 
 // M24 spec §6 — HR ekran, na `/korisnici/[id]` (odluka pri implementaciji: isti ekran gde se već
-// uređuje profil/uloge, umesto novog zasebnog mesta u podešavanjima).
+// uređuje profil/uloge, umesto novog zasebnog mesta u podešavanjima). Dopunjeno §3a (8.9.2026)
+// — zahtev/odobrenje odsustva, zamenjuje mejl prepisku.
 export default function HrSection({
   userId,
   canEdit,
+  canRequestLeave,
+  canApprove,
   employee,
   leaveRecords,
   leaveBalance,
 }: {
   userId: string;
   canEdit: boolean;
+  canRequestLeave: boolean;
+  canApprove: boolean;
   employee: EmployeeRecord | null;
   leaveRecords: LeaveRecord[];
   leaveBalance: LeaveBalance;
@@ -85,21 +99,108 @@ export default function HrSection({
           ) : (
             <ul className="mb-3 flex flex-col gap-1.5">
               {leaveRecords.map((l) => (
-                <li key={l.id} className="flex items-center justify-between text-xs">
-                  <span>
-                    <Badge variant="secondary">{LEAVE_TYPE_LABEL[l.type]}</Badge>{' '}
-                    {toInputDate(l.startDate)} – {toInputDate(l.endDate)}
-                  </span>
-                  <span className="text-ink-faint">{l.daysCount} dana</span>
-                </li>
+                <LeaveRow key={l.id} userId={userId} leave={l} canApprove={canApprove} />
               ))}
             </ul>
           )}
 
-          {canEdit && <LeaveRecordForm userId={userId} />}
+          {canRequestLeave && <LeaveRecordForm userId={userId} />}
         </div>
       )}
     </div>
+  );
+}
+
+function LeaveRow({
+  userId,
+  leave,
+  canApprove,
+}: {
+  userId: string;
+  leave: LeaveRecord;
+  canApprove: boolean;
+}) {
+  return (
+    <li className="flex flex-col gap-1 border-b border-border pb-1.5 text-xs last:border-0 last:pb-0">
+      <div className="flex items-center justify-between">
+        <span>
+          <Badge variant="secondary">{LEAVE_TYPE_LABEL[leave.type]}</Badge>{' '}
+          {toInputDate(leave.startDate)} – {toInputDate(leave.endDate)}
+        </span>
+        <span className="flex items-center gap-2">
+          <StatusBadge status={leave.status} />
+          <span className="text-ink-faint">{leave.daysCount} dana</span>
+        </span>
+      </div>
+      {leave.status === 'REJECTED' && leave.rejectionReason && (
+        <p className="text-danger">razlog: {leave.rejectionReason}</p>
+      )}
+      {leave.status === 'PENDING' && canApprove && (
+        <LeaveDecisionActions userId={userId} leaveId={leave.id} />
+      )}
+    </li>
+  );
+}
+
+function StatusBadge({ status }: { status: LeaveRecord['status'] }) {
+  if (status === 'APPROVED') return <Badge variant="ok">odobreno</Badge>;
+  if (status === 'REJECTED') return <Badge variant="danger">odbijeno</Badge>;
+  return <Badge variant="warn">čeka odobrenje</Badge>;
+}
+
+function LeaveDecisionActions({ userId, leaveId }: { userId: string; leaveId: string }) {
+  const approveInitial: FormState = { error: null };
+  const boundApprove = approveLeaveRecord.bind(null, userId, leaveId);
+  const [approveState, approveAction] = useActionState(boundApprove, approveInitial);
+
+  const rejectInitial: FormState = { error: null };
+  const boundReject = rejectLeaveRecord.bind(null, userId, leaveId);
+  const [rejectState, rejectAction] = useActionState(boundReject, rejectInitial);
+
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <form action={approveAction}>
+        <ApproveButton />
+      </form>
+      <form action={rejectAction} className="flex items-center gap-1.5">
+        <input
+          name="reason"
+          placeholder="razlog odbijanja"
+          required
+          className="input h-6 w-40 text-[11px]"
+        />
+        <RejectButton />
+      </form>
+      {(approveState.error || rejectState.error) && (
+        <span className="text-danger">{approveState.error ?? rejectState.error}</span>
+      )}
+    </div>
+  );
+}
+
+function ApproveButton() {
+  const { pending } = useFormStatus();
+  return (
+    <button
+      type="submit"
+      disabled={pending}
+      className="rounded bg-ok-bg px-2 py-1 font-medium text-ok hover:brightness-95 disabled:opacity-50"
+    >
+      {pending ? 'Odobravam…' : 'Odobri'}
+    </button>
+  );
+}
+
+function RejectButton() {
+  const { pending } = useFormStatus();
+  return (
+    <button
+      type="submit"
+      disabled={pending}
+      className="rounded bg-danger-bg px-2 py-1 font-medium text-danger hover:brightness-95 disabled:opacity-50"
+    >
+      {pending ? 'Odbijam…' : 'Odbij'}
+    </button>
   );
 }
 
@@ -143,40 +244,40 @@ function EmployeeRecordForm({
         </label>
         <label className="text-ink-faint">
           datum zasnivanja *
-          <input
-            type="date"
-            name="hireDate"
-            defaultValue={toInputDate(employee?.hireDate ?? null)}
-            required
-            className="input mt-1"
-          />
+          <div className="mt-1">
+            <DateField
+              name="hireDate"
+              defaultValue={toInputDate(employee?.hireDate ?? null)}
+              required
+            />
+          </div>
         </label>
         <label className="text-ink-faint">
           kraj probnog rada
-          <input
-            type="date"
-            name="probationEndDate"
-            defaultValue={toInputDate(employee?.probationEndDate ?? null)}
-            className="input mt-1"
-          />
+          <div className="mt-1">
+            <DateField
+              name="probationEndDate"
+              defaultValue={toInputDate(employee?.probationEndDate ?? null)}
+            />
+          </div>
         </label>
         <label className="text-ink-faint">
           istek ugovora (na određeno)
-          <input
-            type="date"
-            name="contractEndDate"
-            defaultValue={toInputDate(employee?.contractEndDate ?? null)}
-            className="input mt-1"
-          />
+          <div className="mt-1">
+            <DateField
+              name="contractEndDate"
+              defaultValue={toInputDate(employee?.contractEndDate ?? null)}
+            />
+          </div>
         </label>
         <label className="text-ink-faint">
           prestanak radnog odnosa
-          <input
-            type="date"
-            name="terminationDate"
-            defaultValue={toInputDate(employee?.terminationDate ?? null)}
-            className="input mt-1"
-          />
+          <div className="mt-1">
+            <DateField
+              name="terminationDate"
+              defaultValue={toInputDate(employee?.terminationDate ?? null)}
+            />
+          </div>
         </label>
         <label className="text-ink-faint">
           dodeljeni dani godišnjeg odmora
@@ -185,6 +286,15 @@ function EmployeeRecordForm({
             min={0}
             name="annualLeaveDaysEntitled"
             defaultValue={employee?.annualLeaveDaysEntitled ?? ''}
+            className="input mt-1"
+          />
+        </label>
+        <label className="text-ink-faint">
+          neposredni rukovodilac (ID korisnika)
+          <input
+            name="reportsToUserId"
+            defaultValue={employee?.reportsToUserId ?? ''}
+            placeholder="odobrava zahteve za odsustvo"
             className="input mt-1"
           />
         </label>
@@ -217,7 +327,10 @@ function LeaveRecordForm({ userId }: { userId: string }) {
   const [state, formAction] = useActionState(boundAction, initialState);
 
   return (
-    <form action={formAction} className="flex flex-wrap items-end gap-2 border-t border-border pt-3 text-xs">
+    <form
+      action={formAction}
+      className="flex flex-wrap items-end gap-2 border-t border-border pt-3 text-xs"
+    >
       {state.error && <p className="w-full rounded bg-danger-bg p-2 text-danger">{state.error}</p>}
       <label className="text-ink-faint">
         tip
@@ -230,15 +343,23 @@ function LeaveRecordForm({ userId }: { userId: string }) {
       </label>
       <label className="text-ink-faint">
         od
-        <input type="date" name="startDate" required className="input mt-1" />
+        <div className="mt-1">
+          <DateField name="startDate" required />
+        </div>
       </label>
       <label className="text-ink-faint">
         do
-        <input type="date" name="endDate" required className="input mt-1" />
+        <div className="mt-1">
+          <DateField name="endDate" required />
+        </div>
       </label>
       <label className="text-ink-faint">
         dana
         <input type="number" min={1} name="daysCount" required className="input mt-1 w-16" />
+      </label>
+      <label className="text-ink-faint">
+        napomena
+        <input name="note" className="input mt-1" />
       </label>
       <AddButton />
     </form>
@@ -266,7 +387,7 @@ function AddButton() {
       disabled={pending}
       className="rounded px-2 py-1.5 font-medium text-accent-strong hover:bg-accent-soft disabled:opacity-50"
     >
-      {pending ? 'Dodajem…' : '+ dodaj odsustvo'}
+      {pending ? 'Šaljem…' : '+ zatraži odsustvo'}
     </button>
   );
 }
