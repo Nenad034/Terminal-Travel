@@ -16,7 +16,9 @@ describe('KnowledgeResearchService.researchFromProvidedText (M23 spec §4/§4d/�
     const anthropic = { isConfigured: jest.fn().mockReturnValue(false), getClient: jest.fn() };
     const invocationLog = { record: jest.fn() };
     const productContentImports = { create: jest.fn() };
-    const agencySettings = { getSanitizedBrandName: jest.fn().mockResolvedValue('Terminal Travel') };
+    const agencySettings = {
+      getSanitizedBrandName: jest.fn().mockResolvedValue('Terminal Travel'),
+    };
     const service = new KnowledgeResearchService(
       prisma as any,
       auditLog as any,

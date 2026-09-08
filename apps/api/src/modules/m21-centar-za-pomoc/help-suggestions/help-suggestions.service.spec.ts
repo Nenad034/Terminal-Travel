@@ -21,7 +21,9 @@ describe('HelpSuggestionsService (M21 spec §5.4/§7)', () => {
     const permissions = { hasPermission: jest.fn().mockResolvedValue(true) };
     const anthropic = { isConfigured: jest.fn().mockReturnValue(false), getClient: jest.fn() };
     const invocationLog = { record: jest.fn() };
-    const agencySettings = { getSanitizedBrandName: jest.fn().mockResolvedValue('Terminal Travel') };
+    const agencySettings = {
+      getSanitizedBrandName: jest.fn().mockResolvedValue('Terminal Travel'),
+    };
     const service = new HelpSuggestionsService(
       prisma as any,
       auditLog as any,

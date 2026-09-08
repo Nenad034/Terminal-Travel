@@ -13,7 +13,9 @@ describe('SupplierDraftService (M19 spec §9.5 — nikad izvršenje, samo nacrt)
     const auditLog = { write: jest.fn() };
     const anthropic = { isConfigured: jest.fn(), getClient: jest.fn() };
     const invocationLog = { record: jest.fn() };
-    const agencySettings = { getSanitizedBrandName: jest.fn().mockResolvedValue('Terminal Travel') };
+    const agencySettings = {
+      getSanitizedBrandName: jest.fn().mockResolvedValue('Terminal Travel'),
+    };
     const service = new SupplierDraftService(
       prisma as any,
       auditLog as any,

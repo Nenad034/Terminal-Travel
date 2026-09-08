@@ -29,7 +29,9 @@ describe('KnowledgeAssistantService (M23 spec §3.2/§3.3/§9)', () => {
       }),
     };
     const invocationLog = { record: jest.fn() };
-    const agencySettings = { getSanitizedBrandName: jest.fn().mockResolvedValue('Terminal Travel') };
+    const agencySettings = {
+      getSanitizedBrandName: jest.fn().mockResolvedValue('Terminal Travel'),
+    };
     const service = new KnowledgeAssistantService(
       prisma as any,
       auditLog as any,

@@ -37,7 +37,9 @@ describe('HelpAssistantService (M21 spec §5/§7)', () => {
     const invocationLog = { record: jest.fn() };
     const abuseDetector = { checkAfterQuestion: jest.fn() };
     const tickets = { create: jest.fn(), createMessage: jest.fn() };
-    const agencySettings = { getSanitizedBrandName: jest.fn().mockResolvedValue('Terminal Travel') };
+    const agencySettings = {
+      getSanitizedBrandName: jest.fn().mockResolvedValue('Terminal Travel'),
+    };
     const service = new HelpAssistantService(
       prisma as any,
       auditLog as any,

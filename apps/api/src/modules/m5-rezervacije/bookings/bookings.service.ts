@@ -829,14 +829,19 @@ export class BookingsService {
       buyerContacts: Map<string, { email: string | null; phone: string | null }>;
     } | null = null;
     if (isInternal) {
-      const branchIds = [...new Set(bookings.map((b) => b.branchId).filter((v): v is string => !!v))];
+      const branchIds = [
+        ...new Set(bookings.map((b) => b.branchId).filter((v): v is string => !!v)),
+      ];
       const assignedToIds = [
         ...new Set(bookings.map((b) => b.assignedToId).filter((v): v is string => !!v)),
       ];
       const clientAccountIds = [...new Set(bookings.map((b) => b.clientAccountId))];
       const [branches, assignedUsers, clientAccounts] = await Promise.all([
         branchIds.length > 0
-          ? this.prisma.branch.findMany({ where: { id: { in: branchIds } }, select: { id: true, name: true } })
+          ? this.prisma.branch.findMany({
+              where: { id: { in: branchIds } },
+              select: { id: true, name: true },
+            })
           : [],
         assignedToIds.length > 0
           ? this.prisma.user.findMany({
@@ -852,7 +857,9 @@ export class BookingsService {
       enrichment = {
         branchNames: new Map(branches.map((br) => [br.id, br.name])),
         assignedUserNames: new Map(assignedUsers.map((u) => [u.id, u.fullName])),
-        buyerContacts: new Map(clientAccounts.map((c) => [c.id, { email: c.email, phone: c.phone }])),
+        buyerContacts: new Map(
+          clientAccounts.map((c) => [c.id, { email: c.email, phone: c.phone }]),
+        ),
       };
     }
 

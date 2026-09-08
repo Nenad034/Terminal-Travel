@@ -3,7 +3,11 @@ import { PrismaService } from '../../../prisma/prisma.service';
 import { CreateGuestProfileDto } from './dto/create-guest-profile.dto';
 import { UpdateGuestProfileDto } from './dto/update-guest-profile.dto';
 import { resolveCallerIdentity } from '../../../common/auth/resolve-caller-identity';
-import { type PaginationQueryDto, paginated, paginationArgs } from '../../../common/pagination/pagination';
+import {
+  type PaginationQueryDto,
+  paginated,
+  paginationArgs,
+} from '../../../common/pagination/pagination';
 
 // M6 spec §2.2, §5, §7 dopuna — Gost. Istorija putovanja se čita uživo iz M5 preko
 // BookingItemGuest. Gost (account_type GUEST) sme da vidi/menja/pravi isključivo

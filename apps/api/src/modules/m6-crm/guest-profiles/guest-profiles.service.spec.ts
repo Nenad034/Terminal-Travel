@@ -56,7 +56,11 @@ describe('GuestProfilesService', () => {
       expect(prisma.guestProfile.findMany).toHaveBeenCalledWith(
         expect.objectContaining({ skip: 0, take: 50 }),
       );
-      expect(result).toMatchObject({ data: [{ id: 'gp-1' }, { id: 'gp-2' }], total: 2500, page: 1 });
+      expect(result).toMatchObject({
+        data: [{ id: 'gp-1' }, { id: 'gp-2' }],
+        total: 2500,
+        page: 1,
+      });
     });
 
     it('gost i dalje dobija SAMO sopstvene profile, straničeno preko istog filtera', async () => {

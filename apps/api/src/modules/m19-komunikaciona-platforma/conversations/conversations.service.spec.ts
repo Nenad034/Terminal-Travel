@@ -28,7 +28,9 @@ describe('ConversationsService', () => {
     const auditLog = { write: jest.fn() };
     const permissions = { hasPermission: jest.fn() };
     const eventBus = { emit: jest.fn() };
-    const agencySettings = { getSanitizedBrandName: jest.fn().mockResolvedValue('Terminal Travel') };
+    const agencySettings = {
+      getSanitizedBrandName: jest.fn().mockResolvedValue('Terminal Travel'),
+    };
     const service = new ConversationsService(
       prisma as any,
       auditLog as any,
