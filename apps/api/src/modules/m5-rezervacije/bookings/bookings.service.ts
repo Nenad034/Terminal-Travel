@@ -522,7 +522,12 @@ export class BookingsService {
       });
       const units = item.unitCount; // §4.2 dopuna v1.14 — izvedeno jednom u builderu iz room_config.length
 
-      const result = await this.contractPeriods.reserve(rateLine.contractPeriodId, units, actorId);
+      // M3 §2.8c — datumi boravka se PROSLEĐUJU, jer se od v1.20 kapacitet proverava po danu
+      // (stop-sale, blokade, dnevni override). Bez njih bi M3 pao na staru proveru po periodu.
+      const result = await this.contractPeriods.reserve(rateLine.contractPeriodId, units, actorId, {
+        from: item.stayFrom,
+        to: item.stayTo,
+      });
       const itemStatus =
         'requiresSupplierConfirmation' in result && result.requiresSupplierConfirmation
           ? 'PENDING_SUPPLIER_CONFIRMATION'
@@ -533,7 +538,10 @@ export class BookingsService {
         supplierReference: rateLine.contractPeriodId,
         releaseHandle: () =>
           this.contractPeriods
-            .release(rateLine.contractPeriodId, units, actorId)
+            .release(rateLine.contractPeriodId, units, actorId, {
+              from: item.stayFrom,
+              to: item.stayTo,
+            })
             .then(() => undefined),
       };
     }
@@ -1363,8 +1371,13 @@ export class BookingsService {
       const rateLine = await this.prisma.rateLine.findUnique({ where: { id: item.rateLineId } });
       // §4.2 dopuna v1.14 — oslobodi TAČAN broj rezervisanih jedinica, ne uvek 1 (bio je bug:
       // višesobna rezervacija je pri otkazivanju oslobađala samo jednu sobu nazad u M3 alotman).
+      // M3 §2.8c (v1.20) — datumi boravka se prosleđuju da bi se dnevni brojač vratio na
+      // TE noći; bez njih bi otkazana rezervacija zauvek držala kapacitet po danima.
       if (rateLine)
-        await this.contractPeriods.release(rateLine.contractPeriodId, item.unitCount, actorId);
+        await this.contractPeriods.release(rateLine.contractPeriodId, item.unitCount, actorId, {
+          from: item.stayFrom,
+          to: item.stayTo,
+        });
     } else if (item.sourceType === 'API') {
       const product = await this.prisma.product.findUnique({ where: { id: item.productId } });
       if (product?.sourceProvider) {
@@ -2123,6 +2136,7 @@ export class BookingsService {
         rateLine.contractPeriodId,
         built.unitCount,
         actorId,
+        { from: built.stayFrom, to: built.stayTo },
       );
       const pending =
         'requiresSupplierConfirmation' in result && result.requiresSupplierConfirmation;

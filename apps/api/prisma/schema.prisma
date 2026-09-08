@@ -725,6 +725,11 @@ model ContractPeriod {
   contractId              String        @map("contract_id")
   stayFrom                DateTime      @map("stay_from")
   stayTo                  DateTime      @map("stay_to")
+  // M3 spec 2.3e (v1.20) -- prozor prijave: rezervacija sme da nastane samo u ovom opsegu.
+  // null = bez ogranicenja. Isti boravak sme da postoji dvaput ako se prozori ne seku (2.3e.2),
+  // a transe se NIKAD ne sabiraju -- vazi tacno jedna, ona ciji prozor obuhvata datum prijave (2.3e.3).
+  bookingFrom             DateTime?     @map("booking_from") @db.Date
+  bookingTo               DateTime?     @map("booking_to") @db.Date
   roomType                String        @map("room_type") // konvencija ka M2 attributes.room_types[].code, ne strogi FK
   allotmentMode           AllotmentMode @map("allotment_mode")
   totalCapacity           Int?          @map("total_capacity")
@@ -806,6 +811,12 @@ model CapacityDay {
   contractPeriodId  String             @map("contract_period_id")
   date              DateTime           @db.Date
   capacityOverride  Int?               @map("capacity_override") // null = važi ContractPeriod.total_capacity
+  // M3 spec 2.8c/2.8f -- brojac zauzetih jedinica ZA TU NOC. Postoji zato sto se potvrda
+  // rezervacije i upis BookingItem-a ne dese u istoj transakciji (M5 usput zove spoljni API,
+  // a HTTP poziv se ne sme drzati unutar DB transakcije), pa zakljucavanje reda bez brojaca
+  // ne bi spreculo dva agenta da uzmu istu poslednju sobu. Prikaz i dalje RACUNA prodato iz
+  // BookingItem-a; ovaj broj je brava, ne izvor istine -- razilazenje hvata dnevna provera (2.8e).
+  unitsReserved     Int                @default(0) @map("units_reserved")
   saleStatus        CapacitySaleStatus @default(OPEN) @map("sale_status")
   stopReason        String?            @map("stop_reason")
   stopSource        CapacityStopSource? @map("stop_source")

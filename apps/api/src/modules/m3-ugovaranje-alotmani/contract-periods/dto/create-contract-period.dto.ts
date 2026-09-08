@@ -53,6 +53,18 @@ export class CreateContractPeriodDto {
   @IsDateString()
   stayTo!: string;
 
+  /**
+   * M3 spec §2.3e — prozor prijave: rezervacija sme da nastane samo u ovom opsegu
+   * ("10 soba za prijave do 31.3."). Prazno = bez ograničenja. Inkluzivan na oba kraja.
+   */
+  @IsDateString()
+  @IsOptional()
+  bookingFrom?: string;
+
+  @IsDateString()
+  @IsOptional()
+  bookingTo?: string;
+
   @IsString()
   roomType!: string;
 

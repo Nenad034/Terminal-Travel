@@ -920,4 +920,278 @@ describe('M3 — izlazni kriterijum (e2e)', () => {
       expect(getRes.body.includedInPrice).toBe(true);
     });
   });
+
+  // ---------------------------------------------------------------------------------------
+  // Stavka „Konkurentnost po danu" (M3 §2.8c) i prozor prijave (§2.3e) — dodato 8.9.2026.
+  //
+  // Ovo je stavka koja je do danas stajala NEISPUNJENA i bila izričito zabeležena kao poznat
+  // nedostatak: mreža kapaciteta je ispravno PRIKAZIVALA stop-sale i blokade, ali `reserve()`
+  // je proveravao kapacitet na nivou celog perioda, pa je rezervacija za zatvoren dan prolazila.
+  // ---------------------------------------------------------------------------------------
+  describe('Provera kapaciteta po danu (§2.8c) i prozor prijave (§2.3e)', () => {
+    async function periodSaKapacitetom(
+      accessToken: string,
+      contractId: string,
+      body: Record<string, unknown>,
+    ) {
+      const res = await request(app.getHttpServer())
+        .post(`/api/v1/contracting/contracts/${contractId}/periods`)
+        .set(authed(accessToken))
+        .send({
+          allotmentMode: 'FIXED',
+          totalCapacity: 5,
+          ...body,
+        });
+      expect(res.status).toBe(201);
+      return res.body.id as string;
+    }
+
+    it('stop-sale za JEDAN dan obara rezervaciju koja taj dan preklapa, sa razlogom SALE_STOPPED', async () => {
+      const { accessToken } = await createInternalUser(SYSTEM_ROLES.VLASNIK);
+      const supplier = await createSupplier(accessToken);
+      const contract = await createContract(accessToken, supplier.id);
+      const periodId = await periodSaKapacitetom(accessToken, contract.id, {
+        stayFrom: '2027-07-01',
+        stayTo: '2027-07-31',
+        roomType: `DAN_STOP_${Math.random().toString(36).slice(2, 7)}`,
+      });
+
+      await request(app.getHttpServer())
+        .post('/api/v1/contracting/capacity/stop-sale')
+        .set(authed(accessToken))
+        .send({
+          contractPeriodId: periodId,
+          dateFrom: '2027-07-10',
+          dateTo: '2027-07-10',
+          reason: 'hotel prima grupu',
+          source: 'SUPPLIER_EMAIL',
+        })
+        .expect(201);
+
+      // Boravak 8.–12.7. preklapa zatvoren 10.7. → mora pasti.
+      const preko = await request(app.getHttpServer())
+        .post(`/api/v1/contracting/contracts/${contract.id}/periods/${periodId}/reserve`)
+        .set(authed(accessToken))
+        .send({ units: 1, stayFrom: '2027-07-08', stayTo: '2027-07-12' });
+      expect(preko.status).toBe(400);
+      expect(preko.body.reason).toBe('SALE_STOPPED');
+      expect(preko.body.date).toBe('2027-07-10');
+
+      // Boravak koji zatvoren dan NE dodiruje mora proći.
+      const pored = await request(app.getHttpServer())
+        .post(`/api/v1/contracting/contracts/${contract.id}/periods/${periodId}/reserve`)
+        .set(authed(accessToken))
+        .send({ units: 1, stayFrom: '2027-07-05', stayTo: '2027-07-08' });
+      expect(pored.status).toBe(201);
+    });
+
+    it('noć odjave se ne broji — boravak koji se ZAVRŠAVA na zatvoren dan prolazi', async () => {
+      const { accessToken } = await createInternalUser(SYSTEM_ROLES.VLASNIK);
+      const supplier = await createSupplier(accessToken);
+      const contract = await createContract(accessToken, supplier.id);
+      const periodId = await periodSaKapacitetom(accessToken, contract.id, {
+        stayFrom: '2027-08-01',
+        stayTo: '2027-08-31',
+        roomType: `ODJAVA_${Math.random().toString(36).slice(2, 7)}`,
+      });
+
+      await request(app.getHttpServer())
+        .post('/api/v1/contracting/capacity/stop-sale')
+        .set(authed(accessToken))
+        .send({
+          contractPeriodId: periodId,
+          dateFrom: '2027-08-10',
+          dateTo: '2027-08-10',
+          reason: 'renoviranje',
+          source: 'SUPPLIER_PHONE',
+        })
+        .expect(201);
+
+      // Gost odlazi 10.8. — poslednja NOĆ mu je 9.8, pa zatvoren 10.8. ne smeta.
+      const res = await request(app.getHttpServer())
+        .post(`/api/v1/contracting/contracts/${contract.id}/periods/${periodId}/reserve`)
+        .set(authed(accessToken))
+        .send({ units: 1, stayFrom: '2027-08-07', stayTo: '2027-08-10' });
+      expect(res.status).toBe(201);
+    });
+
+    it('blokada za grupu smanjuje raspoloživo baš tih dana, sa razlogom CAPACITY_BLOCKED', async () => {
+      const { accessToken } = await createInternalUser(SYSTEM_ROLES.VLASNIK);
+      const supplier = await createSupplier(accessToken);
+      const contract = await createContract(accessToken, supplier.id);
+      const periodId = await periodSaKapacitetom(accessToken, contract.id, {
+        stayFrom: '2027-09-01',
+        stayTo: '2027-09-30',
+        roomType: `BLOK_${Math.random().toString(36).slice(2, 7)}`,
+        totalCapacity: 3,
+      });
+
+      await request(app.getHttpServer())
+        .post('/api/v1/contracting/capacity/blocks')
+        .set(authed(accessToken))
+        .send({
+          contractPeriodId: periodId,
+          dateFrom: '2027-09-10',
+          dateTo: '2027-09-12',
+          units: 3,
+          reason: 'grupa OŠ Vuk Karadžić, čeka odluku',
+          holdUntil: '2030-01-01T00:00:00.000Z',
+        })
+        .expect(201);
+
+      const pao = await request(app.getHttpServer())
+        .post(`/api/v1/contracting/contracts/${contract.id}/periods/${periodId}/reserve`)
+        .set(authed(accessToken))
+        .send({ units: 1, stayFrom: '2027-09-11', stayTo: '2027-09-13' });
+      expect(pao.status).toBe(400);
+      expect(pao.body.reason).toBe('CAPACITY_BLOCKED');
+    });
+
+    it('dnevni override obara samo taj dan; ostali dani perioda ostaju na kapacitetu perioda', async () => {
+      const { accessToken } = await createInternalUser(SYSTEM_ROLES.VLASNIK);
+      const supplier = await createSupplier(accessToken);
+      const contract = await createContract(accessToken, supplier.id);
+      const periodId = await periodSaKapacitetom(accessToken, contract.id, {
+        stayFrom: '2027-10-01',
+        stayTo: '2027-10-31',
+        roomType: `OVERRIDE_${Math.random().toString(36).slice(2, 7)}`,
+        totalCapacity: 4,
+      });
+
+      await request(app.getHttpServer())
+        .put('/api/v1/contracting/capacity/days')
+        .set(authed(accessToken))
+        .send({
+          contractPeriodId: periodId,
+          dateFrom: '2027-10-15',
+          dateTo: '2027-10-15',
+          capacity: 1,
+        })
+        .expect(200);
+
+      const prvi = await request(app.getHttpServer())
+        .post(`/api/v1/contracting/contracts/${contract.id}/periods/${periodId}/reserve`)
+        .set(authed(accessToken))
+        .send({ units: 1, stayFrom: '2027-10-15', stayTo: '2027-10-16' });
+      expect(prvi.status).toBe(201);
+
+      const drugi = await request(app.getHttpServer())
+        .post(`/api/v1/contracting/contracts/${contract.id}/periods/${periodId}/reserve`)
+        .set(authed(accessToken))
+        .send({ units: 1, stayFrom: '2027-10-15', stayTo: '2027-10-16' });
+      expect(drugi.status).toBe(400);
+      expect(drugi.body.reason).toBe('NO_CAPACITY');
+
+      // Isti period, drugi dan — kapacitet je i dalje 4, prolazi.
+      const drugiDan = await request(app.getHttpServer())
+        .post(`/api/v1/contracting/contracts/${contract.id}/periods/${periodId}/reserve`)
+        .set(authed(accessToken))
+        .send({ units: 1, stayFrom: '2027-10-20', stayTo: '2027-10-21' });
+      expect(drugiDan.status).toBe(201);
+    });
+
+    it('deset simultanih zahteva za poslednju jedinicu JEDNE noći: tačno jedan uspeva', async () => {
+      const { accessToken } = await createInternalUser(SYSTEM_ROLES.VLASNIK);
+      const supplier = await createSupplier(accessToken);
+      const contract = await createContract(accessToken, supplier.id);
+      const periodId = await periodSaKapacitetom(accessToken, contract.id, {
+        stayFrom: '2027-11-01',
+        stayTo: '2027-11-30',
+        roomType: `TRKA_${Math.random().toString(36).slice(2, 7)}`,
+        totalCapacity: 1,
+      });
+
+      const pokusaji = Array.from({ length: 10 }, () =>
+        request(app.getHttpServer())
+          .post(`/api/v1/contracting/contracts/${contract.id}/periods/${periodId}/reserve`)
+          .set(authed(accessToken))
+          .send({ units: 1, stayFrom: '2027-11-10', stayTo: '2027-11-12' }),
+      );
+      const ishodi = await Promise.all(pokusaji);
+      expect(ishodi.filter((r) => r.status === 201)).toHaveLength(1);
+
+      // Rezervacija koja preklapa taj datum sa DRUGOG kraja boravka je takođe odbijena.
+      const preklapa = await request(app.getHttpServer())
+        .post(`/api/v1/contracting/contracts/${contract.id}/periods/${periodId}/reserve`)
+        .set(authed(accessToken))
+        .send({ units: 1, stayFrom: '2027-11-11', stayTo: '2027-11-14' });
+      expect(preklapa.status).toBe(400);
+
+      // A noć koja se ne preklapa i dalje prolazi — zauzet je dan, ne ceo period.
+      const slobodna = await request(app.getHttpServer())
+        .post(`/api/v1/contracting/contracts/${contract.id}/periods/${periodId}/reserve`)
+        .set(authed(accessToken))
+        .send({ units: 1, stayFrom: '2027-11-20', stayTo: '2027-11-21' });
+      expect(slobodna.status).toBe(201);
+    });
+
+    it('isti boravak sme dvaput kad se prozori prijave ne seku, a ne sme kad se seku (§2.3e.2)', async () => {
+      const { accessToken } = await createInternalUser(SYSTEM_ROLES.VLASNIK);
+      const supplier = await createSupplier(accessToken);
+      const contract = await createContract(accessToken, supplier.id);
+      const roomType = `PROZOR_${Math.random().toString(36).slice(2, 7)}`;
+
+      const rana = await request(app.getHttpServer())
+        .post(`/api/v1/contracting/contracts/${contract.id}/periods`)
+        .set(authed(accessToken))
+        .send({
+          stayFrom: '2027-07-01',
+          stayTo: '2027-07-15',
+          roomType,
+          allotmentMode: 'FIXED',
+          totalCapacity: 10,
+          bookingTo: '2027-03-31',
+        });
+      expect(rana.status).toBe(201);
+
+      // Isti boravak, prozor koji NE dodiruje prvi → dozvoljeno.
+      const kasna = await request(app.getHttpServer())
+        .post(`/api/v1/contracting/contracts/${contract.id}/periods`)
+        .set(authed(accessToken))
+        .send({
+          stayFrom: '2027-07-01',
+          stayTo: '2027-07-15',
+          roomType,
+          allotmentMode: 'FIXED',
+          totalCapacity: 5,
+          bookingFrom: '2027-04-01',
+        });
+      expect(kasna.status).toBe(201);
+
+      // Treći, sa prozorom koji se seče sa prvim → odbijeno.
+      const sudar = await request(app.getHttpServer())
+        .post(`/api/v1/contracting/contracts/${contract.id}/periods`)
+        .set(authed(accessToken))
+        .send({
+          stayFrom: '2027-07-01',
+          stayTo: '2027-07-15',
+          roomType,
+          allotmentMode: 'FIXED',
+          totalCapacity: 7,
+          bookingFrom: '2027-03-01',
+          bookingTo: '2027-03-20',
+        });
+      expect(sudar.status).toBe(400);
+    });
+
+    it('rezervacija u periodu čiji je prozor prijave prošao pada sa BOOKING_WINDOW_CLOSED, ne sa „nema mesta"', async () => {
+      const { accessToken } = await createInternalUser(SYSTEM_ROLES.VLASNIK);
+      const supplier = await createSupplier(accessToken);
+      const contract = await createContract(accessToken, supplier.id);
+      const periodId = await periodSaKapacitetom(accessToken, contract.id, {
+        stayFrom: '2027-07-01',
+        stayTo: '2027-07-15',
+        roomType: `ZATVOREN_${Math.random().toString(36).slice(2, 7)}`,
+        totalCapacity: 10,
+        bookingTo: '2020-01-01', // prozor davno zatvoren
+      });
+
+      const res = await request(app.getHttpServer())
+        .post(`/api/v1/contracting/contracts/${contract.id}/periods/${periodId}/reserve`)
+        .set(authed(accessToken))
+        .send({ units: 1, stayFrom: '2027-07-02', stayTo: '2027-07-05' });
+      expect(res.status).toBe(400);
+      expect(res.body.reason).toBe('BOOKING_WINDOW_CLOSED');
+    });
+  });
 });

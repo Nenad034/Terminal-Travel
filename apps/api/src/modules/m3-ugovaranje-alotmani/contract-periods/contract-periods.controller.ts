@@ -158,7 +158,13 @@ export class ContractPeriodsController {
     @Param('periodId') periodId: string,
     @Body('units') units: number,
     @CurrentUser() actor: { userId: string },
+    // §2.8c (v1.20) — datumi boravka su opcioni SAMO radi zatečenih pozivalaca; kad se
+    // pošalju, provera ide po danu i poštuje stop-sale, blokade i dnevni override.
+    @Body('stayFrom') stayFrom?: string,
+    @Body('stayTo') stayTo?: string,
   ) {
-    return this.periods.reserve(periodId, units ?? 1, actor.userId);
+    const stay =
+      stayFrom && stayTo ? { from: new Date(stayFrom), to: new Date(stayTo) } : undefined;
+    return this.periods.reserve(periodId, units ?? 1, actor.userId, stay);
   }
 }

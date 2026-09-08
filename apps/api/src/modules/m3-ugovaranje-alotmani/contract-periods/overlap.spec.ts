@@ -62,4 +62,75 @@ describe('assertNoContractPeriodOverlap (M3 spec §2.3b)', () => {
     expect(whereArg.stayFrom).toEqual({ lt: stayTo });
     expect(whereArg.stayTo).toEqual({ gt: stayFrom });
   });
+
+  // §2.3e.2 (v1.20) — prozor prijave ulazi u proveru preklapanja. Bez ovoga bi sistem odbio
+  // potpuno ispravan unos iz prakse: "isti boravak, 10 soba za prijave do 31.3., 5 posle".
+  describe('prozor prijave (§2.3e.2)', () => {
+    it('ne šalje uslov nad prozorom kad prozor nije zadat (zatečeno ponašanje ostaje isto)', async () => {
+      const prisma = makePrisma(null);
+      await assertNoContractPeriodOverlap(
+        prisma as any,
+        'c1',
+        'DBL',
+        new Date('2027-07-01'),
+        new Date('2027-07-10'),
+      );
+      const where = prisma.contractPeriod.findFirst.mock.calls[0][0].where;
+      expect(where.AND).toBeUndefined();
+    });
+
+    it('traži presek OBA opsega — u upit ulazi i uslov nad prozorom prijave', async () => {
+      const prisma = makePrisma(null);
+      await assertNoContractPeriodOverlap(
+        prisma as any,
+        'c1',
+        'DBL',
+        new Date('2027-07-01'),
+        new Date('2027-07-10'),
+        undefined,
+        { from: new Date('2027-04-01'), to: new Date('2027-06-30') },
+      );
+      const where = prisma.contractPeriod.findFirst.mock.calls[0][0].where;
+      expect(where.AND).toEqual([
+        { OR: [{ bookingFrom: null }, { bookingFrom: { lte: new Date('2027-06-30') } }] },
+        { OR: [{ bookingTo: null }, { bookingTo: { gte: new Date('2027-04-01') } }] },
+      ]);
+    });
+
+    it('prozor bez donje granice ne ograničava upit sa te strane', async () => {
+      const prisma = makePrisma(null);
+      await assertNoContractPeriodOverlap(
+        prisma as any,
+        'c1',
+        'DBL',
+        new Date('2027-07-01'),
+        new Date('2027-07-10'),
+        undefined,
+        { from: null, to: new Date('2027-03-31') },
+      );
+      const where = prisma.contractPeriod.findFirst.mock.calls[0][0].where;
+      expect(where.AND).toHaveLength(1);
+    });
+
+    it('poruka o sukobu navodi i prozor prijave postojećeg perioda', async () => {
+      const prisma = makePrisma({
+        id: 'p9',
+        stayFrom: new Date('2027-07-01'),
+        stayTo: new Date('2027-08-01'),
+        bookingFrom: new Date('2027-01-01'),
+        bookingTo: new Date('2027-03-31'),
+      });
+      await expect(
+        assertNoContractPeriodOverlap(
+          prisma as any,
+          'c1',
+          'DBL',
+          new Date('2027-07-15'),
+          new Date('2027-07-20'),
+          undefined,
+          { from: new Date('2027-02-01'), to: new Date('2027-02-28') },
+        ),
+      ).rejects.toThrow(/prijave 2027-01-01/);
+    });
+  });
 });

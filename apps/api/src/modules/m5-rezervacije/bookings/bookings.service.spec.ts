@@ -179,7 +179,11 @@ describe('BookingsService (M5 spec §4/§6.4)', () => {
       ).rejects.toThrow(BadRequestException);
 
       // §4 korak 3 — već rezervisana prva stavka MORA biti oslobođena.
-      expect(contractPeriods.release).toHaveBeenCalledWith('period-1', 1, 'actor-1');
+      // M3 §2.8c (v1.20) — oslobađanje nosi i noći, da bi se dnevni brojač vratio na TE dane.
+      expect(contractPeriods.release).toHaveBeenCalledWith('period-1', 1, 'actor-1', {
+        from: undefined,
+        to: undefined,
+      });
       // Nijedan Booking nije kreiran — "sve ili ništa".
       expect(prisma.booking.create).not.toHaveBeenCalled();
     });
@@ -345,7 +349,10 @@ describe('BookingsService (M5 spec §4/§6.4)', () => {
         { userId: 'actor-1' },
       );
 
-      expect(contractPeriods.reserve).toHaveBeenCalledWith('period-multi', 2, 'actor-1');
+      expect(contractPeriods.reserve).toHaveBeenCalledWith('period-multi', 2, 'actor-1', {
+        from: undefined,
+        to: undefined,
+      });
       expect(prisma.booking.create).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({ buyerName: 'Petar Petrović', buyerType: 'FIZICKO_LICE' }),
@@ -476,7 +483,13 @@ describe('BookingsService (M5 spec §4/§6.4)', () => {
 
       await service.cancel('booking-multi', {}, { userId: 'actor-1' });
 
-      expect(contractPeriods.release).toHaveBeenCalledWith('period-multi', 3, 'actor-1');
+      expect(contractPeriods.release).toHaveBeenCalledWith(
+        'period-multi',
+        3,
+        'actor-1',
+        // §2.8c — noći se vraćaju u prodaju, ne samo period-nivo brojač.
+        expect.objectContaining({ from: expect.any(Date), to: expect.any(Date) }),
+      );
     });
 
     it('računa refund% za API stavku iz cancellation_policy_snapshot, deterministički (§4.2 dopuna v1.14)', async () => {

@@ -11,6 +11,7 @@ import { UpsertAncillaryServiceDto } from './dto/upsert-ancillary-service.dto';
 import { UpsertTouristTaxDto } from './dto/upsert-tourist-tax.dto';
 import { UpdateContractPeriodDto } from './dto/update-contract-period.dto';
 import { assertNoContractPeriodOverlap } from './overlap';
+import { bookingWindowOpen, claimNights, DayCapacityError, releaseNights } from './day-capacity';
 
 const CAPACITY_BEARING_MODES: AllotmentMode[] = ['FIXED', 'CHARTER', 'FIXED_LEASE'];
 
@@ -45,13 +46,30 @@ export class ContractPeriodsService {
   async create(contractId: string, dto: CreateContractPeriodDto, actorId: string) {
     const stayFrom = new Date(dto.stayFrom);
     const stayTo = new Date(dto.stayTo);
-    await assertNoContractPeriodOverlap(this.prisma, contractId, dto.roomType, stayFrom, stayTo);
+    // §2.3e.2 — prozor prijave ulazi u proveru preklapanja: isti boravak sme da postoji
+    // dvaput ako se prozori ne seku ("10 soba za prijave do 31.3., 5 za prijave posle").
+    const bookingFrom = dto.bookingFrom ? new Date(dto.bookingFrom) : null;
+    const bookingTo = dto.bookingTo ? new Date(dto.bookingTo) : null;
+    if (bookingFrom && bookingTo && bookingFrom > bookingTo) {
+      throw new BadRequestException('Prozor prijave: „od" mora biti pre „do" (M3 spec §2.3e)');
+    }
+    await assertNoContractPeriodOverlap(
+      this.prisma,
+      contractId,
+      dto.roomType,
+      stayFrom,
+      stayTo,
+      undefined,
+      { from: bookingFrom, to: bookingTo },
+    );
 
     const period = await this.prisma.contractPeriod.create({
       data: {
         contractId,
         stayFrom,
         stayTo,
+        bookingFrom,
+        bookingTo,
         roomType: dto.roomType,
         allotmentMode: dto.allotmentMode,
         totalCapacity: dto.totalCapacity,
@@ -94,6 +112,21 @@ export class ContractPeriodsService {
     const stayFrom = dto.stayFrom ? new Date(dto.stayFrom) : before.stayFrom;
     const stayTo = dto.stayTo ? new Date(dto.stayTo) : before.stayTo;
     const roomType = dto.roomType ?? before.roomType;
+    const bookingFrom =
+      dto.bookingFrom === undefined
+        ? before.bookingFrom
+        : dto.bookingFrom === null
+          ? null
+          : new Date(dto.bookingFrom);
+    const bookingTo =
+      dto.bookingTo === undefined
+        ? before.bookingTo
+        : dto.bookingTo === null
+          ? null
+          : new Date(dto.bookingTo);
+    if (bookingFrom && bookingTo && bookingFrom > bookingTo) {
+      throw new BadRequestException('Prozor prijave: „od" mora biti pre „do" (M3 spec §2.3e)');
+    }
 
     if (stayFrom >= stayTo) {
       throw new BadRequestException('Period boravka „od" mora biti pre „do"');
@@ -102,7 +135,10 @@ export class ContractPeriodsService {
     const datesOrRoomChanged =
       stayFrom.getTime() !== before.stayFrom.getTime() ||
       stayTo.getTime() !== before.stayTo.getTime() ||
-      roomType !== before.roomType;
+      roomType !== before.roomType ||
+      // §2.3e.2 — i promena prozora prijave može da napravi sukob koji pre izmene nije postojao
+      (bookingFrom?.getTime() ?? null) !== (before.bookingFrom?.getTime() ?? null) ||
+      (bookingTo?.getTime() ?? null) !== (before.bookingTo?.getTime() ?? null);
     if (datesOrRoomChanged) {
       await assertNoContractPeriodOverlap(
         this.prisma,
@@ -111,6 +147,7 @@ export class ContractPeriodsService {
         stayFrom,
         stayTo,
         periodId,
+        { from: bookingFrom, to: bookingTo },
       );
     }
 
@@ -133,6 +170,9 @@ export class ContractPeriodsService {
       data: {
         stayFrom: dto.stayFrom ? stayFrom : undefined,
         stayTo: dto.stayTo ? stayTo : undefined,
+        // `undefined` = ne diraj, `null` = skini prozor prijave (§2.3e, PATCH semantika)
+        bookingFrom: dto.bookingFrom === undefined ? undefined : bookingFrom,
+        bookingTo: dto.bookingTo === undefined ? undefined : bookingTo,
         roomType: dto.roomType,
         allotmentMode: dto.allotmentMode,
         totalCapacity: dto.totalCapacity,
@@ -444,11 +484,55 @@ export class ContractPeriodsService {
    * napomena o konkurentnosti). ON_REQUEST periodi (bez kapaciteta) uvek prolaze —
    * njihova potvrda ide kroz ručni/API tok dobavljača, ne kroz brojanje kapaciteta.
    */
-  async reserve(periodId: string, units: number, actorId: string) {
+  /**
+   * M3 spec §2.8c/§2.3e.4 — provera kapaciteta ide PO DANU, ne po periodu.
+   *
+   * `stay` je opcion samo zbog zatečenih pozivalaca; kad se prosledi (a M5 ga uvek prosleđuje),
+   * radi se dnevna provera koja poštuje stop-sale, blokade i dnevni `capacity_override`.
+   * Bez njega ostaje stara provera na nivou perioda — namerno zadržana da poziv ne pukne,
+   * ali ona NE vidi stop-sale ni blokade i ne sme se koristiti u prodajnom toku.
+   */
+  async reserve(
+    periodId: string,
+    units: number,
+    actorId: string,
+    stay?: { from: Date; to: Date },
+    bookingDate: Date = new Date(),
+  ) {
     const period = await this.prisma.contractPeriod.findUnique({ where: { id: periodId } });
     if (!period) throw new NotFoundException('Period nije pronađen');
 
+    // §2.3e.4 — prozor prijave. Provera ide PRE kapaciteta: "zakasnili ste" i "nema mesta"
+    // su dve različite činjenice, a agent na njih različito reaguje.
+    if (!bookingWindowOpen(period, bookingDate)) {
+      throw new BadRequestException({
+        statusCode: 400,
+        reason: 'BOOKING_WINDOW_CLOSED',
+        message:
+          `Prozor za prijave je zatvoren za ovaj period ` +
+          `(${period.bookingFrom?.toISOString().slice(0, 10) ?? '—'} do ` +
+          `${period.bookingTo?.toISOString().slice(0, 10) ?? '—'}, M3 spec §2.3e).`,
+      });
+    }
+
     if (!CAPACITY_BEARING_MODES.includes(period.allotmentMode)) {
+      // ON_REQUEST nema kapacitet, ali stop-sale nad njim znači "ne šalji više upite" (§2.8a).
+      if (stay) {
+        const zatvoren = await this.prisma.capacityDay.findFirst({
+          where: {
+            contractPeriodId: periodId,
+            saleStatus: 'STOP',
+            date: { gte: stay.from, lt: stay.to },
+          },
+        });
+        if (zatvoren) {
+          throw new DayCapacityError(
+            'SALE_STOPPED',
+            zatvoren.date.toISOString().slice(0, 10),
+            `Prodaja je zatvorena za ${zatvoren.date.toISOString().slice(0, 10)} (M3 spec §2.8a).`,
+          );
+        }
+      }
       return {
         reserved: true,
         allotmentMode: period.allotmentMode,
@@ -456,22 +540,52 @@ export class ContractPeriodsService {
       };
     }
 
-    const rows = await this.prisma.$queryRaw<
-      { id: string; units_sold: number; total_capacity: number }[]
-    >`
-      UPDATE contract_periods
-      SET units_sold = units_sold + ${units}
-      WHERE id = ${periodId} AND units_sold + ${units} <= total_capacity
-      RETURNING id, units_sold, total_capacity
-    `;
-
-    if (rows.length === 0) {
-      throw new BadRequestException(
-        'Nema dovoljno preostalog kapaciteta za ovaj period (M3 spec §2.3)',
-      );
+    if (period.totalCapacity === null) {
+      throw new BadRequestException('Period sa kapacitetom nema upisan total_capacity (M3 §2.3)');
     }
 
-    const updated = rows[0];
+    if (!stay) {
+      // Zatečeni put — provera na nivou perioda. Ne vidi stop-sale ni blokade (§2.8c).
+      const rows = await this.prisma.$queryRaw<
+        { id: string; units_sold: number; total_capacity: number }[]
+      >`
+        UPDATE contract_periods
+        SET units_sold = units_sold + ${units}
+        WHERE id = ${periodId} AND units_sold + ${units} <= total_capacity
+        RETURNING id, units_sold, total_capacity
+      `;
+      if (rows.length === 0) {
+        throw new BadRequestException(
+          'Nema dovoljno preostalog kapaciteta za ovaj period (M3 spec §2.3)',
+        );
+      }
+      return this.posleRezervacije(periodId, units, actorId, rows[0]);
+    }
+
+    // Dnevni put — sve noći ili nijedna, u jednoj transakciji.
+    const updated = await this.prisma.$transaction(async (tx) => {
+      await claimNights(tx, periodId, stay.from, stay.to, units, period.totalCapacity!);
+      // `units_sold` na periodu OSTAJE (§2.8c) — više nije provera, nego zbir za rok povrata
+      // i alarm niskog kapaciteta. Zato se uvećava bez uslova: dnevna provera je već prošla.
+      const rows = await tx.$queryRaw<{ id: string; units_sold: number; total_capacity: number }[]>`
+        UPDATE contract_periods
+        SET units_sold = units_sold + ${units}
+        WHERE id = ${periodId}
+        RETURNING id, units_sold, total_capacity
+      `;
+      return rows[0];
+    });
+
+    return this.posleRezervacije(periodId, units, actorId, updated);
+  }
+
+  /** Zajednički rep oba puta: audit zapis i alarm za nizak kapacitet (§4.3). */
+  private async posleRezervacije(
+    periodId: string,
+    units: number,
+    actorId: string,
+    updated: { units_sold: number; total_capacity: number },
+  ) {
     const remaining = updated.total_capacity - updated.units_sold;
 
     await this.auditLog.write({
@@ -511,7 +625,7 @@ export class ContractPeriodsService {
    * `reserve()` — atomski umanjuje units_sold, nikad ispod 0. ON_REQUEST/nekapacitetni
    * periodi nemaju šta da oslobode (isto obrazloženje kao reserve()).
    */
-  async release(periodId: string, units: number, actorId: string) {
+  async release(periodId: string, units: number, actorId: string, stay?: { from: Date; to: Date }) {
     const period = await this.prisma.contractPeriod.findUnique({ where: { id: periodId } });
     if (!period) throw new NotFoundException('Period nije pronađen');
 
@@ -519,15 +633,18 @@ export class ContractPeriodsService {
       return { released: true, allotmentMode: period.allotmentMode };
     }
 
-    const rows = await this.prisma.$queryRaw<
-      { id: string; units_sold: number; total_capacity: number }[]
-    >`
-      UPDATE contract_periods
-      SET units_sold = GREATEST(units_sold - ${units}, 0)
-      WHERE id = ${periodId}
-      RETURNING id, units_sold, total_capacity
-    `;
-    const updated = rows[0];
+    const updated = await this.prisma.$transaction(async (tx) => {
+      // §2.8c — dnevni brojač se vraća simetrično uzimanju; bez ovoga bi otkazana
+      // rezervacija zauvek držala noći koje više nikome ne pripadaju.
+      if (stay) await releaseNights(tx, periodId, stay.from, stay.to, units);
+      const rows = await tx.$queryRaw<{ id: string; units_sold: number; total_capacity: number }[]>`
+        UPDATE contract_periods
+        SET units_sold = GREATEST(units_sold - ${units}, 0)
+        WHERE id = ${periodId}
+        RETURNING id, units_sold, total_capacity
+      `;
+      return rows[0];
+    });
 
     await this.auditLog.write({
       actorType: 'HUMAN',

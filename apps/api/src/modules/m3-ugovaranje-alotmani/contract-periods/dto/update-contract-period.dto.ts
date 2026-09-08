@@ -22,6 +22,15 @@ export class UpdateContractPeriodDto {
   @IsOptional()
   stayTo?: string;
 
+  /** §2.3e — prozor prijave; `null` skida ograničenje. */
+  @IsDateString()
+  @IsOptional()
+  bookingFrom?: string | null;
+
+  @IsDateString()
+  @IsOptional()
+  bookingTo?: string | null;
+
   @IsString()
   @IsOptional()
   roomType?: string;
