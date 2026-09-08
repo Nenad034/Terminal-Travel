@@ -1,7 +1,7 @@
 # Predlog — mreža kapaciteta ("ko je gde slobodan, kog dana")
 
 **Status:** Predlog, bez koda. Nastao 8.9.2026. na zahtev vlasnika, odmah pošto je M13 §4.4 dobio toplotnu mapu za vremenske obrasce: _"dopada mi se ova mapa i mislim da možemo da je iskoristimo za pregled smeštajnih i kapaciteta drugih proizvoda, po više kriterijuma. Za sada samo zapišite i razradite, konsultujući relevantne izvore na internetu ali i PrimeTravel jer mislim da je to tamo jako dobro urađeno."_
-**Ažurirano isti dan (8.9.2026):** vlasnik je odgovorio na sva četiri pitanja iz poglavlja 7 — odgovori i šta menjaju su u **poglavlju 9**. Najvažnija posledica: preporuka iz poglavlja 0 i 4 je time **promenjena** — dnevni kapacitet i stop-sale nisu više "drugi korak za kasnije" nego uslov da prvi korak uopšte ima smisla.
+**Ažurirano isti dan (8.9.2026):** vlasnik je odgovorio na sva četiri pitanja iz poglavlja 7, pa i na tri dodatna koja su iz njih ispala (dodela kapaciteta subagentu, preciznost prikaza, držanje za nepotvrđenu grupu) — **nijedno otvoreno poslovno pitanje više ne stoji**, model je zaokružen u poglavlju 9.5 — odgovori i šta menjaju su u **poglavlju 9**. Najvažnija posledica: preporuka iz poglavlja 0 i 4 je time **promenjena** — dnevni kapacitet i stop-sale nisu više "drugi korak za kasnije" nego uslov da prvi korak uopšte ima smisla.
 **Dodiruje module:** M3 (kapacitet i ugovori — izvor istine), M5 (rezervacije — šta je prodato), M2 (šta je proizvod uopšte), M13 (izveštajni sloj), M17 (panel/ekran), M7 (verzija za subagente), M18 (alarmi).
 **Šta je pregledano:** PrimeTravel `src/modules/production/OperationalReports.tsx` (3568 linija, `Inventory Orchestrator` tab) i prateći `OperationalReports.css`; naš `apps/api/prisma/schema.prisma` (M3 `ContractPeriod`, M5 `BookingItem`, M13 `FactBooking`); M3 spec §2.3/§2.3a/§4.3/§8, M2 spec §2.3, M13 spec §4.1/§4.4; javni izvori navedeni u poglavlju 4.
 
@@ -185,7 +185,7 @@ Redosled je bitan — tvrdo pravilo iz CLAUDE.md (nema koda bez oslonca u specif
 
 ## 7. Otvorena pitanja — samo za vlasnika (poslovne odluke)
 
-> **Sva četiri odgovorena istog dana — vidi poglavlje 9.** Pitanja ostaju ovde u izvornom obliku, radi traga; četvrto je bilo loše postavljeno i ponovo je napisano u 9.4, gde i dalje čeka odgovor.
+> **Sva četiri odgovorena istog dana — vidi poglavlje 9.** Pitanja ostaju ovde u izvornom obliku, radi traga; četvrto je bilo loše postavljeno, ponovo je napisano i odgovoreno u 9.4.
 
 1. **Da li dobavljači stvarno menjaju kapacitet unutar sezone i šalju stop-sale?** Ako da — koliko često? Od toga zavisi da li je korak 2 hitan ili može da čeka.
 2. **Ko sme da zatvori prodaju u sistemu** — samo nabavka, ili i šef prodaje?
@@ -240,29 +240,52 @@ Predlog: dve odvojene dozvole, jer to nisu iste odgovornosti:
 
 Podrazumevano ide Vlasnik/Direktor/nabavka; svako drugo dodeljivanje je tvoja odluka po osobi.
 
-### 9.3 Subagenti vide raspoloživost koju im mi definišemo — ovo je nov mehanizam, ne postoji danas
+### 9.3 Subagenti vide raspoloživost koju im mi definišemo — nov mehanizam, ne postoji danas
 
-Vlasnik: _"Subagenti treba da vide raspoloživost koju smo za njih definisali koju mogu da vide."_
+Vlasnik: _"Subagenti treba da vide raspoloživost koju smo za njih definisali koju mogu da vide."_ Dopunjeno odgovorom istog dana: _"treba omogućiti da se i na nivou svih ili pojedinačnih subagenata dodeli jedan deo kapaciteta koji smo uzeli, od ukupnog kapaciteta, za neki tip smeštaja ili za sve tipove smeštaja jednog hotela."_ Preciznost: **semafor podrazumevano, tačan broj samo kome se izričito odobri.**
 
-**Iskren nalaz: toga danas nema.** M7 subagent vidi katalog filtriran po tome da li je proizvod uopšte otvoren za B2B kanal (M2 `visible_channels`) — to je pravilo **po proizvodu, isto za sve subagente**. Nema mesta gde bi se reklo "ovaj subagent vidi ovih 10 hotela, i to samo 5 od 20 soba".
+**Iskren nalaz: toga danas nema.** M7 subagent vidi katalog filtriran po tome da li je proizvod uopšte otvoren za B2B kanal (M2 `visible_channels`) — pravilo **po proizvodu, isto za sve subagente**. Nema mesta gde bi se reklo "subagentu X je od naših 20 soba vidljivo 5".
 
-To traži nov zapis u M7 (radno ime "definisana raspoloživost po subagentu") sa dve odluke koje su poslovne, ne tehničke, i koje ti treba da potvrdiš pre nego što se to upiše u M7 specifikaciju:
+**Oblik dodele je isti kao kod stop-sale (9.1) — dve nezavisne dimenzije**, što je dobra vest: jedan obrazac unosa pokriva oba, ne uči se dvaput:
 
-1. **Šta se definiše** — samo koje proizvode/hotele subagent sme da vidi, ili i **koliki deo kapaciteta** (npr. "od 20 naših soba, subagentu X je vidljivo najviše 5")? Drugo je jače i uobičajeno u B2B distribuciji, ali traži da se prati i "koliko je taj subagent već potrošio od svoje kvote".
-2. **Koliko precizno vidi** — tačan broj slobodnih ("ostalo 3"), ili samo semafor ("ima / na upit / nema")? Semafor je uobičajeniji jer ne otkriva partneru koliko ti je robe ostalo na stanju, što je pregovaračka informacija.
+| Dimenzija  | Vrednosti                                                 |
+| :--------- | :-------------------------------------------------------- |
+| **Kome**   | svim subagentima (opšte pravilo) **ili** jednom određenom |
+| **Na šta** | jedan tip smeštaja **ili** svi tipovi jednog hotela       |
 
-Moja preporuka: **semafor kao podrazumevano, tačan broj samo za subagente kojima to izričito uključiš** (isto se ponaša kao dozvola iz 9.2 — podrazumevano zatvoreno, otvara se namerno).
+Uz to ide raspon datuma i broj jedinica. Kad postoji i opšte pravilo i pravilo za konkretnog subagenta, **jače je ono uže** (pravilo za tog subagenta pobeđuje opšte) — inače se ne bi moglo napraviti "svima 3, ali partneru koji nam donosi pola prometa 8".
 
-### 9.4 Četvrto pitanje — postavljeno nejasno, evo ga razumljivije
+**Jedna tehnička odluka koju donosim ovde, sa obrazloženjem** (jer nije poslovna, nego posledica): dodela je **gornja granica, ne rezervacija**. To znači: subagent ne može uzeti više od svojih 5 soba, ali tih 5 soba **niko ne drži praznim** za njega — ako ih on ne proda, prodaje ih neko drugi. Suprotno rešenje (soba fizički odvojena i čeka partnera) je bilo standard pre petnaestak godina i danas se izbegava upravo zato što ostavlja kapacitet neprodat dok postoji tražnja. Ako za nekog ključnog partnera stvarno treba **garantovan** deo, to se rešava blokadom iz 9.4 (koja je već tu i ima rok), ne posebnim mehanizmom.
 
-Vlasnik: _"ne razumem pitanje"_ — greška je moja, pitanje je bilo napisano tehnički. Ovako glasi:
+Broj se zadaje **kao broj jedinica, ne kao procenat** — procenat od kapaciteta koji se menja iz dana u dan (9.1) znači da se partnerova kvota tiho menja svaki put kad hotel promeni kapacitet, što niko ne bi mogao da isprati.
 
-Kad se drži smeštaj za grupu koja **još nije potvrđena** (npr. škola pita za 10 soba u maju, treba im nedelju dana da se izjasne), sistem to može voditi na dva načina:
+Šta subagent na kraju vidi kao slobodno: **manje od dve stvari** — koliko je ostalo od njegove kvote i koliko je stvarno slobodno ukupno. (Ako je njegova kvota 5, a ukupno slobodne su 2 sobe — vidi 2, ne 5.)
 
-- **kao rezervaciju** u statusu "na čekanju" — soba je zauzeta jer za nju postoji zapis o gostu (koji još nije poznat po imenu), ili
-- **kao blokadu kapaciteta** — soba je izuzeta iz prodaje, ali nema rezervacije ni gosta; samo stoji razlog ("držimo za školu iz Kragujevca do 20.5.").
+### 9.4 Držanje kapaciteta za nepotvrđenu grupu — blokada, ne rezervacija
 
-Razlika se vidi na mreži: u prvom slučaju ta soba je "prodata", u drugom je "blokirana" — i u izveštajima se ponaša drugačije (blokada nije prihod i ne ulazi u popunjenost kao prodaja). Odgovor određuje da li mreža uopšte treba treću vrstu polja pored "slobodno/prodato".
+Vlasnik je izabrao **blokadu kapaciteta**: sobe se izuzimaju iz prodaje, ali nema rezervacije ni gosta — stoji samo razlog i rok ("držimo za školu iz Kragujevca do 20.5.").
+
+Posledice, sve tri važne:
+
+1. **Mreža dobija treću vrstu polja** pored "slobodno" i "prodato" — **"blokirano"**. Bez toga bi 10 blokiranih soba izgledalo kao slobodne, i neko bi ih prodao.
+2. **Blokada nije prodaja** — ne ulazi u prihod, ne broji se u popunjenost kao prodato, i u izveštajima (M13) mora stajati odvojeno. Ovo je razlog zašto je izbor dobar: da se vodilo kao rezervacija, svaki izveštaj prodaje bio bi netačan dok grupa ne potvrdi.
+3. **Rok je obavezan, i sam se gasi.** Blokada bez roka je najsigurniji način da se kapacitet trajno izgubi — neko blokira 10 soba u martu, grupa se nikad ne javi, i sobe stoje do septembra jer ih se niko ne seti. Predlog: rok je obavezno polje, sistem sam vraća sobe u prodaju kad istekne, i javlja (M18) dan-dva ranije da rok ističe.
+
+### 9.5 Šta iz svih odgovora sledi za model — sažeto
+
+Sve iz poglavlja 9 svodi se na **jedan zapis stanja po danu** i **tri zasebna zapisa razloga** iznad njega:
+
+| Zapis                              | Šta nosi                                                 | Zašto zaseban                                                                     |
+| :--------------------------------- | :------------------------------------------------------- | :-------------------------------------------------------------------------------- |
+| **stanje po danu** (`CapacityDay`) | ukupan kapacitet za taj datum i tip sobe                 | jedini način da se zna stanje na dan (9.1)                                        |
+| **zatvaranje prodaje** (stop-sale) | status OTVORENO/ZATVORENO + ko/kada/po čijoj informaciji | stiže i kad kapacitet ostaje (fiksni zakup), pa ne sme biti "kapacitet = 0" (9.1) |
+| **blokada**                        | broj jedinica + razlog + **rok** + ko je postavio        | nije prodaja, ne sme ući u prihod/popunjenost (9.4)                               |
+| **dodela subagentu**               | kome + na šta + koliko + raspon datuma                   | gornja granica po partneru, ne rezervacija (9.3)                                  |
+
+Prodato se **ne upisuje** nigde od ovoga — i dalje se računa iz M5 rezervacija (poglavlje 4), jer rezervacija je izvor istine i svako duplo vođenje istog broja pre ili kasnije razilazi.
+
+Slobodno za internu prodaju = `kapacitet − prodato − blokirano`, i 0 ako je prodaja zatvorena.
+Slobodno za subagenta = manje od te dve vrednosti: gornja granica iz njegove dodele i gore izračunato slobodno.
 
 ---
 
