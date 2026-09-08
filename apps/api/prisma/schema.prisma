@@ -737,6 +737,12 @@ model ContractPeriod {
   // §2.3 dopuna v1.12 — minimalan/maksimalan broj noćenja za ovu cenu/period; null = bez ograničenja.
   minStayNights           Int?          @map("min_stay_nights")
   maxStayNights           Int?          @map("max_stay_nights")
+  // §2.3d (v1.16) — period sa rezervacijama se GASI, ne briše: brisanje bi prekinulo vezu
+  // prodatog sa cenom i kapacitetom po kojima je prodato. INACTIVE ne ulazi u pretragu i ne
+  // prima nove rezervacije, ali ostaje osnov postojećih.
+  status                  ContractPeriodStatus @default(ACTIVE)
+  deactivatedBy           String?       @map("deactivated_by")
+  deactivatedAt           DateTime?     @map("deactivated_at")
   createdAt               DateTime      @default(now()) @map("created_at")
   updatedAt               DateTime      @updatedAt @map("updated_at")
 
@@ -749,12 +755,101 @@ model ContractPeriod {
   touristTaxInfo    TouristTaxInfo?
   // M5 spec §8.1 — dopuna avgust 2026, back-relacija ka operativnim listama.
   supplierManifests SupplierManifest[]
+  // M3 spec §2.8 (8.9.2026) — dnevno stanje i blokade.
+  capacityDays      CapacityDay[]
+  capacityBlocks    CapacityBlock[]
 
   // Indeksi na stranim ključevima (5.9.2026, dok. 39 nalaz 2.1). Postgres ih NE pravi sam:
   // pravi ih samo na strani na koju se pokazuje (PK), ne i na koloni koja pokazuje. Bez njih
   // svaki JOIN i svaka provera pri brisanju roditelja čita celu tabelu.
   @@index([contractId])
   @@map("contract_periods")
+}
+
+
+// ---------------------------------------------------------------------------
+// M3 spec §2.8 (v1.15, 8.9.2026) — kapacitet po danu, zatvaranje prodaje, blokade.
+//
+// Do ove dopune M3 je znao samo zbir po celoj sezoni (`ContractPeriod.total_capacity`), pa
+// sistem nije znao stanje na konkretan datum. Ovde se čuvaju ISKLJUČIVO autorski podaci —
+// ono što je neko svesno uneo. PRODATO SE NE UPISUJE: računa se iz M5 `BookingItem`
+// (§2.8c), jer je rezervacija izvor istine i duplo vođenje istog broja se pre ili kasnije
+// razidje.
+// ---------------------------------------------------------------------------
+
+enum CapacitySaleStatus {
+  OPEN
+  STOP
+}
+
+// §2.8a — "po čijoj informaciji" je prodaja zatvorena. Enum, ne slobodan tekst: podatak se
+// traži kad nastane spor sa dobavljačem.
+enum CapacityStopSource {
+  SUPPLIER_EMAIL
+  SUPPLIER_PHONE
+  SUPPLIER_PORTAL
+  PROVIDER_API
+  INTERNAL
+}
+
+enum CapacityBlockStatus {
+  ACTIVE
+  RELEASED
+  CONVERTED
+}
+
+/// §2.8a — odstupanje za JEDAN datum. Red postoji samo kad nešto odstupa (lenja
+/// materijalizacija): za sezonu od 120 dana bez ijedne izmene nema nijednog reda i važi ono
+/// što piše na periodu. Isti red služi i kao brava pri konkurentnoj rezervaciji (§2.8c).
+model CapacityDay {
+  id                String             @id @default(uuid())
+  contractPeriodId  String             @map("contract_period_id")
+  date              DateTime           @db.Date
+  capacityOverride  Int?               @map("capacity_override") // null = važi ContractPeriod.total_capacity
+  saleStatus        CapacitySaleStatus @default(OPEN) @map("sale_status")
+  stopReason        String?            @map("stop_reason")
+  stopSource        CapacityStopSource? @map("stop_source")
+  stopSetBy         String?            @map("stop_set_by")
+  stopSetAt         DateTime?          @map("stop_set_at")
+  createdAt         DateTime           @default(now()) @map("created_at")
+  updatedAt         DateTime           @updatedAt @map("updated_at")
+
+  contractPeriod ContractPeriod @relation(fields: [contractPeriodId], references: [id], onDelete: Cascade)
+
+  @@unique([contractPeriodId, date])
+  @@index([date])
+  @@map("capacity_days")
+}
+
+/// §2.8b — kapacitet izuzet iz prodaje bez rezervacije (držanje za nepotvrđenu grupu).
+/// `reason` i `holdUntil` su OBAVEZNI: blokada bez roka je najsigurniji način da kapacitet
+/// tiho propadne. Nikad ne ulazi u M13 — nije ni prihod ni popunjenost.
+model CapacityBlock {
+  id                 String              @id @default(uuid())
+  contractPeriodId   String              @map("contract_period_id")
+  dateFrom           DateTime            @map("date_from") @db.Date
+  dateTo             DateTime            @map("date_to") @db.Date
+  units              Int
+  reason             String
+  holdUntil          DateTime            @map("hold_until")
+  status             CapacityBlockStatus @default(ACTIVE)
+  convertedBookingId String?             @map("converted_booking_id") // weak ref → M5 Booking
+  createdBy          String              @map("created_by")
+  releasedBy         String?             @map("released_by")
+  createdAt          DateTime            @default(now()) @map("created_at")
+  updatedAt          DateTime            @updatedAt @map("updated_at")
+
+  contractPeriod ContractPeriod @relation(fields: [contractPeriodId], references: [id], onDelete: Cascade)
+
+  @@index([contractPeriodId])
+  @@index([status, holdUntil])
+  @@map("capacity_blocks")
+}
+
+// M3 spec §2.3d (8.9.2026) — gašenje perioda umesto brisanja kad ima rezervacije.
+enum ContractPeriodStatus {
+  ACTIVE
+  INACTIVE
 }
 
 enum AllotmentMode {

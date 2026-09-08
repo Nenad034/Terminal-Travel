@@ -1,7 +1,8 @@
-import { Body, Controller, Get, Param, Post, Put, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Put, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { ContractPeriodsService } from './contract-periods.service';
 import { CreateContractPeriodDto } from './dto/create-contract-period.dto';
+import { UpdateContractPeriodDto } from './dto/update-contract-period.dto';
 import { UpsertRateLineDto } from './dto/upsert-rate-line.dto';
 import { UpsertCancellationRuleDto } from './dto/upsert-cancellation-rule.dto';
 import { UpsertOfferDto } from './dto/upsert-offer.dto';
@@ -40,6 +41,24 @@ export class ContractPeriodsController {
   @RequirePermission('M3', 'contract-period', 'VIEW')
   findOne(@Param('periodId') periodId: string) {
     return this.periods.findOne(periodId);
+  }
+
+  // §2.3d (v1.16) — do 8.9.2026 period se mogao samo napraviti; izmena i gašenje nisu
+  // postojali, iako dozvola `M3/contract-period/EDIT` stoji u spec §5 od prve verzije.
+  @Patch('contracts/:contractId/periods/:periodId')
+  @RequirePermission('M3', 'contract-period', 'EDIT')
+  update(
+    @Param('periodId') periodId: string,
+    @Body() dto: UpdateContractPeriodDto,
+    @CurrentUser() actor: { userId: string },
+  ) {
+    return this.periods.update(periodId, dto, actor.userId);
+  }
+
+  @Delete('contracts/:contractId/periods/:periodId')
+  @RequirePermission('M3', 'contract-period', 'EDIT')
+  remove(@Param('periodId') periodId: string, @CurrentUser() actor: { userId: string }) {
+    return this.periods.remove(periodId, actor.userId);
   }
 
   @Get('contracts/:contractId/periods/:periodId/rates')

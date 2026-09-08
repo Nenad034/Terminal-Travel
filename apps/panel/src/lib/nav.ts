@@ -115,6 +115,16 @@ export const NAV_ITEMS: NavItem[] = [
     implemented: true,
   },
   {
+    // M17 spec §4b (8.9.2026) — mreža kapaciteta po danima nad M3 §2.8.
+    id: 'kapaciteti',
+    label: 'Kapaciteti',
+    icon: 'calendar',
+    href: '/kapaciteti',
+    permission: { module: 'M3', resource: 'capacity', action: 'VIEW' },
+    phase: 1,
+    implemented: true,
+  },
+  {
     id: 'pretraga',
     label: 'Pretraga i rezervacije',
     icon: 'search',
@@ -337,7 +347,7 @@ export const NAV_GROUPS: NavGroup[] = [
     id: 'katalog-nabavka',
     label: 'Katalog i nabavka',
     icon: 'package',
-    itemIds: ['katalog', 'destinacije', 'dobavljaci'],
+    itemIds: ['katalog', 'destinacije', 'dobavljaci', 'kapaciteti'],
   },
   {
     id: 'klijenti-partneri',

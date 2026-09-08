@@ -1,4 +1,4 @@
-import { AgentActionTier, PrismaClient } from '@prisma/client';
+import { AgentActionTier, AllotmentMode, PrismaClient } from '@prisma/client';
 import * as argon2 from 'argon2';
 import { randomBytes } from 'node:crypto';
 import { SYSTEM_ROLES } from '../../src/modules/m1-core-identitet/roles/system-roles.constants';
@@ -232,6 +232,28 @@ const M3_PERMISSIONS: { module: string; resource: string; action: string; descri
       resource: 'contract-period',
       action: 'EDIT',
       description: 'Izmena cena/alotmana/rokova perioda',
+    },
+    // §2.8/§5 (v1.15, 8.9.2026) — mreža kapaciteta po danima. `CLOSE_SALE` je namerno odvojena
+    // od `contract-period/EDIT`: zatvaranje prodaje je prenos informacije od dobavljača i
+    // dodeljuje se pojedinačno po korisniku (vlasnikova odluka: "svako kome to dozvolimo"),
+    // dok je `BLOCK` prodajna radnja (držanje za klijenta).
+    {
+      module: 'M3',
+      resource: 'capacity',
+      action: 'VIEW',
+      description: 'Mreža kapaciteta po danima (kapacitet/prodato/blokirano/slobodno)',
+    },
+    {
+      module: 'M3',
+      resource: 'capacity',
+      action: 'CLOSE_SALE',
+      description: 'Zatvaranje i ponovno otvaranje prodaje za datum (stop-sale)',
+    },
+    {
+      module: 'M3',
+      resource: 'capacity',
+      action: 'BLOCK',
+      description: 'Blokada kapaciteta za nepotvrđenu grupu (razlog i rok obavezni)',
     },
     {
       module: 'M3',
@@ -1460,6 +1482,10 @@ const DEFAULT_ROLE_PERMISSIONS: Record<
     { module: 'M24', resource: 'leave-record', action: 'CREATE' },
   ],
   [SYSTEM_ROLES.SALES_MANAGER]: [
+    // M3 §5 (8.9.2026) — prodaja gleda mrežu kapaciteta svakodnevno i drži kapacitet za grupe;
+    // zatvaranje prodaje (CLOSE_SALE) NIJE ovde — dodeljuje se pojedinačno, po osobi.
+    { module: 'M3', resource: 'capacity', action: 'VIEW' },
+    { module: 'M3', resource: 'capacity', action: 'BLOCK' },
     { module: 'M2', resource: 'product', action: 'VIEW' },
     { module: 'M3', resource: 'supplier', action: 'VIEW' },
     { module: 'M3', resource: 'supplier-contact', action: 'VIEW' },
@@ -1554,6 +1580,7 @@ const DEFAULT_ROLE_PERMISSIONS: Record<
     { module: 'M23', resource: 'article-revision', action: 'APPROVE' },
   ],
   [SYSTEM_ROLES.PRODAJNI_AGENT]: [
+    { module: 'M3', resource: 'capacity', action: 'VIEW' },
     { module: 'M2', resource: 'product', action: 'VIEW' },
     { module: 'M3', resource: 'supplier', action: 'VIEW' },
     { module: 'M3', resource: 'contract-period', action: 'VIEW' },
@@ -1909,6 +1936,7 @@ async function main() {
   await seedM22SupplierUnifiedInbox();
   await seedM23KnowledgeAgent();
   await seedM5CalendarMockBookings();
+  await seedM3CapacityGridMock();
   await seedM10Banks();
   await seedBootstrapVlasnik();
 
@@ -2962,3 +2990,301 @@ main()
   .finally(async () => {
     await prisma.$disconnect();
   });
+
+// M3 spec §2.8 / M17 spec §4b (8.9.2026, na zahtev vlasnika: "ubacite na kraju mock podatke
+// kako bih video kako izgleda") — vizuelni mock za ekran „Kapaciteti", ISKLJUČIVO za lokalni
+// pregled, ne test podaci za e2e.
+//
+// Zašto sopstveni skup, a ne postojeći `TT-MOCK-CAL-` iz kalendara: mreža kapaciteta računa
+// prodato preko lanca `BookingItem → RateLine → ContractPeriod` (§2.8c), pa mock mora da ima
+// pun lanac ugovor → period → cenovna stavka → rezervacija. Kalendarski mock ide direktno na
+// proizvod, bez ugovora, i u mreži se ne bi video uopšte.
+//
+// Idempotentno preko prefiksa `TT-MOCK-CAP-` u `contract_number` (drugo pokretanje ne pravi
+// duplikate, zamka 5.3). Datumi su OFFSET od stvarnog „danas" — mock ostaje u tekućem mesecu
+// bez obzira kad se seed pokrene.
+async function seedM3CapacityGridMock() {
+  const clientAccount = await prisma.clientAccount.findFirst({ select: { id: true } });
+  const markupRule = await prisma.markupRule.findFirst({ select: { id: true } });
+  if (!clientAccount || !markupRule) {
+    console.log('seedM3CapacityGridMock: preskočeno (nema ClientAccount/MarkupRule)');
+    return;
+  }
+
+  const danas = new Date();
+  const prviUMesecu = new Date(Date.UTC(danas.getUTCFullYear(), danas.getUTCMonth(), 1));
+  const dan = (offset: number) =>
+    new Date(prviUMesecu.getTime() + offset * 24 * 60 * 60 * 1000);
+
+  const HOTELI: {
+    hotel: string;
+    grad: string;
+    zemlja: string;
+    zvezdice: number;
+    sobe: { code: string; naziv: string; kapacitet: number; mod: AllotmentMode }[];
+  }[] = [
+    {
+      hotel: 'Hotel Sun Resort',
+      grad: 'Herceg Novi',
+      zemlja: 'Crna Gora',
+      zvezdice: 4,
+      sobe: [
+        { code: 'DBL', naziv: 'Dvokrevetna', kapacitet: 12, mod: 'FIXED' },
+        { code: 'SUITE', naziv: 'Apartman', kapacitet: 12, mod: 'FIXED' },
+        { code: 'STUDIO', naziv: 'Studio', kapacitet: 12, mod: 'FIXED' },
+      ],
+    },
+    {
+      hotel: 'Hotel Splendid',
+      grad: 'Budva',
+      zemlja: 'Crna Gora',
+      zvezdice: 5,
+      sobe: [
+        { code: 'SUP', naziv: 'Superior soba', kapacitet: 12, mod: 'FIXED_LEASE' },
+        { code: 'PREM', naziv: 'Premium apartman', kapacitet: 12, mod: 'FIXED_LEASE' },
+      ],
+    },
+    {
+      hotel: 'Hotel Budva',
+      grad: 'Budva',
+      zemlja: 'Crna Gora',
+      zvezdice: 4,
+      sobe: [{ code: 'STD', naziv: 'Standardna', kapacitet: 24, mod: 'ON_REQUEST' }],
+    },
+  ];
+
+  let napravljenoPerioda = 0;
+  let napravljenoRezervacija = 0;
+  const periodiPoKljucu = new Map<string, { id: string; rateLineId: string }>();
+
+  for (const [i, h] of HOTELI.entries()) {
+    const contractNumber = `TT-MOCK-CAP-${String(i + 1).padStart(2, '0')}`;
+    const postojeci = await prisma.contract.findFirst({ where: { contractNumber } });
+
+    const supplier =
+      (await prisma.supplier.findFirst({ where: { taxId: `MOCK-CAP-${i + 1}` } })) ??
+      (await prisma.supplier.create({
+        data: {
+          name: `${h.hotel} d.o.o.`,
+          type: 'HOTEL',
+          taxId: `MOCK-CAP-${i + 1}`,
+          registrationNumber: `MOCK-CAP-REG-${i + 1}`,
+          contactName: 'Recepcija',
+          country: h.zemlja,
+          contactEmail: `prodaja@mock-${i + 1}.local`,
+          contactPhone: '+382 00 000 000',
+          status: 'ACTIVE',
+        },
+      }));
+
+    const contract =
+      postojeci ??
+      (await prisma.contract.create({
+        data: {
+          supplierId: supplier.id,
+          contractNumber,
+          currency: 'EUR',
+          validFrom: dan(-90),
+          validTo: dan(300),
+          cancellationTermsSummary: 'Mock ugovor za prikaz mreže kapaciteta.',
+          documentUrl: 'https://example.invalid/mock-ugovor.pdf',
+          status: 'ACTIVE',
+          defaultTipNastupanja: 'ORGANIZATOR',
+          commissionModel: 'NET',
+        },
+      }));
+
+    // M2 proizvod — mreža iz njega čita naziv hotela i destinaciju (§4b.1 red = hotel).
+    const product = await prisma.product.upsert({
+      where: { id: `mock-cap-product-${i + 1}` },
+      update: {},
+      create: {
+        id: `mock-cap-product-${i + 1}`,
+        type: 'ACCOMMODATION',
+        sourceType: 'CONTRACTED',
+        sourceContractId: contract.id,
+        supplierId: supplier.id,
+        destinationCountry: h.zemlja,
+        destinationCity: h.grad,
+        status: 'ACTIVE',
+        visibleChannels: ['B2C_SITE', 'B2B_PORTAL'],
+        attributes: {
+          stars: h.zvezdice,
+          room_types: h.sobe.map((s) => ({ code: s.code, name: s.naziv, max_occupancy: 3 })),
+        },
+        translations: {
+          create: [
+            {
+              languageCode: 'sr',
+              name: h.hotel,
+              description: `${h.hotel}, ${h.grad} — mock zapis za prikaz mreže kapaciteta.`,
+              slug: `mock-cap-${i + 1}`,
+            },
+          ],
+        },
+      },
+    });
+
+    for (const soba of h.sobe) {
+      const kljuc = `${contractNumber}|${soba.code}`;
+      let period = await prisma.contractPeriod.findFirst({
+        where: { contractId: contract.id, roomType: soba.code },
+      });
+      if (!period) {
+        period = await prisma.contractPeriod.create({
+          data: {
+            contractId: contract.id,
+            stayFrom: dan(-15),
+            stayTo: dan(75),
+            roomType: soba.code,
+            allotmentMode: soba.mod,
+            totalCapacity: soba.mod === 'ON_REQUEST' ? null : soba.kapacitet,
+            releaseDaysBefore: soba.mod === 'FIXED' ? 21 : null,
+            ukupnaFiksnaObaveza: soba.mod === 'FIXED_LEASE' ? 4_500_000 : null,
+            fixedObligationCurrency: soba.mod === 'FIXED_LEASE' ? 'EUR' : null,
+          },
+        });
+        napravljenoPerioda += 1;
+      }
+      let rateLine = await prisma.rateLine.findFirst({
+        where: { contractPeriodId: period.id },
+      });
+      if (!rateLine) {
+        rateLine = await prisma.rateLine.create({
+          data: {
+            contractPeriodId: period.id,
+            boardType: 'HB',
+            occupancy: '2+0',
+            priceBasis: 'PER_ROOM_PER_NIGHT',
+            price: 9_000,
+          },
+        });
+      }
+      periodiPoKljucu.set(kljuc, { id: period.id, rateLineId: rateLine.id });
+    }
+
+    // Rezervacije — različita popunjenost po sobi i danu, da se u mreži vide sva tri stanja
+    // (zeleno/narandžasto/crveno), a ne jedna ista boja kroz ceo mesec.
+    const REZERVACIJE: { soba: string; od: number; do: number; jedinica: number }[] = [
+      { soba: h.sobe[0].code, od: 4, do: 11, jedinica: 6 },
+      { soba: h.sobe[0].code, od: 8, do: 15, jedinica: 5 },
+      { soba: h.sobe[0].code, od: 12, do: 19, jedinica: 1 },
+      ...(h.sobe[1]
+        ? [
+            { soba: h.sobe[1].code, od: 6, do: 13, jedinica: 10 },
+            { soba: h.sobe[1].code, od: 14, do: 21, jedinica: 4 },
+          ]
+        : []),
+      ...(h.sobe[2] ? [{ soba: h.sobe[2].code, od: 9, do: 16, jedinica: 3 }] : []),
+    ];
+
+    for (const [j, r] of REZERVACIJE.entries()) {
+      const bookingNumber = `TT-MOCK-CAP-${String(i + 1).padStart(2, '0')}-${String(j + 1).padStart(2, '0')}`;
+      const postoji = await prisma.booking.findUnique({ where: { bookingNumber } });
+      if (postoji) continue;
+      const veza = periodiPoKljucu.get(`${contractNumber}|${r.soba}`);
+      if (!veza) continue;
+
+      const staffUser = await prisma.user.findFirst({ where: { accountType: 'STAFF' } });
+      const booking = await prisma.booking.create({
+        data: {
+          bookingNumber,
+          createdBy: staffUser!.id,
+          clientAccountId: clientAccount.id,
+          buyerName: `Mock kupac ${j + 1}`,
+          buyerType: 'FIZICKO_LICE',
+          channel: 'INTERNAL_PANEL',
+          tipNastupanja: 'ORGANIZATOR',
+          status: 'CONFIRMED',
+          paymentStatus: 'UNPAID',
+          totalPrice: r.jedinica * 9_000 * (r.do - r.od),
+          currency: 'EUR',
+        },
+      });
+      await prisma.bookingItem.create({
+        data: {
+          bookingId: booking.id,
+          productId: product.id,
+          sourceType: 'CONTRACTED',
+          supplierReference: bookingNumber,
+          stayFrom: dan(r.od),
+          stayTo: dan(r.do),
+          baseCost: r.jedinica * 9_000 * (r.do - r.od),
+          baseCostCurrency: 'EUR',
+          rateLineId: veza.rateLineId,
+          markupRuleId: markupRule.id,
+          finalPrice: Math.round(r.jedinica * 9_000 * (r.do - r.od) * 1.15),
+          finalPriceCurrency: 'EUR',
+          itemStatus: 'CONFIRMED',
+          unitCount: r.jedinica,
+        },
+      });
+      napravljenoRezervacija += 1;
+    }
+  }
+
+  // Tri stanja koja se inače ne vide bez unosa: stop-sale, blokada i prekoračenje.
+  const splendidSup = periodiPoKljucu.get('TT-MOCK-CAP-02|SUP');
+  const sunDbl = periodiPoKljucu.get('TT-MOCK-CAP-01|DBL');
+  const budvaStd = periodiPoKljucu.get('TT-MOCK-CAP-03|STD');
+
+  if (splendidSup) {
+    // Stop-sale na fiksnom zakupu — kapacitet ostaje plaćen, prodaja stoji (§2.8a ograda).
+    for (const offset of [17, 18, 19]) {
+      await prisma.capacityDay.upsert({
+        where: {
+          contractPeriodId_date: { contractPeriodId: splendidSup.id, date: dan(offset) },
+        },
+        update: {},
+        create: {
+          contractPeriodId: splendidSup.id,
+          date: dan(offset),
+          saleStatus: 'STOP',
+          stopReason: 'Hotel prima kongres — zatvorena prodaja',
+          stopSource: 'SUPPLIER_EMAIL',
+          stopSetAt: new Date(),
+        },
+      });
+    }
+    // Prekoračenje: kapacitet spušten ispod prodatog za jedan dan (prikaz sa minusom).
+    await prisma.capacityDay.upsert({
+      where: { contractPeriodId_date: { contractPeriodId: splendidSup.id, date: dan(8) } },
+      update: {},
+      create: { contractPeriodId: splendidSup.id, date: dan(8), capacityOverride: 8 },
+    });
+  }
+
+  if (sunDbl) {
+    const postojiBlokada = await prisma.capacityBlock.findFirst({
+      where: { contractPeriodId: sunDbl.id, reason: { startsWith: 'Grupa OŠ' } },
+    });
+    if (!postojiBlokada) {
+      await prisma.capacityBlock.create({
+        data: {
+          contractPeriodId: sunDbl.id,
+          dateFrom: dan(20),
+          dateTo: dan(24),
+          units: 4,
+          reason: 'Grupa OŠ Vuk Karadžić — čeka odluku škole',
+          holdUntil: new Date(Date.now() + 6 * 24 * 60 * 60 * 1000),
+          createdBy: (await prisma.user.findFirst({ where: { accountType: 'STAFF' } }))!.id,
+        },
+      });
+    }
+  }
+
+  if (budvaStd) {
+    // Dan sa smanjenim kapacitetom (dobavljač javio manje soba za vikend).
+    for (const offset of [11, 12]) {
+      await prisma.capacityDay.upsert({
+        where: { contractPeriodId_date: { contractPeriodId: budvaStd.id, date: dan(offset) } },
+        update: {},
+        create: { contractPeriodId: budvaStd.id, date: dan(offset), capacityOverride: 6 },
+      });
+    }
+  }
+
+  console.log(
+    `seedM3CapacityGridMock: ${HOTELI.length} hotela, ${napravljenoPerioda} novih perioda, ${napravljenoRezervacija} novih rezervacija (mreža kapaciteta)`,
+  );
+}

@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { useFormStatus } from 'react-dom';
 import { useActionState } from 'react';
-import { createPeriod, FormState } from '../actions';
+import { createPeriod, updatePeriod, deletePeriod, FormState } from '../actions';
 import { ButtonGroup, ToggleButton } from '@/components/ButtonGroup';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -26,6 +26,8 @@ export interface AgePolicyOverrideEntry {
 
 export interface ContractPeriod {
   id: string;
+  /** §2.3d — ugašen period ostaje osnov postojećih rezervacija, ali ne prima nove. */
+  status?: 'ACTIVE' | 'INACTIVE';
   stayFrom: string;
   stayTo: string;
   roomType: string;
@@ -82,30 +84,206 @@ export default function PeriodsPanel({
 
       <div className="flex flex-col gap-1.5">
         {periods.map((p) => (
-          <Link
-            key={p.id}
-            href={`/ugovori/${contractId}/periods/${p.id}`}
-            className="flex items-center justify-between rounded-lg border border-border bg-panel2 px-3 py-2 text-xs hover:border-accent"
-          >
-            <div>
-              <span className="font-medium text-ink">{p.roomType}</span>
-              <span className="ml-2 text-ink-faint">
-                {new Date(p.stayFrom).toLocaleDateString('sr-RS')} –{' '}
-                {new Date(p.stayTo).toLocaleDateString('sr-RS')}
-              </span>
-              {p.totalCapacity != null && (
-                <span className="ml-2 text-ink-faint">
-                  · {p.unitsSold}/{p.totalCapacity} prodato
-                </span>
-              )}
-            </div>
-            <Badge variant="secondary">{MODE_LABELS[p.allotmentMode]}</Badge>
-          </Link>
+          <PeriodRow key={p.id} contractId={contractId} period={p} canEdit={canEdit} />
         ))}
       </div>
 
       {showForm && canEdit && <NewPeriodForm contractId={contractId} />}
     </div>
+  );
+}
+
+// §2.3d (8.9.2026) — red perioda sa izmenom i gašenjem. Do ove verzije period se mogao samo
+// otvoriti (link ka cenovniku); pogrešno unet kapacitet/datum/tip sobe nije se mogao ispraviti
+// kroz aplikaciju, jer PATCH/DELETE nisu ni postojali na backend-u.
+function PeriodRow({
+  contractId,
+  period,
+  canEdit,
+}: {
+  contractId: string;
+  period: ContractPeriod;
+  canEdit: boolean;
+}) {
+  const [editing, setEditing] = useState(false);
+  const neaktivan = period.status === 'INACTIVE';
+
+  return (
+    <div
+      className={`rounded-lg border border-border bg-panel2 text-xs ${neaktivan ? 'opacity-60' : ''}`}
+    >
+      <div className="flex items-center justify-between gap-2 px-3 py-2">
+        <Link
+          href={`/ugovori/${contractId}/periods/${period.id}`}
+          className="flex-1 hover:text-accent-strong"
+        >
+          <span className="font-medium text-ink">{period.roomType}</span>
+          <span className="ml-2 text-ink-faint">
+            {new Date(period.stayFrom).toLocaleDateString('sr-RS')} –{' '}
+            {new Date(period.stayTo).toLocaleDateString('sr-RS')}
+          </span>
+          {period.totalCapacity != null && (
+            <span className="ml-2 text-ink-faint">
+              · {period.unitsSold}/{period.totalCapacity} prodato
+            </span>
+          )}
+        </Link>
+        <div className="flex items-center gap-2">
+          {neaktivan && <Badge variant="outline">ugašen</Badge>}
+          <Badge variant="secondary">{MODE_LABELS[period.allotmentMode]}</Badge>
+          {canEdit && !neaktivan && (
+            <>
+              <button
+                type="button"
+                onClick={() => setEditing((v) => !v)}
+                className="rounded px-2 py-1 text-[11px] text-accent-strong hover:bg-sunken"
+              >
+                {editing ? 'Odustani' : 'Izmeni'}
+              </button>
+              <DeletePeriodButton contractId={contractId} period={period} />
+            </>
+          )}
+        </div>
+      </div>
+      {editing && (
+        <EditPeriodForm contractId={contractId} period={period} onDone={() => setEditing(false)} />
+      )}
+    </div>
+  );
+}
+
+function EditPeriodForm({
+  contractId,
+  period,
+  onDone,
+}: {
+  contractId: string;
+  period: ContractPeriod;
+  onDone: () => void;
+}) {
+  const boundAction = updatePeriod.bind(null, contractId, period.id);
+  const [state, formAction] = useActionState(boundAction, initialState);
+  // Backend odbija smanjenje ispod prodatog dok se ne potvrdi drugi put (§2.3d) — poruku
+  // prepoznajemo po tome što nosi "bez pokrića", i pretvaramo je u pitanje sa drugim dugmetom.
+  const trebaPotvrda = Boolean(state.error?.includes('bez pokrića'));
+
+  return (
+    <form action={formAction} className="flex flex-col gap-3 border-t border-border p-3">
+      {state.error && (
+        <p
+          className={`rounded p-2 ${trebaPotvrda ? 'bg-warn-bg text-warn' : 'bg-danger-bg text-danger'}`}
+        >
+          {state.error}
+        </p>
+      )}
+
+      <div className="grid grid-cols-3 gap-3">
+        <Field label="Period boravka od">
+          <DateField name="stayFrom" required defaultValue={period.stayFrom.slice(0, 10)} />
+        </Field>
+        <Field label="Period boravka do">
+          <DateField name="stayTo" required defaultValue={period.stayTo.slice(0, 10)} />
+        </Field>
+        <Field label="Šifra tipa sobe">
+          <input name="roomType" required className="input" defaultValue={period.roomType} />
+        </Field>
+      </div>
+
+      <div className="grid grid-cols-3 gap-3">
+        {period.allotmentMode !== 'ON_REQUEST' && (
+          <Field label={`Ukupan kapacitet (prodato: ${period.unitsSold})`}>
+            <input
+              name="totalCapacity"
+              type="number"
+              min={0}
+              className="input"
+              defaultValue={period.totalCapacity ?? ''}
+            />
+          </Field>
+        )}
+        <Field label="Minimalan broj noćenja">
+          <input
+            name="minStayNights"
+            type="number"
+            min={1}
+            className="input"
+            defaultValue={period.minStayNights ?? ''}
+          />
+        </Field>
+        <Field label="Maksimalan broj noćenja">
+          <input
+            name="maxStayNights"
+            type="number"
+            min={1}
+            className="input"
+            defaultValue={period.maxStayNights ?? ''}
+          />
+        </Field>
+      </div>
+
+      {trebaPotvrda && <input type="hidden" name="confirmOversold" value="da" />}
+
+      <div className="flex items-center gap-2">
+        <AkcijaDugme label={trebaPotvrda ? 'Ipak sačuvaj (znam za prekoračenje)' : 'Sačuvaj'} />
+        <button
+          type="button"
+          onClick={onDone}
+          className="rounded px-3 py-1.5 text-[11px] text-ink-dim hover:bg-sunken"
+        >
+          Zatvori
+        </button>
+      </div>
+    </form>
+  );
+}
+
+function DeletePeriodButton({
+  contractId,
+  period,
+}: {
+  contractId: string;
+  period: ContractPeriod;
+}) {
+  const boundAction = deletePeriod.bind(null, contractId, period.id);
+  const [state, formAction] = useActionState(boundAction, initialState);
+  const [potvrda, setPotvrda] = useState(false);
+
+  if (!potvrda) {
+    return (
+      <button
+        type="button"
+        onClick={() => setPotvrda(true)}
+        className="rounded px-2 py-1 text-[11px] text-danger hover:bg-danger-bg"
+      >
+        Ugasi
+      </button>
+    );
+  }
+
+  return (
+    <form action={formAction} className="flex items-center gap-1">
+      {state.error && <span className="text-[11px] text-danger">{state.error}</span>}
+      <span className="text-[11px] text-ink-faint">
+        {period.unitsSold > 0 ? 'Ima rezervacije — biće ugašen' : 'Nema rezervacija — briše se'}
+      </span>
+      <AkcijaDugme label="Potvrdi" />
+      <button
+        type="button"
+        onClick={() => setPotvrda(false)}
+        className="rounded px-2 py-1 text-[11px] text-ink-dim hover:bg-sunken"
+      >
+        Ne
+      </button>
+    </form>
+  );
+}
+
+function AkcijaDugme({ label }: { label: string }) {
+  const { pending } = useFormStatus();
+  return (
+    <Button type="submit" size="sm" disabled={pending}>
+      {pending ? 'Čuvam…' : label}
+    </Button>
   );
 }
 

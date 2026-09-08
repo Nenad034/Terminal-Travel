@@ -9,6 +9,7 @@ import { UpsertCancellationRuleDto } from './dto/upsert-cancellation-rule.dto';
 import { UpsertOfferDto } from './dto/upsert-offer.dto';
 import { UpsertAncillaryServiceDto } from './dto/upsert-ancillary-service.dto';
 import { UpsertTouristTaxDto } from './dto/upsert-tourist-tax.dto';
+import { UpdateContractPeriodDto } from './dto/update-contract-period.dto';
 import { assertNoContractPeriodOverlap } from './overlap';
 
 const CAPACITY_BEARING_MODES: AllotmentMode[] = ['FIXED', 'CHARTER', 'FIXED_LEASE'];
@@ -74,6 +75,152 @@ export class ContractPeriodsService {
       context: { contractId },
     });
     return period;
+  }
+
+  /**
+   * §2.3d — izmena postojećeg perioda.
+   *
+   * Dva pravila koja ova metoda sprovodi, oba iz specifikacije:
+   *  1. promena datuma ili tipa sobe PONOVO prolazi kroz proveru preklapanja (§2.3b) — izmenom
+   *     se lako napravi sukob koji pri unosu nije postojao;
+   *  2. smanjenje kapaciteta ispod već prodatog se NE odbija (vlasnikova odluka 8.9.2026), ali
+   *     traži svesnu drugu potvrdu (`confirmOversold`), i tada emituje `capacity_oversold`.
+   *     Nijedna postojeća rezervacija se pri tom ne dira — koga premestiti je ljudska odluka.
+   */
+  async update(periodId: string, dto: UpdateContractPeriodDto, actorId: string) {
+    const before = await this.prisma.contractPeriod.findUnique({ where: { id: periodId } });
+    if (!before) throw new NotFoundException('Period nije pronađen');
+
+    const stayFrom = dto.stayFrom ? new Date(dto.stayFrom) : before.stayFrom;
+    const stayTo = dto.stayTo ? new Date(dto.stayTo) : before.stayTo;
+    const roomType = dto.roomType ?? before.roomType;
+
+    if (stayFrom >= stayTo) {
+      throw new BadRequestException('Period boravka „od" mora biti pre „do"');
+    }
+
+    const datesOrRoomChanged =
+      stayFrom.getTime() !== before.stayFrom.getTime() ||
+      stayTo.getTime() !== before.stayTo.getTime() ||
+      roomType !== before.roomType;
+    if (datesOrRoomChanged) {
+      await assertNoContractPeriodOverlap(
+        this.prisma,
+        before.contractId,
+        roomType,
+        stayFrom,
+        stayTo,
+        periodId,
+      );
+    }
+
+    // Prodato se ne čita iz `units_sold` nego se poredi sa njim: `units_sold` je period-nivo
+    // brojač (§2.8c) i za ovu proveru je tačno ono što treba — koliko je jedinica već obećano.
+    const nextCapacity =
+      dto.totalCapacity === undefined ? before.totalCapacity : dto.totalCapacity;
+    const oversoldBy =
+      nextCapacity !== null && nextCapacity !== undefined ? before.unitsSold - nextCapacity : 0;
+
+    if (oversoldBy > 0 && !dto.confirmOversold) {
+      throw new BadRequestException(
+        `Kapacitet ${nextCapacity} je manji od već prodatih ${before.unitsSold} jedinica — ` +
+          `${oversoldBy} ${oversoldBy === 1 ? 'jedinica ostaje' : 'jedinice/jedinica ostaju'} bez pokrića. ` +
+          'Izmena je moguća, ali zahteva izričitu potvrdu (M3 spec §2.3d).',
+      );
+    }
+
+    const period = await this.prisma.contractPeriod.update({
+      where: { id: periodId },
+      data: {
+        stayFrom: dto.stayFrom ? stayFrom : undefined,
+        stayTo: dto.stayTo ? stayTo : undefined,
+        roomType: dto.roomType,
+        allotmentMode: dto.allotmentMode,
+        totalCapacity: dto.totalCapacity,
+        releaseDaysBefore: dto.releaseDaysBefore,
+        ukupnaFiksnaObaveza: dto.ukupnaFiksnaObaveza,
+        fixedObligationCurrency: dto.fixedObligationCurrency,
+        minStayNights: dto.minStayNights,
+        maxStayNights: dto.maxStayNights,
+      },
+    });
+
+    await this.auditLog.write({
+      actorType: 'HUMAN',
+      actorId,
+      module: 'M3',
+      action: 'contract_period.updated',
+      resourceType: 'ContractPeriod',
+      resourceId: periodId,
+      beforeState: before,
+      afterState: period,
+      context: { oversoldBy: oversoldBy > 0 ? oversoldBy : undefined },
+    });
+
+    // §2.3d/M18 spec §2.1 — potvrđen gost ostaje bez pokrića; CRITICAL, jer se ne oslanjamo
+    // na to da neko baš tada gleda mrežu kapaciteta.
+    if (oversoldBy > 0) {
+      await this.eventBus.emit('M3', 'capacity_oversold', {
+        periodId,
+        contractId: before.contractId,
+        previousCapacity: before.totalCapacity,
+        newCapacity: nextCapacity,
+        unitsSold: before.unitsSold,
+        oversoldBy,
+        severity: 'CRITICAL',
+      });
+    }
+
+    return period;
+  }
+
+  /**
+   * §2.3d — gašenje ili brisanje perioda.
+   *
+   * Period koji ima ijednu rezervaciju se NE briše nego prelazi u `INACTIVE`: brisanje bi
+   * prekinulo vezu prodatog sa cenom i kapacitetom po kojima je prodato (`BookingItem` →
+   * `RateLine` → ovaj period). Period bez ijedne rezervacije se briše stvarno — nema šta da
+   * ostane.
+   */
+  async remove(periodId: string, actorId: string) {
+    const period = await this.prisma.contractPeriod.findUnique({ where: { id: periodId } });
+    if (!period) throw new NotFoundException('Period nije pronađen');
+
+    const bookedItems = await this.prisma.bookingItem.count({
+      where: { rateLine: { contractPeriodId: periodId } },
+    });
+
+    if (bookedItems > 0) {
+      const deactivated = await this.prisma.contractPeriod.update({
+        where: { id: periodId },
+        data: { status: 'INACTIVE', deactivatedBy: actorId, deactivatedAt: new Date() },
+      });
+      await this.auditLog.write({
+        actorType: 'HUMAN',
+        actorId,
+        module: 'M3',
+        action: 'contract_period.deactivated',
+        resourceType: 'ContractPeriod',
+        resourceId: periodId,
+        beforeState: period,
+        afterState: deactivated,
+        context: { bookedItems },
+      });
+      return { deleted: false, status: deactivated.status, bookedItems };
+    }
+
+    await this.prisma.contractPeriod.delete({ where: { id: periodId } });
+    await this.auditLog.write({
+      actorType: 'HUMAN',
+      actorId,
+      module: 'M3',
+      action: 'contract_period.deleted',
+      resourceType: 'ContractPeriod',
+      resourceId: periodId,
+      beforeState: period,
+      context: { bookedItems: 0 },
+    });
+    return { deleted: true, status: null, bookedItems: 0 };
   }
 
   // §2.4

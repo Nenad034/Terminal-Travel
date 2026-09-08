@@ -61,6 +61,66 @@ export async function createPeriod(
   return { error: null };
 }
 
+// M3 spec §2.3d (v1.16, 8.9.2026) — izmena postojećeg perioda. Backend odbija smanjenje
+// kapaciteta ispod već prodatog dok se ne pošalje `confirmOversold` — ekran tu grešku prikazuje
+// kao pitanje sa drugim dugmetom, ne kao kvar (vlasnikova odluka: dozvoliti, ali nikad slučajno).
+export async function updatePeriod(
+  contractId: string,
+  periodId: string,
+  _prev: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const num = (name: string): number | null | undefined => {
+    const raw = formData.get(name);
+    if (raw === null) return undefined;
+    const text = String(raw).trim();
+    if (text === '') return null;
+    return Number(text);
+  };
+  try {
+    await apiFetch(`/contracting/contracts/${contractId}/periods/${periodId}`, {
+      method: 'PATCH',
+      body: {
+        stayFrom: formData.get('stayFrom') || undefined,
+        stayTo: formData.get('stayTo') || undefined,
+        roomType: formData.get('roomType') || undefined,
+        totalCapacity: num('totalCapacity'),
+        releaseDaysBefore: num('releaseDaysBefore'),
+        minStayNights: num('minStayNights'),
+        maxStayNights: num('maxStayNights'),
+        confirmOversold: formData.get('confirmOversold') === 'da' ? true : undefined,
+      },
+    });
+    revalidatePath(`/ugovori/${contractId}`);
+  } catch (err) {
+    return {
+      error: err instanceof ApiError ? extractMessage(err) : 'Izmena perioda nije uspela.',
+    };
+  }
+  return { error: null };
+}
+
+// §2.3d — period sa rezervacijama se GASI (INACTIVE), bez njih se briše. Odluku donosi backend
+// (broji `BookingItem` preko `RateLine`), ekran samo prikazuje šta se desilo.
+export async function deletePeriod(
+  contractId: string,
+  periodId: string,
+  _prev: FormState,
+  _formData: FormData,
+): Promise<FormState> {
+  try {
+    await apiFetch(`/contracting/contracts/${contractId}/periods/${periodId}`, {
+      method: 'DELETE',
+    });
+    revalidatePath(`/ugovori/${contractId}`);
+  } catch (err) {
+    return {
+      error: err instanceof ApiError ? extractMessage(err) : 'Gašenje perioda nije uspelo.',
+    };
+  }
+  return { error: null };
+}
+
 export async function addRateLine(
   contractId: string,
   periodId: string,

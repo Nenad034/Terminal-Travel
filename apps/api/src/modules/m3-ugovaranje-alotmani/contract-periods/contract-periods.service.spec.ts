@@ -10,7 +10,10 @@ describe('ContractPeriodsService', () => {
         findUnique: jest.fn(),
         findUniqueOrThrow: jest.fn(),
         create: jest.fn(),
+        update: jest.fn(),
+        delete: jest.fn(),
       },
+      bookingItem: { count: jest.fn().mockResolvedValue(0) },
       rateLine: { create: jest.fn(), findMany: jest.fn() },
       cancellationRule: { create: jest.fn(), findMany: jest.fn() },
       pricelistOffer: { create: jest.fn(), findMany: jest.fn() },
@@ -452,6 +455,140 @@ describe('ContractPeriodsService', () => {
 
       const result = await service.getTouristTax('p1');
       expect(result).toBeNull();
+    });
+  });
+
+  // §2.3d (v1.16, 8.9.2026) — izmena i gašenje perioda; do te verzije nisu postojali.
+  describe('update (M3 spec §2.3d)', () => {
+    const POSTOJECI = {
+      id: 'p1',
+      contractId: 'c1',
+      roomType: 'DBL',
+      stayFrom: new Date('2027-07-01'),
+      stayTo: new Date('2027-07-31'),
+      totalCapacity: 20,
+      unitsSold: 15,
+      allotmentMode: 'FIXED',
+    };
+
+    it('menja kapacitet iznad prodatog bez ikakve potvrde', async () => {
+      const { service, prisma, eventBus } = makeService();
+      prisma.contractPeriod.findUnique.mockResolvedValue(POSTOJECI);
+      prisma.contractPeriod.update.mockResolvedValue({ ...POSTOJECI, totalCapacity: 18 });
+
+      await service.update('p1', { totalCapacity: 18 }, 'actor-1');
+
+      expect(prisma.contractPeriod.update).toHaveBeenCalledWith(
+        expect.objectContaining({ data: expect.objectContaining({ totalCapacity: 18 }) }),
+      );
+      expect(eventBus.emit).not.toHaveBeenCalled();
+    });
+
+    it('ODBIJA smanjenje ispod prodatog bez izričite potvrde, i kaže koliko ostaje bez pokrića', async () => {
+      const { service, prisma } = makeService();
+      prisma.contractPeriod.findUnique.mockResolvedValue(POSTOJECI);
+
+      await expect(service.update('p1', { totalCapacity: 12 }, 'actor-1')).rejects.toThrow(
+        /3 jedinice\/jedinica ostaju bez pokrića/,
+      );
+      expect(prisma.contractPeriod.update).not.toHaveBeenCalled();
+    });
+
+    it('DOZVOLJAVA smanjenje ispod prodatog uz confirmOversold i emituje capacity_oversold', async () => {
+      const { service, prisma, eventBus } = makeService();
+      prisma.contractPeriod.findUnique.mockResolvedValue(POSTOJECI);
+      prisma.contractPeriod.update.mockResolvedValue({ ...POSTOJECI, totalCapacity: 12 });
+
+      await service.update('p1', { totalCapacity: 12, confirmOversold: true }, 'actor-1');
+
+      expect(eventBus.emit).toHaveBeenCalledWith(
+        'M3',
+        'capacity_oversold',
+        expect.objectContaining({ oversoldBy: 3, unitsSold: 15, severity: 'CRITICAL' }),
+      );
+    });
+
+    it('ponovo proverava preklapanje kad se menjaju datumi — i isključuje sam taj period', async () => {
+      const { service, prisma } = makeService();
+      prisma.contractPeriod.findUnique.mockResolvedValue(POSTOJECI);
+      prisma.contractPeriod.findFirst.mockResolvedValue({
+        id: 'p2',
+        stayFrom: new Date('2027-08-01'),
+        stayTo: new Date('2027-08-15'),
+      });
+
+      await expect(
+        service.update('p1', { stayFrom: '2027-08-05', stayTo: '2027-08-20' }, 'actor-1'),
+      ).rejects.toThrow(/preklapa/);
+      expect(prisma.contractPeriod.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({ where: expect.objectContaining({ id: { not: 'p1' } }) }),
+      );
+    });
+
+    it('ne dira proveru preklapanja kad se menja samo kapacitet', async () => {
+      const { service, prisma } = makeService();
+      prisma.contractPeriod.findUnique.mockResolvedValue(POSTOJECI);
+      prisma.contractPeriod.update.mockResolvedValue(POSTOJECI);
+
+      await service.update('p1', { totalCapacity: 25 }, 'actor-1');
+
+      expect(prisma.contractPeriod.findFirst).not.toHaveBeenCalled();
+    });
+
+    it('odbija period kod kog bi „od" bilo posle „do"', async () => {
+      const { service, prisma } = makeService();
+      prisma.contractPeriod.findUnique.mockResolvedValue(POSTOJECI);
+
+      await expect(
+        service.update('p1', { stayFrom: '2027-07-31', stayTo: '2027-07-01' }, 'actor-1'),
+      ).rejects.toBeInstanceOf(BadRequestException);
+    });
+
+    it('nepostojeći period daje 404', async () => {
+      const { service, prisma } = makeService();
+      prisma.contractPeriod.findUnique.mockResolvedValue(null);
+
+      await expect(service.update('nema', { totalCapacity: 5 }, 'actor-1')).rejects.toBeInstanceOf(
+        NotFoundException,
+      );
+    });
+  });
+
+  describe('remove (M3 spec §2.3d — gašenje umesto brisanja)', () => {
+    const POSTOJECI = { id: 'p1', contractId: 'c1', roomType: 'DBL', unitsSold: 0 };
+
+    it('period SA rezervacijama se gasi (INACTIVE), ne briše', async () => {
+      const { service, prisma } = makeService();
+      prisma.contractPeriod.findUnique.mockResolvedValue(POSTOJECI);
+      prisma.bookingItem.count.mockResolvedValue(4);
+      prisma.contractPeriod.update.mockResolvedValue({ ...POSTOJECI, status: 'INACTIVE' });
+
+      const rezultat = await service.remove('p1', 'actor-1');
+
+      expect(prisma.contractPeriod.delete).not.toHaveBeenCalled();
+      expect(rezultat).toEqual({ deleted: false, status: 'INACTIVE', bookedItems: 4 });
+    });
+
+    it('period BEZ rezervacija se stvarno briše', async () => {
+      const { service, prisma } = makeService();
+      prisma.contractPeriod.findUnique.mockResolvedValue(POSTOJECI);
+      prisma.bookingItem.count.mockResolvedValue(0);
+
+      const rezultat = await service.remove('p1', 'actor-1');
+
+      expect(prisma.contractPeriod.delete).toHaveBeenCalledWith({ where: { id: 'p1' } });
+      expect(rezultat.deleted).toBe(true);
+    });
+
+    it('broji rezervacije preko RateLine veze, ne po periodu direktno', async () => {
+      const { service, prisma } = makeService();
+      prisma.contractPeriod.findUnique.mockResolvedValue(POSTOJECI);
+
+      await service.remove('p1', 'actor-1');
+
+      expect(prisma.bookingItem.count).toHaveBeenCalledWith({
+        where: { rateLine: { contractPeriodId: 'p1' } },
+      });
     });
   });
 });
