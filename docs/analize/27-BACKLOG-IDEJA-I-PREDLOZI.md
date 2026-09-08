@@ -491,8 +491,6 @@ _(§10, `docs/moduli/M23-znanje/28-SPECIFIKACIJA-M23-ZNANJE.md` — backend impl
 
 _(§8, `docs/moduli/M24-ljudski-resursi/43-SPECIFIKACIJA-M24-LJUDSKI-RESURSI.md` — nacrt, kod nije pisan)_
 
-- Da li `REFERENT_PRODAJE` ima stvarno uži skup RBAC dozvola od `PRODAJNI_AGENT` (npr. bez izmene cene/otkazivanja bez odobrenja), ili je čisto organizaciona titula bez uticaja na pristup — pretpostavka upisana u spec, čeka vlasnikovu potvrdu.
-- Pravo skladište fajla ugovora o radu (MVP čuva samo URL-referencu, ne fajl) — ista vrsta odluke kao logo-upload (namerno van obima, M1 spec §3.9c), čeka izbor skladišta (S3-kompatibilan servis, EU rezidencija).
 - Formalni workflow odobravanja odsustva (zaposleni podnosi zahtev → rukovodilac odobrava) — v1 je ručna evidencija.
 - GDPR/Zakon o zaštiti podataka — tačan rok čuvanja HR dosijea posle prestanka radnog odnosa i procedura brisanja/anonimizacije — pravno pitanje, čeka potvrdu pravnika/knjigovođe.
 - Prikazni (čitljiv) naziv uloge u UI umesto doslovnog imena konstante (npr. "Samostalni referent prodaje" umesto `PRODAJNI_AGENT` na bedžu) — mala, nezavisna UI izmena.
