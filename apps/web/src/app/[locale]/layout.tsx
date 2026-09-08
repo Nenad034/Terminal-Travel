@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages, setRequestLocale } from 'next-intl/server';
 import { notFound } from 'next/navigation';
@@ -9,6 +9,14 @@ import { getAgency } from '@/lib/agency';
 export function generateStaticParams() {
   return locales.map((locale) => ({ locale }));
 }
+
+// Sajt je samo svetli mod (8.9.2026, vlasnikov zahtev: "tamni mod na sajtu isključite") —
+// `globals.css` više nema @media (prefers-color-scheme: dark) blok, ovo dodatno kaže
+// pregledaču da i sopstvene kontrole (padajuće liste, scrollbar, forme) ostanu svetle bez
+// obzira na OS podešavanje, ne samo naš CSS.
+export const viewport: Viewport = {
+  colorScheme: 'light',
+};
 
 // M1 spec §3.9c — naziv dolazi iz podešavanja agencije, ne iz koda. Zato `generateMetadata`
 // (funkcija) umesto statičnog `metadata` objekta: naslov se računa pri zahtevu.

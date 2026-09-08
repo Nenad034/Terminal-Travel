@@ -54,6 +54,9 @@ const config: Config = {
           'Arial',
           'sans-serif',
         ],
+        // Isti font kao panelov logo natpis (`apps/panel/tailwind.config.ts`) — vidi
+        // globals.css uz @import. Isključivo za BrandMark.tsx.
+        brand: ['"Chakra Petch"', 'ui-monospace', 'Consolas', 'monospace'],
       },
     },
   },

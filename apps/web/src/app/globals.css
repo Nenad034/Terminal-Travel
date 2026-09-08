@@ -1,23 +1,27 @@
+/* Chakra Petch (700) — ISTI font kao panelov logo natpis (`apps/panel/src/app/globals.css`,
+   `--font-brand`), učitan ovde iz istog razloga: "logo agencije na sajtu treba da bude
+   identičan onom u aplikaciji" (8.9.2026). Koristi se ISKLJUČIVO za logo (`BrandMark.tsx`),
+   ne menja `sans` stek korišćen svuda drugde na sajtu. */
+@import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Svetli mod PREUZET iz panela (M17), na vlasnikov zahtev (8.9.2026): "boje sajta sada
-   prilagodite light modu aplikacije". Paleta "Zalazak" (M8 spec §1a, amber/krem) OSTAJE u
-   tamnom modu ispod — vlasnik je tražio samo svetli, tamni nije pomenut, pa se ne menja dok
-   se to izričito ne zatraži (isti obrazac kao svaka druga delimična izmena bez potvrde da ide
-   dalje). Posledica: sajt sada ima RAZLIČIT prelaz svetlo→tamno od panela (panel ide plavo→crno
-   zinc, sajt sada plavo→amber) — ako to smeta, sledeći korak je uskladiti i tamni mod, ali to
-   traži novu vlasnikovu potvrdu, ne pretpostavku.
+/* Sajt je SAMO svetli mod (8.9.2026, vlasnikov zahtev: "tamni mod na sajtu isključite") —
+   nastavak prethodne izmene istog dana koja je svetli mod preuzela iz panela ("Azur +
+   Svetionik", puno obrazloženje i izmerene vrednosti u `apps/panel/src/app/globals.css`
+   `:root`, ne duplira se ovde). Raniji `@media (prefers-color-scheme: dark)` blok (paleta
+   "Zalazak") je UKLONJEN, ne ostavljen prazan — da sajt ne prati OS temu uopšte, `color-scheme:
+   light` je postavljen i u `<html>` (M8 `[locale]/layout.tsx`, `viewport.colorScheme`) da i
+   ugrađeni kontrolni elementi pregledača (padajuće liste, scrollbar) ostanu svetli.
 
-   Vrednosti su DOSLOVNO kopirane iz `apps/panel/src/app/globals.css` `:root` (paleta "Azur +
-   Svetionik", 4.9.2026, izvučena sa mylighthouse.com/company/partnerships — puno obrazloženje
-   i izmerene vrednosti tamo, ne duplirano ovde da ne postoje dva izvora istine za isti broj).
    `--plum`/`--plum-soft`/`--plum-ink` (sajtovo ime za sekundarni akcent) mapirano na panelov
-   `--accent2`/`--accent2-soft` + belo (panel: "belo na njemu 6,29:1").
+   `--accent2`/`--accent2-soft` + belo. `--brand` (logo, 8.9.2026, "logo agencije na sajtu treba
+   da bude identičan onom u aplikaciji") — ista narandžasta kao panelov `--brand`, fiksna, jedna
+   vrednost jer sajt sad ima samo jedan mod.
 
-   KONTRAST: `node tools/check-contrast.js --app web` — prolazi (isti brojevi kao panel, pošto
-   su vrednosti identične i podloge iste uloge; provereno 8.9.2026, nema novog merenja ovde). */
+   KONTRAST: `node tools/check-contrast.js --app web` — prolazi. */
 :root {
   --bg: #e8eef6;
   --panel: #f9fbfd;
@@ -41,32 +45,5 @@
   --plum: #4f46e5;
   --plum-soft: #4f46e51a;
   --plum-ink: #ffffff;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #150e08;
-    --panel: #1f1610;
-    --panel-2: #2a1d13;
-    /* §2a — jedina dva para koja tamni mod nije prolazio: 1.20:1 → 3.00:1 i 4.00:1 → 4.58:1 */
-    --border: #8c603c;
-    --text: #f5ead9;
-    --text-dim: #c9b294;
-    --text-faint: #9a846a;
-    --accent: #e8a63c;
-    --accent-strong: #f4c473;
-    --accent-soft: #3a2810;
-    --accent-ink: #2a1a04;
-    /* --accent2 ukinut, vidi komentar u svetlom modu */
-    --ok: #3ecf8e;
-    --ok-bg: #0f2b21;
-    --warn: #e0a542;
-    --warn-bg: #332508;
-    --danger: #e2685a;
-    --danger-bg: #3a1712;
-    /* šljiva u tamnom modu — svetlija varijanta istog tona (6.52:1 najgori slučaj) */
-    --plum: #a99bd8;
-    --plum-soft: #221c33;
-    --plum-ink: #1a1428;
-  }
+  --brand: #f97316;
 }

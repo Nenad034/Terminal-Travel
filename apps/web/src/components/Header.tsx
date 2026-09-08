@@ -3,6 +3,7 @@ import { getTranslations } from 'next-intl/server';
 import { getSession } from '@/lib/session';
 import { locales } from '@/i18n/config';
 import OmnisearchBar from './OmnisearchBar';
+import { BrandLogoFull } from './BrandMark';
 
 // M8 spec poglavlje 3a, dopuna avgust 2026 (M15 dobio kod) — omnisearch traka je sad
 // povezana na POST /api/omnisearch → M15 POST /ai-orchestration/omnisearch (channel=B2C_SITE).
@@ -18,8 +19,8 @@ export default async function Header({ locale }: { locale: string }) {
           stoje u istoj vertikali kao sadržaj ispod. Da je zaglavlje ostalo ograničeno na 1152px
           dok sadržaj ide preko celog ekrana, sadržaj bi "izlazio" ispod zaglavlja. */}
       <div className="flex w-full flex-wrap items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8 xl:px-10">
-        <Link href={`/${locale}`} className="text-xl font-bold tracking-tight text-accent">
-          Terminal <span className="text-ink">Travel</span>
+        <Link href={`/${locale}`} aria-label="Terminal Travel — početna">
+          <BrandLogoFull heightPx={23} />
         </Link>
 
         <OmnisearchBar
