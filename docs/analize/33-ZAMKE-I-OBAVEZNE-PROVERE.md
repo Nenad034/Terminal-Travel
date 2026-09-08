@@ -272,7 +272,7 @@ Brojevi 5.6, 5.7, 5.11–5.14, 9.4 i 12.2 i dalje postoje — nose **drugi** od 
 - _Provera:_ privremene skripte za proveru (login/MFA tok, provera podataka i sl.) piši **van** `apps/api` (npr. scratchpad direktorijum), sa apsolutnim `require()` putanjama i ručno pročitanim `.env` umesto uvoza iz `src/` — ako baš mora unutra, sačekaj par sekundi posle kreiranja/brisanja fajla pre poziva.
 - _Povezano:_ ne meša se sa 8.3 (izgubljen pozadinski zadatak) — ovde je API i dalje živ, samo je privremeno u rebuild-u.
 
-**5.19 Rezervacije ubačene mock skriptom ne pune M13 izveštaje — `/izvestaji` ostaje prazan**
+**5.26 Rezervacije ubačene mock skriptom ne pune M13 izveštaje — `/izvestaji` ostaje prazan**
 
 - _Simptom:_ (8.9.2026) `/rezervacije/lista`, kalendar i `/izvestaji` prazni posle svežeg podizanja baze; `seed:mock-lista-rezervacija`/`mock-b2c` su vraćeni podaci uspešno, ali `/izvestaji` i dalje prikazuje "nikad (projekcija prazna)".
 - _Uzrok:_ M13 izveštaji (`ReportsService`) ne čitaju `Booking`/`BookingItem` direktno — čitaju projekciju `FactBooking`/`FactPayment` koju puni `FactSyncService`, a taj se poziva iz NestJS event bus-a KAD rezervacija/uplata nastane KROZ API. Mock seed skripte pišu direktno preko Prisma-e (bez API poziva, bez event bus-a), pa projekcija ostaje prazna dok se ne pokrene rekonsilijacija.
