@@ -45,6 +45,7 @@ model User {
   mfaRecoveryCodes    MfaRecoveryCode[]
   passwordResetTokens PasswordResetToken[]
   preferences         UserPreference[]
+  employeeRecord      EmployeeRecord?
 
   @@index([branchId])
   @@map("users")
@@ -3889,4 +3890,87 @@ model Question {
   createdAt           DateTime          @default(now()) @map("created_at")
 
   @@map("questions")
+}
+
+// ============================================================================
+// M24 — Ljudski resursi
+// ============================================================================
+
+// M24 spec §2.2 — HR dosije, 1:1 sa M1 User (samo STAFF nalozi). `reportsToUserId` je weak ref
+// (isti princip kao `updatedByUserId`/`AgencySettings.updatedByUserId`) — ne dodaje drugu
+// bidirekcionu relaciju na User samo za ovo polje, dovoljno je čuvati UUID.
+model EmployeeRecord {
+  id                      String         @id @default(uuid())
+  userId                  String         @unique @map("user_id")
+  employmentType          EmploymentType @map("employment_type")
+  contractBasis           ContractBasis  @map("contract_basis")
+  hireDate                DateTime       @map("hire_date")
+  probationEndDate        DateTime?      @map("probation_end_date")
+  contractEndDate         DateTime?      @map("contract_end_date")
+  terminationDate         DateTime?      @map("termination_date")
+  reportsToUserId         String?        @map("reports_to_user_id") // weak ref -> M1 User
+  annualLeaveDaysEntitled Int?           @map("annual_leave_days_entitled")
+  createdAt               DateTime       @default(now()) @map("created_at")
+  updatedAt               DateTime       @updatedAt @map("updated_at")
+  updatedByUserId         String?        @map("updated_by_user_id") // weak ref -> M1 User
+
+  user                   User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  leaveRecords           LeaveRecord[]
+  trainingCertifications TrainingCertification[]
+
+  @@map("employee_records")
+}
+
+enum EmploymentType {
+  PUNO_RADNO_VREME
+  NEPUNO_RADNO_VREME
+  UGOVOR_O_DELU
+}
+
+enum ContractBasis {
+  NEODREDJENO
+  ODREDJENO
+}
+
+// M24 spec §2.3 — odsustva (godišnji odmor, bolovanje, neplaćeno). `daysCount` se računa pri
+// unosu (radni dani u periodu), ne ručno prebrojava. Preostali dani godišnjeg odmora se
+// izračunavaju u servisu (entitled − suma daysCount tekuće godine), ne čuvaju kao polje.
+model LeaveRecord {
+  id               String    @id @default(uuid())
+  employeeRecordId String    @map("employee_record_id")
+  type             LeaveType
+  startDate        DateTime  @map("start_date")
+  endDate          DateTime  @map("end_date")
+  daysCount        Int       @map("days_count")
+  note             String?
+  recordedByUserId String    @map("recorded_by_user_id") // weak ref -> M1 User
+  createdAt        DateTime  @default(now()) @map("created_at")
+
+  employeeRecord EmployeeRecord @relation(fields: [employeeRecordId], references: [id], onDelete: Cascade)
+
+  // Indeksi na stranim ključevima (isti razlog kao svuda u ovom fajlu, dok. 39 nalaz 2.1).
+  @@index([employeeRecordId])
+  @@map("leave_records")
+}
+
+enum LeaveType {
+  GODISNJI_ODMOR
+  BOLOVANJE
+  NEPLACENO_ODSUSTVO
+  OSTALO
+}
+
+// M24 spec §2.4 — obuke/sertifikati sa rokom (opciono). `expiresAt = null` znači da AI HR agent
+// (M24 spec §3) tu obuku ne prati.
+model TrainingCertification {
+  id               String    @id @default(uuid())
+  employeeRecordId String    @map("employee_record_id")
+  name             String
+  issuedAt         DateTime? @map("issued_at")
+  expiresAt        DateTime? @map("expires_at")
+
+  employeeRecord EmployeeRecord @relation(fields: [employeeRecordId], references: [id], onDelete: Cascade)
+
+  @@index([employeeRecordId])
+  @@map("training_certifications")
 }

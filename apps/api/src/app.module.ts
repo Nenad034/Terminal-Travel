@@ -25,6 +25,7 @@ import { M19KomunikacionaPlatformaModule } from './modules/m19-komunikaciona-pla
 import { M21CentarZaPomocModule } from './modules/m21-centar-za-pomoc/m21-centar-za-pomoc.module';
 import { M22EmailInboxModule } from './modules/m22-email-inbox/m22-email-inbox.module';
 import { M23ZnanjeModule } from './modules/m23-znanje/m23-znanje.module';
+import { HrModule } from './modules/m24-ljudski-resursi/hr.module';
 import { MailModule } from './common/mail/mail.module';
 import { AuthSharedModule } from './common/auth-shared.module';
 import { JwtAuthGuard } from './modules/m1-core-identitet/auth/guards/jwt-auth.guard';
@@ -58,6 +59,7 @@ import { JwtAuthGuard } from './modules/m1-core-identitet/auth/guards/jwt-auth.g
     M21CentarZaPomocModule,
     M22EmailInboxModule,
     M23ZnanjeModule,
+    HrModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },

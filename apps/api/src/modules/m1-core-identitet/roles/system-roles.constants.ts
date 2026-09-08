@@ -8,6 +8,11 @@ export const SYSTEM_ROLES = {
   SALES_MANAGER: 'SALES_MANAGER',
   PRODAJNI_AGENT: 'PRODAJNI_AGENT',
   RACUNOVODJA: 'RACUNOVODJA',
+  // M24 spec §2.1 (8.9.2026) — iznad RACUNOVODJA u hijerarhiji ovlašćenja nad M10/M13.
+  FINANSIJSKI_DIREKTOR: 'FINANSIJSKI_DIREKTOR',
+  // M24 spec §2.1 (8.9.2026) — KOMBINOVANA uloga, nikad samostalna: sprovedeno u
+  // UsersService.assignRole/removeRole (ne samo ovde upisana konstanta).
+  SEF_POSLOVNICE: 'SEF_POSLOVNICE',
   GOST: 'GOST',
   // M7 spec §8 (avgust 2026) — portal nalog subagenta (bilo kog nivoa u hijerarhiji). Nema
   // pristup internom panelu (M17) niti podacima drugih subagenata.
@@ -31,4 +36,7 @@ export const ROLES_REQUIRING_MANDATORY_MFA: string[] = [
   SYSTEM_ROLES.PRODAJNI_AGENT,
   SYSTEM_ROLES.RACUNOVODJA,
   SYSTEM_ROLES.VODIC,
+  // M24 spec §2.1/§7 (8.9.2026) — interne uloge, isti krug kao ostale iznad.
+  SYSTEM_ROLES.FINANSIJSKI_DIREKTOR,
+  SYSTEM_ROLES.SEF_POSLOVNICE,
 ];

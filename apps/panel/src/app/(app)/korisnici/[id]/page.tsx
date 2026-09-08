@@ -9,6 +9,7 @@ import EditUserForm from './EditUserForm';
 import RoleAssignment from './RoleAssignment';
 import PermissionOverrides from './PermissionOverrides';
 import SuspendUserButton from './SuspendUserButton';
+import HrSection from './HrSection';
 
 interface UserDetail {
   id: string;
@@ -46,6 +47,32 @@ interface PermissionOption {
   description: string;
 }
 
+interface EmployeeRecord {
+  employmentType: 'PUNO_RADNO_VREME' | 'NEPUNO_RADNO_VREME' | 'UGOVOR_O_DELU';
+  contractBasis: 'NEODREDJENO' | 'ODREDJENO';
+  hireDate: string;
+  probationEndDate: string | null;
+  contractEndDate: string | null;
+  terminationDate: string | null;
+  reportsToUserId: string | null;
+  annualLeaveDaysEntitled: number | null;
+}
+
+interface LeaveRecord {
+  id: string;
+  type: 'GODISNJI_ODMOR' | 'BOLOVANJE' | 'NEPLACENO_ODSUSTVO' | 'OSTALO';
+  startDate: string;
+  endDate: string;
+  daysCount: number;
+  note: string | null;
+}
+
+interface LeaveBalance {
+  entitled: number | null;
+  used: number;
+  remaining: number | null;
+}
+
 // M1 spec §7 — "Korisnik — detalji": GET /iam/users/:id, GET/POST/DELETE .../permission-overrides.
 // Uloge/dozvole se dovlače odvojeno (GET /iam/roles, GET /iam/permissions) da forme za dodelu
 // imaju pun katalog izbora, ne samo ono što je korisnik već ima.
@@ -57,6 +84,8 @@ export default async function KorisnikDetailPage(props: { params: Promise<{ id: 
   const canDelete = hasPermission(me, 'M1', 'user', 'DELETE');
   const canViewOverrides = hasPermission(me, 'M1', 'permission-override', 'VIEW');
   const canCreateOverride = hasPermission(me, 'M1', 'permission-override', 'CREATE');
+  const canViewHr = hasPermission(me, 'M24', 'employee-record', 'VIEW');
+  const canEditHr = hasPermission(me, 'M24', 'employee-record', 'EDIT');
 
   if (!canView) {
     return (
@@ -77,22 +106,36 @@ export default async function KorisnikDetailPage(props: { params: Promise<{ id: 
     throw err;
   }
 
-  const [allRoles, overrides, allPermissions, branches] = await Promise.all([
-    canEdit
-      ? apiFetch<RoleOption[]>('/iam/roles').catch(() => [])
-      : Promise.resolve<RoleOption[]>([]),
-    canViewOverrides
-      ? apiFetch<PermissionOverrideRow[]>(`/iam/users/${params.id}/permission-overrides`).catch(
-          () => [],
-        )
-      : Promise.resolve<PermissionOverrideRow[]>([]),
-    canCreateOverride
-      ? apiFetch<PermissionOption[]>('/iam/permissions').catch(() => [])
-      : Promise.resolve<PermissionOption[]>([]),
-    canEdit
-      ? apiFetch<{ id: string; name: string }[]>('/iam/branches').catch(() => [])
-      : Promise.resolve<{ id: string; name: string }[]>([]),
-  ]);
+  const [allRoles, overrides, allPermissions, branches, employee, leaveRecords, leaveBalance] =
+    await Promise.all([
+      canEdit
+        ? apiFetch<RoleOption[]>('/iam/roles').catch(() => [])
+        : Promise.resolve<RoleOption[]>([]),
+      canViewOverrides
+        ? apiFetch<PermissionOverrideRow[]>(`/iam/users/${params.id}/permission-overrides`).catch(
+            () => [],
+          )
+        : Promise.resolve<PermissionOverrideRow[]>([]),
+      canCreateOverride
+        ? apiFetch<PermissionOption[]>('/iam/permissions').catch(() => [])
+        : Promise.resolve<PermissionOption[]>([]),
+      canEdit
+        ? apiFetch<{ id: string; name: string }[]>('/iam/branches').catch(() => [])
+        : Promise.resolve<{ id: string; name: string }[]>([]),
+      canViewHr
+        ? apiFetch<EmployeeRecord | null>(`/hr/employees/${params.id}`).catch(() => null)
+        : Promise.resolve<EmployeeRecord | null>(null),
+      canViewHr
+        ? apiFetch<LeaveRecord[]>(`/hr/employees/${params.id}/leave`).catch(() => [])
+        : Promise.resolve<LeaveRecord[]>([]),
+      canViewHr
+        ? apiFetch<LeaveBalance>(`/hr/employees/${params.id}/leave-balance`).catch(() => ({
+            entitled: null,
+            used: 0,
+            remaining: null,
+          }))
+        : Promise.resolve<LeaveBalance>({ entitled: null, used: 0, remaining: null }),
+    ]);
 
   const assignedRoleIds = new Set(user.roles.map((r) => r.roleId));
   const availableRoles = allRoles.filter((r) => !assignedRoleIds.has(r.id));
@@ -159,6 +202,18 @@ export default async function KorisnikDetailPage(props: { params: Promise<{ id: 
           />
         </div>
       </div>
+
+      {canViewHr && (
+        <div className="mb-4">
+          <HrSection
+            userId={user.id}
+            canEdit={canEditHr}
+            employee={employee}
+            leaveRecords={leaveRecords}
+            leaveBalance={leaveBalance}
+          />
+        </div>
+      )}
 
       {canViewOverrides && (
         <div className="rounded-lg border border-border bg-panel p-4">

@@ -14,6 +14,10 @@ describe('UsersService', () => {
       userRole: {
         upsert: jest.fn(),
         delete: jest.fn(),
+        findMany: jest.fn().mockResolvedValue([]),
+      },
+      role: {
+        findUniqueOrThrow: jest.fn().mockResolvedValue({ id: 'role-1', name: 'ROLE-1' }),
       },
       userPermissionOverride: {
         create: jest.fn(),
@@ -188,6 +192,86 @@ describe('UsersService', () => {
       expect(auditLog.write).toHaveBeenCalledWith(
         expect.objectContaining({ action: 'user.role_removed' }),
       );
+    });
+  });
+
+  describe('SEF_POSLOVNICE — kombinovana uloga, nikad samostalna (M24 spec §2.1)', () => {
+    it('odbija dodelu SEF_POSLOVNICE kad bi korisnik ostao SAMO sa tom ulogom', async () => {
+      const { service, prisma } = makeService();
+      prisma.userRole.findMany.mockResolvedValue([]); // korisnik trenutno nema nijednu ulogu
+      prisma.role.findUniqueOrThrow.mockResolvedValue({
+        id: 'role-sef',
+        name: 'SEF_POSLOVNICE',
+      });
+
+      await expect(service.assignRole('user-1', 'role-sef', 'actor-1')).rejects.toThrow(
+        BadRequestException,
+      );
+      expect(prisma.userRole.upsert).not.toHaveBeenCalled();
+    });
+
+    it('odbija dodelu SEF_POSLOVNICE kad bi korisnik ostao sa DVE ILI VIŠE drugih uloga', async () => {
+      const { service, prisma } = makeService();
+      prisma.userRole.findMany.mockResolvedValue([
+        { role: { name: 'PRODAJNI_AGENT' } },
+        { role: { name: 'RACUNOVODJA' } },
+      ]);
+      prisma.role.findUniqueOrThrow.mockResolvedValue({
+        id: 'role-sef',
+        name: 'SEF_POSLOVNICE',
+      });
+
+      await expect(service.assignRole('user-1', 'role-sef', 'actor-1')).rejects.toThrow(
+        'Šef poslovnice mora ići uz tačno jednu drugu ulogu',
+      );
+      expect(prisma.userRole.upsert).not.toHaveBeenCalled();
+    });
+
+    it('dozvoljava dodelu SEF_POSLOVNICE kad korisnik ima TAČNO jednu drugu ulogu', async () => {
+      const { service, prisma } = makeService();
+      prisma.userRole.findMany.mockResolvedValue([{ role: { name: 'PRODAJNI_AGENT' } }]);
+      prisma.role.findUniqueOrThrow.mockResolvedValue({
+        id: 'role-sef',
+        name: 'SEF_POSLOVNICE',
+      });
+
+      await service.assignRole('user-1', 'role-sef', 'actor-1');
+
+      expect(prisma.userRole.upsert).toHaveBeenCalled();
+    });
+
+    it('odbija uklanjanje uloge kad bi SEF_POSLOVNICE ostao SAM (bez druge uloge)', async () => {
+      const { service, prisma } = makeService();
+      // Korisnik trenutno ima PRODAJNI_AGENT + SEF_POSLOVNICE; uklanja se PRODAJNI_AGENT.
+      prisma.userRole.findMany.mockResolvedValue([
+        { role: { name: 'PRODAJNI_AGENT' } },
+        { role: { name: 'SEF_POSLOVNICE' } },
+      ]);
+      prisma.role.findUniqueOrThrow.mockResolvedValue({
+        id: 'role-agent',
+        name: 'PRODAJNI_AGENT',
+      });
+
+      await expect(service.removeRole('user-1', 'role-agent', 'actor-1')).rejects.toThrow(
+        BadRequestException,
+      );
+      expect(prisma.userRole.delete).not.toHaveBeenCalled();
+    });
+
+    it('dozvoljava uklanjanje SEF_POSLOVNICE same (druga uloga ostaje)', async () => {
+      const { service, prisma } = makeService();
+      prisma.userRole.findMany.mockResolvedValue([
+        { role: { name: 'PRODAJNI_AGENT' } },
+        { role: { name: 'SEF_POSLOVNICE' } },
+      ]);
+      prisma.role.findUniqueOrThrow.mockResolvedValue({
+        id: 'role-sef',
+        name: 'SEF_POSLOVNICE',
+      });
+
+      await service.removeRole('user-1', 'role-sef', 'actor-1');
+
+      expect(prisma.userRole.delete).toHaveBeenCalled();
     });
   });
 

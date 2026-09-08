@@ -19,6 +19,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../../common/guards/permissions.guard';
 import { RequirePermission } from '../../../common/decorators/require-permission.decorator';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
+import { parsePagination } from '../../../common/pagination/pagination';
 
 // M1 spec §6, prefiks /api/v1/iam
 @ApiTags('users')
@@ -50,8 +51,12 @@ export class UsersController {
 
   @Get()
   @RequirePermission('M1', 'user', 'VIEW')
-  findAll() {
-    return this.users.findAll();
+  findAll(
+    @Query('q') q?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.users.findAll(q, parsePagination(page, limit));
   }
 
   // Dopuna (31.8.2026) — mora biti registrovano PRE `:id` (isti obrazac/lekcija kao M3

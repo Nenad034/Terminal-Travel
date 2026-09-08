@@ -6,6 +6,12 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { CreatePermissionOverrideDto } from './dto/create-permission-override.dto';
 import { MailerService } from '../../../common/mail/mailer.service';
 import { inviteEmail } from '../../../common/mail/mail-templates';
+import { SYSTEM_ROLES } from '../roles/system-roles.constants';
+import {
+  type PaginationQueryDto,
+  paginated,
+  paginationArgs,
+} from '../../../common/pagination/pagination';
 
 @Injectable()
 export class UsersService {
@@ -16,11 +22,32 @@ export class UsersService {
     private readonly mailer: MailerService,
   ) {}
 
-  findAll() {
-    return this.prisma.user.findMany({
-      include: { roles: { include: { role: true } } },
-      orderBy: { createdAt: 'desc' },
-    });
+  // Razvrstavanje 8.9.2026 (dok. 27, nastavak nalaza 2.2) — raste sa svakim novim nalogom
+  // (STAFF/GUEST/SUBAGENT_CONTACT/AI_AGENT, bez ograničenja tipa); ekran (`/korisnici`) je
+  // pretragu radio KLIJENTSKI nad celom listom (v. stari komentar u `page.tsx`) — sa
+  // straničenjem to više ne bi radilo posle prve strane, pa `q` sad ide na server ZAJEDNO sa
+  // granicom, ne odvojeno (nema smisla dodati granicu koja pokvari postojeću pretragu).
+  async findAll(q?: string, pagination?: PaginationQueryDto) {
+    const where = q
+      ? {
+          OR: [
+            { fullName: { contains: q, mode: 'insensitive' as const } },
+            { email: { contains: q, mode: 'insensitive' as const } },
+          ],
+        }
+      : {};
+    const { skip, take, page, limit } = paginationArgs(pagination);
+    const [data, total] = await this.prisma.$transaction([
+      this.prisma.user.findMany({
+        where,
+        include: { roles: { include: { role: true } } },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take,
+      }),
+      this.prisma.user.count({ where }),
+    ]);
+    return paginated(data, total, page, limit);
   }
 
   // Dopuna (31.8.2026, na zahtev vlasnika — M5 spec §6.5 "bilo koji korisnik sme da predloži
@@ -156,7 +183,38 @@ export class UsersService {
     return after;
   }
 
+  // M24 spec §2.1 (8.9.2026, vlasnikov zahtev: "ovo jedino može da ide uz još jednu ulogu") —
+  // SEF_POSLOVNICE nikad samostalna niti sa 2+ druge uloge, TAČNO jedna druga. Sprovedeno ovde
+  // (backend), ne samo u panelu — ograda koja postoji samo u UI se zaobiđe direktnim pozivom
+  // API-ja (zamka 13.5/13.6, `33-ZAMKE-I-OBAVEZNE-PROVERE.md`). Poziva se sa RESULTUJUĆIM skupom
+  // imena uloga (posle dodavanja/uklanjanja), ne trenutnim.
+  private assertSefPoslovniceKombinacija(resultingRoleNames: string[]) {
+    if (!resultingRoleNames.includes(SYSTEM_ROLES.SEF_POSLOVNICE)) return;
+    if (resultingRoleNames.length !== 2) {
+      throw new BadRequestException(
+        'Šef poslovnice mora ići uz tačno jednu drugu ulogu — ne samostalno, ne sa dve ili više.',
+      );
+    }
+  }
+
+  private async currentRoleNames(userId: string): Promise<string[]> {
+    const rows = await this.prisma.userRole.findMany({
+      where: { userId },
+      select: { role: { select: { name: true } } },
+    });
+    return rows.map((r) => r.role.name);
+  }
+
   async assignRole(userId: string, roleId: string, assignedBy: string) {
+    const [role, currentNames] = await Promise.all([
+      this.prisma.role.findUniqueOrThrow({ where: { id: roleId } }),
+      this.currentRoleNames(userId),
+    ]);
+    const resultingNames = currentNames.includes(role.name)
+      ? currentNames
+      : [...currentNames, role.name];
+    this.assertSefPoslovniceKombinacija(resultingNames);
+
     await this.prisma.userRole.upsert({
       where: { userId_roleId: { userId, roleId } },
       update: {},
@@ -174,6 +232,13 @@ export class UsersService {
   }
 
   async removeRole(userId: string, roleId: string, actorId: string) {
+    const [role, currentNames] = await Promise.all([
+      this.prisma.role.findUniqueOrThrow({ where: { id: roleId } }),
+      this.currentRoleNames(userId),
+    ]);
+    const resultingNames = currentNames.filter((n) => n !== role.name);
+    this.assertSefPoslovniceKombinacija(resultingNames);
+
     await this.prisma.userRole.delete({ where: { userId_roleId: { userId, roleId } } });
     await this.auditLog.write({
       actorType: 'HUMAN',

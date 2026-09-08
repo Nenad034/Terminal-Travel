@@ -2,8 +2,8 @@
 
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M24) i poglavlje 8 (poprečan modul, bez fiksne faze)
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj, uz izuzetak tačno navedenih mesta gde je potrebna potvrda pravnika/knjigovođe pre implementacije (poglavlje 7)
-**Status:** Nacrt za usvajanje
-**Verzija:** 1.1 — dopuna (8.9.2026, isti dan): vlasnik uklonio link ka ugovoru o radu iz obima ("Uklonite link za ugovor o radu") i uklonio `REFERENT_PRODAJE` kao zasebnu ulogu ("Uklonite referenta prodaje, neka ostane samo agent prodaje") — prodajna hijerarhija sad ima samo jedan nivo (`PRODAJNI_AGENT`, prikazno "Agent prodaje"), ne dva. `employment_contract_url`/poglavlje 3/`VIEW-CONTRACT` dozvola i sve povezane stavke izlaznog kriterijuma/otvorenih pitanja uklonjeni. v1.0 — prvi zapis (8.9.2026), na zahtev vlasnika: "svakom zaposlenom treba da dodelimo ulogu [...] treba i da postoji link prema ugovoru o radu [...] želim ovaj deo da uredimo po evropskim i svetskim standardima". Predlog nastao u razgovoru (Master dokument v1.25), ovaj dokument ga razrađuje u Nivo 2 detalje.
+**Status:** Delimično implementiran (8.9.2026) — uloge/RBAC ograda/HR ekran/godišnji odmor gotovi (poglavlje 6), AI HR agent (poglavlje 3) čeka M15.
+**Verzija:** 1.2 — implementacija (8.9.2026): Prisma šema (`EmployeeRecord`/`LeaveRecord`/`TrainingCertification`), nove M1 uloge (`SEF_POSLOVNICE` sa backend ogradom, `FINANSIJSKI_DIREKTOR`) sa dozvolama u `seed.ts`, `HrModule`/`HrController`/`HrService` (`/api/v1/hr`), HR sekcija na `/korisnici/[id]`, 8 novih jediničnih testova (`users.service.spec.ts` +5, `hr.service.spec.ts` +3), sve dokazano i uživo u panelu. Detalji po stavci: poglavlje 6. v1.1 — dopuna (8.9.2026, isti dan): vlasnik uklonio link ka ugovoru o radu iz obima ("Uklonite link za ugovor o radu") i uklonio `REFERENT_PRODAJE` kao zasebnu ulogu ("Uklonite referenta prodaje, neka ostane samo agent prodaje") — prodajna hijerarhija sad ima samo jedan nivo (`PRODAJNI_AGENT`, prikazno "Agent prodaje"), ne dva. `employment_contract_url`/poglavlje 3/`VIEW-CONTRACT` dozvola i sve povezane stavke izlaznog kriterijuma/otvorenih pitanja uklonjeni. v1.0 — prvi zapis (8.9.2026), na zahtev vlasnika: "svakom zaposlenom treba da dodelimo ulogu [...] treba i da postoji link prema ugovoru o radu [...] želim ovaj deo da uredimo po evropskim i svetskim standardima". Predlog nastao u razgovoru (Master dokument v1.25), ovaj dokument ga razrađuje u Nivo 2 detalje.
 **Zavisi od:** M1 (identitet, uloge/RBAC — HR dosije je vezan 1:1 na `User`, nove sistemske uloge žive u M1 katalogu). Meko od M18 (dostava podsetnika o rokovima) i M15 (AI HR agent) — bez njih modul radi kao čista evidencija, samo bez automatskih podsetnika.
 
 ---
@@ -33,7 +33,7 @@ Postojeće uloge (`VLASNIK`, `DIREKTOR`, `HR`, `SALES_MANAGER`, `PRODAJNI_AGENT`
 | :--- | :--- | :--- |
 | Vlasnik | `VLASNIK` (postojeća) | bez izmene |
 | Direktor | `DIREKTOR` (postojeća) | bez izmene |
-| Finansijski direktor | **nova: `FINANSIJSKI_DIREKTOR`** | iznad `RACUNOVODJA` u hijerarhiji ovlašćenja (M10 dozvole veće od računovođe, uže od Direktora) — tačan skup M10/M13 dozvola dogovara se pri implementaciji |
+| Finansijski direktor | **nova: `FINANSIJSKI_DIREKTOR`** | iznad `RACUNOVODJA` u hijerarhiji ovlašćenja — implementirano (8.9.2026, `seed.ts`) kao isti VIEW/CREATE_DRAFT/RECORD/APPROVE/REVIEW skup kao Računovođa plus PUN M13 izveštajni pristup; namerno BEZ SUBMIT/EXECUTE (M10 spec §9 rezerviše stvaran prenos novca isključivo za Vlasnika/Direktora, ovaj prolaz to ne menja) |
 | Računovođa | `RACUNOVODJA` (postojeća) | bez izmene |
 | Menadžer prodaje | `SALES_MANAGER` (postojeća) | bez izmene naziva u kodu; prikazni naziv u HR ekranu može biti "Menadžer prodaje" bez izmene same konstante (vidi napomenu ispod) |
 | Šef poslovnice | **nova: `SEF_POSLOVNICE`** | **kombinovana uloga — vidi ogradu ispod, nikad samostalna** |
@@ -136,11 +136,11 @@ Prefiks: `/api/v1/hr`
 
 ## 6. Izlazni kriterijum
 
-- [ ] Nove sistemske uloge (`SEF_POSLOVNICE`, `FINANSIJSKI_DIREKTOR`) postoje u M1 katalogu, dodeljive kroz postojeći `/korisnici/[id]` ekran bez izmene tog ekrana.
-- [ ] Ograda "Šef poslovnice samo uz tačno jednu drugu ulogu" sprovedena na BACKEND-u (ne samo UI) — dokazano testom koji pokušava zaobilaženje direktnim pozivom API-ja (zamka 13.6).
-- [ ] HR ekran u panelu (`/podesavanja/...` ili `/korisnici/[id]` prošireno — tačna lokacija odlučuje se pri implementaciji) prikazuje i uređuje sva polja iz poglavlja 2.2, samo za nosioca `M24/employee-record/EDIT`.
-- [ ] Preostali dani godišnjeg odmora se tačno izračunavaju (dodeljeno − iskorišćeno), ne čuvaju kao ručno ažurirano polje.
-- [ ] Podsetnik pre isteka ugovora na određeno/probnog roka stiže kroz M18 kanal najmanje X dana unapred (tačan broj dana potvrđuje vlasnik pri implementaciji).
+- [x] Nove sistemske uloge (`SEF_POSLOVNICE`, `FINANSIJSKI_DIREKTOR`) postoje u M1 katalogu, dodeljive kroz postojeći `/korisnici/[id]` ekran bez izmene tog ekrana (`RoleAssignment.tsx` nedirnut — dropdown već čita `GET /iam/roles` dinamički). Dokazano uživo (8.9.2026): obe uloge se pojavljuju u padajućoj listi i uspešno dodeljuju.
+- [x] Ograda "Šef poslovnice samo uz tačno jednu drugu ulogu" sprovedena na BACKEND-u (`UsersService.assignRole`/`removeRole`, ne samo UI) — dokazano testom koji pokušava zaobilaženje direktnim pozivom servisa (`users.service.spec.ts`, 5 novih testova: odbija samostalnu dodelu, odbija dodelu uz 2+ druge uloge, dozvoljava uz tačno jednu, odbija uklanjanje koje bi ostavilo Šefa poslovnice samog, dozvoljava uklanjanje same uloge Šef poslovnice). Dodatno potvrđeno uživo u panelu istim redosledom koraka.
+- [x] HR ekran u panelu — dodat kao sekcija na `/korisnici/[id]` (odluka pri implementaciji: isto mesto gde se već uređuje profil/uloge, ne novi zaseban ekran), prikazuje i uređuje sva polja iz poglavlja 2.2, samo za nosioca `M24/employee-record/EDIT` (`M24/employee-record/VIEW` bez `EDIT` dobija read-only prikaz). Dokazano uživo: forma čuva i vraća podatke posle osvežavanja stranice.
+- [x] Preostali dani godišnjeg odmora se tačno izračunavaju (dodeljeno − iskorišćeno), ne čuvaju kao ručno ažurirano polje (`HrService.getLeaveBalance`) — dokazano testom (`hr.service.spec.ts`) i uživo (20 dodeljenih − 3 iskorišćena = 17 preostalih, ekran se ažurirao odmah po unosu odsustva).
+- [ ] Podsetnik pre isteka ugovora na određeno/probnog roka stiže kroz M18 kanal najmanje X dana unapred — NIJE implementirano ovim prolazom (AI HR agent iz poglavlja 3 čeka M15 okvir, isto pravilo kao svaki drugi domenski agent — poglavlje 1/3). Ovaj prolaz je izgradio deterministički deo (podaci, RBAC, ekran); agent deo ostaje sledeći korak.
 
 ---
 
@@ -149,5 +149,5 @@ Prefiks: `/api/v1/hr`
 - **Formalni workflow odobravanja odsustva** (zaposleni sam podnosi zahtev, rukovodilac odobrava, kalendar tima) — prvi prolaz je ručna evidencija (poglavlje 1); ako se pokaže da to nije dovoljno, ovo postaje zaseban predlog.
 - **GDPR/Zakon o zaštiti podataka — tačan rok čuvanja HR dosijea posle prestanka radnog odnosa** i procedura brisanja/anonimizacije — pravno pitanje, čeka potvrdu pravnika/knjigovođe pre nego što se bilo šta automatizuje (CLAUDE.md — ne izmišljati regulatorne detalje bez te potvrde). Do tada: `termination_date` samo označava neaktivnost, ništa se ne briše automatski.
 - **Prikazni (čitljivi) naziv uloge u UI** umesto doslovnog imena konstante (poglavlje 2.1, napomena) — mala, nezavisna izmena, ide u istom prolazu kad M24 dobije kod.
-- **Da li Šef poslovnice/Finansijski direktor treba da imaju svoju liniju u `ROLES_REQUIRING_MANDATORY_MFA`** (M1 §5) — verovatno DA (interne uloge), potvrditi pri implementaciji da nijedna nova uloga nije slučajno izostavljena iz obavezne 2FA liste.
+- ~~Da li Šef poslovnice/Finansijski direktor treba da imaju svoju liniju u `ROLES_REQUIRING_MANDATORY_MFA`~~ — **rešeno pri implementaciji (8.9.2026):** obe dodate, isti krug kao ostale interne uloge.
 - **Tačan broj dana unapred za podsetnik o isteku ugovora/probnog roka** (poglavlje 6 izlaznog kriterijuma) — razuman podrazumevan predlog je 30 dana za ugovor na određeno, 7 dana za probni rad, ali ovo je vlasnikova odluka, ne tehnička pretpostavka.

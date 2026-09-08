@@ -36,6 +36,16 @@ const SYSTEM_ROLE_SEED: { name: string; description: string }[] = [
     description: 'M10 (Finansije/fiskalizacija), M11 (Compliance), read-only uvid u rezervacije.',
   },
   {
+    name: SYSTEM_ROLES.FINANSIJSKI_DIREKTOR,
+    description:
+      'M24 — iznad Računovođe u hijerarhiji ovlašćenja nad M10 (Finansije) i M13 (BI izveštaji).',
+  },
+  {
+    name: SYSTEM_ROLES.SEF_POSLOVNICE,
+    description:
+      'M24 — kombinovana uloga, ide isključivo uz tačno jednu drugu ulogu (sprovedeno u UsersService).',
+  },
+  {
     name: SYSTEM_ROLES.GOST,
     description: 'Isključivo sopstveni profil i sopstvene rezervacije (M6/M8).',
   },
@@ -1327,6 +1337,31 @@ const M23_PERMISSIONS: { module: string; resource: string; action: string; descr
     },
   ];
 
+// M24 spec §4 — dozvole HR modula. `employee-record/VIEW` je namerno bez ownership varijante
+// (Vlasnik/Direktor/HR vide sve dosijee) — sam zaposleni koji gleda SOPSTVENI dosije je otvoreno
+// pitanje van obima ove verzije (M24 spec §7).
+const M24_PERMISSIONS: { module: string; resource: string; action: string; description: string }[] =
+  [
+    {
+      module: 'M24',
+      resource: 'employee-record',
+      action: 'VIEW',
+      description: 'Uvid u HR dosije zaposlenog (pozicija, datumi, godišnji odmor)',
+    },
+    {
+      module: 'M24',
+      resource: 'employee-record',
+      action: 'EDIT',
+      description: 'Izmena HR dosijea zaposlenog',
+    },
+    {
+      module: 'M24',
+      resource: 'leave-record',
+      action: 'CREATE',
+      description: 'Evidentiranje odsustva (godišnji odmor, bolovanje, neplaćeno)',
+    },
+  ];
+
 // Podrazumevana dodela — Vlasnik/Direktor dobijaju sve M1+M2+M3+M4 dozvole; HR upravlja korisnicima;
 // Sales Manager/Prodajni agent dobijaju samo VIEW nivoe iz M2/M3 (M2 spec §6, M3 spec §5).
 const DEFAULT_ROLE_PERMISSIONS: Record<
@@ -1356,6 +1391,7 @@ const DEFAULT_ROLE_PERMISSIONS: Record<
     ...M21_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
     ...M22_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
     ...M23_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
+    ...M24_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
     // §6.9.2 — isključivo VLASNIK, namerno NE u DIREKTOR bloku ispod.
     ...M15_BI_TERMINAL_PERMISSION.map((p) => ({
       module: p.module,
@@ -1386,6 +1422,7 @@ const DEFAULT_ROLE_PERMISSIONS: Record<
     ...M21_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
     ...M22_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
     ...M23_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
+    ...M24_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
   ],
   [SYSTEM_ROLES.HR]: [
     { module: 'M1', resource: 'user', action: 'VIEW' },
@@ -1409,6 +1446,10 @@ const DEFAULT_ROLE_PERMISSIONS: Record<
     { module: 'M21', resource: 'article:public', action: 'EDIT' },
     { module: 'M21', resource: 'suggestion', action: 'APPROVE' },
     { module: 'M21', resource: 'question-log', action: 'VIEW' },
+    // M24 spec §4 — HR upravlja HR dosijeima, isti krug kao Vlasnik/Direktor.
+    { module: 'M24', resource: 'employee-record', action: 'VIEW' },
+    { module: 'M24', resource: 'employee-record', action: 'EDIT' },
+    { module: 'M24', resource: 'leave-record', action: 'CREATE' },
   ],
   [SYSTEM_ROLES.SALES_MANAGER]: [
     { module: 'M2', resource: 'product', action: 'VIEW' },
@@ -1642,6 +1683,45 @@ const DEFAULT_ROLE_PERMISSIONS: Record<
     // M21 spec §3 — Računovođa je interni tim, čita objavljene STAFF članke.
     { module: 'M21', resource: 'article:staff', action: 'VIEW' },
   ],
+  // M24 spec §2.1 (8.9.2026) — "iznad Računovođe u hijerarhiji ovlašćenja nad M10/M13, uže od
+  // Direktora". Isti VIEW/CREATE_DRAFT/RECORD/APPROVE/REVIEW skup kao Računovođa (namerno BEZ
+  // SUBMIT/EXECUTE — M10 spec §9 rezerviše stvaran prenos novca isključivo za Vlasnika/Direktora,
+  // ovaj prolaz to ne menja), plus PUN M13 izveštajni pristup (ne samo finansijski izveštaj kao
+  // Računovođa) — otvoreno pitanje "tačan skup dozvola" iz M24 spec §2.1 rešeno ovim, menja se
+  // lako ako vlasnik odluči drugačije.
+  [SYSTEM_ROLES.FINANSIJSKI_DIREKTOR]: [
+    { module: 'M5', resource: 'booking', action: 'VIEW' },
+    { module: 'M5', resource: 'booking', action: 'VIEW_ALL' },
+    { module: 'M10', resource: 'fiscal-document', action: 'VIEW' },
+    { module: 'M10', resource: 'fiscal-document', action: 'CREATE_DRAFT' },
+    { module: 'M10', resource: 'fiscal-document', action: 'SUBMIT' },
+    { module: 'M10', resource: 'payment', action: 'VIEW' },
+    { module: 'M10', resource: 'payment', action: 'RECORD' },
+    { module: 'M10', resource: 'exchange-rate', action: 'VIEW' },
+    { module: 'M10', resource: 'exchange-rate', action: 'EDIT' },
+    { module: 'M10', resource: 'supplier-obligation', action: 'VIEW' },
+    { module: 'M10', resource: 'supplier-obligation', action: 'APPROVE' },
+    { module: 'M10', resource: 'supplier-payment-instruction', action: 'VIEW' },
+    { module: 'M10', resource: 'supplier-payment-instruction', action: 'CREATE' },
+    { module: 'M10', resource: 'refund-instruction', action: 'VIEW' },
+    { module: 'M10', resource: 'refund-instruction', action: 'CREATE' },
+    { module: 'M10', resource: 'payment-terms-config', action: 'VIEW' },
+    { module: 'M10', resource: 'client-payment-schedule', action: 'VIEW' },
+    { module: 'M10', resource: 'client-payment-schedule', action: 'VIEW_ALL' },
+    { module: 'M10', resource: 'supplier-invoice-import', action: 'VIEW' },
+    { module: 'M10', resource: 'supplier-invoice-import', action: 'CREATE' },
+    { module: 'M10', resource: 'supplier-invoice-import', action: 'REVIEW' },
+    { module: 'M11', resource: 'inspection-export', action: 'CREATE' },
+    { module: 'M7', resource: 'commission-rebate', action: 'VIEW' },
+    { module: 'M7', resource: 'commission-rebate', action: 'APPROVE' },
+    { module: 'M6', resource: 'client-account', action: 'VIEW' },
+    { module: 'M6', resource: 'client-account', action: 'VIEW_ALL' },
+    ...M13_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
+    { module: 'M19', resource: 'conversation', action: 'CREATE' },
+    { module: 'M19', resource: 'conversation', action: 'VIEW' },
+    { module: 'M19', resource: 'conversation', action: 'SEND_MESSAGE' },
+    { module: 'M21', resource: 'article:staff', action: 'VIEW' },
+  ],
   // M5 spec §10 tabela ("Gost — samo sopstvene") i M6 spec §7 ("Uloga Gost ima pristup
   // isključivo sopstvenom ClientAccount/GuestProfile") — dozvole same po sebi ne razlikuju
   // "sopstveno" od "tuđe" (M1 §3.6 to ne modeluje), pa ownership sprovode servisi/kontroleri
@@ -1720,6 +1800,13 @@ const DEFAULT_ROLE_PERMISSIONS: Record<
     { module: 'M5', resource: 'booking-note', action: 'CREATE' },
     { module: 'M5', resource: 'booking-note', action: 'DELETE' },
   ],
+  // M24 spec §2.1 — namerno PRAZAN podrazumevani skup. SEF_POSLOVNICE je KOMBINOVANA uloga
+  // (nikad samostalna, ograda u UsersService.assignRole/removeRole) — pristup dolazi od uloge
+  // sa kojom je uparena (npr. uz PRODAJNI_AGENT dobija prodajne dozvole te uloge). Sopstveni,
+  // poslovnici-specifičan opseg (npr. uvid u sve rezervacije/korisnike SVOJE poslovnice) je
+  // otvoreno pitanje iz M24 spec §7 — traži novu dimenziju filtriranja (po branch_id) koja danas
+  // ne postoji ni kod jedne dozvole, ne dodaje se ovde bez posebne odluke.
+  [SYSTEM_ROLES.SEF_POSLOVNICE]: [],
 };
 
 async function main() {
@@ -1746,6 +1833,7 @@ async function main() {
     ...M21_PERMISSIONS,
     ...M22_PERMISSIONS,
     ...M23_PERMISSIONS,
+    ...M24_PERMISSIONS,
   ]) {
     await prisma.permission.upsert({
       where: {
@@ -1816,7 +1904,7 @@ async function main() {
   await seedBootstrapVlasnik();
 
   console.log(
-    `Seed OK — ${SYSTEM_ROLE_SEED.length} sistemskih uloga, ${M1_PERMISSIONS.length} M1 dozvola, ${M2_PERMISSIONS.length} M2 dozvola, ${M3_PERMISSIONS.length} M3 dozvola, ${M4_PERMISSIONS.length} M4 dozvola, ${M5_PERMISSIONS.length} M5 dozvola, ${M6_PERMISSIONS.length} M6 dozvola, ${M10_PERMISSIONS.length} M10 dozvola, ${M11_PERMISSIONS.length} M11 dozvola, ${M7_PERMISSIONS.length} M7 dozvola, ${M20_PERMISSIONS.length} M20 dozvola, ${M14_PERMISSIONS.length} M14 dozvola, ${M13_PERMISSIONS.length} M13 dozvola, ${M12_PERMISSIONS.length} M12 dozvola, ${M16_PERMISSIONS.length} M16 dozvola, ${M9_PERMISSIONS.length} M9 dozvola, ${M15_PERMISSIONS.length} M15 dozvola, ${M18_PERMISSIONS.length} M18 dozvola, ${M19_PERMISSIONS.length} M19 dozvola, ${M21_PERMISSIONS.length} M21 dozvola, ${M22_PERMISSIONS.length} M22 dozvola, ${M23_PERMISSIONS.length} M23 dozvola.`,
+    `Seed OK — ${SYSTEM_ROLE_SEED.length} sistemskih uloga, ${M1_PERMISSIONS.length} M1 dozvola, ${M2_PERMISSIONS.length} M2 dozvola, ${M3_PERMISSIONS.length} M3 dozvola, ${M4_PERMISSIONS.length} M4 dozvola, ${M5_PERMISSIONS.length} M5 dozvola, ${M6_PERMISSIONS.length} M6 dozvola, ${M10_PERMISSIONS.length} M10 dozvola, ${M11_PERMISSIONS.length} M11 dozvola, ${M7_PERMISSIONS.length} M7 dozvola, ${M20_PERMISSIONS.length} M20 dozvola, ${M14_PERMISSIONS.length} M14 dozvola, ${M13_PERMISSIONS.length} M13 dozvola, ${M12_PERMISSIONS.length} M12 dozvola, ${M16_PERMISSIONS.length} M16 dozvola, ${M9_PERMISSIONS.length} M9 dozvola, ${M15_PERMISSIONS.length} M15 dozvola, ${M18_PERMISSIONS.length} M18 dozvola, ${M19_PERMISSIONS.length} M19 dozvola, ${M21_PERMISSIONS.length} M21 dozvola, ${M22_PERMISSIONS.length} M22 dozvola, ${M23_PERMISSIONS.length} M23 dozvola, ${M24_PERMISSIONS.length} M24 dozvola.`,
   );
 }
 
