@@ -37,7 +37,9 @@ export function nightsBetween(stayFrom: Date, stayTo: Date): string[] {
   const cur = new Date(
     Date.UTC(stayFrom.getUTCFullYear(), stayFrom.getUTCMonth(), stayFrom.getUTCDate()),
   );
-  const end = new Date(Date.UTC(stayTo.getUTCFullYear(), stayTo.getUTCMonth(), stayTo.getUTCDate()));
+  const end = new Date(
+    Date.UTC(stayTo.getUTCFullYear(), stayTo.getUTCMonth(), stayTo.getUTCDate()),
+  );
   while (cur < end) {
     nights.push(cur.toISOString().slice(0, 10));
     cur.setUTCDate(cur.getUTCDate() + 1);
