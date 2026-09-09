@@ -3,15 +3,17 @@ import { PricelistService } from './pricelist.service';
 import { PricelistController } from './pricelist.controller';
 import { PricelistVersionsService } from './pricelist-versions.service';
 import { PricelistVersionsController } from './pricelist-versions.controller';
+import { PricelistCalendarService } from './pricelist-calendar.service';
+import { CapacityModule } from '../capacity/capacity.module';
 import { AuditLogModule } from '../../m1-core-identitet/audit-log/audit-log.module';
 import { AuthModule } from '../../m1-core-identitet/auth/auth.module';
 import { PermissionsModule } from '../../m1-core-identitet/permissions/permissions.module';
 
 // M3 spec §2.11 (v1.27) — cenovnik kao mreža; §2.11l (v1.33) — verzije cenovnika.
 @Module({
-  imports: [AuditLogModule, AuthModule, PermissionsModule],
+  imports: [AuditLogModule, AuthModule, PermissionsModule, CapacityModule],
   controllers: [PricelistController, PricelistVersionsController],
-  providers: [PricelistService, PricelistVersionsService],
-  exports: [PricelistService, PricelistVersionsService],
+  providers: [PricelistService, PricelistVersionsService, PricelistCalendarService],
+  exports: [PricelistService, PricelistVersionsService, PricelistCalendarService],
 })
 export class PricelistModule {}

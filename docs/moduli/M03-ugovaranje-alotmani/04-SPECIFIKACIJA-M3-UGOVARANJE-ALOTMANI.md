@@ -3,6 +3,18 @@
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M3) i poglavlje 8 (Faza 1)
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje
+**Verzija:** 1.34 — **kalendar cena i raspoloživosti napravljen** (9.9.2026, korak 6 od sedam iz `docs/analize/46-PREDAJA-RADA-CENOVNIK.md`). **Bez novog zapisa u bazi**, kako §2.11o i traži: `GET /contracting/contracts/:id/pricelist-calendar` spaja cenovnik i postojeću mrežu kapaciteta (§2.8). Ekran: kartica „Kalendar“ na `/ugovori/[id]/cenovnik`.
+
+**Cena se ne računa nanovo.** Obračun za sastav gostiju (osnovna popunjenost, doplata po uzrastu, krevetac) već postoji kao čista funkcija koju koristi prodaja (`computeRoomBaseCost`), pa je kalendar koristi doslovno. Druga formula za isti posao bi se pre ili kasnije razišla sa prvom, a razlika bi se videla tek na računu.
+
+**Rupa u cenovniku se imenuje, ne ćuti.** Dan bez cene nosi razlog: `VAN_PERIODA`, `NEMA_CENE`, `DAN_BEZ_CENE` (kombinacija postoji, ali nijedan red ne pokriva taj dan u nedelji — §2.11d), `PROZOR_PRODAJE_ZATVOREN` (§2.11e) i `NEMA_CENE_ZA_UZRAST` (§2.4a: cena se ne pretpostavlja ni ovde, isto kao u prodaji). Uz to ide zbirno upozorenje po kombinaciji („4 od 6 dana nema cenu“), da se rupa vidi bez prebrojavanja po ekranu. Prazan mesec bi inače izgledao isto bez obzira da li je cenovnik nepotpun ili je ekran pokvaren.
+
+**Tri odluke koje se lako previde.** (1) Cena je za **jednu noć koja počinje tog dana** — dan odjave nije noć. (2) Kad je osnova `*_PER_STAY`, noćna cena ne postoji: prikazuje se iznos za boravak uz oznaku `CENA_ZA_BORAVAK`, da se ne čita kao noćna. (3) Dan koji nije dan prijave (turnus, §2.11d) i dalje **nosi cenu**, ali je označen sa `dolazakMoguc: false` — bez toga kalendar obećava nešto što prodaja odbija. Dan sa stop-sale takođe zadržava cenu: cena i odluka o prodaji su dve različite stvari (§2.8c).
+
+Raspon je ograničen na **92 dana**, isto kao mreža kapaciteta — kalendar se gleda po mesecima. Više perioda istog tipa sobe na isti dan se **sabira** (gost ne bira iz kog perioda mu soba dolazi), a stop-sale u bilo kom od njih pobeđuje otvorenu prodaju u drugom.
+
+**Izmereno kroz endpoint koji panel zove, nad sveže napravljenom bazom:** cenovnik sa radnim redom 100,00 i vikend redom 140,00 daje u istom mesecu ponedeljak **100,00**, petak i subotu **140,00**, nedelju **100,00**; dan van perioda vraća `VAN_PERIODA` uz upozorenje „4 od 6 dana“; dan sa stop-sale nosi `cena: 14000`, `saleStatus: STOP`, `slobodno: 0` i razlog zatvaranja. **Provera:** 1404 unit testa (19 novih) + `test/m3-pricelist-calendar.e2e-spec.ts` (4 testa).
+
 **Verzija:** 1.33 — **verzije cenovnika napravljene** (9.9.2026, korak 5 od sedam iz `docs/analize/46-PREDAJA-RADA-CENOVNIK.md`). Nov zapis `PricelistVersion` (migracija `20260909201500`) i čista logika poređenja `pricelist/pricelist-diff.ts`. Verzija nosi **snimak celog cenovnika**, ne samo razlike — bez snimka se razlika prema prošloj verziji ne može izračunati kasnije, jer se žive stavke u međuvremenu gase i zamenjuju (§2.4c), pa „kako je cenovnik izgledao tada" prestaje da bude upit nad tabelama.
 
 **Dva ulaza u isti tok, i razlika je namerna.** _Ručna izmena:_ čovek menja ćeliju u mreži, izmena se primenjuje odmah (kao i do sada), a verzija se snima posle — ekran „Verzije" pokazuje **samo razlike** prema poslednjoj potvrđenoj verziji i jedno dugme koje ih zapisuje. _Predlog spolja_ (§4.2 uvoz dokumenta, §4.8 izmena rečima): predlagač je mašina, pa se **ništa ne upisuje pre potvrde** — `POST .../pricelist-versions/predlog` vraća samo razlike, `POST .../pricelist-versions/primeni` upisuje **isključivo potvrđene** ključeve. Nepotvrđena razlika ostaje na staroj vrednosti i vraća se u odgovoru kao `odbijeno`, da se ne izgubi bez traga.
@@ -947,6 +959,10 @@ Vrednost nije u prikazu nego u tome što se **greška vidi golim okom**: pogreš
 
 Ekran: M17 §6d.4. Čita postojeće endpoint-e (`/capacity/grid` + cenovnik), ne uvodi nov zapis.
 
+**Napravljeno u v1.34.** `GET /contracting/contracts/:id/pricelist-calendar` sa parametrima `roomType`, `from`, `to`, `adults` i `childrenAges[]` (godine svakog deteta pojedinačno — „dvoje dece“ nije podatak od kog se može izračunati cena, §2.4a). Odgovor nosi **jedan niz dana po kombinaciji** (pansion × popunjenost), jer jedan tip sobe u istom mesecu ume da ima više cenovnih kombinacija, a ekran ne sme da bira jednu umesto čoveka.
+
+Svaki dan nosi: `cena` (za **jednu noć koja počinje tog dana**), `osnova`, `seasonCode`, `slobodno`, `saleStatus`, `stopReason`, `dolazakMoguc` i `razlog`. `razlog` je ono što ovaj ekran čini korisnim: `VAN_PERIODA`, `NEMA_CENE`, `DAN_BEZ_CENE`, `PROZOR_PRODAJE_ZATVOREN`, `NEMA_CENE_ZA_UZRAST`, `CENA_ZA_BORAVAK`. Dozvola je `M3/contract-period/VIEW` — kalendar ne otkriva nijedan podatak koji se već ne vidi na mreži cena i na ekranu kapaciteta, samo ih spaja u jedan pogled.
+
 ---
 
 ## 3. Veza sa M2 (Katalog)
@@ -1327,7 +1343,7 @@ Prefiks: `/api/v1/contracting`
 - [x] **Verzija cenovnika (2.11l):** posle uvoza izmenjenog cenovnika ekran prikazuje **samo razlike**; prethodna verzija ostaje čitljiva, a rezervacija napravljena pre izmene i dalje prikazuje staru cenu. _(v1.33 — tok razlike/potvrde je napravljen i izmeren; ekran AI uvoza iz §4.2 još ne zove `predlog`/`primeni` nego upisuje red po red, što se spaja u koraku 7.)_
 - [ ] **Izmena rečima (4.8):** rečenica koja traži tri različite izmene proizvodi tri odvojene stavke za odobrenje; odbijanje jedne ne sprečava primenu ostale dve; `instruction_text` je sačuvan uz nastalu verziju.
 - [ ] **Mreža na ekranu (M17 §6d):** ceo cenovnik jednog hotela sa 5 tipova soba i 5 sezona se unosi **sa jednog ekrana**, a cena se kuca kao `89,50` — ne kao `8950`.
-- [ ] **Kalendar (2.11o):** za izabran hotel, tip sobe i sastav gostiju kalendar prikazuje cenu po danu i broj slobodnih jedinica; prelaz sezone se vidi kao promena cene.
+- [x] **Kalendar (2.11o):** za izabran hotel, tip sobe i sastav gostiju kalendar prikazuje cenu po danu i broj slobodnih jedinica; prelaz sezone se vidi kao promena cene. _(v1.34 — dan nosi i oznaku sezone, pa se prelaz vidi i kad su cene slučajno iste; dan bez cene nosi imenovan razlog umesto praznog polja.)_
 
 ---
 

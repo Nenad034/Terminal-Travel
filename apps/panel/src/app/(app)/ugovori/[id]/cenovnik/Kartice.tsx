@@ -15,6 +15,7 @@ export default function Kartice({
   brojIzuzetaka,
   verzije,
   brojRazlika,
+  kalendar,
 }: {
   cene: React.ReactNode;
   doplate: React.ReactNode;
@@ -24,8 +25,11 @@ export default function Kartice({
   verzije: React.ReactNode;
   /** Broj nepotvrđenih izmena prema poslednjoj verziji (§2.11l) — značka na kartici. */
   brojRazlika: number;
+  kalendar: React.ReactNode;
 }) {
-  const [aktivna, setAktivna] = useState<'cene' | 'doplate' | 'pravila' | 'verzije'>('cene');
+  const [aktivna, setAktivna] = useState<'cene' | 'doplate' | 'pravila' | 'verzije' | 'kalendar'>(
+    'cene',
+  );
 
   return (
     <div className="flex flex-col gap-3">
@@ -49,6 +53,9 @@ export default function Kartice({
             </span>
           )}
         </Dugme>
+        <Dugme aktivna={aktivna === 'kalendar'} onClick={() => setAktivna('kalendar')}>
+          Kalendar
+        </Dugme>
         <Dugme aktivna={aktivna === 'verzije'} onClick={() => setAktivna('verzije')}>
           Verzije
           {brojRazlika > 0 && (
@@ -65,6 +72,9 @@ export default function Kartice({
       <div hidden={aktivna !== 'doplate'}>{doplate}</div>
       <div hidden={aktivna !== 'pravila'}>{pravila}</div>
       <div hidden={aktivna !== 'verzije'}>{verzije}</div>
+      {/* Kalendar učitava podatke tek kad se otvori — zato se, za razliku od ostalih kartica,
+          ne drži u DOM-u dok je zatvoren: prazan upit za svaki ugovor bi bio uzalud. */}
+      {aktivna === 'kalendar' && <div>{kalendar}</div>}
     </div>
   );
 }

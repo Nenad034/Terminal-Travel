@@ -8,6 +8,7 @@ import SurchargesPanel, { type Doplata } from './SurchargesPanel';
 import Kartice from './Kartice';
 import PricingRulesPanel, { type PravilioRed } from './PricingRulesPanel';
 import VerzijePanel, { type RazlikeOdgovor, type Verzija } from './VerzijePanel';
+import KalendarPanel from './KalendarPanel';
 
 /**
  * M3 spec §2.11, M17 §6d — cenovnik jednog ugovora kao mreža.
@@ -137,6 +138,13 @@ export default async function CenovnikPage(props: { params: Promise<{ id: string
             />
           }
           brojRazlika={razlike.ukupno}
+          kalendar={
+            <KalendarPanel
+              contractId={id}
+              tipoviSoba={mreza.roomTypes.map((g) => g.roomType)}
+              currency={mreza.currency}
+            />
+          }
         />
       )}
     </div>

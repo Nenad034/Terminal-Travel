@@ -271,3 +271,32 @@ export async function potvrdiVerziju(
   revalidatePath(`/ugovori/${contractId}/cenovnik`);
   return { error: null };
 }
+
+/**
+ * M3 spec §2.11o — kalendar cena i raspoloživosti (pregled, ne unos).
+ *
+ * Sastav gostiju je deo upita jer cena bez njega ne postoji čim cenovnik ima cenu po osobi ili
+ * doplatu po uzrastu. Godine dece se šalju pojedinačno, ne kao broj dece — dete od 3 i dete od
+ * 14 godina nisu ista stavka (§2.4a).
+ */
+export async function ucitajKalendar(
+  contractId: string,
+  upit: { roomType: string; from: string; to: string; adults: number; childrenAges: number[] },
+): Promise<{ podaci: unknown | null; error: string | null }> {
+  const q = new URLSearchParams({
+    roomType: upit.roomType,
+    from: upit.from,
+    to: upit.to,
+    adults: String(upit.adults),
+  });
+  for (const g of upit.childrenAges) q.append('childrenAges', String(g));
+
+  try {
+    const podaci = await apiFetch(
+      `/contracting/contracts/${contractId}/pricelist-calendar?${q.toString()}`,
+    );
+    return { podaci, error: null };
+  } catch (err) {
+    return { podaci: null, error: poruka(err, 'Kalendar nije mogao da se učita.') };
+  }
+}

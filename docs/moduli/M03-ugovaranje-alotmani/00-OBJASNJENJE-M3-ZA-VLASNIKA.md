@@ -158,6 +158,28 @@ Kad preostane samo jedna ili dve sobe, sistem sam javlja upozorenje modulu za na
 
 ---
 
+## Kalendar: mesto gde se greška u cenovniku vidi golim okom — dodato 9.9.2026
+
+Vaša ideja: _„jedan kalendar sa mesecima za neki hotel za neki tip smeštaja za neki period pa mi vidimo cenu u kalendaru“_. Napravljeno.
+
+Izaberete tip sobe, mesec i **sastav gostiju** (dvoje odraslih i dete od osam godina), i kalendar za svaki dan pokazuje cenu baš za taj sastav i koliko je jedinica slobodno.
+
+**Čemu zapravo služi.** Ne toliko da se vidi cena — nju vidite i u tabeli. Služi da se vidi **greška**. Pogrešno unet datum u tabeli izgleda kao svaki drugi datum. U kalendaru se isti taj previd vidi kao rupa u nizu ili kao skok cene tamo gde ga ne očekujete. To je jedina razlika, i zbog nje ekran postoji.
+
+**Prazan dan nikad ne ćuti.** Ako za neki dan nema cene, kalendar kaže **zašto**: dan je van ugovorenog perioda, ili za taj dan u nedelji nije uneta cena (vikend red koji ste zaboravili), ili je prozor prodaje te cene istekao, ili cenovnik nema cenu za dete tih godina. Prazan kvadratić bi izgledao isto bez obzira da li je cenovnik nepotpun ili je ekran pokvaren — ovako se to razlikuje.
+
+**Tri sitnice koje vredi znati:**
+
+- Cena u kvadratiću je za **jednu noć koja počinje tog dana**. Dan odlaska nije noć, pa ga i nema.
+- Kad je cena ugovorena **za ceo boravak**, a ne po noći, kalendar to izričito kaže — da se iznos ne pročita kao noćna cena.
+- Dan kad hotel ne prima goste (turnus — prijava samo subotom) i dalje pokazuje cenu, ali nosi oznaku „bez prijave“. Bez toga bi kalendar obećavao nešto što prodaja odbija.
+
+Isto važi i za dan kad je hotel zatvorio prodaju: cena ostaje vidljiva, uz crvenu oznaku. Cena i odluka o prodaji su dve različite stvari — cena i dalje važi, samo se tog dana ne prodaje.
+
+**Ovaj ekran ništa ne menja.** Cene se i dalje menjaju u tabeli cena, kapacitet na svom ekranu. Kalendar samo gleda.
+
+---
+
 ## Uvoz cenovnika: AI čita, čovek potpisuje
 
 Hoteli šalju cenovnike kao PDF ili Excel, svaki drugačije složen. Ideja je da AI pročita dokument i predloži redove, a zatim **čovek svaki red odobri**.

@@ -1,10 +1,23 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Put, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Put,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { PricelistService } from './pricelist.service';
 import { UpsertSeasonDto } from './dto/upsert-season.dto';
 import { WriteCellDto } from './dto/write-cell.dto';
 import { UpsertSurchargeDto } from './dto/upsert-surcharge.dto';
 import { UpsertPricingRuleDto } from './dto/upsert-pricing-rule.dto';
+import { PricelistCalendarQueryDto } from './dto/pricelist-calendar-query.dto';
+import { PricelistCalendarService } from './pricelist-calendar.service';
 import { JwtAuthGuard } from '../../m1-core-identitet/auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../../common/guards/permissions.guard';
 import { RequirePermission } from '../../../common/decorators/require-permission.decorator';
@@ -22,7 +35,10 @@ import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 @Controller('contracting')
 export class PricelistController {
-  constructor(private readonly pricelist: PricelistService) {}
+  constructor(
+    private readonly pricelist: PricelistService,
+    private readonly kalendarService: PricelistCalendarService,
+  ) {}
 
   @Get('contracts/:contractId/seasons')
   @RequirePermission('M3', 'contract-period', 'VIEW')
@@ -126,6 +142,19 @@ export class PricelistController {
     @CurrentUser() actor: { userId: string },
   ) {
     return this.pricelist.deletePricingRule(contractId, dto, actor.userId);
+  }
+
+  /**
+   * §2.11o — kalendar cena i raspoloživosti. **Pregled, ne unos.**
+   *
+   * Dozvola je `contract-period/VIEW`, ista kao za ostatak cenovnika: kalendar ne otkriva ni
+   * jedan podatak koji se već ne vidi na mreži cena i na ekranu kapaciteta — samo ih spaja u
+   * jedan pogled. Dodatna dozvola bi tražila dodelu po korisniku za posao koji je isti.
+   */
+  @Get('contracts/:contractId/pricelist-calendar')
+  @RequirePermission('M3', 'contract-period', 'VIEW')
+  kalendar(@Param('contractId') contractId: string, @Query() q: PricelistCalendarQueryDto) {
+    return this.kalendarService.kalendar(contractId, q);
   }
 
   /** Upis jedne ćelije — ista cena u svaki period te sezone i tog tipa sobe. */

@@ -1065,6 +1065,91 @@ Tri pravila koja ova ruta sprovodi:
 
 `priceBasis` ima četiri vrednosti (v1.27): `PER_ROOM_PER_NIGHT`, `PER_PERSON_PER_NIGHT`, `PER_ROOM_PER_STAY`, `PER_PERSON_PER_STAY`. Osnove sa `_PER_STAY` znače cenu za **ceo boravak** — M5 ih ne množi brojem noćenja.
 
+## Kalendar cena i raspoloživosti (v1.34, M3 §2.11o)
+
+**Pregled, ne unos.** Spaja dva izvora koja inače stoje na odvojenim ekranima — cenovnik i mrežu kapaciteta — da bi se greška u datumskom opsegu videla kao rupa ili skok u nizu. Ne uvodi nov zapis u bazi.
+
+### GET /contracts/:contractId/pricelist-calendar
+
+Dozvola: `M3/contract-period/VIEW`.
+
+**Parametri upita**
+
+| Parametar      | Obavezan | Napomena                                                                                  |
+| :------------- | :------- | :---------------------------------------------------------------------------------------- |
+| `roomType`     | da       | tačan naziv tipa sobe                                                                     |
+| `from`, `to`   | da       | raspon **boravka**, ISO `yyyy-mm-dd`, uključivo; razlika najviše **92 dana**, inače `400` |
+| `adults`       | da       | broj odraslih u sobi, najmanje 1                                                          |
+| `childrenAges` | ne       | godine **svakog** deteta pojedinačno, sme da se ponovi: `?childrenAges=8&childrenAges=3`  |
+
+Godine se šalju pojedinačno, a ne kao broj dece, jer se doplata razlikuje po uzrastu (§2.4a) — dete od 3 i dete od 14 godina nisu ista stavka.
+
+**Odgovor `200`:**
+
+```json
+{
+  "contractId": "b2c1…",
+  "contractNumber": "TT-2026-014",
+  "supplierName": "Hotel Splendid d.o.o.",
+  "currency": "EUR",
+  "roomType": "STD",
+  "from": "2027-06-10",
+  "to": "2027-06-12",
+  "sastav": { "adults": 2, "children": 1, "childrenAges": [8] },
+  "kombinacije": [
+    {
+      "kljuc": "BB|2ADT",
+      "boardType": "BB",
+      "occupancy": "2ADT",
+      "priceBasis": "PER_ROOM_PER_NIGHT",
+      "dani": [
+        {
+          "date": "2027-06-10",
+          "cena": 10000,
+          "osnova": "PER_ROOM_PER_NIGHT",
+          "razlog": null,
+          "seasonCode": "1",
+          "slobodno": 6,
+          "saleStatus": "OPEN",
+          "stopReason": null,
+          "dolazakMoguc": true
+        },
+        {
+          "date": "2027-06-11",
+          "cena": 14000,
+          "osnova": "PER_ROOM_PER_NIGHT",
+          "razlog": null,
+          "seasonCode": "1",
+          "slobodno": 0,
+          "saleStatus": "STOP",
+          "stopReason": "Hotel je zatvorio prodaju",
+          "dolazakMoguc": true
+        }
+      ]
+    }
+  ],
+  "upozorenja": []
+}
+```
+
+Jedan niz **po kombinaciji** (pansion × popunjenost): isti tip sobe u istom mesecu ume da ima više cenovnih kombinacija, a odgovor ne bira jednu umesto čoveka.
+
+`cena` je za **jednu noć koja počinje tog dana** — dan odjave nije noć. Kad je `osnova` `PER_ROOM_PER_STAY`/`PER_PERSON_PER_STAY`, noćna cena ne postoji: iznos je za ceo boravak i dan tada nosi `razlog: "CENA_ZA_BORAVAK"`.
+
+**Vrednosti `razlog` kad cene nema** (`cena: null`):
+
+| Vrednost                  | Značenje                                                                               |
+| :------------------------ | :------------------------------------------------------------------------------------- |
+| `VAN_PERIODA`             | nijedan ugovorni period tog tipa sobe ne pokriva taj dan                               |
+| `NEMA_CENE`               | period postoji, ali za tu kombinaciju nema nijednog cenovnog reda                      |
+| `DAN_BEZ_CENE`            | kombinacija ima redove, ali nijedan ne pokriva taj **dan u nedelji** (§2.11d)          |
+| `PROZOR_PRODAJE_ZATVOREN` | cena postoji, ali joj je prozor rezervisanja prošao (§2.11e)                           |
+| `NEMA_CENE_ZA_UZRAST`     | cenovnik nema `age_pricing` red za dete tog uzrasta (§2.4a) — cena se ne pretpostavlja |
+
+`upozorenja` sabira te dane po kombinaciji („BB · 2ADT: 4 od 6 dana nema cenu za ovaj sastav gostiju.“), da se rupa vidi bez prebrojavanja po ekranu.
+
+`dolazakMoguc: false` znači da cena postoji ali boravak tog dana **ne može da počne** (dani prijave na periodu, §2.11d). Dan sa `saleStatus: "STOP"` takođe zadržava cenu — cena i odluka o prodaji su dve različite stvari (§2.8c). `slobodno: null` znači da period taj dan ne pokriva, što nije isto što i `0` (popunjeno). Više perioda istog tipa sobe na isti dan se **sabira**, a stop-sale u bilo kom od njih pobeđuje otvorenu prodaju u drugom.
+
 ## Verzije cenovnika (v1.33, M3 §2.11l)
 
 Nova verzija **ne briše staru**: rezervacije napravljene po staroj ceni moraju i dalje da se objasne. Verzija nosi **snimak celog cenovnika** u trenutku potvrde — bez njega se razlika prema prošloj verziji ne može izračunati kasnije, jer se žive stavke gase i zamenjuju (§2.4c).

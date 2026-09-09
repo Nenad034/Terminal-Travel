@@ -840,6 +840,8 @@ Polje u koje se ukuca rečenica kakva bi se rekla kolegi, pa spisak predloženih
 
 Biraju se hotel, tip sobe i sastav gostiju; kalendar po danu prikazuje cenu za taj sastav i **broj slobodnih jedinica** (vlasnikova odluka: samo slobodno, ne „4 od 6"). Vrednost je u tome što se pogrešno unet datumski opseg vidi kao skok ili rupa u nizu — u mreži se to ne primeti.
 
+**Napravljeno 9.9.2026** kao kartica „Kalendar“ na `/ugovori/[id]/cenovnik` (M3 v1.34). Četiri odluke koje ekran nosi: (1) godine dece se unose **pojedinačno**, ne kao broj dece — doplata se razlikuje po uzrastu; (2) kad tip sobe ima više cenovnih kombinacija (pansion × popunjenost), ekran nudi izbor umesto da jednu izabere umesto čoveka; (3) dan bez cene nosi **imenovan razlog**, ne prazan kvadratić — prazno bi izgledalo isto i kad je cenovnik nepotpun i kad je ekran pokvaren; (4) kartica učitava podatke tek kad se otvori, za razliku od ostalih koje ostaju u DOM-u — upit za kalendar bi inače išao pri svakom otvaranju cenovnika, bez potrebe.
+
 ## 7. Izlazni kriterijum
 
 Pošto M17 raste sa fazama, izlazni kriterijum je vezan za svaku fazu, ne za jedan trenutak:

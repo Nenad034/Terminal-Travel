@@ -178,6 +178,16 @@ Vlasnik je izričito rekao: hotel šalje **ceo nov cenovnik**, ne spisak izmena.
 
 ### Korak 6 — Kalendar cena i raspoloživosti (M3 §2.11o, M17 §6d.4)
 
+> **URAĐENO 9.9.2026** — M3 v1.34, commit uz ovu izmenu. `GET /contracting/contracts/:id/pricelist-calendar` i kartica „Kalendar“ na `/ugovori/[id]/cenovnik`. **Bez novog zapisa u bazi**, kako spec i traži: spaja cenovnik i postojeću mrežu kapaciteta (§2.8).
+>
+> **Cena se ne računa nanovo** — koristi se ista čista funkcija koju koristi prodaja (`computeRoomBaseCost`). Druga formula za isti posao bi se razišla sa prvom, a razlika bi se videla tek na računu.
+>
+> **Rupa se imenuje, ne ćuti:** `VAN_PERIODA`, `NEMA_CENE`, `DAN_BEZ_CENE` (vikend red nije unet), `PROZOR_PRODAJE_ZATVOREN`, `NEMA_CENE_ZA_UZRAST`, plus zbirno upozorenje po kombinaciji. Prazan mesec bi inače izgledao isto i kad je cenovnik nepotpun i kad je ekran pokvaren.
+>
+> **Izmereno kroz endpoint koji panel zove, nad sveže napravljenom bazom:** cenovnik sa radnim redom 100,00 i vikend redom 140,00 daje ponedeljak **100,00**, petak i subotu **140,00**, nedelju **100,00**; dan van perioda vraća `VAN_PERIODA` uz upozorenje „4 od 6 dana“; dan sa stop-sale nosi cenu **140,00**, `saleStatus: STOP`, `slobodno: 0` i razlog zatvaranja. **Provera:** 1404 unit testa (19 novih) + `test/m3-pricelist-calendar.e2e-spec.ts` (4 testa).
+>
+> **Zabeleženo, ne prećutano:** čista funkcija za obračun cene stoji u `m5-rezervacije/common/occupancy.ts` iako opisuje M3 pravila, pa je M3 sada uvozi. Isti obrazac već postoji u oba smera (M3 `create-contract-period.dto.ts` je uvozi još od ranije), ali je pravo mesto tog fajla zajednički folder — upisano u backlog, nije rešeno u ovom prolazu da se refaktor deljenog obračuna ne meša sa novom funkcionalnošću.
+
 Pregled, **ne unos**. Bira se hotel, tip sobe i sastav gostiju; kalendar po danu prikazuje cenu za taj sastav i **broj slobodnih jedinica** (vlasnikova odluka: samo slobodno, ne „4 od 6"). Ne uvodi nov zapis — čita `/capacity/grid` i cenovnik.
 
 ### Korak 7 — Izmena cenovnika rečima (M3 §4.8)
