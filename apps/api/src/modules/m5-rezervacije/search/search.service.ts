@@ -1,6 +1,7 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { AllotmentMode, LanguageCode, Prisma, ProductType } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
+import { EventBusService } from '../../../common/events/event-bus.service';
 import { MarkupRulesService } from '../markup-rules/markup-rules.service';
 import { IntegrationsService } from '../../m4-integracije-api/integrations.service';
 import { resolveTranslation } from '../../m2-katalog-proizvoda/products/language-fallback';
@@ -69,7 +70,57 @@ export class SearchService {
     private readonly prisma: PrismaService,
     private readonly markupRules: MarkupRulesService,
     private readonly integrations: IntegrationsService,
+    private readonly eventBus: EventBusService,
   ) {}
+
+  /**
+   * M5 §2.2 / §3.0b.3 (dopuna 9.9.2026, vlasnikova odluka) — proizvod bez pravila marže se
+   * PRESKAČE, a u nadzoru se digne signal.
+   *
+   * Do ove dopune `resolveForContracted` je bacao, a ovde se nije hvatalo — pa je JEDAN loše
+   * podešen proizvod obarao CELU pretragu za tu destinaciju, i to i za goste na sajtu (izmereno
+   * 9.9.2026: `GET /sales/search` za Budvu vraćao 404; zamka 3.15).
+   *
+   * Zašto ne tiho: pogrešno podešavanje bi tako moglo da stoji mesecima a da niko ne primeti da
+   * se hotel uopšte ne prodaje. Zato skok UVEK prati signal (vlasnikova odluka 9.9.2026).
+   */
+  private async marzaIliPreskoci<T>(
+    productId: string,
+    opis: Record<string, unknown>,
+    resolve: () => Promise<T>,
+  ): Promise<T | null> {
+    try {
+      return await resolve();
+    } catch (err) {
+      if (!(err instanceof NotFoundException)) throw err;
+      await this.prijaviNedostajucuMarzu(productId, opis);
+      return null;
+    }
+  }
+
+  /**
+   * Signal ide najviše jednom po proizvodu na sat. Pretraga je javan endpoint koji se poziva
+   * neprekidno — bez ove ograde bi jedan nepodešen hotel napravio hiljade istih redova u nadzoru
+   * i zatrpao sve ostalo. Prigušivanje je u memoriji procesa, dakle nije garancija nego zaštita
+   * od poplave: posle restarta se signal ponovo javi, što je ovde poželjno.
+   */
+  private readonly marzaPrijavljena = new Map<string, number>();
+  private static readonly MARZA_PRIGUSENJE_MS = 60 * 60 * 1000;
+
+  private async prijaviNedostajucuMarzu(productId: string, opis: Record<string, unknown>) {
+    const sada = Date.now();
+    const poslednji = this.marzaPrijavljena.get(productId);
+    if (poslednji && sada - poslednji < SearchService.MARZA_PRIGUSENJE_MS) return;
+    this.marzaPrijavljena.set(productId, sada);
+
+    // Preko Event Bus-a, ne direktnim pozivom M18 — moduli komuniciraju preko granice
+    // (Master dokument, princip #2). M18 se pretplaćuje i pravi HealthSignal.
+    await this.eventBus.emit('M5', 'product_missing_markup', {
+      productId,
+      severity: 'WARNING',
+      ...opis,
+    });
+  }
 
   // M5 spec §3.0b/§11 — GET /search: M2 katalog + M3 ugovorena dostupnost + M4 uživo, sa
   // već primenjenom maržom. Filtrira SOLD_OUT ponude pre odgovora (§3.0b.2).
@@ -452,7 +503,13 @@ export class SearchService {
             }
           : {}),
       },
-      include: { rateLines: { include: { agePricing: true } }, cancellationRules: true },
+      // M3 §2.4c (v1.25) — ugašena cenovna stavka se NE prodaje. Bez ovog filtera bi
+      // pogrešna cena, ispravljena u panelu, i dalje stizala u rezultat pretrage kao
+      // zasebna ponuda — i po pravilu najniže cene (M3 §2.10) često i pobeđivala.
+      include: {
+        rateLines: { where: { status: 'ACTIVE' }, include: { agePricing: true } },
+        cancellationRules: { where: { status: 'ACTIVE' } },
+      },
     });
 
     const roomsRequested = params.occupancy?.roomConfig?.length ?? 1;
@@ -514,12 +571,19 @@ export class SearchService {
           baseCost = rateLine.price;
         }
 
-        const markupRule = await this.markupRules.resolveForContracted({
-          productId: product.id,
-          contractPeriodId: period.id,
-          contractId: product.sourceContractId,
-          supplierId: product.sourceContract.supplierId,
-        });
+        const markupRule = await this.marzaIliPreskoci(
+          product.id,
+          { contractPeriodId: period.id, contractId: product.sourceContractId },
+          () =>
+            this.markupRules.resolveForContracted({
+              productId: product.id,
+              contractPeriodId: period.id,
+              contractId: product.sourceContractId!,
+              supplierId: product.sourceContract!.supplierId,
+            }),
+        );
+        // §3.0b.3 — bez marže nema cene, pa ni ponude; ostatak rezultata se ne dira.
+        if (!markupRule) continue;
         const finalPrice = applyMarkup(baseCost, markupRule);
         const roomTypeDef = roomTypes.find((r) => r.code === period.roomType);
 
@@ -639,7 +703,13 @@ export class SearchService {
                   },
                 }),
           },
-          include: { rateLines: { include: { agePricing: true } }, cancellationRules: true },
+          // M3 §2.4c (v1.25) — ugašena cenovna stavka se NE prodaje. Bez ovog filtera bi
+          // pogrešna cena, ispravljena u panelu, i dalje stizala u rezultat pretrage kao
+          // zasebna ponuda — i po pravilu najniže cene (M3 §2.10) često i pobeđivala.
+          include: {
+            rateLines: { where: { status: 'ACTIVE' }, include: { agePricing: true } },
+            cancellationRules: { where: { status: 'ACTIVE' } },
+          },
         });
 
         const roomTypes = ((component.attributes as any)?.roomTypes ??
@@ -652,12 +722,19 @@ export class SearchService {
           if (remaining < roomsRequested) continue; // SOLD_OUT za ovaj period, §3.0b.2
           if (period.rateLines.length === 0) continue;
 
-          const markupRule = await this.markupRules.resolveForContracted({
-            productId: component.id,
-            contractPeriodId: period.id,
-            contractId: component.sourceContractId,
-            supplierId: component.sourceContract.supplierId,
-          });
+          const markupRule = await this.marzaIliPreskoci(
+            component.id,
+            { contractPeriodId: period.id, uPaketu: true },
+            () =>
+              this.markupRules.resolveForContracted({
+                productId: component.id,
+                contractPeriodId: period.id,
+                contractId: component.sourceContractId!,
+                supplierId: component.sourceContract!.supplierId,
+              }),
+          );
+          // Sastojak bez marže se preskače — paket se sastavlja od ostalih, ili ne nastane.
+          if (!markupRule) continue;
           for (const rateLine of period.rateLines) {
             let baseCost: number;
             if (isRoomBased && params.occupancy) {

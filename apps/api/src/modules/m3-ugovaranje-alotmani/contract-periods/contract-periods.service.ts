@@ -13,6 +13,23 @@ import { UpdateContractPeriodDto } from './dto/update-contract-period.dto';
 import { assertNoContractPeriodOverlap } from './overlap';
 import { bookingWindowOpen, claimNights, DayCapacityError, releaseNights } from './day-capacity';
 
+// §2.4c (v1.25) — audit akcija i tip resursa po cenovnoj stavci. Zatvorena mapa, ne izvedeno
+// ime: audit log se pretražuje po tačnoj vrednosti, pa se ona ne sme menjati preimenovanjem
+// promenljive u kodu.
+const PRICELIST_DEACTIVATE_ACTION = {
+  rateLine: 'rate_line.deactivated',
+  pricelistOffer: 'pricelist_offer.deactivated',
+  cancellationRule: 'cancellation_rule.deactivated',
+  ancillaryService: 'ancillary_service.deactivated',
+} as const;
+
+const PRICELIST_RESOURCE_TYPE = {
+  rateLine: 'RateLine',
+  pricelistOffer: 'PricelistOffer',
+  cancellationRule: 'CancellationRule',
+  ancillaryService: 'AncillaryService',
+} as const;
+
 const CAPACITY_BEARING_MODES: AllotmentMode[] = ['FIXED', 'CHARTER', 'FIXED_LEASE'];
 
 @Injectable()
@@ -34,7 +51,12 @@ export class ContractPeriodsService {
     return this.prisma.contractPeriod.findUniqueOrThrow({
       where: { id },
       include: {
-        rateLines: { include: { agePricing: true } },
+        // §2.4c pravilo 2 — ugašene stavke se NE sakrivaju sa ekrana: nestanak reda čita se
+        // kao „nikad nije ni postojao", što je za cenu netačno. Aktivne idu prve.
+        rateLines: {
+          include: { agePricing: true },
+          orderBy: [{ status: 'asc' }, { createdAt: 'asc' }],
+        },
         cancellationRules: true,
         offers: true,
         ancillaryServices: true,
@@ -263,6 +285,140 @@ export class ContractPeriodsService {
   }
 
   // §2.4
+  /**
+   * M3 §2.4c (v1.25) — ŽIVOTNI CIKLUS CENOVNE STAVKE.
+   *
+   * Do v1.25 se cenovna stavka mogla samo dodati: sva četiri `upsert*` metoda ispod zovu
+   * `create`, a kontroler nije imao ni `PATCH` ni `DELETE`. Pogrešno ukucana cena se nije
+   * mogla povući, a `SearchService` od SVAKE cenovne linije pravi zasebnu ponudu — pa je
+   * pogrešna cena ostajala prodajna, uporedo sa ispravnom.
+   *
+   * Vlasnikova odluka 9.9.2026: ispravka je **gašenje stare i upis nove**, nikad prepisivanje
+   * vrednosti — cena je finansijski podatak i posle izmene mora ostati odgovor po kojoj je
+   * ceni nešto prodato pre nje.
+   *
+   * Gašenje NAMERNO ne proverava da li je stavka prodata: rezervacija nosi svoju cenovnu
+   * liniju kao snimak (M5 §6), pa se prošlost ne dira — a takva provera bi zabranila ispravku
+   * baš tamo gde je najpotrebnija.
+   */
+  async deactivateRateLine(periodId: string, rateLineId: string, actorId: string) {
+    return this.deactivatePricelistItem('rateLine', periodId, rateLineId, actorId);
+  }
+
+  async deactivateOffer(periodId: string, offerId: string, actorId: string) {
+    return this.deactivatePricelistItem('pricelistOffer', periodId, offerId, actorId);
+  }
+
+  async deactivateCancellationRule(periodId: string, ruleId: string, actorId: string) {
+    return this.deactivatePricelistItem('cancellationRule', periodId, ruleId, actorId);
+  }
+
+  async deactivateAncillaryService(periodId: string, serviceId: string, actorId: string) {
+    return this.deactivatePricelistItem('ancillaryService', periodId, serviceId, actorId);
+  }
+
+  /** Zajedničko gašenje — četiri stavke se razlikuju samo po tabeli i nazivu audit akcije. */
+  private async deactivatePricelistItem(
+    model: 'rateLine' | 'pricelistOffer' | 'cancellationRule' | 'ancillaryService',
+    periodId: string,
+    id: string,
+    actorId: string,
+  ) {
+    const delegate = this.prisma[model] as unknown as {
+      findUnique: (
+        a: unknown,
+      ) => Promise<{ id: string; contractPeriodId: string; status: string } | null>;
+      update: (a: unknown) => Promise<{ id: string }>;
+    };
+    const postojeca = await delegate.findUnique({ where: { id } });
+    if (!postojeca) throw new NotFoundException('Cenovna stavka nije pronađena');
+    // Stavka drugog perioda se ne sme ugasiti kroz tuđu adresu — inače bi greška u URL-u
+    // tiho isključila cenu na sasvim drugom ugovoru.
+    if (postojeca.contractPeriodId !== periodId) {
+      throw new BadRequestException('Cenovna stavka ne pripada navedenom periodu');
+    }
+    if (postojeca.status === 'INACTIVE') return postojeca;
+
+    const ugasena = await delegate.update({
+      where: { id },
+      data: { status: 'INACTIVE', deactivatedBy: actorId, deactivatedAt: new Date() },
+    });
+    await this.auditLog.write({
+      actorType: 'HUMAN',
+      actorId,
+      module: 'M3',
+      action: PRICELIST_DEACTIVATE_ACTION[model],
+      resourceType: PRICELIST_RESOURCE_TYPE[model],
+      resourceId: id,
+      beforeState: postojeca,
+      afterState: ugasena,
+      context: { contractPeriodId: periodId },
+    });
+    return ugasena;
+  }
+
+  /**
+   * §2.4c — ispravka je JEDAN potez, ne dva: gašenje stare i upis nove idu u istoj
+   * transakciji. Da su dva odvojena poziva, prekid između njih ostavio bi period bez ijedne
+   * važeće cene — a to je stanje u kom se ne sme prodavati.
+   */
+  async replaceRateLine(
+    periodId: string,
+    rateLineId: string,
+    dto: UpsertRateLineDto,
+    actorId: string,
+  ) {
+    const stara = await this.prisma.rateLine.findUnique({ where: { id: rateLineId } });
+    if (!stara) throw new NotFoundException('Cenovna stavka nije pronađena');
+    if (stara.contractPeriodId !== periodId) {
+      throw new BadRequestException('Cenovna stavka ne pripada navedenom periodu');
+    }
+
+    const nova = await this.prisma.$transaction(async (tx) => {
+      await tx.rateLine.update({
+        where: { id: rateLineId },
+        data: { status: 'INACTIVE', deactivatedBy: actorId, deactivatedAt: new Date() },
+      });
+      return tx.rateLine.create({
+        data: {
+          contractPeriodId: periodId,
+          replacesId: rateLineId,
+          boardType: dto.boardType,
+          occupancy: dto.occupancy,
+          priceBasis: dto.priceBasis,
+          price: dto.price,
+          cribFeePerNight: dto.cribFeePerNight,
+          agePricing: dto.agePricing
+            ? {
+                create: dto.agePricing.map((a) => ({
+                  ageCategory: a.ageCategory,
+                  occupantIndex: a.occupantIndex,
+                  minAdultsPresent: a.minAdultsPresent,
+                  pricingMode: a.pricingMode,
+                  percentage: a.percentage,
+                  flatPrice: a.flatPrice,
+                })),
+              }
+            : undefined,
+        },
+        include: { agePricing: true },
+      });
+    });
+
+    await this.auditLog.write({
+      actorType: 'HUMAN',
+      actorId,
+      module: 'M3',
+      action: 'rate_line.replaced',
+      resourceType: 'RateLine',
+      resourceId: nova.id,
+      beforeState: stara,
+      afterState: nova,
+      context: { contractPeriodId: periodId, replacesId: rateLineId },
+    });
+    return nova;
+  }
+
   async upsertRateLine(periodId: string, dto: UpsertRateLineDto, actorId: string) {
     const rateLine = await this.prisma.rateLine.create({
       data: {

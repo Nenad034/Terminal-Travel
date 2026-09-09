@@ -4,6 +4,8 @@
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje
 
+**Verzija:** 2.49 — **proizvod bez marže se preskače umesto da obori celu pretragu** (9.9.2026, vlasnikova odluka). Novo poglavlje **3.0b.5**. Izmereno pre ispravke: `GET /sales/search` za Budvu vraćao `404` zbog jednog seed proizvoda bez `MarkupRule`, i to i za goste na sajtu (zamka 3.15). Skok **uvek** prati signal `PRODUCT_MISSING_MARKUP` (M18 §2.1) — tiho preskakanje je odbačeno jer bi pogrešno podešavanje moglo da stoji mesecima a da niko ne primeti da se hotel ne prodaje; signal je prigušen na najviše jedan po proizvodu na sat. Isto pravilo važi i za sastojak paketa. Uz to, **pretraga i sastavljanje ponude od sada čitaju samo `ACTIVE` cenovne stavke** (M3 §2.4c): ugašena cena prestaje da se prodaje istog trenutka.
+
 **Verzija:** 2.48 — `SearchLog` implementiran u kodu (8.9.2026, isti prolaz kao v2.47). `SearchLogService`, upis u `SearchController.find()` (fire-and-forget, posle uspešnog `search()`), migracija `20260908141740_m13_temporal_patterns_search_log`. `actor_id` popunjava se preko istog Bearer JWT-a kao `channel=INTERNAL_PANEL` provera, za BILO KOJI kanal (ne samo INTERNAL_PANEL) — STAFF/B2B pozivi ga nose bez obzira na kanal. `client_account_id` ostaje UVEK `null` u ovom prolazu (poznat, eksplicitno odložen nedostatak — B2C prijava ide preko posebnog kolačić-mehanizma, ne Bearer JWT-a; poglavlje 13). **Provera:** 2 nova unit testa (`SearchLogService`), uživo kroz pravi `GET /sales/search` poziv — stvaran red upisan u bazu.
 
 **Verzija:** 2.47 — Nov `SearchLog` (poglavlje 3.0i, 8.9.2026, vlasnikov zahtev — AI agent treba da analizira "u koje doba dana je bilo najviše upita") — svaki `GET /search` poziv upisuje pun zapis (vreme, kanal, kriterijum, broj rezultata), uklj. anonimne B2C posetioce BEZ IP-a/kolačić-identifikatora (vlasnikova odluka, potvrđeno preko `AskUserQuestion`). Čita ga M13 poglavlje 4.4 ("Vremenski obrasci") i M15 `BiTerminalAgent` (§6.9.6, nov `query_view` red). Retencija namerno neodređena, upisana u poglavlje 13. **Čisto specifikaciona dopuna, bez koda u ovom prolazu.**
@@ -455,6 +457,21 @@ Svaka kartica/red rezultata (poglavlje 6d dizajn dokumenta) nosi radnju **"Info"
 - **Dostupno gde je M23 direktno dostupan** — M17 (interni tim) i M7 (subagenti), u skladu sa M23 spec poglavljem 1.3 (gost na M8 ne pretražuje bazu direktno, samo prima deljen link) — na M8 rezultatima pretrage ova radnja se ne prikazuje u ovom prolazu.
 
 ---
+
+### 3.0b.5 Proizvod bez pravila marže se preskače, uz signal (dopuna 9.9.2026, vlasnikova odluka)
+
+`MarkupRuleService.resolveForContracted` (§2.2) **baca** kad ne nađe pravilo ni na jednom od četiri nivoa (proizvod → period → ugovor → dobavljač). Do 9.9.2026 `SearchService` taj izuzetak nije hvatao, pa je **jedan** loše podešen proizvod obarao **ceo** upit — izmereno: `GET /sales/search` za Budvu vraćao `404` zbog jednog seed proizvoda, i to i za goste na sajtu (zamka 3.15).
+
+**Odluka (vlasnik, 9.9.2026): takav proizvod se preskače, a u nadzoru se digne signal.** Dve stvari zajedno, ne jedna:
+
+- **preskakanje** — gost i agent vide sve što se može videti; jedan nepodešen hotel ne sme da ruši ekran svima;
+- **signal** (M18 §2.1, `PRODUCT_MISSING_MARKUP`) — bez njega bi pogrešno podešavanje moglo da stoji mesecima a da niko ne primeti da se hotel uopšte ne prodaje. Tiho preskakanje je odbačeno baš zbog toga.
+
+Signal ide **najviše jednom po proizvodu na sat**. Pretraga je javan endpoint koji se poziva neprekidno; bez te ograde bi jedan nepodešen hotel napravio hiljade istih redova u nadzoru i zatrpao sve ostalo. Prigušivanje je u memoriji procesa — nije garancija nego zaštita od poplave, i posle restarta se signal namerno ponovo javi.
+
+Isto važi za **sastojak paketa**: preskače se taj sastojak, a paket se sastavlja od ostalih ili ne nastane — nikad se ne obara cela pretraga.
+
+Preventivna strana je u M2 §5.2: proizvod koji već ima ugovor i cenu **ne može da se objavi** bez marže, pa nov proizvod ovo stanje više ne može ni da napravi.
 
 ## 3.0c Vođena pretraga smeštaja — geografski koraci, tag-filteri, AI kontekst (dopuna, avgust 2026, na zahtev vlasnika)
 

@@ -335,7 +335,13 @@ export class ProductsService {
     const periods = product.sourceContractId
       ? await this.prisma.contractPeriod.findMany({
           where: { contractId: product.sourceContractId },
-          select: { id: true, roomType: true, _count: { select: { rateLines: true } } },
+          // M3 §2.4c (v1.25) — broje se samo AKTIVNE cene: period čije su sve cene ugašene
+          // nema šta da ponudi, pa bi ga inače „Period ima cenu" lažno prikazao kao spreman.
+          select: {
+            id: true,
+            roomType: true,
+            _count: { select: { rateLines: { where: { status: 'ACTIVE' } } } },
+          },
         })
       : [];
     const periodiSaCenom = periods.filter((x) => x._count.rateLines > 0);

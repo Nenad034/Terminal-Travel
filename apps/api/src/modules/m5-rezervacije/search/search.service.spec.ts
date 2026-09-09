@@ -12,8 +12,15 @@ describe('SearchService (M5 spec §3.0b/§11)', () => {
     };
     const markupRules = { resolveForContracted: jest.fn(), resolveForApi: jest.fn() };
     const integrations = { checkAvailabilityAndPrice: jest.fn() };
-    const service = new SearchService(prisma as any, markupRules as any, integrations as any);
-    return { service, prisma, markupRules, integrations };
+    // M5 §3.0b.3 (v9.9.2026) — pretraga signalizira proizvod bez marze preko Event Bus-a.
+    const eventBus = { emit: jest.fn() };
+    const service = new SearchService(
+      prisma as any,
+      markupRules as any,
+      integrations as any,
+      eventBus as any,
+    );
+    return { service, prisma, markupRules, integrations, eventBus };
   }
 
   const baseProduct = {

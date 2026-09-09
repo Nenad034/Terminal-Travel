@@ -77,6 +77,64 @@ export class ContractPeriodsController {
     return this.periods.upsertRateLine(periodId, dto, actor.userId);
   }
 
+  /**
+   * §2.4c (v1.25) — gašenje i ispravka cenovnih stavki. Do v1.25 su postojali samo `PUT`
+   * endpoint-i koji uvek KREIRAJU nov red, pa se pogrešna cena nije mogla povući.
+   *
+   * Ista dozvola kao unos (`contract-period/EDIT`): gašenje cene je izmena ugovorenog uslova,
+   * ne nova vrsta odgovornosti — isti obrazac kao izmena kapaciteta (§2.8a).
+   */
+  @Delete('contracts/:contractId/periods/:periodId/rates/:rateLineId')
+  @RequirePermission('M3', 'contract-period', 'EDIT')
+  deactivateRate(
+    @Param('periodId') periodId: string,
+    @Param('rateLineId') rateLineId: string,
+    @CurrentUser() actor: { userId: string },
+  ) {
+    return this.periods.deactivateRateLine(periodId, rateLineId, actor.userId);
+  }
+
+  @Put('contracts/:contractId/periods/:periodId/rates/:rateLineId/replace')
+  @RequirePermission('M3', 'contract-period', 'EDIT')
+  replaceRate(
+    @Param('periodId') periodId: string,
+    @Param('rateLineId') rateLineId: string,
+    @Body() dto: UpsertRateLineDto,
+    @CurrentUser() actor: { userId: string },
+  ) {
+    return this.periods.replaceRateLine(periodId, rateLineId, dto, actor.userId);
+  }
+
+  @Delete('contracts/:contractId/periods/:periodId/offers/:offerId')
+  @RequirePermission('M3', 'contract-period', 'EDIT')
+  deactivateOffer(
+    @Param('periodId') periodId: string,
+    @Param('offerId') offerId: string,
+    @CurrentUser() actor: { userId: string },
+  ) {
+    return this.periods.deactivateOffer(periodId, offerId, actor.userId);
+  }
+
+  @Delete('contracts/:contractId/periods/:periodId/cancellation-rules/:ruleId')
+  @RequirePermission('M3', 'contract-period', 'EDIT')
+  deactivateCancellationRule(
+    @Param('periodId') periodId: string,
+    @Param('ruleId') ruleId: string,
+    @CurrentUser() actor: { userId: string },
+  ) {
+    return this.periods.deactivateCancellationRule(periodId, ruleId, actor.userId);
+  }
+
+  @Delete('contracts/:contractId/periods/:periodId/ancillary-services/:serviceId')
+  @RequirePermission('M3', 'contract-period', 'EDIT')
+  deactivateAncillaryService(
+    @Param('periodId') periodId: string,
+    @Param('serviceId') serviceId: string,
+    @CurrentUser() actor: { userId: string },
+  ) {
+    return this.periods.deactivateAncillaryService(periodId, serviceId, actor.userId);
+  }
+
   @Get('contracts/:contractId/periods/:periodId/cancellation-rules')
   @RequirePermission('M3', 'contract-period', 'VIEW')
   listCancellationRules(@Param('periodId') periodId: string) {

@@ -721,35 +721,35 @@ enum CommissionModel {
 
 // §2.3 `ContractPeriod` — sezona/period unutar ugovora
 model ContractPeriod {
-  id                      String        @id @default(uuid())
-  contractId              String        @map("contract_id")
-  stayFrom                DateTime      @map("stay_from")
-  stayTo                  DateTime      @map("stay_to")
+  id                      String               @id @default(uuid())
+  contractId              String               @map("contract_id")
+  stayFrom                DateTime             @map("stay_from")
+  stayTo                  DateTime             @map("stay_to")
   // M3 spec 2.3e (v1.20) -- prozor prijave: rezervacija sme da nastane samo u ovom opsegu.
   // null = bez ogranicenja. Isti boravak sme da postoji dvaput ako se prozori ne seku (2.3e.2),
   // a transe se NIKAD ne sabiraju -- vazi tacno jedna, ona ciji prozor obuhvata datum prijave (2.3e.3).
-  bookingFrom             DateTime?     @map("booking_from") @db.Date
-  bookingTo               DateTime?     @map("booking_to") @db.Date
-  roomType                String        @map("room_type") // konvencija ka M2 attributes.room_types[].code, ne strogi FK
-  allotmentMode           AllotmentMode @map("allotment_mode")
-  totalCapacity           Int?          @map("total_capacity")
-  unitsSold               Int           @default(0) @map("units_sold")
-  releaseDaysBefore       Int?          @map("release_days_before") // samo FIXED
-  ukupnaFiksnaObaveza     Int?          @map("ukupna_fiksna_obaveza") // samo CHARTER/FIXED_LEASE
-  fixedObligationCurrency String?       @map("fixed_obligation_currency")
-  paymentSchedule         Json?         @map("payment_schedule") // samo FIXED_LEASE — niz {due_date, amount}
-  agePolicyOverride       Json?         @map("age_policy_override") // M3 spec §2.3c — izuzetak od M2 room_types[].age_policy[] SAMO za ovaj cenovnik/period, isti oblik niza; null = koristi se M2 politika sobe
+  bookingFrom             DateTime?            @map("booking_from") @db.Date
+  bookingTo               DateTime?            @map("booking_to") @db.Date
+  roomType                String               @map("room_type") // konvencija ka M2 attributes.room_types[].code, ne strogi FK
+  allotmentMode           AllotmentMode        @map("allotment_mode")
+  totalCapacity           Int?                 @map("total_capacity")
+  unitsSold               Int                  @default(0) @map("units_sold")
+  releaseDaysBefore       Int?                 @map("release_days_before") // samo FIXED
+  ukupnaFiksnaObaveza     Int?                 @map("ukupna_fiksna_obaveza") // samo CHARTER/FIXED_LEASE
+  fixedObligationCurrency String?              @map("fixed_obligation_currency")
+  paymentSchedule         Json?                @map("payment_schedule") // samo FIXED_LEASE — niz {due_date, amount}
+  agePolicyOverride       Json?                @map("age_policy_override") // M3 spec §2.3c — izuzetak od M2 room_types[].age_policy[] SAMO za ovaj cenovnik/period, isti oblik niza; null = koristi se M2 politika sobe
   // §2.3 dopuna v1.12 — minimalan/maksimalan broj noćenja za ovu cenu/period; null = bez ograničenja.
-  minStayNights           Int?          @map("min_stay_nights")
-  maxStayNights           Int?          @map("max_stay_nights")
+  minStayNights           Int?                 @map("min_stay_nights")
+  maxStayNights           Int?                 @map("max_stay_nights")
   // §2.3d (v1.16) — period sa rezervacijama se GASI, ne briše: brisanje bi prekinulo vezu
   // prodatog sa cenom i kapacitetom po kojima je prodato. INACTIVE ne ulazi u pretragu i ne
   // prima nove rezervacije, ali ostaje osnov postojećih.
   status                  ContractPeriodStatus @default(ACTIVE)
-  deactivatedBy           String?       @map("deactivated_by")
-  deactivatedAt           DateTime?     @map("deactivated_at")
-  createdAt               DateTime      @default(now()) @map("created_at")
-  updatedAt               DateTime      @updatedAt @map("updated_at")
+  deactivatedBy           String?              @map("deactivated_by")
+  deactivatedAt           DateTime?            @map("deactivated_at")
+  createdAt               DateTime             @default(now()) @map("created_at")
+  updatedAt               DateTime             @updatedAt @map("updated_at")
 
   contract          Contract           @relation(fields: [contractId], references: [id], onDelete: Cascade)
   rateLines         RateLine[]
@@ -770,7 +770,6 @@ model ContractPeriod {
   @@index([contractId])
   @@map("contract_periods")
 }
-
 
 // ---------------------------------------------------------------------------
 // M3 spec §2.8 (v1.15, 8.9.2026) — kapacitet po danu, zatvaranje prodaje, blokade.
@@ -807,23 +806,23 @@ enum CapacityBlockStatus {
 /// materijalizacija): za sezonu od 120 dana bez ijedne izmene nema nijednog reda i važi ono
 /// što piše na periodu. Isti red služi i kao brava pri konkurentnoj rezervaciji (§2.8c).
 model CapacityDay {
-  id                String             @id @default(uuid())
-  contractPeriodId  String             @map("contract_period_id")
-  date              DateTime           @db.Date
-  capacityOverride  Int?               @map("capacity_override") // null = važi ContractPeriod.total_capacity
+  id               String              @id @default(uuid())
+  contractPeriodId String              @map("contract_period_id")
+  date             DateTime            @db.Date
+  capacityOverride Int?                @map("capacity_override") // null = važi ContractPeriod.total_capacity
   // M3 spec 2.8c/2.8f -- brojac zauzetih jedinica ZA TU NOC. Postoji zato sto se potvrda
   // rezervacije i upis BookingItem-a ne dese u istoj transakciji (M5 usput zove spoljni API,
   // a HTTP poziv se ne sme drzati unutar DB transakcije), pa zakljucavanje reda bez brojaca
   // ne bi spreculo dva agenta da uzmu istu poslednju sobu. Prikaz i dalje RACUNA prodato iz
   // BookingItem-a; ovaj broj je brava, ne izvor istine -- razilazenje hvata dnevna provera (2.8e).
-  unitsReserved     Int                @default(0) @map("units_reserved")
-  saleStatus        CapacitySaleStatus @default(OPEN) @map("sale_status")
-  stopReason        String?            @map("stop_reason")
-  stopSource        CapacityStopSource? @map("stop_source")
-  stopSetBy         String?            @map("stop_set_by")
-  stopSetAt         DateTime?          @map("stop_set_at")
-  createdAt         DateTime           @default(now()) @map("created_at")
-  updatedAt         DateTime           @updatedAt @map("updated_at")
+  unitsReserved    Int                 @default(0) @map("units_reserved")
+  saleStatus       CapacitySaleStatus  @default(OPEN) @map("sale_status")
+  stopReason       String?             @map("stop_reason")
+  stopSource       CapacityStopSource? @map("stop_source")
+  stopSetBy        String?             @map("stop_set_by")
+  stopSetAt        DateTime?           @map("stop_set_at")
+  createdAt        DateTime            @default(now()) @map("created_at")
+  updatedAt        DateTime            @updatedAt @map("updated_at")
 
   contractPeriod ContractPeriod @relation(fields: [contractPeriodId], references: [id], onDelete: Cascade)
 
@@ -858,6 +857,14 @@ model CapacityBlock {
 }
 
 // M3 spec §2.3d (8.9.2026) — gašenje perioda umesto brisanja kad ima rezervacije.
+/// M3 §2.4c (v1.25) — životni ciklus cenovne stavke. Namerno ODVOJEN enum od
+/// `ContractPeriodStatus`, iako su vrednosti iste: dva pojma koja se nezavisno menjaju ne
+/// dele tip, inače prva razlika među njima traži migraciju svih zapisa oba.
+enum PricelistItemStatus {
+  ACTIVE
+  INACTIVE
+}
+
 enum ContractPeriodStatus {
   ACTIVE
   INACTIVE
@@ -891,6 +898,16 @@ model RateLine {
   // Indeksi na stranim ključevima (5.9.2026, dok. 39 nalaz 2.1). Postgres ih NE pravi sam:
   // pravi ih samo na strani na koju se pokazuje (PK), ne i na koloni koja pokazuje. Bez njih
   // svaki JOIN i svaka provera pri brisanju roditelja čita celu tabelu.
+
+  // M3 §2.4c (v1.25) — ispravka je gašenje stare i upis nove, nikad prepisivanje: cena je
+  // finansijski podatak i posle izmene mora ostati odgovor po kojoj je ceni nešto prodato.
+  // PRETRAGA I PRODAJA GLEDAJU ISKLJUČIVO ACTIVE — bez toga je gašenje samo oznaka.
+  status        PricelistItemStatus @default(ACTIVE)
+  deactivatedBy String?             @map("deactivated_by")
+  deactivatedAt DateTime?           @map("deactivated_at")
+  /// Kad je stavka nastala kao ispravka druge — veže novu za staru (§2.4c).
+  replacesId    String?             @map("replaces_id")
+
   @@index([contractPeriodId])
   @@map("rate_lines")
 }
@@ -951,6 +968,16 @@ model CancellationRule {
   // Indeksi na stranim ključevima (5.9.2026, dok. 39 nalaz 2.1). Postgres ih NE pravi sam:
   // pravi ih samo na strani na koju se pokazuje (PK), ne i na koloni koja pokazuje. Bez njih
   // svaki JOIN i svaka provera pri brisanju roditelja čita celu tabelu.
+
+  // M3 §2.4c (v1.25) — ispravka je gašenje stare i upis nove, nikad prepisivanje: cena je
+  // finansijski podatak i posle izmene mora ostati odgovor po kojoj je ceni nešto prodato.
+  // PRETRAGA I PRODAJA GLEDAJU ISKLJUČIVO ACTIVE — bez toga je gašenje samo oznaka.
+  status        PricelistItemStatus @default(ACTIVE)
+  deactivatedBy String?             @map("deactivated_by")
+  deactivatedAt DateTime?           @map("deactivated_at")
+  /// Kad je stavka nastala kao ispravka druge — veže novu za staru (§2.4c).
+  replacesId    String?             @map("replaces_id")
+
   @@index([contractPeriodId])
   @@map("cancellation_rules")
 }
@@ -992,6 +1019,16 @@ model PricelistOffer {
   // Indeksi na stranim ključevima (5.9.2026, dok. 39 nalaz 2.1). Postgres ih NE pravi sam:
   // pravi ih samo na strani na koju se pokazuje (PK), ne i na koloni koja pokazuje. Bez njih
   // svaki JOIN i svaka provera pri brisanju roditelja čita celu tabelu.
+
+  // M3 §2.4c (v1.25) — ispravka je gašenje stare i upis nove, nikad prepisivanje: cena je
+  // finansijski podatak i posle izmene mora ostati odgovor po kojoj je ceni nešto prodato.
+  // PRETRAGA I PRODAJA GLEDAJU ISKLJUČIVO ACTIVE — bez toga je gašenje samo oznaka.
+  status        PricelistItemStatus @default(ACTIVE)
+  deactivatedBy String?             @map("deactivated_by")
+  deactivatedAt DateTime?           @map("deactivated_at")
+  /// Kad je stavka nastala kao ispravka druge — veže novu za staru (§2.4c).
+  replacesId    String?             @map("replaces_id")
+
   @@index([contractPeriodId])
   @@map("pricelist_offers")
 }
@@ -1044,6 +1081,16 @@ model AncillaryService {
   // Indeksi na stranim ključevima (5.9.2026, dok. 39 nalaz 2.1). Postgres ih NE pravi sam:
   // pravi ih samo na strani na koju se pokazuje (PK), ne i na koloni koja pokazuje. Bez njih
   // svaki JOIN i svaka provera pri brisanju roditelja čita celu tabelu.
+
+  // M3 §2.4c (v1.25) — ispravka je gašenje stare i upis nove, nikad prepisivanje: cena je
+  // finansijski podatak i posle izmene mora ostati odgovor po kojoj je ceni nešto prodato.
+  // PRETRAGA I PRODAJA GLEDAJU ISKLJUČIVO ACTIVE — bez toga je gašenje samo oznaka.
+  status        PricelistItemStatus @default(ACTIVE)
+  deactivatedBy String?             @map("deactivated_by")
+  deactivatedAt DateTime?           @map("deactivated_at")
+  /// Kad je stavka nastala kao ispravka druge — veže novu za staru (§2.4c).
+  replacesId    String?             @map("replaces_id")
+
   @@index([contractPeriodId])
   @@map("ancillary_services")
 }
@@ -3248,6 +3295,9 @@ enum HealthSignalType {
   LOW_CAPACITY_CRITICAL
   HELP_AGENT_ABUSE_PATTERN
   PAYMENT_DEADLINE_MISSED
+  /// M18 §2.1 (9.9.2026) — objavljen proizvod bez pravila marže. Pretraga ga preskače (M5
+  /// §3.0b.3), pa se bez ovog signala ne bi prodavao a niko ne bi primetio zašto.
+  PRODUCT_MISSING_MARKUP
 }
 
 enum HealthSignalSeverity {

@@ -1,0 +1,2 @@
+-- AlterEnum
+ALTER TYPE "HealthSignalType" ADD VALUE 'PRODUCT_MISSING_MARKUP';

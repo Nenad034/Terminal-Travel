@@ -14,8 +14,6 @@ Ovaj fajl je **indeks, ne izvor istine** — svaka stavka ovde je jedan red sa p
 
 ---
 
-- **M5 §2.2 — proizvod bez marže obara CELU pretragu, ne samo sebe** (9.9.2026, izmereno: `GET /sales/search` za Budvu vraća 404 zbog jednog seed proizvoda bez `MarkupRule`). `SearchService` ne hvata `NotFoundException` iz `resolveForContracted`. Objava je od M2 v1.26 gejtovana proverom marže, pa nov proizvod ovo više ne može da izazove — ali zatečeni `ACTIVE` proizvodi mogu. **Otvoreno pitanje za vlasnika:** da li pretraga takav proizvod tiho preskače (rizik: pogrešno podešavanje se ne primeti) ili nastavlja da puca glasno (rizik: jedan zapis ruši ceo ekran). Zamka 3.15.
-
 ## Ideje van formalne specifikacije (još nemaju mesto ni u jednom modulu)
 
 - **Provera: koji još ekran radi, a nije u navigaciji?** (8.9.2026) Ekran `/ugovori` — jedino mesto gde se uopšte unosi kapacitet — postojao je od Faze 1 bez ijedne nav stavke, pa ga vlasnik nije mogao naći (pitanje: "gde se definišu kapaciteti, to ne vidim"). Rešeno za taj ekran (M17 v2.66), ali vredi jednom proći `apps/panel/src/app/(app)/*` i uporediti sa `NAV_ITEMS`: svaka ruta bez nav stavke i bez ulaza sa drugog ekrana je funkcija koja za korisnika ne postoji. Isti obrazac kao zamka 7.6, samo obrnut smer (tamo: id upisan u `NAV_ITEMS` ali ne i u grupu).

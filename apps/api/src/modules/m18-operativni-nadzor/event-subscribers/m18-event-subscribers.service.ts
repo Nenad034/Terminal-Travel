@@ -26,6 +26,18 @@ export class M18EventSubscribersService implements OnModuleInit {
       });
     });
 
+    // M5 §3.0b.3 / M18 §2.1 (9.9.2026, vlasnikova odluka) — pretraga je proizvod bez marže
+    // PRESKOČILA umesto da obori ceo upit; ovde se to pretvara u vidljiv nalog za rad. Bez ovog
+    // signala bi hotel tiho izostajao iz prodaje mesecima (zamka 3.15).
+    this.eventListener.on('M5', 'product_missing_markup', async (payload) => {
+      await this.healthSignals.create({
+        sourceModule: 'M5',
+        signalType: 'PRODUCT_MISSING_MARKUP',
+        severity: (payload.severity as HealthSignalSeverity) ?? 'WARNING',
+        details: payload,
+      });
+    });
+
     this.eventListener.on('M10', 'payment_deadline_missed', async (payload) => {
       await this.healthSignals.create({
         sourceModule: 'M10',

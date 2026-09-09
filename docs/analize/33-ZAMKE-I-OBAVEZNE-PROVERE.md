@@ -243,7 +243,7 @@ Brojevi 5.6, 5.7, 5.11–5.14, 9.4 i 12.2 i dalje postoje — nose **drugi** od 
 
 - _Simptom:_ 9.9.2026, `GET /sales/search` za Budvu vraća **404** sa porukom „Nijedno MarkupRule ne pokriva ovaj CONTRACTED proizvod". Ne prazan rezultat — **greška**, i to za ceo upit: nijedan drugi hotel te destinacije se ne prikazuje, iako su svi ostali uredno podešeni. Na ekranu pretrage to izgleda kao kvar aplikacije, ne kao nedostajuće podešavanje.
 - _Uzrok:_ `SearchService.buildContractedOffers` poziva `MarkupRuleService.resolveForContracted`, koja **baca** `NotFoundException` kad ne nađe pravilo marže ni na jednom od četiri nivoa (proizvod → period → ugovor → dobavljač, M5 §2.2). Taj izuzetak se nigde ne hvata — u `search.service.ts` nema nijednog `try/catch` — pa izlazi kroz ceo zahtev. Dovoljan je **jedan** objavljen proizvod bez marže da obori pretragu za svakoga ko traži tu destinaciju. Zatečeno na seed podacima: `mock-cap-product-3` (Hotel Budva) je `ACTIVE`, ima ugovor, period i cenu — ali nema marže ni na jednom nivou.
-- _Provera:_ pravilo marže je **uslov za objavu**, ne detalj — `GET /catalog/products/:id/publish-readiness` (M2 §5.2) ga vodi kao prepreku i `publish()` bez njega odbija objavu. Za zatečene podatke to ne važi unazad, pa kad pretraga vrati 404 sa porukom o `MarkupRule`, ne traži se greška u pretrazi nego **proizvod bez marže**: `SELECT id FROM products WHERE status = 'ACTIVE'` presečeno sa `markup_rules` po sva četiri `scope_type` nivoa. Šire pravilo, isto kao 14.1: potez koji pogađa jedan zapis ne sme da obara ceo odgovor — a dok se ta odluka ne donese (preskočiti proizvod tiho ili nastaviti da puca glasno), ovo ostaje otvoreno i zavedeno u dok. 27.
+- _Provera:_ **ispravljeno 9.9.2026, isti dan** (M5 §3.0b.5, vlasnikova odluka): pretraga takav proizvod sada **preskače** i podiže signal `PRODUCT_MISSING_MARKUP` (M18 §2.1), umesto da obori ceo upit — izmereno posle ispravke: isti poziv za Budvu vraća `200` sa 2 hotela, a proizvod bez marže izostaje uz jedan zapis u nadzoru. Preventivna strana je M2 §5.2: proizvod koji već ima ugovor i cenu ne može da se objavi bez marže. **Zamka ostaje** jer uzrok nije strukturno uklonjen — obrazac „potez nad jednim zapisom obara ceo odgovor" postoji svuda gde se izuzetak iz petlje ne hvata; kad pretraga (ili bilo koji spisak) vrati grešku umesto praznog rezultata, prvo se traži **jedan loš zapis**, ne kvar u samoj pretrazi.
 
 ## 4. Obeležavanje AI poteza (cross-modularno)
 
@@ -569,6 +569,8 @@ Brojevi 5.6, 5.7, 5.11–5.14, 9.4 i 12.2 i dalje postoje — nose **drugi** od 
   ```
 
   Tri koraka posle migracija nisu ukras — append-only trigger i seed su preduslovi, isti redosled koji CI koristi (`.github/workflows/ci.yml`). **`--runInBand` je obavezan lokalno:** bez njega paketi dele jednu bazu i na sporijoj mašini se međusobno obaraju (izmereno istog dana: 5 lažnih padova paralelno, 0 serijski). Baza `terminal_e2e` se posle sme obrisati — namerno je odvojena od razvojne.
+
+  **Baza se pravi IZNOVA za svako puno pokretanje, ne ponovo koristi** (dopuna istog dana, posle drugog lažnog pada): e2e paketi ne čiste sve za sobom, pa zaostali zapisi obore testove koji broje ili traže „poslednji" zapis — M21 je tako pao nad već korišćenom bazom, a nad sveže napravljenom prošao. Lažan pad na tuđem modulu posle izmene u sasvim drugom delu koda je skoro uvek ovo, ne regresija.
 
 ## 8. Poverenje u tvrdnje o potpunosti (dokumenta, registri, sažeci)
 

@@ -14,13 +14,39 @@ describe('ContractPeriodsService', () => {
         delete: jest.fn(),
       },
       bookingItem: { count: jest.fn().mockResolvedValue(0) },
-      rateLine: { create: jest.fn(), findMany: jest.fn() },
-      cancellationRule: { create: jest.fn(), findMany: jest.fn() },
-      pricelistOffer: { create: jest.fn(), findMany: jest.fn() },
-      ancillaryService: { create: jest.fn(), findMany: jest.fn() },
+      // §2.4c (v1.25) — gašenje i ispravka traže findUnique/update na svakoj cenovnoj stavci.
+      rateLine: {
+        create: jest.fn(),
+        findMany: jest.fn(),
+        findUnique: jest.fn(),
+        update: jest.fn(),
+      },
+      cancellationRule: {
+        create: jest.fn(),
+        findMany: jest.fn(),
+        findUnique: jest.fn(),
+        update: jest.fn(),
+      },
+      pricelistOffer: {
+        create: jest.fn(),
+        findMany: jest.fn(),
+        findUnique: jest.fn(),
+        update: jest.fn(),
+      },
+      ancillaryService: {
+        create: jest.fn(),
+        findMany: jest.fn(),
+        findUnique: jest.fn(),
+        update: jest.fn(),
+      },
       touristTaxInfo: { upsert: jest.fn(), findUnique: jest.fn() },
       $queryRaw: jest.fn(),
     };
+    // `replaceRateLine` radi u jednoj transakciji — mock je prosleđuje kao isti klijent, pa
+    // testovi vide oba upisa (gašenje + kreiranje) na istim špijunima.
+    (prisma as unknown as { $transaction: unknown }).$transaction = jest.fn(
+      (fn: (tx: unknown) => unknown) => fn(prisma),
+    );
     const auditLog = { write: jest.fn() };
     const eventBus = { emit: jest.fn() };
     const service = new ContractPeriodsService(prisma as any, auditLog as any, eventBus as any);
@@ -589,6 +615,97 @@ describe('ContractPeriodsService', () => {
       expect(prisma.bookingItem.count).toHaveBeenCalledWith({
         where: { rateLine: { contractPeriodId: 'p1' } },
       });
+    });
+  });
+
+  /**
+   * §2.4c (v1.25) — životni ciklus cenovne stavke. Ono što se ovde stvarno proverava nije da
+   * `update` radi, nego DA SE NE BRIŠE i da se ne prepisuje: cena je finansijski podatak, pa
+   * posle ispravke mora ostati odgovor po kojoj je ceni nešto prodato pre nje.
+   */
+  describe('gašenje i ispravka cenovne stavke (§2.4c v1.25)', () => {
+    const STAVKA = { id: 'r1', contractPeriodId: 'per1', status: 'ACTIVE', price: 10000 };
+
+    it('gašenje NE briše zapis — samo menja status i beleži ko je i kada', async () => {
+      const { service, prisma, auditLog } = makeService();
+      prisma.rateLine.findUnique.mockResolvedValue(STAVKA);
+      prisma.rateLine.update.mockResolvedValue({ ...STAVKA, status: 'INACTIVE' });
+
+      await service.deactivateRateLine('per1', 'r1', 'u1');
+
+      const data = prisma.rateLine.update.mock.calls[0][0].data;
+      expect(data.status).toBe('INACTIVE');
+      expect(data.deactivatedBy).toBe('u1');
+      expect(data.deactivatedAt).toBeInstanceOf(Date);
+      expect(auditLog.write).toHaveBeenCalledWith(
+        expect.objectContaining({ action: 'rate_line.deactivated' }),
+      );
+    });
+
+    it('gašenje ne proverava da li je cena prodata — prošlost se ne dira (M5 §6 snimak)', async () => {
+      const { service, prisma } = makeService();
+      prisma.rateLine.findUnique.mockResolvedValue(STAVKA);
+      prisma.rateLine.update.mockResolvedValue({ ...STAVKA, status: 'INACTIVE' });
+
+      await service.deactivateRateLine('per1', 'r1', 'u1');
+
+      // Provera „da li je prodato" bi zabranila ispravku baš tamo gde je najpotrebnija.
+      expect(prisma.bookingItem.count).not.toHaveBeenCalled();
+    });
+
+    it('odbija gašenje stavke koja pripada drugom periodu — greška u adresi ne sme da ugasi tuđu cenu', async () => {
+      const { service, prisma } = makeService();
+      prisma.rateLine.findUnique.mockResolvedValue({ ...STAVKA, contractPeriodId: 'drugi' });
+
+      await expect(service.deactivateRateLine('per1', 'r1', 'u1')).rejects.toBeInstanceOf(
+        BadRequestException,
+      );
+      expect(prisma.rateLine.update).not.toHaveBeenCalled();
+    });
+
+    it('ponovljeno gašenje ne upisuje ništa i ne pravi drugi audit zapis', async () => {
+      const { service, prisma, auditLog } = makeService();
+      prisma.rateLine.findUnique.mockResolvedValue({ ...STAVKA, status: 'INACTIVE' });
+
+      await service.deactivateRateLine('per1', 'r1', 'u1');
+
+      expect(prisma.rateLine.update).not.toHaveBeenCalled();
+      expect(auditLog.write).not.toHaveBeenCalled();
+    });
+
+    it('ispravka gasi staru i upisuje novu sa replacesId, u istoj transakciji', async () => {
+      const { service, prisma, auditLog } = makeService();
+      prisma.rateLine.findUnique.mockResolvedValue(STAVKA);
+      prisma.rateLine.update.mockResolvedValue({ ...STAVKA, status: 'INACTIVE' });
+      prisma.rateLine.create.mockResolvedValue({ id: 'r2', replacesId: 'r1' });
+
+      const nova = await service.replaceRateLine(
+        'per1',
+        'r1',
+        { boardType: 'BB', occupancy: '2', priceBasis: 'PER_ROOM_PER_NIGHT', price: 12000 } as any,
+        'u1',
+      );
+
+      expect((prisma as any).$transaction).toHaveBeenCalledTimes(1);
+      expect(prisma.rateLine.update.mock.calls[0][0].data.status).toBe('INACTIVE');
+      expect(prisma.rateLine.create.mock.calls[0][0].data.replacesId).toBe('r1');
+      expect(prisma.rateLine.create.mock.calls[0][0].data.price).toBe(12000);
+      expect(nova.id).toBe('r2');
+      expect(auditLog.write).toHaveBeenCalledWith(
+        expect.objectContaining({ action: 'rate_line.replaced' }),
+      );
+    });
+
+    it('čitanje perioda NE sakriva ugašene stavke, samo ih stavlja iza aktivnih (§2.4c pravilo 2)', async () => {
+      const { service, prisma } = makeService();
+      prisma.contractPeriod.findUniqueOrThrow.mockResolvedValue({ id: 'per1' });
+
+      await service.findOne('per1');
+
+      const include = prisma.contractPeriod.findUniqueOrThrow.mock.calls[0][0].include;
+      // Nema `where` po statusu — ugašena cena ostaje vidljiva na ekranu.
+      expect(include.rateLines.where).toBeUndefined();
+      expect(include.rateLines.orderBy).toEqual([{ status: 'asc' }, { createdAt: 'asc' }]);
     });
   });
 });

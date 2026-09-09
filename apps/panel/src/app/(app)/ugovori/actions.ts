@@ -121,6 +121,89 @@ export async function deletePeriod(
   return { error: null };
 }
 
+/**
+ * M3 §2.4c (v1.25) — čitanje cena iz forme. Isto telo ide i pri dodavanju i pri ispravci, pa
+ * stoji na jednom mestu: dva različita čitanja iste forme se pre ili kasnije raziđu.
+ *
+ * `age_pricing[]` (cena po uzrastu — §2.4a) je do 9.9.2026 bio API-only i forma ga nije imala,
+ * pa se dečja cena uopšte nije mogla uneti iz panela. Redovi stižu kao paralelni nizovi
+ * (`agePricingCategory[]`, `agePricingMode[]`…), jer HTML forma nema ugnježdene objekte —
+ * spajaju se po indeksu, a prazan red se preskače da prazan obrazac ne bi upisao smeće.
+ */
+function rateLineBodyFrom(formData: FormData): Record<string, unknown> {
+  const kategorije = formData.getAll('agePricingCategory').map(String);
+  const rezimi = formData.getAll('agePricingMode').map(String);
+  const procenti = formData.getAll('agePricingPercentage').map(String);
+  const fiksne = formData.getAll('agePricingFlatPrice').map(String);
+  const minOdraslih = formData.getAll('agePricingMinAdults').map(String);
+
+  const agePricing = kategorije
+    .map((ageCategory, i) => ({
+      ageCategory,
+      pricingMode: rezimi[i] ?? 'PERCENTAGE_OF_BASE_PRICE',
+      percentage:
+        rezimi[i] === 'PERCENTAGE_OF_BASE_PRICE' && procenti[i] !== '' ? Number(procenti[i]) : null,
+      flatPrice:
+        rezimi[i] === 'FLAT_PRICE_PER_NIGHT' && fiksne[i] !== '' ? Number(fiksne[i]) : null,
+      minAdultsPresent: minOdraslih[i] && minOdraslih[i] !== '' ? Number(minOdraslih[i]) : null,
+      occupantIndex: null,
+    }))
+    // Red bez kategorije ili bez ijedne vrednosti je prazan obrazac, ne podatak.
+    .filter((a) => a.ageCategory && (a.percentage !== null || a.flatPrice !== null));
+
+  return {
+    boardType: formData.get('boardType'),
+    occupancy: formData.get('occupancy'),
+    priceBasis: formData.get('priceBasis'),
+    price: Number(formData.get('price')),
+    cribFeePerNight: formData.get('cribFeePerNight')
+      ? Number(formData.get('cribFeePerNight'))
+      : undefined,
+    agePricing: agePricing.length > 0 ? agePricing : undefined,
+  };
+}
+
+/**
+ * §2.4c — GAŠENJE cenovne stavke. Zapis ostaje u bazi; pretraga i ponuda od v1.25 gledaju
+ * isključivo `ACTIVE`, pa ugašena cena prestaje da se prodaje istog trenutka.
+ */
+export async function deactivateRateLine(
+  contractId: string,
+  periodId: string,
+  rateLineId: string,
+): Promise<void> {
+  await apiFetch(`/contracting/contracts/${contractId}/periods/${periodId}/rates/${rateLineId}`, {
+    method: 'DELETE',
+  });
+  revalidatePath(`/ugovori/${contractId}/periods/${periodId}`);
+}
+
+/**
+ * §2.4c — ISPRAVKA: jedan poziv, jedna transakcija na backendu (gasi staru, upisuje novu sa
+ * `replacesId`). Namerno NIJE „obriši pa dodaj" iz panela — prekid između dva poziva ostavio
+ * bi period bez ijedne važeće cene.
+ */
+export async function replaceRateLine(
+  contractId: string,
+  periodId: string,
+  rateLineId: string,
+  _prev: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  try {
+    await apiFetch(
+      `/contracting/contracts/${contractId}/periods/${periodId}/rates/${rateLineId}/replace`,
+      { method: 'PUT', body: rateLineBodyFrom(formData) },
+    );
+    revalidatePath(`/ugovori/${contractId}/periods/${periodId}`);
+  } catch (err) {
+    return {
+      error: err instanceof ApiError ? extractMessage(err) : 'Ispravka cenovne stavke nije uspela.',
+    };
+  }
+  return { error: null };
+}
+
 export async function addRateLine(
   contractId: string,
   periodId: string,
@@ -130,15 +213,7 @@ export async function addRateLine(
   try {
     await apiFetch(`/contracting/contracts/${contractId}/periods/${periodId}/rates`, {
       method: 'PUT',
-      body: {
-        boardType: formData.get('boardType'),
-        occupancy: formData.get('occupancy'),
-        priceBasis: formData.get('priceBasis'),
-        price: Number(formData.get('price')),
-        cribFeePerNight: formData.get('cribFeePerNight')
-          ? Number(formData.get('cribFeePerNight'))
-          : undefined,
-      },
+      body: rateLineBodyFrom(formData),
     });
     revalidatePath(`/ugovori/${contractId}/periods/${periodId}`);
   } catch (err) {

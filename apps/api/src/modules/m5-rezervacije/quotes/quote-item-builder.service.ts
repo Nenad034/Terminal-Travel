@@ -217,7 +217,8 @@ export class QuoteItemBuilderService {
                 },
               }),
         },
-        include: { rateLines: { include: { agePricing: true } } },
+        // M3 §2.4c (v1.25) — ugašena cenovna stavka se ne sme uzeti u ponudu.
+        include: { rateLines: { where: { status: 'ACTIVE' }, include: { agePricing: true } } },
         orderBy: { stayFrom: 'asc' },
       });
       if (!period || period.rateLines.length === 0) {
@@ -284,7 +285,8 @@ export class QuoteItemBuilderService {
           stayFrom: { lte: stayFrom },
           stayTo: { gte: stayTo },
         },
-        include: { rateLines: { include: { agePricing: true } } },
+        // M3 §2.4c (v1.25) — ugašena cenovna stavka se ne sme uzeti u ponudu.
+        include: { rateLines: { where: { status: 'ACTIVE' }, include: { agePricing: true } } },
         orderBy: { stayFrom: 'asc' },
       });
       if (!period || period.rateLines.length === 0) {
