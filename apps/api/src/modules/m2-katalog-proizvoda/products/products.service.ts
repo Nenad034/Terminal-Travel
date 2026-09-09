@@ -4,7 +4,14 @@ import {
   paginationArgs,
 } from '../../../common/pagination/pagination';
 import { BadRequestException, Injectable, NotImplementedException } from '@nestjs/common';
-import { LanguageCode, Prisma, ProductStatus, ProductType, VisibleChannel } from '@prisma/client';
+import {
+  MarkupScopeType,
+  LanguageCode,
+  Prisma,
+  ProductStatus,
+  ProductType,
+  VisibleChannel,
+} from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { AuditLogService } from '../../m1-core-identitet/audit-log/audit-log.service';
 import { EventBusService } from '../../../common/events/event-bus.service';
@@ -178,9 +185,30 @@ export class ProductsService {
 
   async update(id: string, dto: UpdateProductDto, actorId: string) {
     const before = await this.prisma.product.findUniqueOrThrow({ where: { id } });
+
+    // §5.2 (v1.26) — vezivanje za ugovor. Dve ograde, obe zato što bi tiho pogrešna veza dala
+    // proizvod koji izgleda ispravno a u pretrazi se ponaša neobjašnjivo:
+    //  1. proizvod iz M4 keširanja pripada provajderu, ne našem ugovoru (§3.2);
+    //  2. nepostojeći ugovor bi prošao kao FK greška bez razumljive poruke.
+    if (dto.sourceContractId !== undefined) {
+      if (before.sourceType !== 'CONTRACTED') {
+        throw new BadRequestException(
+          'Za ugovor se može vezati samo proizvod iz sopstvenog ugovora (sourceType = CONTRACTED)',
+        );
+      }
+      if (dto.sourceContractId !== null) {
+        const contract = await this.prisma.contract.findUnique({
+          where: { id: dto.sourceContractId },
+          select: { id: true },
+        });
+        if (!contract) throw new BadRequestException('Zadati ugovor ne postoji');
+      }
+    }
+
     const after = await this.prisma.product.update({
       where: { id },
       data: {
+        sourceContractId: dto.sourceContractId,
         destinationCountry: normalizeDestinationCountry(dto.destinationCountry),
         destinationCity: dto.destinationCity,
         destinationArea: dto.destinationArea,
@@ -262,19 +290,183 @@ export class ProductsService {
     return translation;
   }
 
+  /**
+   * §5.2 (v1.26) — spremnost za objavu: prebrojana lista šta nedostaje da bi se proizvod uopšte
+   * pojavio u pretrazi (M5 §3.0b). Uslovi su lanac od pet karika i otkazuje bilo koja, pa poruka
+   * „nešto nedostaje" ne pomaže — vraća se stavka po stavka.
+   *
+   * PREPREKA zaustavlja objavu, UPOZORENJE ne. Razlika je namerna: „nema cene" znači da se
+   * proizvod ne može prodati, „nema koordinata" znači da se neće videti na mapi; spajanje to
+   * dvoje navodi čoveka da odustane zbog sitnice ili da preskoči ono što je bitno.
+   */
+  async publishReadiness(id: string): Promise<{
+    productId: string;
+    status: string;
+    canPublish: boolean;
+    checks: {
+      key: string;
+      label: string;
+      ok: boolean;
+      blocking: boolean;
+      detail: string | null;
+    }[];
+  }> {
+    const product = await this.prisma.product.findUniqueOrThrow({
+      where: { id },
+      select: {
+        id: true,
+        type: true,
+        status: true,
+        sourceType: true,
+        sourceContractId: true,
+        geoLat: true,
+        geoLng: true,
+        attributes: true,
+      },
+    });
+
+    const translations = await this.prisma.productTranslation.findMany({
+      where: { productId: id },
+      select: { languageCode: true },
+    });
+
+    const periods = product.sourceContractId
+      ? await this.prisma.contractPeriod.findMany({
+          where: { contractId: product.sourceContractId },
+          select: { id: true, roomType: true, _count: { select: { rateLines: true } } },
+        })
+      : [];
+    const periodiSaCenom = periods.filter((x) => x._count.rateLines > 0);
+
+    // Marža se traži po ISTOM lancu kao pri prodaji (M5 §2.2: proizvod → period → ugovor →
+    // dobavljač, najspecifičnije pobeđuje). `MarkupRule` je polimorfan — `scopeType` +
+    // `scopeId`, bez FK — pa se ne može pitati preko relacije.
+    const contract = product.sourceContractId
+      ? await this.prisma.contract.findUnique({
+          where: { id: product.sourceContractId },
+          select: { supplierId: true },
+        })
+      : null;
+    const markupScopes: { scopeType: MarkupScopeType; scopeId: string }[] = [
+      { scopeType: 'M2_PRODUCT', scopeId: product.id },
+      ...periods.map((x) => ({ scopeType: 'M3_CONTRACT_PERIOD' as const, scopeId: x.id })),
+      ...(product.sourceContractId
+        ? [{ scopeType: 'M3_CONTRACT' as const, scopeId: product.sourceContractId }]
+        : []),
+      ...(contract ? [{ scopeType: 'M3_SUPPLIER' as const, scopeId: contract.supplierId }] : []),
+    ];
+    const markupCount = await this.prisma.markupRule.count({ where: { OR: markupScopes } });
+
+    // Tipovi soba iz perioda moraju da postoje u `attributes.room_types[]`, inače pretraga računa po
+    // rezervnom kapacitetu i rezultat ostaje bez naziva sobe (search.service.ts).
+    const attrs = (product.attributes ?? {}) as Record<string, unknown>;
+    const roomTypeCodes = new Set(
+      (((attrs.room_types ?? attrs.roomTypes) as { code?: string }[] | undefined) ?? [])
+        .map((r) => r?.code)
+        .filter((c): c is string => Boolean(c)),
+    );
+    const nepoznatiTipovi = [...new Set(periods.map((x) => x.roomType))].filter(
+      (rt) => !roomTypeCodes.has(rt),
+    );
+
+    const checks = [
+      {
+        key: 'translations',
+        label: 'Srpski i engleski prevod',
+        ok: hasRequiredTranslationsForPublish(translations),
+        blocking: true,
+        detail: hasRequiredTranslationsForPublish(translations)
+          ? null
+          : 'Nedostaje prevod — bez oba jezika objava se odbija (§2.2).',
+      },
+      {
+        key: 'contract',
+        label: 'Vezan za ugovor',
+        ok: Boolean(product.sourceContractId),
+        blocking: true,
+        detail: product.sourceContractId
+          ? null
+          : 'Proizvod nije vezan ni za jedan ugovor — pretraga nema odakle da uzme cenu.',
+      },
+      {
+        key: 'periods',
+        label: 'Ugovor ima period',
+        ok: periods.length > 0,
+        blocking: true,
+        detail:
+          periods.length > 0
+            ? `${periods.length} perioda`
+            : 'Ugovor nema nijedan period (datumi boravka, tip sobe, kapacitet).',
+      },
+      {
+        key: 'rates',
+        label: 'Period ima cenu',
+        ok: periodiSaCenom.length > 0,
+        blocking: true,
+        detail:
+          periodiSaCenom.length > 0
+            ? `${periodiSaCenom.length} od ${periods.length} perioda ima cenovnu liniju`
+            : 'Nijedan period nema cenovnu liniju — period bez cene ne proizvodi ponudu.',
+      },
+      {
+        key: 'roomTypes',
+        label: 'Tipovi soba se poklapaju',
+        ok: nepoznatiTipovi.length === 0,
+        blocking: false,
+        detail:
+          nepoznatiTipovi.length === 0
+            ? null
+            : `Ugovor koristi tipove soba kojih nema u katalogu: ${nepoznatiTipovi.join(', ')}. Pretraga radi, ali po rezervnom kapacitetu i bez naziva sobe.`,
+      },
+      {
+        key: 'coordinates',
+        label: 'Koordinate popunjene',
+        ok: product.geoLat !== null && product.geoLng !== null,
+        blocking: false,
+        detail:
+          product.geoLat !== null && product.geoLng !== null
+            ? null
+            : 'Proizvod se neće pojaviti na mapi pretrage.',
+      },
+      {
+        key: 'markup',
+        label: 'Marža postavljena',
+        ok: markupCount > 0,
+        // PREPREKA, ne upozorenje. `MarkupRuleService.resolveForContracted` (M5 §2.2) BACA kad
+        // ne nađe pravilo ni na jednom od četiri nivoa, a `SearchService` taj izuzetak ne hvata
+        // — objavljen proizvod bez marže ne prodaje se po nabavnoj ceni nego obara CELU pretragu,
+        // i to i za sve ostale proizvode u istom upitu.
+        blocking: true,
+        detail:
+          markupCount > 0
+            ? null
+            : 'Nema pravila marže ni na jednom nivou (proizvod → period → ugovor → dobavljač). Bez njega pretraga puca, ne samo za ovaj proizvod.',
+      },
+    ];
+
+    return {
+      productId: product.id,
+      status: product.status,
+      canPublish: checks.every((c) => c.ok || !c.blocking),
+      checks,
+    };
+  }
+
   // M2 spec §7 — POST /products/:id/publish. §2.2 — sr+en obavezni pre DRAFT → ACTIVE.
   async publish(id: string, dto: PublishProductDto, actorId: string) {
     const before = await this.prisma.product.findUniqueOrThrow({ where: { id } });
     const enteringActive = before.status !== 'ACTIVE';
 
     if (enteringActive) {
-      const translations = await this.prisma.productTranslation.findMany({
-        where: { productId: id },
-        select: { languageCode: true },
-      });
-      if (!hasRequiredTranslationsForPublish(translations)) {
+      // §5.2 (v1.26) — nabraja SVE prepreke odjednom, ne prvu na koju naiđe. Ekran koji
+      // prikazuje listu je pogodnost; ovaj endpoint je pravilo i mora da važi i za poziv koji
+      // ne dolazi sa tog ekrana.
+      const readiness = await this.publishReadiness(id);
+      const prepreke = readiness.checks.filter((c) => c.blocking && !c.ok);
+      if (prepreke.length > 0) {
         throw new BadRequestException(
-          'Proizvod mora imati srpski i engleski prevod pre objave (M2 spec §2.2)',
+          'Objava nije moguća — nedostaje: ' +
+            prepreke.map((c) => `${c.label.toLowerCase()} (${c.detail})`).join('; '),
         );
       }
     }

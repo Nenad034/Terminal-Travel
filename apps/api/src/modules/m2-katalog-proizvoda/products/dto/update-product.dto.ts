@@ -1,7 +1,20 @@
-import { IsNumber, IsObject, IsOptional, IsString } from 'class-validator';
+import { IsNumber, IsObject, IsOptional, IsString, IsUUID, ValidateIf } from 'class-validator';
 
 // M2 spec §7 — PATCH /products/:id. Cena nikad nije polje ovde (§4) — namerno izostavljena.
 export class UpdateProductDto {
+  /**
+   * §5.2 (v1.26) — veza ka M3 ugovoru iz kog proizvod uzima cene. Do ove dopune polje nije
+   * postojalo u telu, pa se u panelu proizvod NIJE mogao vezati za ugovor ni na jedan način —
+   * a bez te veze pretraga ne nalazi nijednu cenu i proizvod nikad ne uđe u rezultat.
+   *
+   * `null` raskida vezu (proizvod se vraća u stanje „nema izvor cene"); izostavljeno polje je
+   * ne dira. Servis proverava da ugovor postoji i da je proizvod `CONTRACTED`.
+   */
+  @IsUUID()
+  @IsOptional()
+  @ValidateIf((_o, v) => v !== null)
+  sourceContractId?: string | null;
+
   @IsString()
   @IsOptional()
   destinationCountry?: string;

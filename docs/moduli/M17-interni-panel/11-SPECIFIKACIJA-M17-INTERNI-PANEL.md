@@ -4,6 +4,8 @@
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje
 
+**Verzija:** 2.72 — **ekran proizvoda dobija „Izvor cene i objava"** (9.9.2026, posle vlasnikovog zahteva da se pređe ceo redosled od unosa stavke kataloga do izbora u pretrazi). Novo poglavlje **6b**. Dva koraka tog redosleda su postojala na backendu a nisu imala ekran: proizvod se u panelu nije mogao ni **vezati za ugovor** ni **objaviti**, pa je ostajao `DRAFT` zauvek dok pretraga uzima samo `ACTIVE` — sve što se u pretrazi videlo došlo je iz seed skripti. Blok nosi izbor ugovora, **listu provera** sa razdvojenim preprekama i upozorenjima (M2 §5.2), i kanale vidljivosti sa dugmetom za objavu koje stoji onemogućeno dok prepreke traju. Usput ispravljen zatečen kvar: detalj ekran `PACKAGE` proizvoda je padao jer je `GET /catalog/products` od 5.9.2026 vraćao `{ data, … }`, a poziv je ostao na starom obliku (golom nizu).
+
 **Verzija:** 2.71 — **filteri i desni panel na listama Kataloga i nabavke** (9.9.2026, vlasnikov nalaz nad `/katalog`, `/dobavljaci` i `/ugovori`). Novo poglavlje **6a**. **(1)** Ista traka filtera na sva tri ekrana — ikonice za vrstu proizvoda (isti `PRODUCT_ICONS` katalog kao Lista rezervacija) plus država/mesto/hotel/dobavljač; jedna komponenta, prosleđena imena parametara, jer tri ekrana gađaju tri različita endpointa. Filteri levog panela kataloga **ostaju** (vlasnikova odluka 9.9.2026). **(2)** Kod dobavljača i ugovora destinacija/objekat/vrsta gađaju **proizvode** tog reda, ne sam red — dobavljač u bazi ima samo svoje sedište, pa „Grčka" mora značiti „ko nam prodaje u Grčkoj" (M3 v1.24). **(3)** Klik na red otvara brz pregled u desnom panelu, ikonica `link-external` otvara pun zapis; tri nove vrste sažetka u postojećem `RowSummaryContext`, ne nov mehanizam. Zabeležena promena ponašanja: redovi ugovora i kartice kataloga su do sada bili veze koje odmah odvode sa ekrana.
 
 **Verzija:** 2.70 — **tri dopune ekrana „Kapaciteti"** (9.9.2026, vlasnikovi zahtevi nad živim ekranom). **(1)** Red sa datumima dobija strelice ◀ / ▶ koje pomeraju prikaz za **7 dana** zadržavajući dužinu raspona (4b.1) — kapacitet se gleda po nedeljama boravka, pomeranje po danu bi tražilo sedam klikova za isti posao. **(2)** Novo 4b.3a: izmena kapaciteta, zatvaranje prodaje i blokada važe za **izabrane tipove soba** (čipovi, uz „izaberi sve"/„poništi"), ne samo za jedan ili za ceo objekat — slučaj „zatvori dvokrevetne i trokrevetne, jednokrevetne ostavi" se do sada radio u dva poteza ili grubo. Jedan potez = jedan audit zapis (M3 §2.8a). **(3)** Novo 4b.9: **istorija izmena na samom ekranu** — ko, kada i šta je promenio, sužena na filter koji je već postavljen. Čita se novim `GET /contracting/capacity/history` pod `M3/capacity/VIEW`, ne postojećim audit log endpointom koji traži `M1/audit-log/VIEW` i time bi sakrio istoriju od ljudi koji taj posao rade.
@@ -765,6 +767,20 @@ Mehanizam je **postojeći** `RowSummaryContext` (dizajn dok. §5b), koji već ta
 **Dobavljač nema sopstven ekran detalja**, pa njegova ikonica vodi na njegove ugovore (`/ugovori?supplierId=…`). Vođenje na ekran koji ne postoji bilo bi gore od odsutnog dugmeta (isto pravilo kao kod sažetka rezervacije bez internog ID-a).
 
 **Prevlačenje u „policu podsetnika" (v2.10) ostaje** na karticama kataloga. Nosio ga je `TabLink`, koji kartica više ne koristi — prelazak na klik-za-sažetak ne sme tiho da ukloni postojeću funkciju.
+
+## 6b. Ekran proizvoda — izvor cene i objava (dopuna 9.9.2026, na zahtev vlasnika)
+
+Vlasnik je 9.9.2026 tražio da se pređe **ceo redosled** od unosa stavke kataloga do izbora u pretrazi rezervacije. Pri prolasku kroz kod nađeno je da dva koraka tog redosleda **postoje na backendu a nemaju ekran**, pa se proizvod unet kroz panel nikad nije mogao ni vezati za ugovor ni objaviti — ostajao je `DRAFT`, a pretraga uzima isključivo `ACTIVE`. Model, provere i obrazloženje: M2 §5.2.
+
+Na ekranu proizvoda (`/katalog/:id`) stoji blok **„Izvor cene i objava"**, vidljiv onome ko ima `M2/product/PUBLISH`:
+
+1. **Izbor ugovora** iz kog proizvod uzima cene, sa brojem ugovora i imenom dobavljača na svakoj stavci. Prazan izbor je **raskid veze**, ne „ne diraj" — polje je vidljivo i čovek ga svesno prazni.
+2. **Lista provera** „da bi se proizvod pojavio u pretrazi", stavka po stavka, sa **preprekama** (crveno, zaustavljaju objavu) i **upozorenjima** (žuto, ne zaustavljaju). Golo dugme „Objavi" ovde ne radi posao: lanac ima pet karika i otkazuje bilo koja, a poruka „nešto nedostaje" ne kaže šta.
+3. **Kanali vidljivosti** i dugme za objavu, onemogućeno dok prepreke stoje.
+
+Uz kanale stoji rečenica da **interni tim vidi svaki objavljen proizvod** bez obzira na taj izbor (M2 §5.1) — bez nje se prazan izbor čita kao „niko ga neće videti", što nije tačno.
+
+**Proizvod iz M4 keširanja ne dobija izbor ugovora** nego rečenicu zašto: cene mu dolaze od provajdera, ne iz našeg ugovora. Forma koja bi svakako bila odbijena je gora od objašnjenja.
 
 ## 7. Izlazni kriterijum
 

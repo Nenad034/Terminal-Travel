@@ -3,6 +3,8 @@
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M2) i poglavlje 8 (Faza 1)
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje
+**Verzija:** 1.26 — **objava i vezivanje za ugovor dobijaju ekran; nova provera spremnosti** (9.9.2026, posle vlasnikovog zahteva da se pređe ceo redosled od unosa stavke kataloga do izbora u pretrazi). Nađena su **dva prekida lanca**, oba na strani ekrana a ne logike: proizvod se u panelu nije mogao **vezati za ugovor** (`PATCH` telo to polje nije imalo), niti **objaviti** (`publish` endpoint postoji od v1.8, ali ga nijedan ekran nije pozivao — proizvod unet kroz panel ostajao je `DRAFT` zauvek, a pretraga uzima samo `ACTIVE`). Mera: jedina mesta koja su postavljala `source_contract_id` bile su **seed skripte**. Novo poglavlje **5.2** i nov `GET /products/:id/publish-readiness` — prebrojana lista šta nedostaje, sa razdvojenim **preprekama** (prevodi, ugovor, period, cena) i **upozorenjima** (tipovi soba, koordinate, marža); prepreka zaustavlja objavu, upozorenje ne. `publish()` iste provere sprovodi i sam i nabraja **sve** prepreke odjednom, ne prvu na koju naiđe. `PATCH /products/:id` dobija `source_contract_id`, uz ogradu da ugovor mora postojati i da se veza menja samo na `CONTRACTED` proizvodu.
+
 **Verzija:** 1.25 — **interna lista proizvoda vraća i naziv dobavljača** (9.9.2026, uz filter po dobavljaču na ekranu Katalog, M17 §6a). `GET /catalog/products` (interni kanal) dobija polje `supplierName`. Dobavljač stoji na **dva** mesta i to nije propust: ugovoreni proizvod ga ima posredno kroz ugovor (M3), a ručno uneta usluga direktno (`Product.supplier_id`, §2.1 dopuna 3.9.2026) — odgovor razrešava jedno ili drugo, pa ekran ne mora da zna razliku. Vraća se **ime**, ne ugnježdeni objekat: `include` je sredstvo, ne oblik odgovora. Javni kanali (§5.1) se ne menjaju.
 
 **Verzija:** 1.24 — novo poglavlje **2.3e**: razlika u kvalitetu sobe je **nov tip sobe u `room_types[]`**, nikad isti tip po nižoj ceni (8.9.2026, vlasnikova potvrda da jedan dobavljač može imati u zakupu slabije sobe jeftinije u istom objektu). Nije stvar urednog kataloga nego posledice u prodaji: M3 §2.10 (istog dana) uvodi pravilo da se prodaje po najnižoj ceni, unutar istog tipa sobe — pa bi slabije sobe upisane kao isti tip **sistematski** izbijale na prvo mesto i agencija bi prodavala isključivo njih, uz reklamacije koje se u podacima ne vide kao greška. Isto pravilo se prenosi na ekran uparivanja soba sa spoljnog provajdera (M4 §3.3.2): „ovo je nov tip sobe" je ravnopravna opcija, ne izuzetak na dnu liste. **Čisto specifikaciona dopuna, bez koda u ovom prolazu.**
@@ -413,6 +415,33 @@ Kad `Product.status` pređe u `ACTIVE` preko `/products/:id/publish`, M2 emituje
 
 ---
 
+### 5.2 Spremnost za objavu — zašto uredno unet proizvod ne mora da se vidi u pretrazi (dopuna 9.9.2026)
+
+Vlasnikovo pitanje 9.9.2026 bilo je da se pređe **ceo redosled** od unosa stavke kataloga do trenutka kad se ona bira u pretrazi rezervacije. Pri prolasku kroz kod nađena su **dva prekida lanca**, i oba su bila na strani ekrana, ne logike:
+
+1. **Proizvod se u panelu nije mogao vezati za ugovor.** `POST /products` prima `source_contract_id`, ali ga forma nije nudila, a `PATCH /products/:id` ga uopšte nije imao u telu. Bez te veze pretraga ne može da nađe nijednu cenu, pa proizvod nikad ne uđe u rezultat.
+2. **Proizvod se u panelu nije mogao objaviti.** `POST /products/:id/publish` postoji od v1.8, ali ga nijedan ekran nije pozivao. Proizvod unet kroz panel ostajao je `DRAFT` **zauvek**, a pretraga uzima isključivo `ACTIVE`.
+
+Mera koliko je to bilo neupotrebljivo: **jedina** mesta u repozitorijumu koja su postavljala `source_contract_id` bile su seed skripte. Sve što se u pretrazi videlo došlo je odatle, ne kroz tok kojim bi radio tim.
+
+**Zato objava ne sme da bude golo dugme.** Uslovi da se proizvod pojavi u pretrazi su lanac od pet karika (M5 §3.0b), a otkazuje bilo koja; poruka „nešto nedostaje" tu ne pomaže. `GET /products/:id/publish-readiness` vraća **prebrojanu listu**, sa razdvojenim preprekama i upozorenjima:
+
+| Provera                                         | Vrsta      | Zašto                                                                               |
+| :---------------------------------------------- | :--------- | :---------------------------------------------------------------------------------- |
+| srpski i engleski prevod                        | prepreka   | već sprovedeno u `publish()` od v1.8 (poglavlje 2.2)                                |
+| proizvod vezan za ugovor (`source_contract_id`) | prepreka   | bez njega pretraga nema odakle da uzme cenu                                         |
+| ugovor ima bar jedan period                     | prepreka   | period nosi datume boravka, tip sobe i kapacitet (M3 §2.3)                          |
+| bar jedan period ima cenovnu liniju             | prepreka   | period bez cene ne proizvodi ponudu                                                 |
+| tipovi soba iz perioda postoje u `room_types[]` | upozorenje | pretraga radi i bez toga, ali po rezervnom kapacitetu i bez naziva sobe u rezultatu |
+| koordinate popunjene                            | upozorenje | proizvod se ne vidi na mapi pretrage (M5 §3.0h.8)                                   |
+| marža postavljena                               | upozorenje | bez pravila marža je 0% — prodaje se po nabavnoj ceni (M5 §2.1)                     |
+
+**Prepreka zaustavlja objavu, upozorenje ne.** Razlika je namerna: „nema cene" znači da proizvod ne može da se proda, a „nema koordinata" znači da se neće videti na mapi — spajanje to dvoje u jednu poruku navodi čoveka da odustane od objave zbog sitnice, ili da preskoči ono što je stvarno bitno.
+
+**`publish()` ponavlja iste provere na svojoj strani** i, kad padne, nabraja **sve** prepreke odjednom, ne prvu na koju naiđe. Ekran koji prikazuje listu je pogodnost; endpoint koji je sprovodi je pravilo, i mora da važi i za poziv koji ne dolazi sa tog ekrana.
+
+**Vezivanje za ugovor ide kroz `PATCH /products/:id`** (`source_contract_id`, dopuna v1.26), uz dve ograde: ugovor mora da postoji, i veza se sme menjati samo na `CONTRACTED` proizvodu — proizvod koji je nastao kroz M4 keširanje pripada provajderu, ne našem ugovoru (§3.2). Već potvrđene rezervacije se time ne diraju: stavka rezervacije nosi svoju cenovnu liniju kao snimak (M5 §6), pa promena veze menja buduće ponude, ne prošle.
+
 ## 6. Dozvole (registruju se u M1 katalog dozvola)
 
 | Dozvola                                                                        | Podrazumevana dodela po ulozi                                                                                                                                              |
@@ -440,6 +469,7 @@ Prefiks: `/api/v1/catalog`
 | `/products`                                           | POST                 | ručno kreiranje CONTRACTED proizvoda                                                                                                                                                                                    |
 | `/products/:id`                                       | GET / PATCH / DELETE | DELETE = arhiviranje (status `ARCHIVED`), ne fizičko brisanje                                                                                                                                                           |
 | `/products/:id/translations`                          | GET / PUT            | pregled/izmena prevoda po jeziku                                                                                                                                                                                        |
+| `/products/:id/publish-readiness`                     | GET                  | **spremnost za objavu** (poglavlje 5.2, dopuna v1.26) — prebrojana lista šta nedostaje da bi se proizvod uopšte pojavio u pretrazi; zahteva `M2/product/VIEW`                                                           |
 | `/products/:id/publish`                               | POST                 | menja status u `ACTIVE` i/ili `visible_channels` — zahteva `M2/product/PUBLISH`                                                                                                                                         |
 | `/products/cache/sync`                                | POST                 | ručno pokretanje sinhronizacije za jedan proizvod (van mesečnog ciklusa) — korisno kad agent na terenu primeti da je opis pogrešan                                                                                      |
 | `/product-content-imports`                            | GET / POST           | lista / kreiranje uvoza (poglavlje 3.3), `POST` prima `source_url` i opciono `product_id`; ili, za `origin = M23_RESEARCH` (poglavlje 3.3a), `product_id` i unapred popunjen `fields[]` umesto `source_url` ekstrakcije |

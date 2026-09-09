@@ -17,6 +17,77 @@ export interface FormState {
   error: string | null;
 }
 
+export interface ProductFormState {
+  error: string | null;
+  ok: string | null;
+}
+
+/** Poruka backend-a se prikazuje doslovno kad postoji — ona nabraja ŠTA tačno nedostaje (§5.2). */
+function poruka(err: unknown, podrazumevana: string): string {
+  if (err instanceof ApiError) {
+    const telo = err.body as { message?: string | string[] } | undefined;
+    const m = telo?.message;
+    if (Array.isArray(m)) return m.join(', ');
+    if (typeof m === 'string') return m;
+  }
+  return podrazumevana;
+}
+
+/**
+ * M2 spec §5.2 (9.9.2026) — vezivanje proizvoda za ugovor iz kog uzima cene.
+ *
+ * Do ove dopune panel to NIJE mogao ni na jedan način: forma za nov proizvod nije nudila polje,
+ * a `PATCH /products/:id` ga uopšte nije imao u telu. Bez te veze pretraga ne nalazi cenu i
+ * proizvod nikad ne uđe u rezultat — jedina mesta koja su je postavljala bile su seed skripte.
+ */
+export async function linkContract(
+  _prev: ProductFormState,
+  formData: FormData,
+): Promise<ProductFormState> {
+  const productId = String(formData.get('productId'));
+  const izbor = String(formData.get('sourceContractId') ?? '');
+  try {
+    await apiFetch(`/catalog/products/${productId}`, {
+      method: 'PATCH',
+      // Prazan izbor je RASKID veze (null), ne „ne diraj" — polje je vidljivo i čovek ga je
+      // svesno ispraznio; `undefined` bi tiho ostavio staru vezu i ekran bi lagao.
+      body: { sourceContractId: izbor === '' ? null : izbor },
+    });
+    revalidatePath(`/katalog/${productId}`);
+    return {
+      error: null,
+      ok: izbor === '' ? 'Veza sa ugovorom je raskinuta.' : 'Ugovor je povezan sa proizvodom.',
+    };
+  } catch (err) {
+    return { error: poruka(err, 'Vezivanje za ugovor nije uspelo.'), ok: null };
+  }
+}
+
+/**
+ * M2 spec §5.2/§7 — objava (DRAFT → ACTIVE) i izbor kanala vidljivosti.
+ *
+ * Endpoint postoji od v1.8, ali ga do 9.9.2026 nijedan ekran nije pozivao — proizvod unet kroz
+ * panel ostajao je DRAFT zauvek, a pretraga uzima isključivo ACTIVE.
+ */
+export async function publishProduct(
+  _prev: ProductFormState,
+  formData: FormData,
+): Promise<ProductFormState> {
+  const productId = String(formData.get('productId'));
+  const visibleChannels = formData.getAll('visibleChannels').map(String).filter(Boolean);
+  try {
+    await apiFetch(`/catalog/products/${productId}/publish`, {
+      method: 'POST',
+      body: { visibleChannels },
+    });
+    revalidatePath(`/katalog/${productId}`);
+    revalidatePath('/katalog');
+    return { error: null, ok: 'Proizvod je objavljen — od sada se pojavljuje u pretrazi.' };
+  } catch (err) {
+    return { error: poruka(err, 'Objava nije uspela.'), ok: null };
+  }
+}
+
 // M2 spec §7 — POST /catalog/products: uvek kreira CONTRACTED proizvod (ručni unos, M17
 // spec §7 Faza 1 izlazni kriterijum: "tim može ručno da unese proizvod").
 export async function createProduct(_prev: FormState, formData: FormData): Promise<FormState> {

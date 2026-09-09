@@ -98,6 +98,14 @@ export class ProductsController {
     return this.products.upsertTranslation(id, dto, actor.userId);
   }
 
+  // §5.2 (v1.26) — spremnost za objavu. Pod `VIEW`, ne pod `PUBLISH`: ovo je čitanje stanja i
+  // treba da ga vidi i onaj ko proizvod priprema a ne sme sam da objavi.
+  @Get(':id/publish-readiness')
+  @RequirePermission('M2', 'product', 'VIEW')
+  publishReadiness(@Param('id') id: string) {
+    return this.products.publishReadiness(id);
+  }
+
   @Post(':id/publish')
   @RequirePermission('M2', 'product', 'PUBLISH')
   publish(

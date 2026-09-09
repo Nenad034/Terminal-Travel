@@ -8,6 +8,8 @@ import PackageAttributesEditor, {
   type PickableProduct,
 } from './PackageAttributesEditor';
 import PackageDeparturesEditor, { type PackageDeparture } from './PackageDeparturesEditor';
+import PublishPanel, { type Readiness } from './PublishPanel';
+import { getMe, hasPermission } from '@/lib/me';
 
 interface Product {
   id: string;
@@ -29,6 +31,9 @@ interface Product {
   geoLng: string | null;
   status: string;
   sourceType: string;
+  /** M2 §5.2 — ugovor iz kog proizvod uzima cene; bez njega ga pretraga ne prikazuje. */
+  sourceContractId: string | null;
+  visibleChannels: string[];
   attributes?: (HotelAttributes & PackageAttributes & { room_types?: RoomType[] }) | null;
   translations?: { languageCode: string; name: string; description: string; slug: string }[];
 }
@@ -38,6 +43,26 @@ export default async function ProductDetailPage(props: { params: Promise<{ id: s
   const product = await apiFetch<Product>(`/catalog/products/${params.id}`);
   const sr = product.translations?.find((t) => t.languageCode === 'sr');
   const name = sr?.name ?? '(bez naziva)';
+
+  // M2 §5.2 (9.9.2026) — izvor cene i objava. Oba poziva smeju da padnu bez rušenja ekrana:
+  // ugovori traže `M3/contract/VIEW`, koju nema svako ko sme da uređuje katalog, a provera
+  // spremnosti je pomoć pri radu, ne uslov da se stranica prikaže.
+  const me = await getMe();
+  const canPublish = hasPermission(me, 'M2', 'product', 'PUBLISH');
+  const [contracts, readiness] = await Promise.all([
+    apiFetch<{
+      data: { id: string; contractNumber: string; supplierId: string; status: string }[];
+    }>('/contracting/contracts?limit=200')
+      .then((r) => r.data)
+      .catch(() => []),
+    apiFetch<Readiness>(`/catalog/products/${params.id}/publish-readiness`).catch(() => null),
+  ]);
+  const suppliers = contracts.length
+    ? await apiFetch<{ data: { id: string; name: string }[] }>('/contracting/suppliers?limit=200')
+        .then((r) => r.data)
+        .catch(() => [])
+    : [];
+  const supplierName = new Map(suppliers.map((x) => [x.id, x.name]));
 
   return (
     <div className="p-6">
@@ -77,6 +102,22 @@ export default async function ProductDetailPage(props: { params: Promise<{ id: s
           destinationArea: product.destinationArea,
         }}
       />
+      {canPublish && (
+        <PublishPanel
+          productId={product.id}
+          status={product.status}
+          sourceType={product.sourceType}
+          sourceContractId={product.sourceContractId}
+          visibleChannels={product.visibleChannels ?? []}
+          contracts={contracts.map((c) => ({
+            id: c.id,
+            label: `${c.contractNumber} — ${supplierName.get(c.supplierId) ?? 'nepoznat dobavljač'}${
+              c.status === 'ACTIVE' ? '' : ` (${c.status})`
+            }`,
+          }))}
+          readiness={readiness}
+        />
+      )}
       {product.type === 'ACCOMMODATION' && (
         <div className="mt-4">
           <RoomTypesEditor
@@ -119,15 +160,19 @@ async function PackageEditorSection({
   initial: PackageAttributes;
 }) {
   const [all, departures] = await Promise.all([
-    apiFetch<
-      {
+    // ISPRAVKA 9.9.2026 — `GET /catalog/products` od 5.9.2026 vraća `{ data, total, ... }`,
+    // ne go niz (M2 v1.23). Ovaj poziv je ostao na starom obliku, pa je `.filter` ispod padao
+    // i detalj ekran svakog PACKAGE proizvoda rušio. Zamka 10.x roda: promena oblika odgovora
+    // se ne vidi u `tsc` kad je tip ručno napisan uz `apiFetch<...>`.
+    apiFetch<{
+      data: {
         id: string;
         type: string;
         destinationCity: string;
         destinationCountry: string;
         translations?: { languageCode: string; name: string }[];
-      }[]
-    >('/catalog/products'),
+      }[];
+    }>('/catalog/products').then((r) => r.data),
     apiFetch<PackageDeparture[]>(`/catalog/products/${productId}/package-departures`),
   ]);
   const candidates: PickableProduct[] = all

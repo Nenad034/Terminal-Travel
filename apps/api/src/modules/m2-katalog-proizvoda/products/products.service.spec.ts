@@ -19,6 +19,16 @@ describe('ProductsService', () => {
         findMany: jest.fn(),
         upsert: jest.fn(),
       },
+      // §5.2 (v1.26) — `publish()` sada prolazi kroz `publishReadiness()`, koja pita i M3
+      // (ugovor, periodi, cene) i M5 (marža). Podrazumevano stanje ovde je "sve spremno", pa
+      // svaki test menja samo ono što baš proverava.
+      contract: { findUnique: jest.fn().mockResolvedValue({ supplierId: 's1' }) },
+      contractPeriod: {
+        findMany: jest
+          .fn()
+          .mockResolvedValue([{ id: 'per1', roomType: 'DBL', _count: { rateLines: 1 } }]),
+      },
+      markupRule: { count: jest.fn().mockResolvedValue(1) },
     };
     const auditLog = { write: jest.fn() };
     const eventBus = { emit: jest.fn() };
@@ -51,6 +61,186 @@ describe('ProductsService', () => {
         expect.objectContaining({ action: 'product.created', module: 'M2' }),
       );
       expect(result).toBe(created);
+    });
+  });
+
+  /**
+   * §5.2 (v1.26) — spremnost za objavu. Suština nije da lista postoji, nego da PREPREKA stvarno
+   * zaustavlja objavu a UPOZORENJE ne — i da se lanac do pretrage proverava CEO, ne samo prevodi
+   * (dva prekida nađena 9.9.2026: proizvod se nije mogao vezati za ugovor niti objaviti).
+   */
+  describe('publishReadiness (M2 spec §5.2)', () => {
+    function spremanProizvod(izmene: Record<string, unknown> = {}) {
+      return {
+        id: 'p1',
+        type: 'ACCOMMODATION',
+        status: 'DRAFT',
+        sourceType: 'CONTRACTED',
+        sourceContractId: 'c1',
+        geoLat: 1,
+        geoLng: 1,
+        attributes: { room_types: [{ code: 'DBL' }] },
+        ...izmene,
+      };
+    }
+
+    it('proizvod sa celim lancem je spreman za objavu', async () => {
+      const { service, prisma } = makeService();
+      prisma.product.findUniqueOrThrow.mockResolvedValue(spremanProizvod());
+      prisma.productTranslation.findMany.mockResolvedValue([
+        { languageCode: 'sr' },
+        { languageCode: 'en' },
+      ]);
+
+      const rez = await service.publishReadiness('p1');
+
+      expect(rez.canPublish).toBe(true);
+      expect(rez.checks.filter((c) => !c.ok)).toEqual([]);
+    });
+
+    it('proizvod bez ugovora ne može da se objavi, i to je PREPREKA', async () => {
+      const { service, prisma } = makeService();
+      prisma.product.findUniqueOrThrow.mockResolvedValue(
+        spremanProizvod({ sourceContractId: null }),
+      );
+      prisma.productTranslation.findMany.mockResolvedValue([
+        { languageCode: 'sr' },
+        { languageCode: 'en' },
+      ]);
+
+      const rez = await service.publishReadiness('p1');
+
+      expect(rez.canPublish).toBe(false);
+      const ugovor = rez.checks.find((c) => c.key === 'contract')!;
+      expect(ugovor.ok).toBe(false);
+      expect(ugovor.blocking).toBe(true);
+      // Bez ugovora nema ni perioda ni cena — sve tri karike padaju zajedno.
+      expect(rez.checks.find((c) => c.key === 'periods')!.ok).toBe(false);
+      expect(rez.checks.find((c) => c.key === 'rates')!.ok).toBe(false);
+    });
+
+    it('period bez cenovne linije obara „Period ima cenu", a period i dalje postoji', async () => {
+      const { service, prisma } = makeService();
+      prisma.product.findUniqueOrThrow.mockResolvedValue(spremanProizvod());
+      prisma.productTranslation.findMany.mockResolvedValue([
+        { languageCode: 'sr' },
+        { languageCode: 'en' },
+      ]);
+      prisma.contractPeriod.findMany.mockResolvedValue([
+        { id: 'per1', roomType: 'DBL', _count: { rateLines: 0 } },
+      ]);
+
+      const rez = await service.publishReadiness('p1');
+
+      expect(rez.checks.find((c) => c.key === 'periods')!.ok).toBe(true);
+      expect(rez.checks.find((c) => c.key === 'rates')!.ok).toBe(false);
+      expect(rez.canPublish).toBe(false);
+    });
+
+    it('marža je PREPREKA — bez nje pretraga puca, ne prodaje po nabavnoj ceni', async () => {
+      const { service, prisma } = makeService();
+      prisma.product.findUniqueOrThrow.mockResolvedValue(spremanProizvod());
+      prisma.productTranslation.findMany.mockResolvedValue([
+        { languageCode: 'sr' },
+        { languageCode: 'en' },
+      ]);
+      prisma.markupRule.count.mockResolvedValue(0);
+
+      const rez = await service.publishReadiness('p1');
+
+      const marza = rez.checks.find((c) => c.key === 'markup')!;
+      expect(marza.ok).toBe(false);
+      expect(marza.blocking).toBe(true);
+      expect(rez.canPublish).toBe(false);
+    });
+
+    it('marža se traži po CELOM lancu iz M5 §2.2, ne samo na proizvodu', async () => {
+      const { service, prisma } = makeService();
+      prisma.product.findUniqueOrThrow.mockResolvedValue(spremanProizvod());
+      prisma.productTranslation.findMany.mockResolvedValue([
+        { languageCode: 'sr' },
+        { languageCode: 'en' },
+      ]);
+
+      await service.publishReadiness('p1');
+
+      const scopes = prisma.markupRule.count.mock.calls[0][0].where.OR.map((x: any) => x.scopeType);
+      expect(scopes).toEqual(['M2_PRODUCT', 'M3_CONTRACT_PERIOD', 'M3_CONTRACT', 'M3_SUPPLIER']);
+    });
+
+    it('nepoklopljen tip sobe je UPOZORENJE — objava prolazi, pretraga radi lošije', async () => {
+      const { service, prisma } = makeService();
+      prisma.product.findUniqueOrThrow.mockResolvedValue(
+        spremanProizvod({ attributes: { room_types: [{ code: 'SGL' }] } }),
+      );
+      prisma.productTranslation.findMany.mockResolvedValue([
+        { languageCode: 'sr' },
+        { languageCode: 'en' },
+      ]);
+
+      const rez = await service.publishReadiness('p1');
+
+      const tipovi = rez.checks.find((c) => c.key === 'roomTypes')!;
+      expect(tipovi.ok).toBe(false);
+      expect(tipovi.blocking).toBe(false);
+      expect(tipovi.detail).toContain('DBL');
+      expect(rez.canPublish).toBe(true);
+    });
+
+    it('koordinate su UPOZORENJE — proizvod se objavljuje, samo se ne vidi na mapi', async () => {
+      const { service, prisma } = makeService();
+      prisma.product.findUniqueOrThrow.mockResolvedValue(
+        spremanProizvod({ geoLat: null, geoLng: null }),
+      );
+      prisma.productTranslation.findMany.mockResolvedValue([
+        { languageCode: 'sr' },
+        { languageCode: 'en' },
+      ]);
+
+      const rez = await service.publishReadiness('p1');
+
+      expect(rez.checks.find((c) => c.key === 'coordinates')!.blocking).toBe(false);
+      expect(rez.canPublish).toBe(true);
+    });
+  });
+
+  describe('update — vezivanje za ugovor (M2 spec §5.2 v1.26)', () => {
+    it('odbija nepostojeći ugovor razumljivom porukom, ne FK greškom', async () => {
+      const { service, prisma } = makeService();
+      prisma.product.findUniqueOrThrow.mockResolvedValue({
+        id: 'p1',
+        sourceType: 'CONTRACTED',
+      });
+      prisma.contract.findUnique.mockResolvedValue(null);
+
+      await expect(
+        service.update('p1', { sourceContractId: 'nepostojeci' } as any, 'actor-1'),
+      ).rejects.toThrow(BadRequestException);
+      expect(prisma.product.update).not.toHaveBeenCalled();
+    });
+
+    it('odbija vezivanje proizvoda koji dolazi iz API keširanja — on pripada provajderu', async () => {
+      const { service, prisma } = makeService();
+      prisma.product.findUniqueOrThrow.mockResolvedValue({ id: 'p1', sourceType: 'API_CACHED' });
+
+      await expect(
+        service.update('p1', { sourceContractId: 'c1' } as any, 'actor-1'),
+      ).rejects.toThrow(BadRequestException);
+      expect(prisma.product.update).not.toHaveBeenCalled();
+    });
+
+    it('null raskida vezu, bez provere postojanja ugovora', async () => {
+      const { service, prisma } = makeService();
+      prisma.product.findUniqueOrThrow.mockResolvedValue({
+        id: 'p1',
+        sourceType: 'CONTRACTED',
+      });
+      prisma.product.update.mockResolvedValue({ id: 'p1' });
+
+      await service.update('p1', { sourceContractId: null } as any, 'actor-1');
+
+      expect(prisma.contract.findUnique).not.toHaveBeenCalled();
+      expect(prisma.product.update.mock.calls[0][0].data.sourceContractId).toBeNull();
     });
   });
 
@@ -96,7 +286,14 @@ describe('ProductsService', () => {
   describe('publish (M2 spec §2.2 — sr+en obavezni pre DRAFT → ACTIVE; §4.1 — event na ulasku u ACTIVE)', () => {
     it('odbija prelaz DRAFT → ACTIVE bez srpskog i engleskog prevoda', async () => {
       const { service, prisma } = makeService();
-      prisma.product.findUniqueOrThrow.mockResolvedValue({ id: 'p1', status: 'DRAFT' });
+      prisma.product.findUniqueOrThrow.mockResolvedValue({
+        id: 'p1',
+        status: 'DRAFT',
+        sourceContractId: 'c1',
+        geoLat: 1,
+        geoLng: 1,
+        attributes: { room_types: [{ code: 'DBL' }] },
+      });
       prisma.productTranslation.findMany.mockResolvedValue([{ languageCode: 'sr' }]); // nema en
 
       await expect(service.publish('p1', {}, 'actor-1')).rejects.toThrow(BadRequestException);
@@ -109,6 +306,10 @@ describe('ProductsService', () => {
         id: 'p1',
         status: 'DRAFT',
         visibleChannels: [],
+        sourceContractId: 'c1',
+        geoLat: 1,
+        geoLng: 1,
+        attributes: { room_types: [{ code: 'DBL' }] },
       });
       prisma.productTranslation.findMany.mockResolvedValue([
         { languageCode: 'sr' },
