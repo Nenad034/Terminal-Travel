@@ -176,3 +176,73 @@ export async function ugasiDoplatu(contractId: string, id: string): Promise<Isho
   revalidatePath(`/ugovori/${contractId}/cenovnik`);
   return { error: null };
 }
+
+// ── marža i provizija po stavci (§2.11i)
+
+export interface PraviloUnos {
+  target: 'RATE_LINE' | 'ANCILLARY';
+  targetId: string;
+  markupPercentage: string;
+  markupFixedAmount: string;
+  noCommission: string;
+  commissionPercentage: string;
+  commissionFixedAmount: string;
+}
+
+export async function sacuvajPravilo(contractId: string, u: PraviloUnos): Promise<Ishod> {
+  // Prazno polje znači „kao ugovor" i mora ostati NEPOSLATO — poslata nula bi značila
+  // „marža 0%", što je sasvim druga odluka.
+  const markupPercentage = broj(u.markupPercentage) ?? undefined;
+  const commissionPercentage = broj(u.commissionPercentage) ?? undefined;
+  const bez = u.noCommission === 'true';
+
+  let markupFixedAmount: number | undefined;
+  if (u.markupFixedAmount.trim() !== '') {
+    const n = uNajmanjuJedinicu(u.markupFixedAmount);
+    if (n == null) return { error: `Marža „${u.markupFixedAmount}" nije iznos.` };
+    markupFixedAmount = n;
+  }
+
+  let commissionFixedAmount: number | undefined;
+  if (!bez && u.commissionFixedAmount.trim() !== '') {
+    const n = uNajmanjuJedinicu(u.commissionFixedAmount);
+    if (n == null) return { error: `Provizija „${u.commissionFixedAmount}" nije iznos.` };
+    commissionFixedAmount = n;
+  }
+
+  try {
+    await apiFetch(`/contracting/contracts/${contractId}/pricing-rules`, {
+      method: 'PUT',
+      body: {
+        target: u.target,
+        targetId: u.targetId,
+        markupPercentage,
+        markupFixedAmount,
+        noCommission: bez ? true : undefined,
+        commissionPercentage: bez ? undefined : commissionPercentage,
+        commissionFixedAmount: bez ? undefined : commissionFixedAmount,
+      },
+    });
+  } catch (err) {
+    return { error: poruka(err, 'Upis pravila nije uspeo.') };
+  }
+  revalidatePath(`/ugovori/${contractId}/cenovnik`);
+  return { error: null };
+}
+
+export async function ukloniPravilo(
+  contractId: string,
+  target: 'RATE_LINE' | 'ANCILLARY',
+  targetId: string,
+): Promise<Ishod> {
+  try {
+    await apiFetch(`/contracting/contracts/${contractId}/pricing-rules/remove`, {
+      method: 'POST',
+      body: { target, targetId },
+    });
+  } catch (err) {
+    return { error: poruka(err, 'Uklanjanje pravila nije uspelo.') };
+  }
+  revalidatePath(`/ugovori/${contractId}/cenovnik`);
+  return { error: null };
+}

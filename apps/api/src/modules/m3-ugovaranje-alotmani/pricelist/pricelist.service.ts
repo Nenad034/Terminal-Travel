@@ -8,6 +8,7 @@ import { UpsertSeasonDto } from './dto/upsert-season.dto';
 import { WriteCellDto } from './dto/write-cell.dto';
 import { UpsertSurchargeDto } from './dto/upsert-surcharge.dto';
 import { domet, ulaziUZbir } from './surcharge-scope';
+import { UpsertPricingRuleDto } from './dto/upsert-pricing-rule.dto';
 
 /**
  * M3 spec §2.11 — cenovnik kao mreža.
@@ -355,6 +356,241 @@ export class PricelistService {
       rateLineIds: rezultat.upisane,
       deactivated: rezultat.ugasenih,
     };
+  }
+
+  // ──────────────────────────────────────────────────────────── marža i provizija (§2.11i)
+
+  /**
+   * Sve stavke ugovora, sa naznakom koja od njih ima sopstveno pravilo marže/provizije.
+   *
+   * Vraćaju se **sve** stavke, ne samo izuzeci — čovek mora da vidi na šta uopšte može da
+   * primeni izuzetak. Ali izuzeci idu prvi i nose oznaku, jer se ekran zbog njih i otvara.
+   */
+  async pricingRules(contractId: string) {
+    await this.assertContract(contractId);
+
+    const [periods, doplate] = await Promise.all([
+      this.prisma.contractPeriod.findMany({
+        where: { contractId, status: 'ACTIVE' },
+        select: {
+          id: true,
+          roomType: true,
+          rateLines: {
+            where: { status: 'ACTIVE' },
+            select: { id: true, boardType: true, occupancy: true, price: true },
+          },
+        },
+      }),
+      this.prisma.ancillaryService.findMany({
+        where: { contractId, status: 'ACTIVE' },
+        select: { id: true, name: true, kind: true, flatAmount: true },
+      }),
+    ]);
+
+    const rateLineIds = periods.flatMap((p) => p.rateLines.map((r) => r.id));
+    const ancillaryIds = doplate.map((d) => d.id);
+    const gde = [
+      { scopeType: 'M3_RATE_LINE' as const, scopeId: { in: rateLineIds } },
+      { scopeType: 'M3_ANCILLARY_SERVICE' as const, scopeId: { in: ancillaryIds } },
+    ];
+
+    const [marze, provizije] = await Promise.all([
+      this.prisma.markupRule.findMany({ where: { OR: gde } }),
+      this.prisma.subagentCommissionOverride.findMany({ where: { OR: gde } }),
+    ]);
+    const marzaZa = new Map(marze.map((m) => [m.scopeId, m]));
+    const provizijaZa = new Map(provizije.map((p) => [p.scopeId, p]));
+
+    const stavke = [
+      ...periods.flatMap((p) =>
+        p.rateLines.map((r) =>
+          this.pricingRed(
+            'RATE_LINE',
+            r.id,
+            `${p.roomType} · ${r.boardType} · ${r.occupancy}`,
+            r.price,
+            marzaZa,
+            provizijaZa,
+          ),
+        ),
+      ),
+      ...doplate.map((d) =>
+        this.pricingRed(
+          'ANCILLARY',
+          d.id,
+          d.name,
+          d.flatAmount,
+          marzaZa,
+          provizijaZa,
+          d.kind === 'DISCOUNT' ? 'popust' : 'doplata',
+        ),
+      ),
+    ];
+
+    stavke.sort(
+      (a, b) => Number(b.jeIzuzetak) - Number(a.jeIzuzetak) || a.naziv.localeCompare(b.naziv, 'sr'),
+    );
+    return stavke;
+  }
+
+  private pricingRed(
+    target: 'RATE_LINE' | 'ANCILLARY',
+    targetId: string,
+    naziv: string,
+    osnovnaCena: number | null,
+    marzaZa: Map<string, { percentage: unknown; fixedAmount: number | null }>,
+    provizijaZa: Map<
+      string,
+      { noCommission: boolean; percentage: unknown; fixedAmount: number | null }
+    >,
+    vrsta?: string,
+  ) {
+    const m = marzaZa.get(targetId);
+    const p = provizijaZa.get(targetId);
+    return {
+      target,
+      targetId,
+      naziv,
+      vrsta: vrsta ?? null,
+      osnovnaCena,
+      markupPercentage: m?.percentage != null ? Number(m.percentage) : null,
+      markupFixedAmount: m?.fixedAmount ?? null,
+      noCommission: p?.noCommission ?? false,
+      commissionPercentage: p?.percentage != null ? Number(p.percentage) : null,
+      commissionFixedAmount: p?.fixedAmount ?? null,
+      jeIzuzetak: Boolean(m || p),
+    };
+  }
+
+  /**
+   * Upis izuzetka za jednu stavku. Marža i provizija idu **zajedno, u jednoj transakciji** —
+   * inače bi prekid između dva poziva ostavio stavku sa novom maržom i starom provizijom, a
+   * to je stanje koje niko nije odabrao (zamka 7.9).
+   */
+  async upsertPricingRule(contractId: string, dto: UpsertPricingRuleDto, actorId: string) {
+    const contract = await this.assertContract(contractId);
+    await this.assertStavkaPripadaUgovoru(contractId, dto);
+
+    const scopeType = dto.target === 'RATE_LINE' ? 'M3_RATE_LINE' : 'M3_ANCILLARY_SERVICE';
+    const imaMarzu = dto.markupPercentage != null || dto.markupFixedAmount != null;
+    const imaProviziju =
+      dto.noCommission === true ||
+      dto.commissionPercentage != null ||
+      dto.commissionFixedAmount != null;
+
+    if (!imaMarzu && !imaProviziju) {
+      throw new BadRequestException(
+        'Izuzetak mora nositi bar jednu vrednost — maržu ili proviziju. Prazan izuzetak ne znači ništa.',
+      );
+    }
+
+    await this.prisma.$transaction(async (tx) => {
+      // Jedan izuzetak po stavci: nov upis zamenjuje stari, ne staje pored njega. Dva pravila
+      // istog dometa značila bi da iznos zavisi od redosleda čitanja iz baze.
+      await tx.markupRule.deleteMany({ where: { scopeType, scopeId: dto.targetId } });
+      if (imaMarzu) {
+        await tx.markupRule.create({
+          data: {
+            scopeType,
+            scopeId: dto.targetId,
+            percentage: dto.markupPercentage ?? null,
+            fixedAmount: dto.markupFixedAmount ?? null,
+            fixedAmountCurrency:
+              dto.markupFixedAmount != null ? (dto.markupCurrency ?? contract.currency) : null,
+            activeFrom: dto.activeFrom ? dan(dto.activeFrom) : null,
+            activeTo: dto.activeTo ? dan(dto.activeTo) : null,
+            createdBy: actorId,
+          },
+        });
+      }
+
+      await tx.subagentCommissionOverride.deleteMany({
+        where: { scopeType, scopeId: dto.targetId, subagentId: dto.subagentId ?? null },
+      });
+      if (imaProviziju) {
+        await tx.subagentCommissionOverride.create({
+          data: {
+            subagentId: dto.subagentId ?? null,
+            scopeType,
+            scopeId: dto.targetId,
+            noCommission: dto.noCommission ?? false,
+            percentage: dto.commissionPercentage ?? null,
+            fixedAmount: dto.commissionFixedAmount ?? null,
+            activeFrom: dto.activeFrom ? dan(dto.activeFrom) : null,
+            activeTo: dto.activeTo ? dan(dto.activeTo) : null,
+            createdBy: actorId,
+          },
+        });
+      }
+    });
+
+    await this.auditLog.write({
+      actorType: 'HUMAN',
+      actorId,
+      module: 'M3',
+      action: 'pricing_rule.upserted',
+      resourceType: dto.target === 'RATE_LINE' ? 'RateLine' : 'AncillaryService',
+      resourceId: dto.targetId,
+      context: {
+        contractId,
+        marza: imaMarzu
+          ? { procenat: dto.markupPercentage ?? null, iznos: dto.markupFixedAmount ?? null }
+          : null,
+        provizija: imaProviziju
+          ? {
+              bez: dto.noCommission ?? false,
+              procenat: dto.commissionPercentage ?? null,
+              iznos: dto.commissionFixedAmount ?? null,
+            }
+          : null,
+      },
+    });
+    return { ok: true };
+  }
+
+  /** Uklanjanje izuzetka — stavka se vraća na podrazumevano pravilo ugovora. */
+  async deletePricingRule(contractId: string, dto: UpsertPricingRuleDto, actorId: string) {
+    await this.assertStavkaPripadaUgovoru(contractId, dto);
+    const scopeType = dto.target === 'RATE_LINE' ? 'M3_RATE_LINE' : 'M3_ANCILLARY_SERVICE';
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.markupRule.deleteMany({ where: { scopeType, scopeId: dto.targetId } });
+      await tx.subagentCommissionOverride.deleteMany({
+        where: { scopeType, scopeId: dto.targetId },
+      });
+    });
+
+    await this.auditLog.write({
+      actorType: 'HUMAN',
+      actorId,
+      module: 'M3',
+      action: 'pricing_rule.removed',
+      resourceType: dto.target === 'RATE_LINE' ? 'RateLine' : 'AncillaryService',
+      resourceId: dto.targetId,
+      context: { contractId },
+    });
+    return { ok: true };
+  }
+
+  /** Stavka iz tuđeg ugovora bi napravila pravilo koje se nikad ne primeni, a izgleda ispravno. */
+  private async assertStavkaPripadaUgovoru(contractId: string, dto: UpsertPricingRuleDto) {
+    if (dto.target === 'RATE_LINE') {
+      const r = await this.prisma.rateLine.findUnique({
+        where: { id: dto.targetId },
+        select: { contractPeriod: { select: { contractId: true } } },
+      });
+      if (!r || r.contractPeriod.contractId !== contractId) {
+        throw new NotFoundException('Cenovna stavka nije pronađena u ovom ugovoru');
+      }
+    } else {
+      const a = await this.prisma.ancillaryService.findUnique({
+        where: { id: dto.targetId },
+        select: { contractId: true },
+      });
+      if (!a || a.contractId !== contractId) {
+        throw new NotFoundException('Doplata nije pronađena u ovom ugovoru');
+      }
+    }
   }
 
   // ──────────────────────────────────────────────────────────── pomoćno

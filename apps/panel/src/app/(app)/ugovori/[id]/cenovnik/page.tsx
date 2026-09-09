@@ -6,6 +6,7 @@ import PricelistGrid, { type Mreza } from './PricelistGrid';
 import SeasonsBar from './SeasonsBar';
 import SurchargesPanel, { type Doplata } from './SurchargesPanel';
 import Kartice from './Kartice';
+import PricingRulesPanel, { type PravilioRed } from './PricingRulesPanel';
 
 /**
  * M3 spec §2.11, M17 §6d — cenovnik jednog ugovora kao mreža.
@@ -39,11 +40,14 @@ export default async function CenovnikPage(props: { params: Promise<{ id: string
   }
   const canEdit = hasPermission(me, 'M3', 'contract-period', 'EDIT');
 
-  const [mreza, ugovor, doplate] = await Promise.all([
+  const [mreza, ugovor, doplate, pravila] = await Promise.all([
     apiFetch<Mreza>(`/contracting/contracts/${id}/pricelist-grid`),
     apiFetch<Ugovor>(`/contracting/contracts/${id}`).catch(() => null),
     apiFetch<Doplata[]>(`/contracting/contracts/${id}/pricelist-surcharges`).catch(
       () => [] as Doplata[],
+    ),
+    apiFetch<PravilioRed[]>(`/contracting/contracts/${id}/pricing-rules`).catch(
+      () => [] as PravilioRed[],
     ),
   ]);
 
@@ -97,6 +101,16 @@ export default async function CenovnikPage(props: { params: Promise<{ id: string
             />
           }
           brojDoplata={doplate.length}
+          pravila={
+            <PricingRulesPanel
+              contractId={id}
+              pravila={pravila}
+              currency={mreza.currency}
+              podrazumevanaMarza={null}
+              canEdit={canEdit}
+            />
+          }
+          brojIzuzetaka={pravila.filter((p) => p.jeIzuzetak).length}
         />
       )}
     </div>

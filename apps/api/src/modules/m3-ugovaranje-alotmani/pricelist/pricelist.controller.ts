@@ -4,6 +4,7 @@ import { PricelistService } from './pricelist.service';
 import { UpsertSeasonDto } from './dto/upsert-season.dto';
 import { WriteCellDto } from './dto/write-cell.dto';
 import { UpsertSurchargeDto } from './dto/upsert-surcharge.dto';
+import { UpsertPricingRuleDto } from './dto/upsert-pricing-rule.dto';
 import { JwtAuthGuard } from '../../m1-core-identitet/auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../../common/guards/permissions.guard';
 import { RequirePermission } from '../../../common/decorators/require-permission.decorator';
@@ -95,6 +96,36 @@ export class PricelistController {
     @CurrentUser() actor: { userId: string },
   ) {
     return this.pricelist.deactivateSurcharge(contractId, id, actor.userId);
+  }
+
+  // ── marža i provizija po stavci (§2.11i)
+
+  /** Sve stavke ugovora, sa naznakom koja ima sopstveno pravilo. Izuzeci idu prvi. */
+  @Get('contracts/:contractId/pricing-rules')
+  @RequirePermission('M3', 'contract-period', 'VIEW')
+  pricingRules(@Param('contractId') contractId: string) {
+    return this.pricelist.pricingRules(contractId);
+  }
+
+  @Put('contracts/:contractId/pricing-rules')
+  @RequirePermission('M3', 'contract-period', 'EDIT')
+  upsertPricingRule(
+    @Param('contractId') contractId: string,
+    @Body() dto: UpsertPricingRuleDto,
+    @CurrentUser() actor: { userId: string },
+  ) {
+    return this.pricelist.upsertPricingRule(contractId, dto, actor.userId);
+  }
+
+  /** Uklanjanje izuzetka — stavka se vraća na podrazumevano pravilo ugovora. */
+  @Post('contracts/:contractId/pricing-rules/remove')
+  @RequirePermission('M3', 'contract-period', 'EDIT')
+  removePricingRule(
+    @Param('contractId') contractId: string,
+    @Body() dto: UpsertPricingRuleDto,
+    @CurrentUser() actor: { userId: string },
+  ) {
+    return this.pricelist.deletePricingRule(contractId, dto, actor.userId);
   }
 
   /** Upis jedne ćelije — ista cena u svaki period te sezone i tog tipa sobe. */

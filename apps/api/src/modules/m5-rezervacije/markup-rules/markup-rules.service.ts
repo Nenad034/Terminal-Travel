@@ -11,6 +11,14 @@ export interface ContractedResolutionContext {
   contractPeriodId: string;
   contractId: string;
   supplierId: string;
+  /**
+   * M3 §2.11i (v1.27) — konkretna cenovna stavka od koje cena potiče.
+   *
+   * Opciono namerno: svi postojeći pozivaoci rade i bez njega i dobijaju isto pravilo kao pre.
+   * Kad je prosleđen, izuzetak upisan baš na tu stavku pobeđuje sve šire nivoe — to je jedini
+   * način da se jedna soba maržira drugačije od ostalih iz istog ugovora.
+   */
+  rateLineId?: string | null;
 }
 
 export interface ApiResolutionContext {
@@ -134,6 +142,12 @@ export class MarkupRulesService {
     at: Date = new Date(),
   ): Promise<MarkupRule> {
     const order: [MarkupScopeType, string][] = [
+      // §2.11i (v1.27) — pojedinačna cenovna stavka je NAJUŽI nivo i stoji ispred proizvoda.
+      // Bez nje se izuzetak za jednu sobu („suite ide sa 12% + 5,00, ostalo 18%") nije mogao
+      // izraziti drugačije nego pravljenjem zasebnog proizvoda, što bi razbilo katalog.
+      ...(ctx.rateLineId
+        ? ([['M3_RATE_LINE', ctx.rateLineId]] as [MarkupScopeType, string][])
+        : []),
       ['M2_PRODUCT', ctx.productId],
       ['M3_CONTRACT_PERIOD', ctx.contractPeriodId],
       ['M3_CONTRACT', ctx.contractId],

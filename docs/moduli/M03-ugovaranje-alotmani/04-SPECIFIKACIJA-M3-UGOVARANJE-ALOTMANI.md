@@ -816,6 +816,8 @@ Redosled nije proizvoljan: hotelska provizija se skida sa **već umanjene** cene
 
 Izvršenje ostaje u M5 (2.10g) — M3 čuva pravilo, M5 ga primenjuje. M5 spec §2.1 se dopunjuje u istom prolazu.
 
+**Osnovica provizije subagenta — potvrđeno 9.9.2026.** Na pitanje da li sistem treba da preračuna iznose tako da agencija i subagent dobiju jednako (vlasnikov nalaz: _„kada odobrimo 10% na bruto cenu a mi smo maržirali 20%, nama ne ostane 10%"_ — izmereno: nama 8,00, subagentu 12,00), vlasnik je odlučio: _„Za sada neka ostane da provizija ide na bruto cenu, pa ćemo videti za kasnije."_ Korak 5 iznad time ostaje nepromenjen. Tri razmatrane varijante (podela marže na pola / oba po istom procentu / provizija dodata na maržu) i njihovi izračunati ishodi ostaju u `docs/analize/27-BACKLOG-IDEJA-I-PREDLOZI.md`, jer je nalaz stvaran i vratiće se čim se pojavi subagent sa visokom provizijom.
+
 #### 2.11h Osnovica popusta po osobi
 
 **Vlasnikova odluka 9.9.2026:** popust za 3. i 4. osobu — i svaki drugi popust po osobi — računa se **od ulazne hotelske osnovne cene**.
@@ -1259,8 +1261,8 @@ Prefiks: `/api/v1/contracting`
 - [ ] **Provizija hotela po periodu (2.11f):** ugovor sa 10 % u sezoni 1 i 7 % u sezoni 3 daje različit obračun za iste datume boravka u te dve sezone; kad užeg pravila nema, koristi se `Contract.commission_percentage`.
 - [ ] **Redosled obračuna (2.11g):** ulazna 55,00 sa popustom 15 %, hotelskom provizijom 10 % i maržom 18 % daje prodajnu **49,65** — izmereno, ne procenjeno; drugi redosled daje drugi broj i test to hvata.
 - [ ] **Osnovica popusta (2.11h):** popust za treću osobu se računa od ulazne hotelske osnovne cene, ne od cene sobe u kojoj gost leži.
-- [ ] **Marža po stavci (2.11i):** pravilo sa `percentage = 12` **i** `fixed_amount = 500` na 295,00 daje 335,40 (sabiraju se); stavka bez sopstvenog pravila nasleđuje ugovorno.
-- [ ] **Bez provizije subagentu (2.11i):** stavka označena „bez provizije" ne ulazi u obračun subagentove zarade, a i dalje ulazi u cenu za gosta.
+- [x] **Marža po stavci (2.11i):** pravilo sa `percentage = 12` **i** `fixed_amount = 500` na 295,00 daje 335,40 (sabiraju se); stavka bez sopstvenog pravila nasleđuje ugovorno. _(izmereno 9.9.2026 nad pravom bazom: Deluxe suite dobio 12% + 5,00 kao izuzetak, ostalih 12 stavki nasleđuje ugovor; `MarkupScopeType` prošireno sa `M3_RATE_LINE`/`M3_ANCILLARY_SERVICE` i ta dva nivoa stoje ISPRED `M2_PRODUCT` u kaskadi M5 §2.2)_
+- [x] **Bez provizije subagentu (2.11i):** stavka označena „bez provizije" ne ulazi u obračun subagentove zarade, a i dalje ulazi u cenu za gosta. _(9.9.2026: boravišna taksa označena „bez provizije" — nov zapis `SubagentCommissionOverride` sa `noCommission`, koji je namerno različit od 0% jer je izričita odluka a ne prazno polje; 18 jediničnih testova nad `subagent-commission`)_
 - [x] **Taksa u obračunu (2.11j):** taksa sa `payable = AGENCY` ulazi u ukupnu cenu i na fakturu; ista sa `ON_SITE` **ne ulazi u zbir** ali je odštampana na ponudi i vaučeru sa iznosom. _(izmereno 9.9.2026 nad pravom bazom: tri uzrasna stepena 1,50 / 1,00 / 0,50 upisana kao doplate sa ON_SITE; API vraca ulaziUZbir=false za sve tri, a true za veceru i popuste — 3 od 6 ulazi u zbir)_
 - [x] **Doplata za više soba (2.11k):** jedna doplata sa `scope_type = M3_CONTRACT` važi za sve tipove soba bez ijednog dupliranog zapisa. _(9.9.2026: doplata bez dometa vazi za sve sobe; popust za 3. osobu ogranicen na dva tipa apartmana jednim zapisom, bez dupliranja; 18 jedinicnih testova nad `surcharge-scope`)_
 - [ ] **Verzija cenovnika (2.11l):** posle uvoza izmenjenog cenovnika ekran prikazuje **samo razlike**; prethodna verzija ostaje čitljiva, a rezervacija napravljena pre izmene i dalje prikazuje staru cenu.

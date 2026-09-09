@@ -11,12 +11,16 @@ export default function Kartice({
   cene,
   doplate,
   brojDoplata,
+  pravila,
+  brojIzuzetaka,
 }: {
   cene: React.ReactNode;
   doplate: React.ReactNode;
   brojDoplata: number;
+  pravila: React.ReactNode;
+  brojIzuzetaka: number;
 }) {
-  const [aktivna, setAktivna] = useState<'cene' | 'doplate'>('cene');
+  const [aktivna, setAktivna] = useState<'cene' | 'doplate' | 'pravila'>('cene');
 
   return (
     <div className="flex flex-col gap-3">
@@ -32,12 +36,21 @@ export default function Kartice({
             </span>
           )}
         </Dugme>
+        <Dugme aktivna={aktivna === 'pravila'} onClick={() => setAktivna('pravila')}>
+          Marža i provizija
+          {brojIzuzetaka > 0 && (
+            <span className="ml-1.5 rounded-full bg-warn-bg px-1.5 text-[10px] text-warn">
+              {brojIzuzetaka}
+            </span>
+          )}
+        </Dugme>
       </div>
 
       {/* Obe kartice ostaju u DOM-u da se stanje unosa ne izgubi pri prebacivanju — čovek koji
           je do pola popunio formu za doplatu pa pogledao cene ne sme da izgubi ono što je uneo. */}
       <div hidden={aktivna !== 'cene'}>{cene}</div>
       <div hidden={aktivna !== 'doplate'}>{doplate}</div>
+      <div hidden={aktivna !== 'pravila'}>{pravila}</div>
     </div>
   );
 }

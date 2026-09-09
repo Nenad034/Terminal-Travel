@@ -1480,6 +1480,51 @@ enum M5Channel {
 }
 
 // §2.1 `MarkupRule`
+/// M3 spec §2.11i (v1.27) — subagentska provizija na POJEDINACNU stavku cenovnika.
+///
+/// Do sada je postojao samo `Subagent.commission_percentage` (jedan procenat po subagentu) i
+/// stepenice po prometu (M7). Time se nije moglo reci "na ovoj stavci nema provizije" — a to
+/// je potrebno za boravisnu taksu i svaku doplatu koja se placa u hotelu: agencija na njima
+/// ne zaradjuje nista, pa nema sta ni da deli.
+///
+/// Domet ide istim obrascem kao `MarkupRule` (scopeType + scopeId), ne kao polje na tabeli:
+/// nov nivo se tada dodaje jednom vrednoscu u enumu, bez prepravke svega sto pravilo cita.
+model SubagentCommissionOverride {
+  id String @id @default(uuid())
+
+  /// null = vazi za SVE subagente. Popunjeno = izuzetak samo za tog subagenta.
+  subagentId String? @map("subagent_id")
+
+  scopeType SubagentCommissionScopeType @map("scope_type")
+  scopeId   String                      @map("scope_id")
+
+  /// Kad je `true`, na ovoj stavci NEMA provizije — i to je razlicito od "0%" samo po tome
+  /// sto se na ekranu i u ugovoru sa subagentom iskazuje kao izricita odluka, ne kao propust.
+  noCommission Boolean @default(false) @map("no_commission")
+
+  percentage  Decimal?
+  fixedAmount Int?     @map("fixed_amount")
+
+  activeFrom DateTime? @map("active_from") @db.Date
+  activeTo   DateTime? @map("active_to") @db.Date
+
+  createdBy String?  @map("created_by")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([scopeType, scopeId])
+  @@index([subagentId])
+  @@map("subagent_commission_overrides")
+}
+
+enum SubagentCommissionScopeType {
+  M3_CONTRACT
+  M3_SEASON
+  M3_CONTRACT_PERIOD
+  M3_RATE_LINE
+  M3_ANCILLARY_SERVICE
+}
+
 model MarkupRule {
   id                  String          @id @default(uuid())
   scopeType           MarkupScopeType @map("scope_type")
@@ -1505,6 +1550,11 @@ enum MarkupScopeType {
   M3_CONTRACT_PERIOD
   M4_PROVIDER
   M2_PRODUCT
+  // M3 §2.11i (v1.27) — vlasnik trazi da se SVAKA stavka cenovnika moze marzirati posebno.
+  // Do v1.27 je najuzi nivo bio ceo period, pa se izuzetak za jednu sobu nije mogao izraziti.
+  // Ova dva stoje ISPRED M2_PRODUCT u kaskadi (M5 §2.2).
+  M3_RATE_LINE
+  M3_ANCILLARY_SERVICE
 }
 
 // §3.0.1 `Itinerary`
