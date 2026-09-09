@@ -118,6 +118,136 @@ describe('QuoteItemBuilderService (M5 spec §3.0b.3/§3.2)', () => {
     expect(result[0].rateLineId).toBe('rl1');
   });
 
+  // M3 §2.11e (9.9.2026) — prozor rezervisanja NA CENI. Polje je postojalo od v1.27 i upisivalo
+  // se, ali ga sastavljanje ponude nije čitalo — istekla cena bi se i dalje prodala (zamka 7.12).
+  it('odbija izričito izabranu cenu čiji je prozor rezervisanja prošao', async () => {
+    const { service, prisma } = makeService();
+    prisma.product.findUnique.mockResolvedValue({
+      id: 'p1',
+      type: 'ACCOMMODATION',
+      sourceType: 'CONTRACTED',
+      sourceContractId: 'c1',
+      sourceContract: { id: 'c1', supplierId: 's1', currency: 'EUR' },
+      attributes: { roomTypes: [{ code: 'STD', capacityAdults: 4, capacityChildren: 2 }] },
+    });
+    prisma.rateLine.findUnique.mockResolvedValue({
+      id: 'rl1',
+      price: 10000,
+      priceBasis: 'PER_ROOM_PER_NIGHT',
+      occupancy: 'dvokrevetna',
+      cribFeePerNight: null,
+      contractPeriodId: 'period1',
+      bookingFrom: null,
+      bookingTo: new Date('2025-12-31T00:00:00Z'),
+      agePricing: [],
+      contractPeriod: { id: 'period1', roomType: 'STD' },
+    });
+
+    await expect(
+      service.build({
+        productId: 'p1',
+        stayFrom: '2027-01-10',
+        stayTo: '2027-01-11',
+        occupancy: { adults: 2, children: 0 },
+        rateLineId: 'rl1',
+      }),
+    ).rejects.toMatchObject({ response: { reason: 'BOOKING_WINDOW_CLOSED' } });
+  });
+
+  it('kad cenu bira sistem, preskače istekle i uzima prvu koja važi', async () => {
+    const { service, prisma, markupRules } = makeService();
+    prisma.product.findUnique.mockResolvedValue({
+      id: 'p1',
+      type: 'ACCOMMODATION',
+      sourceType: 'CONTRACTED',
+      sourceContractId: 'c1',
+      sourceContract: { id: 'c1', supplierId: 's1', currency: 'EUR' },
+      attributes: { roomTypes: [{ code: 'STD', capacityAdults: 4, capacityChildren: 2 }] },
+    });
+    prisma.contractPeriod.findFirst.mockResolvedValue({
+      id: 'period1',
+      roomType: 'STD',
+      rateLines: [
+        {
+          id: 'rl-istekla',
+          price: 8000,
+          priceBasis: 'PER_ROOM_PER_NIGHT',
+          occupancy: 'dvokrevetna',
+          cribFeePerNight: null,
+          contractPeriodId: 'period1',
+          bookingFrom: null,
+          bookingTo: new Date('2025-12-31T00:00:00Z'),
+          agePricing: [],
+        },
+        {
+          id: 'rl-vazi',
+          price: 10000,
+          priceBasis: 'PER_ROOM_PER_NIGHT',
+          occupancy: 'dvokrevetna',
+          cribFeePerNight: null,
+          contractPeriodId: 'period1',
+          bookingFrom: null,
+          bookingTo: null,
+          agePricing: [],
+        },
+      ],
+    });
+    markupRules.resolveForContracted.mockResolvedValue({
+      id: 'mr1',
+      percentage: 0,
+      fixedAmount: 0,
+    });
+
+    const result = await service.build({
+      productId: 'p1',
+      stayFrom: '2027-01-10',
+      stayTo: '2027-01-11',
+      occupancy: { adults: 2, children: 0 },
+    });
+
+    // Prva po redosledu je istekla — da se prozor ne čita, ponuda bi nastala po 80,00.
+    expect(result[0].rateLineId).toBe('rl-vazi');
+    expect(result[0].baseCost).toBe(10000);
+  });
+
+  it('kad su SVE cene za te datume istekle, odbija sa BOOKING_WINDOW_CLOSED, ne sa „nema cenovnika"', async () => {
+    const { service, prisma } = makeService();
+    prisma.product.findUnique.mockResolvedValue({
+      id: 'p1',
+      type: 'ACCOMMODATION',
+      sourceType: 'CONTRACTED',
+      sourceContractId: 'c1',
+      sourceContract: { id: 'c1', supplierId: 's1', currency: 'EUR' },
+      attributes: { roomTypes: [{ code: 'STD', capacityAdults: 4, capacityChildren: 2 }] },
+    });
+    prisma.contractPeriod.findFirst.mockResolvedValue({
+      id: 'period1',
+      roomType: 'STD',
+      rateLines: [
+        {
+          id: 'rl-istekla',
+          price: 8000,
+          priceBasis: 'PER_ROOM_PER_NIGHT',
+          occupancy: 'dvokrevetna',
+          cribFeePerNight: null,
+          contractPeriodId: 'period1',
+          bookingFrom: null,
+          bookingTo: new Date('2025-12-31T00:00:00Z'),
+          agePricing: [],
+        },
+      ],
+    });
+
+    await expect(
+      service.build({
+        productId: 'p1',
+        stayFrom: '2027-01-10',
+        stayTo: '2027-01-11',
+        occupancy: { adults: 2, children: 0 },
+      }),
+    ).rejects.toMatchObject({ response: { reason: 'BOOKING_WINDOW_CLOSED' } });
+  });
+
   // M5 spec §3.0d.6a — PACKAGE gradi po jednu QuoteItem za svaki included_products[] sastojak.
   describe('PACKAGE (grupni paket, §3.0d.6/§3.0d.6a, v1.94 — termin mora postojati kao ACTIVE PackageDeparture)', () => {
     function mockDeparture(prisma: any, departureIso: string, returnIso: string) {

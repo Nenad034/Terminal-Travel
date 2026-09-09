@@ -6,6 +6,7 @@ import { MarkupRulesService } from '../markup-rules/markup-rules.service';
 import { IntegrationsService } from '../../m4-integracije-api/integrations.service';
 import { resolveTranslation } from '../../m2-katalog-proizvoda/products/language-fallback';
 import { applyMarkup } from '../common/markup-formula';
+import { bookingWindowOpen } from '../../m3-ugovaranje-alotmani/contract-periods/day-capacity';
 import {
   assertRoomConfigMatchesTotals,
   computeRoomBaseCost,
@@ -537,6 +538,10 @@ export class SearchService {
       const isRefundable = isRefundableFromCancellationRules(period.cancellationRules);
 
       for (const rateLine of period.rateLines) {
+        // M3 §2.11e — cena čiji je prozor rezervisanja prošao ne ulazi u ponudu. Gleda se datum
+        // NASTANKA rezervacije (danas), ne datum boravka; prozor perioda (§2.3e) je druga
+        // provera i radi na drugom nivou — ovde je reč o tome dokle važi CENA.
+        if (!bookingWindowOpen(rateLine, new Date())) continue;
         let baseCost: number;
         const needsRoomCalc = ROOM_BASED_TYPES.includes(product.type) && params.occupancy;
         if (needsRoomCalc) {
@@ -728,6 +733,9 @@ export class SearchService {
           if (period.rateLines.length === 0) continue;
 
           for (const rateLine of period.rateLines) {
+            // §2.11e — ista provera kao u pretrazi pojedinačnog proizvoda: istekla cena ne sme
+            // da uđe ni u paket, gde bi bila još manje vidljiva.
+            if (!bookingWindowOpen(rateLine, new Date())) continue;
             // M3 §2.11i — razrešenje je unutar petlje po cenovnim stavkama, ne iznad nje:
             // izuzetak marže se upisuje na stavku, pa jedna stavka istog perioda sme da nosi
             // drugu maržu od druge. Ranije je pravilo traženo jednom po periodu i ta razlika

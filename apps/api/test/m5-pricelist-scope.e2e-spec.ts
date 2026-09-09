@@ -19,10 +19,12 @@ import { PrismaExceptionFilter } from '../src/common/filters/prisma-exception.fi
  *     prikazivala iako stoji u cenovniku.
  *  2. Marža upisana na JEDNU cenovnu stavku — `M3_RATE_LINE` je stajao na vrhu kaskade, ali ga
  *     nijedan pozivalac nije prosleđivao.
+ *  3. Prozor rezervisanja NA CENI (`booking_from`/`booking_to`) — polje se upisivalo, a ponuda
+ *     ga nije čitala, pa bi se istekla cena i dalje prodala.
  *
  * Oba se mere kroz iste HTTP endpointe kojima ide prava prodaja, nad pravom bazom.
  */
-describe('M3 §2.11i/§2.11k — domet cenovnika u prodaji (e2e)', () => {
+describe('M3 §2.11e/§2.11i/§2.11k — domet cenovnika u prodaji (e2e)', () => {
   let app: INestApplication;
   let prisma: PrismaService;
   let jwt: JwtService;
@@ -351,7 +353,7 @@ describe('M3 §2.11i/§2.11k — domet cenovnika u prodaji (e2e)', () => {
    * nikad nije primenjen. Ovaj test meri cenu kroz `POST /sales/quotes`, dakle kroz isti put
    * kojim ide prava prodaja, sa i bez izuzetka.
    */
-  it('marža upisana na jednu cenovnu stavku menja cenu u ponudi, a ostale stavke ostaju na ugovornoj', async () => {
+  it('marža po stavci menja cenu u ponudi; cena sa isteklim prozorom rezervisanja se odbija', async () => {
     const { user, accessToken } = await createUser();
 
     const supplier = await prisma.supplier.create({
@@ -462,6 +464,18 @@ describe('M3 §2.11i/§2.11k — domet cenovnika u prodaji (e2e)', () => {
       return res.body.items[0];
     }
 
+    // §2.11e — treća stavka istog perioda, ista cena, ali prozor rezervisanja prošao.
+    const istekla = await prisma.rateLine.create({
+      data: {
+        contractPeriodId: period.id,
+        boardType: 'FB',
+        occupancy: '2ADT',
+        priceBasis: 'PER_ROOM_PER_NIGHT',
+        price: 10000,
+        bookingTo: new Date('2025-12-31'),
+      },
+    });
+
     // Ista nabavna cena (100,00 za jednu noć) — razliku pravi ISKLJUČIVO domet marže.
     const stavkaBezIzuzetka = await ponudaZa(obicna.id);
     expect(stavkaBezIzuzetka.baseCost).toBe(10000);
@@ -473,6 +487,26 @@ describe('M3 §2.11i/§2.11k — domet cenovnika u prodaji (e2e)', () => {
     // 12 % I 5,00 se SABIRAJU (§2.11i): 100,00 → 112,00 + 5,00 = 117,00.
     expect(stavkaSaIzuzetkom.finalPrice).toBe(11700);
     expect(stavkaSaIzuzetkom.markupRuleId).toBe(izuzetak.id);
+
+    // §2.11e — cena čiji je prozor rezervisanja prošao se NE prodaje. Do 9.9.2026. je polje
+    // postojalo i upisivalo se, a ponuda ga nije čitala — istekla cena bi prošla do kraja.
+    const odbijena = await request(app.getHttpServer())
+      .post('/api/v1/sales/quotes')
+      .set({ Authorization: `Bearer ${accessToken}` })
+      .send({
+        channel: 'INTERNAL_PANEL',
+        items: [
+          {
+            productId: product.id,
+            rateLineId: istekla.id,
+            stayFrom: '2027-06-10',
+            stayTo: '2027-06-11',
+            occupancy: { adults: 2, children: 0 },
+          },
+        ],
+      });
+    expect(odbijena.status).toBe(400);
+    expect(odbijena.body.reason).toBe('BOOKING_WINDOW_CLOSED');
     expect(user.id).toBeDefined();
   });
 });

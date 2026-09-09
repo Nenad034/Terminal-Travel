@@ -11,6 +11,7 @@ import {
   AgePolicyEntry,
 } from '../common/occupancy';
 import { TOLERANCE_MS } from '../common/date-mismatch';
+import { bookingWindowOpen } from '../../m3-ugovaranje-alotmani/contract-periods/day-capacity';
 
 const ROOM_BASED_TYPES = ['ACCOMMODATION', 'PACKAGE'];
 
@@ -271,12 +272,29 @@ export class QuoteItemBuilderService {
       throw new BadRequestException('CONTRACTED proizvod nema povezan ugovor (M2 spec §2.1).');
     }
 
+    // M3 §2.11e — datum NASTANKA ponude, ne boravka: cena važi za rezervacije napravljene u
+    // svom prozoru („bookings made till 31.12.2025 for period of stay 01.04–30.10.2026").
+    const danasnjiDan = new Date();
+
     let rateLine = explicitRateLineId
       ? await this.prisma.rateLine.findUnique({
           where: { id: explicitRateLineId },
           include: { agePricing: true, contractPeriod: true },
         })
       : null;
+
+    // Izričito izabrana cena čiji je prozor prošao se ODBIJA, ne zamenjuje tiho drugom:
+    // agent je izabrao tačno tu cenu iz pretrage, pa mu se mora reći da više ne važi.
+    if (rateLine && !bookingWindowOpen(rateLine, danasnjiDan)) {
+      throw new BadRequestException({
+        statusCode: 400,
+        reason: 'BOOKING_WINDOW_CLOSED',
+        message:
+          `Prozor za rezervisanje po ovoj ceni je zatvoren ` +
+          `(${rateLine.bookingFrom?.toISOString().slice(0, 10) ?? '—'} do ` +
+          `${rateLine.bookingTo?.toISOString().slice(0, 10) ?? '—'}, M3 spec §2.11e).`,
+      });
+    }
 
     if (!rateLine) {
       const period = await this.prisma.contractPeriod.findFirst({
@@ -294,7 +312,19 @@ export class QuoteItemBuilderService {
           'Nema odgovarajućeg ContractPeriod/RateLine za tražene datume (M5 spec §3.2).',
         );
       }
-      const chosen = period.rateLines[0];
+      // §2.11e — cene čiji je prozor rezervisanja prošao ispadaju iz izbora. Razlika prema
+      // gornjem slučaju je namerna: ovde cenu bira sistem, pa uzima prvu koja važi.
+      const uProzoru = period.rateLines.filter((rl) => bookingWindowOpen(rl, danasnjiDan));
+      if (uProzoru.length === 0) {
+        throw new BadRequestException({
+          statusCode: 400,
+          reason: 'BOOKING_WINDOW_CLOSED',
+          message:
+            'Za tražene datume postoji cenovnik, ali je prozor za rezervisanje po svakoj ceni ' +
+            'zatvoren (M3 spec §2.11e).',
+        });
+      }
+      const chosen = uProzoru[0];
       rateLine = { ...chosen, contractPeriod: period };
     }
 

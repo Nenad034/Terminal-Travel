@@ -1,7 +1,7 @@
 # Predaja rada — cenovnik kao mreža (stanje 9.9.2026)
 
 **Kome:** sledećem agentu/sesiji koja preuzme repozitorijum sa GitHub-a i nastavlja rad na cenovniku (M3 §2.11).
-**Stanje 9.9.2026, kasnije istog dana:** rupe **4.1 i 4.2** iz ovog dokumenta su **zatvorene** (vidi okvire u tim odeljcima). Rupe 4.3 i 4.4 i dalje stoje.
+**Stanje 9.9.2026, kasnije istog dana:** rupe **4.1, 4.2 i 4.4** iz ovog dokumenta su **zatvorene** (vidi okvire u tim odeljcima). Ostaje samo **4.3** — subagentska provizija, koja pre povezivanja traži odgovor gde se provizija danas uopšte obračunava.
 
 **Zašto postoji:** posao je urađen do trećeg od sedam koraka. Tri koraka su u kodu i proverena nad pravom bazom, četiri stoje samo u specifikaciji. Uz to postoje **tri mesta gde kod postoji ali nije povezan sa prodajom** — to se iz commit poruka ne vidi, a bez toga bi se prvo pomislilo da je gotovo.
 
@@ -112,7 +112,15 @@ Sva tri imaju `rateLine` pri ruci. **Dodavanje je jedan red po pozivaocu**, ali 
 
 Pre nego što se poveže, treba znati **gde se provizija subagenta uopšte obračunava danas** — u M7 ili u M5 pri pravljenju ponude. To nisam proveravao; ne pretpostavljaj, pogledaj.
 
-### 4.4 Prozor „za rezervacije od…do" na ceni se upisuje, ali M5 ga ne čita
+### 4.4 Prozor „za rezervacije od…do" na ceni se upisuje, ali M5 ga ne čita — **REŠENO 9.9.2026**
+
+> **Zatvoreno.** Pretraga preskače istekle cene (pojedinačan proizvod i sastojak paketa).
+> Ponuda razlikuje dva slučaja: **izričito izabrana** istekla cena se odbija sa
+> `BOOKING_WINDOW_CLOSED` (agent je izabrao baš nju, ne sme mu se tiho zameniti drugom), a kad
+> cenu bira sistem, istekle ispadaju iz izbora i uzima se prva koja važi; kad su sve istekle,
+> odbija se istim razlogom umesto porukom „nema cenovnika". Koristi se ista `bookingWindowOpen`
+> kao za prozor prijave perioda. Dokaz: 400 sa `BOOKING_WINDOW_CLOSED` kroz `POST /sales/quotes`
+> nad pravom bazom + 3 jedinična testa. Upisano u M3 v1.30 §2.11e i M5 v2.32.
 
 Polje postoji na `RateLine` i potvrđeno je u bazi (`booking_to = 2026-12-31`), ali pretraga i sastavljanje ponude ga ne gledaju. Cena koja je istekla i dalje bi se ponudila.
 

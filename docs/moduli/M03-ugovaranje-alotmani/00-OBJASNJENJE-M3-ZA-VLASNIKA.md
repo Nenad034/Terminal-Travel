@@ -99,6 +99,8 @@ Dve vrste akcija koje se pojavljuju u skoro svakom cenovniku. Kod njih postoji j
 
 **Prozor kada se rezerviše nije isto što i prozor kada se boravi.** „Rana rezervacija" znači: ako platiš do 31. januara, dobijaš 15% popusta na letovanje u julu. Datum rezervacije je januar, datum boravka je jul. Sistem ih čuva odvojeno upravo zato što se stalno mešaju, a posledica mešanja je akcija koja važi u pogrešnom mesecu.
 
+**Istekla cena se više ne prodaje (dodato 9.9.2026).** Hotel često napiše „ova cena važi za rezervacije do 31.12." — to ste mogli da upišete i ranije, ali sistem taj datum **nije gledao pri prodaji**, pa bi se u januaru i dalje prodavalo po ceni koja je istekla. Sad se gleda: takva cena ne izlazi u pretrazi, a ako je neko izabere direktno, sistem je odbije i **kaže zašto** — „prozor za rezervisanje po ovoj ceni je zatvoren". Namerno ne bira tiho drugu cenu umesto nje: prodavac mora da zna da se cena promenila, a ne da mu se iznos promeni bez objašnjenja.
+
 ---
 
 ## Kapacitet: dve prodaje u istoj sekundi ne mogu obe proći
