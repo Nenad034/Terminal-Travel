@@ -89,101 +89,445 @@
   }
 
   #tema {
-    position: fixed; top: 12px; right: 14px; z-index: 50;
-    font-family: var(--sans); font-size: 12px; padding: 6px 12px;
-    border: 1px solid var(--rule-strong); border-radius: 20px;
-    background: var(--surface); color: var(--text-dim); cursor: pointer;
+    position: fixed;
+    top: 12px;
+    right: 14px;
+    z-index: 50;
+    font-family: var(--sans);
+    font-size: 12px;
+    padding: 6px 12px;
+    border: 1px solid var(--rule-strong);
+    border-radius: 20px;
+    background: var(--surface);
+    color: var(--text-dim);
+    cursor: pointer;
     box-shadow: var(--shadow);
   }
-  #tema:hover { color: var(--text); border-color: var(--accent); }
-  @media print { #tema { display: none; } }
+  #tema:hover {
+    color: var(--text);
+    border-color: var(--accent);
+  }
+  @media print {
+    #tema {
+      display: none;
+    }
+  }
 
-  * { box-sizing: border-box; }
-  body { margin: 0; background: var(--paper); color: var(--text); font-family: var(--sans); font-size: 14px; line-height: 1.55; }
-  .wrap { max-width: 1180px; margin: 0 auto; padding: 28px 20px 80px; }
-  h1 { font-size: 24px; margin: 0 0 6px; letter-spacing: -0.01em; }
-  h2 { font-size: 18px; margin: 44px 0 4px; letter-spacing: -0.01em; }
-  h3 { font-size: 14px; margin: 24px 0 6px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.06em; }
-  p { margin: 8px 0; }
-  .lead { color: var(--text-dim); }
-  .sub { color: var(--text-faint); font-size: 12px; }
-  a { color: var(--accent); }
-  code { font-family: var(--mono); font-size: 0.9em; background: var(--sunken); padding: 1px 5px; border-radius: 4px; border: 1px solid var(--rule); }
+  * {
+    box-sizing: border-box;
+  }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 14px;
+    line-height: 1.55;
+  }
+  .wrap {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 28px 20px 80px;
+  }
+  h1 {
+    font-size: 24px;
+    margin: 0 0 6px;
+    letter-spacing: -0.01em;
+  }
+  h2 {
+    font-size: 18px;
+    margin: 44px 0 4px;
+    letter-spacing: -0.01em;
+  }
+  h3 {
+    font-size: 14px;
+    margin: 24px 0 6px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  p {
+    margin: 8px 0;
+  }
+  .lead {
+    color: var(--text-dim);
+  }
+  .sub {
+    color: var(--text-faint);
+    font-size: 12px;
+  }
+  a {
+    color: var(--accent);
+  }
+  code {
+    font-family: var(--mono);
+    font-size: 0.9em;
+    background: var(--sunken);
+    padding: 1px 5px;
+    border-radius: 4px;
+    border: 1px solid var(--rule);
+  }
 
-  .note { border-left: 3px solid var(--rule-strong); background: var(--paper-2); padding: 10px 14px; border-radius: 0 8px 8px 0; margin: 14px 0; }
-  .note.info { border-color: var(--info); background: var(--info-bg); }
-  .note.warn { border-color: var(--warn); background: var(--warn-bg); }
-  .note.ok { border-color: var(--success); background: var(--success-bg); }
+  .note {
+    border-left: 3px solid var(--rule-strong);
+    background: var(--paper-2);
+    padding: 10px 14px;
+    border-radius: 0 8px 8px 0;
+    margin: 14px 0;
+  }
+  .note.info {
+    border-color: var(--info);
+    background: var(--info-bg);
+  }
+  .note.warn {
+    border-color: var(--warn);
+    background: var(--warn-bg);
+  }
+  .note.ok {
+    border-color: var(--success);
+    background: var(--success-bg);
+  }
 
   /* ── maketa ekrana ── */
-  .screen { background: var(--surface); border: 1px solid var(--rule); border-radius: 12px; box-shadow: var(--shadow); overflow: hidden; margin: 14px 0 6px; }
-  .screen-bar { display: flex; align-items: center; gap: 8px; padding: 7px 12px; background: var(--sunken); border-bottom: 1px solid var(--rule); font-size: 11px; color: var(--text-faint); font-family: var(--mono); }
-  .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--rule-strong); }
-  .screen-body { padding: 16px; overflow-x: auto; }
+  .screen {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    margin: 14px 0 6px;
+  }
+  .screen-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 12px;
+    background: var(--sunken);
+    border-bottom: 1px solid var(--rule);
+    font-size: 11px;
+    color: var(--text-faint);
+    font-family: var(--mono);
+  }
+  .dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: var(--rule-strong);
+  }
+  .screen-body {
+    padding: 16px;
+    overflow-x: auto;
+  }
 
-  .hdr { display: flex; flex-wrap: wrap; align-items: baseline; gap: 10px 18px; padding-bottom: 12px; border-bottom: 1px solid var(--rule); margin-bottom: 14px; }
-  .hdr h4 { margin: 0; font-size: 17px; }
-  .meta { font-size: 12px; color: var(--text-dim); }
-  .meta b { color: var(--text); font-weight: 600; }
+  .hdr {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 10px 18px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--rule);
+    margin-bottom: 14px;
+  }
+  .hdr h4 {
+    margin: 0;
+    font-size: 17px;
+  }
+  .meta {
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+  .meta b {
+    color: var(--text);
+    font-weight: 600;
+  }
 
-  .toolbar { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
-  .btn { font-size: 11.5px; padding: 4px 10px; border-radius: 6px; border: 1px solid var(--rule-strong); background: var(--paper-2); color: var(--text); white-space: nowrap; }
-  .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
-  .btn.ghost { border-style: dashed; color: var(--text-dim); }
+  .toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 12px;
+  }
+  .btn {
+    font-size: 11.5px;
+    padding: 4px 10px;
+    border-radius: 6px;
+    border: 1px solid var(--rule-strong);
+    background: var(--paper-2);
+    color: var(--text);
+    white-space: nowrap;
+  }
+  .btn.primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }
+  .btn.ghost {
+    border-style: dashed;
+    color: var(--text-dim);
+  }
 
-  table.grid { border-collapse: separate; border-spacing: 0; font-size: 12.5px; width: 100%; min-width: 860px; }
-  table.grid th, table.grid td { border-bottom: 1px solid var(--rule); padding: 5px 8px; text-align: center; white-space: nowrap; }
-  table.grid th { background: var(--sunken); font-weight: 600; font-size: 11.5px; position: sticky; top: 0; }
-  table.grid td.lbl, table.grid th.lbl { text-align: left; position: sticky; left: 0; background: var(--surface); z-index: 2; min-width: 260px; border-right: 1px solid var(--rule); }
-  table.grid th.lbl { background: var(--sunken); z-index: 3; }
-  .cell { display: inline-block; min-width: 62px; padding: 3px 6px; border: 1px solid var(--rule); border-radius: 5px; background: var(--paper-2); font-family: var(--mono); font-size: 12px; }
-  .cell.focus { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); }
-  .cell.pct { color: var(--purple); }
-  .cell.num { color: var(--info); }
-  .cell.split { min-width: 62px; padding: 0; border: none; background: none; display: inline-flex; flex-direction: column; gap: 2px; }
-  .cell.split span { border: 1px solid var(--rule); border-radius: 5px; background: var(--paper-2); font-family: var(--mono); font-size: 11px; padding: 1px 5px; }
-  .cell.split span.we { border-color: var(--warn); color: var(--warn); background: var(--warn-bg); }
+  table.grid {
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: 12.5px;
+    width: 100%;
+    min-width: 860px;
+  }
+  table.grid th,
+  table.grid td {
+    border-bottom: 1px solid var(--rule);
+    padding: 5px 8px;
+    text-align: center;
+    white-space: nowrap;
+  }
+  table.grid th {
+    background: var(--sunken);
+    font-weight: 600;
+    font-size: 11.5px;
+    position: sticky;
+    top: 0;
+  }
+  table.grid td.lbl,
+  table.grid th.lbl {
+    text-align: left;
+    position: sticky;
+    left: 0;
+    background: var(--surface);
+    z-index: 2;
+    min-width: 260px;
+    border-right: 1px solid var(--rule);
+  }
+  table.grid th.lbl {
+    background: var(--sunken);
+    z-index: 3;
+  }
+  .cell {
+    display: inline-block;
+    min-width: 62px;
+    padding: 3px 6px;
+    border: 1px solid var(--rule);
+    border-radius: 5px;
+    background: var(--paper-2);
+    font-family: var(--mono);
+    font-size: 12px;
+  }
+  .cell.focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px var(--accent-soft);
+  }
+  .cell.pct {
+    color: var(--purple);
+  }
+  .cell.num {
+    color: var(--info);
+  }
+  .cell.split {
+    min-width: 62px;
+    padding: 0;
+    border: none;
+    background: none;
+    display: inline-flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .cell.split span {
+    border: 1px solid var(--rule);
+    border-radius: 5px;
+    background: var(--paper-2);
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 1px 5px;
+  }
+  .cell.split span.we {
+    border-color: var(--warn);
+    color: var(--warn);
+    background: var(--warn-bg);
+  }
 
-  tr.group td { background: var(--sunken); font-weight: 600; }
-  tr.group td.lbl { background: var(--sunken); }
-  tr.meta-row td { color: var(--text-faint); font-size: 11.5px; }
-  tr.meta-row td.lbl { color: var(--text-faint); font-style: italic; }
+  tr.group td {
+    background: var(--sunken);
+    font-weight: 600;
+  }
+  tr.group td.lbl {
+    background: var(--sunken);
+  }
+  tr.meta-row td {
+    color: var(--text-faint);
+    font-size: 11.5px;
+  }
+  tr.meta-row td.lbl {
+    color: var(--text-faint);
+    font-style: italic;
+  }
 
-  .chip { display: inline-block; font-size: 11px; padding: 1px 7px; border-radius: 20px; border: 1px solid var(--rule-strong); background: var(--paper-2); color: var(--text-dim); margin-right: 4px; }
-  .chip.ok { border-color: var(--success); background: var(--success-bg); color: var(--success); }
-  .chip.warn { border-color: var(--warn); background: var(--warn-bg); color: var(--warn); }
-  .chip.info { border-color: var(--info); background: var(--info-bg); color: var(--info); }
-  .chip.purple { border-color: var(--purple); background: var(--purple-bg); color: var(--purple); }
-  .chip.gray { border-color: var(--rule-strong); background: var(--gray-bg); color: var(--gray); }
+  .chip {
+    display: inline-block;
+    font-size: 11px;
+    padding: 1px 7px;
+    border-radius: 20px;
+    border: 1px solid var(--rule-strong);
+    background: var(--paper-2);
+    color: var(--text-dim);
+    margin-right: 4px;
+  }
+  .chip.ok {
+    border-color: var(--success);
+    background: var(--success-bg);
+    color: var(--success);
+  }
+  .chip.warn {
+    border-color: var(--warn);
+    background: var(--warn-bg);
+    color: var(--warn);
+  }
+  .chip.info {
+    border-color: var(--info);
+    background: var(--info-bg);
+    color: var(--info);
+  }
+  .chip.purple {
+    border-color: var(--purple);
+    background: var(--purple-bg);
+    color: var(--purple);
+  }
+  .chip.gray {
+    border-color: var(--rule-strong);
+    background: var(--gray-bg);
+    color: var(--gray);
+  }
 
-  .seasons { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
-  .season { border: 1px solid var(--rule); border-radius: 8px; padding: 6px 10px; background: var(--paper-2); min-width: 132px; }
-  .season b { display: block; font-size: 12px; }
-  .season span { display: block; font-family: var(--mono); font-size: 11px; color: var(--text-dim); }
-  .season.add { border-style: dashed; color: var(--text-faint); display: flex; align-items: center; justify-content: center; font-size: 12px; }
+  .seasons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+  .season {
+    border: 1px solid var(--rule);
+    border-radius: 8px;
+    padding: 6px 10px;
+    background: var(--paper-2);
+    min-width: 132px;
+  }
+  .season b {
+    display: block;
+    font-size: 12px;
+  }
+  .season span {
+    display: block;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-dim);
+  }
+  .season.add {
+    border-style: dashed;
+    color: var(--text-faint);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+  }
 
-  table.plain { border-collapse: collapse; width: 100%; font-size: 12.5px; margin: 10px 0; }
-  table.plain th, table.plain td { border: 1px solid var(--rule); padding: 6px 9px; text-align: left; vertical-align: top; }
-  table.plain th { background: var(--sunken); font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-dim); }
+  table.plain {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 12.5px;
+    margin: 10px 0;
+  }
+  table.plain th,
+  table.plain td {
+    border: 1px solid var(--rule);
+    padding: 6px 9px;
+    text-align: left;
+    vertical-align: top;
+  }
+  table.plain th {
+    background: var(--sunken);
+    font-size: 11.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-dim);
+  }
 
   /* kalendar */
-  .cal { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; min-width: 620px; }
-  .cal .dow { text-align: center; font-size: 11px; color: var(--text-faint); padding-bottom: 2px; }
-  .day { border: 1px solid var(--rule); border-radius: 7px; padding: 5px 6px; min-height: 62px; background: var(--paper-2); }
-  .day .d { font-size: 11px; color: var(--text-faint); }
-  .day .p { font-family: var(--mono); font-size: 13px; font-weight: 600; }
-  .day .c { font-size: 10.5px; color: var(--text-dim); }
-  .day.we { background: var(--warn-bg); border-color: var(--warn); }
-  .day.arr { box-shadow: inset 3px 0 0 var(--success); }
-  .day.full { background: var(--danger-bg); border-color: var(--danger); }
-  .day.full .p, .day.full .c { color: var(--danger); }
-  .day.out { opacity: 0.35; }
-  .legend { display: flex; flex-wrap: wrap; gap: 10px; font-size: 11.5px; color: var(--text-dim); margin-top: 10px; }
+  .cal {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+    min-width: 620px;
+  }
+  .cal .dow {
+    text-align: center;
+    font-size: 11px;
+    color: var(--text-faint);
+    padding-bottom: 2px;
+  }
+  .day {
+    border: 1px solid var(--rule);
+    border-radius: 7px;
+    padding: 5px 6px;
+    min-height: 62px;
+    background: var(--paper-2);
+  }
+  .day .d {
+    font-size: 11px;
+    color: var(--text-faint);
+  }
+  .day .p {
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .day .c {
+    font-size: 10.5px;
+    color: var(--text-dim);
+  }
+  .day.we {
+    background: var(--warn-bg);
+    border-color: var(--warn);
+  }
+  .day.arr {
+    box-shadow: inset 3px 0 0 var(--success);
+  }
+  .day.full {
+    background: var(--danger-bg);
+    border-color: var(--danger);
+  }
+  .day.full .p,
+  .day.full .c {
+    color: var(--danger);
+  }
+  .day.out {
+    opacity: 0.35;
+  }
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    font-size: 11.5px;
+    color: var(--text-dim);
+    margin-top: 10px;
+  }
 
-  ol li, ul li { margin: 4px 0; }
-  .q { border: 1px solid var(--accent); background: var(--accent-soft); border-radius: 8px; padding: 12px 16px; margin: 12px 0; }
-  :root:not([data-theme='light']) .q { color: var(--text); }
-  hr { border: none; border-top: 1px solid var(--rule); margin: 34px 0 0; }
+  ol li,
+  ul li {
+    margin: 4px 0;
+  }
+  .q {
+    border: 1px solid var(--accent);
+    background: var(--accent-soft);
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin: 12px 0;
+  }
+  :root:not([data-theme='light']) .q {
+    color: var(--text);
+  }
+  hr {
+    border: none;
+    border-top: 1px solid var(--rule);
+    margin: 34px 0 0;
+  }
 </style>
 
 <button id="tema" type="button">☀ Svetla tema</button>
@@ -191,7 +535,9 @@
   (function () {
     var d = document.documentElement;
     var sacuvana = null;
-    try { sacuvana = localStorage.getItem('tt-mockup-tema'); } catch (e) {}
+    try {
+      sacuvana = localStorage.getItem('tt-mockup-tema');
+    } catch (e) {}
     // Podrazumevano SVETLA tema — dokument se cita i stampa, a ne gleda nocu u panelu.
     // Ko je ranije izabrao tamnu, dobija tamnu.
     d.setAttribute('data-theme', sacuvana === 'dark' ? 'dark' : 'light');
@@ -205,759 +551,1586 @@
     dugme.addEventListener('click', function () {
       var nova = d.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
       d.setAttribute('data-theme', nova);
-      try { localStorage.setItem('tt-mockup-tema', nova); } catch (e) {}
+      try {
+        localStorage.setItem('tt-mockup-tema', nova);
+      } catch (e) {}
       osvezi();
     });
   })();
 </script>
 
 <div class="wrap">
+  <h1>Unos cenovnika kao mreža — predlog ekrana</h1>
+  <p class="lead">
+    M3 (Ugovaranje i alotmani) · mockup, 9.9.2026 · nije kod, nije odluka — predlog za potvrdu
+    vlasnika
+  </p>
 
-<h1>Unos cenovnika kao mreža — predlog ekrana</h1>
-<p class="lead">M3 (Ugovaranje i alotmani) · mockup, 9.9.2026 · nije kod, nije odluka — predlog za potvrdu vlasnika</p>
+  <div class="note info">
+    <p>
+      <b>Na čemu je ovo zasnovano.</b> U folderu <code>Primeri cenovnika/</code> stoji
+      <b>58 stvarnih cenovnika</b> od raznih dobavljača. Pročitana su tri različita oblika:
+      <b>Aycon</b> (Crna Gora, PDF mreža), <b>Plava Laguna / Meeting Point</b> (Hrvatska, PDF spisak
+      redova) i <b>Solvex</b> (Bugarska, Excel). Sva tri su ista stvar:
+      <b>redovi = tip sobe, kolone = sezone</b>. Podaci u maketi ispod su stvarni —
+      <i>Allotment pricelist 2026 — Lusso Mare by Aycon</i>.
+    </p>
+  </div>
 
-<div class="note info">
-  <p><b>Na čemu je ovo zasnovano.</b> U folderu <code>Primeri cenovnika/</code> stoji <b>58 stvarnih cenovnika</b> od raznih dobavljača. Pročitana su tri različita oblika: <b>Aycon</b> (Crna Gora, PDF mreža), <b>Plava Laguna / Meeting Point</b> (Hrvatska, PDF spisak redova) i <b>Solvex</b> (Bugarska, Excel). Sva tri su ista stvar: <b>redovi = tip sobe, kolone = sezone</b>. Podaci u maketi ispod su stvarni — <i>Allotment pricelist 2026 — Lusso Mare by Aycon</i>.</p>
-</div>
+  <h3>Šta su ta tri oblika pokazala</h3>
+  <table class="plain">
+    <tr>
+      <th>Nalaz</th>
+      <th>Gde je viđen</th>
+      <th>Šta znači za ekran</th>
+    </tr>
+    <tr>
+      <td><b>Sezona ima više datumskih opsega</b>, ne jedan</td>
+      <td>
+        Aycon: sezona 1 = 01.04–31.05 <i>i</i> 01.10–31.10. Olympic/PRI: sezona A = 12.12–19.12
+        <i>i</i> 14.03–21.03
+      </td>
+      <td>Sezona mora biti imenovana stvar sa listom opsega, a ne jedan datumski raspon</td>
+    </tr>
+    <tr>
+      <td><b>Osnova cene se razlikuje od reda do reda</b> unutar istog cenovnika</td>
+      <td>Aycon: sve sobe „per person per day", ali Deluxe suite „per room per day"</td>
+      <td>Osnova je osobina reda, ne celog cenovnika</td>
+    </tr>
+    <tr>
+      <td><b>Red je kombinacija popunjenosti</b>, ne samo tip sobe</td>
+      <td>Solvex: „1 Adult + 1 Chd (07-11,99)", „2 Adult + 1 Chd (02-6,99)"</td>
+      <td>Ispod tipa sobe ide više cenovnih redova</td>
+    </tr>
+    <tr>
+      <td><b>Cena po boravku</b>, ne po noći</td>
+      <td>Plava Laguna: kolona <code>Rate Base</code> = <code>STAY</code></td>
+      <td>Potrebne su četiri osnove, ne dve</td>
+    </tr>
+    <tr>
+      <td><b>Dani u nedelji za dolazak/odlazak</b></td>
+      <td>Plava Laguna: kolone <code>S M T W T F S</code></td>
+      <td>Turnusi (subota–subota) su stvarni, ne izuzetak</td>
+    </tr>
+    <tr>
+      <td><b>Rok za rezervisanje ≠ period boravka</b></td>
+      <td>Aycon: „bookings made till 31.12.2025 for period of stay 01.04–30.10.2026"</td>
+      <td>Svaka stavka nosi i „za rezervacije od–do"</td>
+    </tr>
+  </table>
 
-<h3>Šta su ta tri oblika pokazala</h3>
-<table class="plain">
-  <tr><th>Nalaz</th><th>Gde je viđen</th><th>Šta znači za ekran</th></tr>
-  <tr><td><b>Sezona ima više datumskih opsega</b>, ne jedan</td><td>Aycon: sezona 1 = 01.04–31.05 <i>i</i> 01.10–31.10. Olympic/PRI: sezona A = 12.12–19.12 <i>i</i> 14.03–21.03</td><td>Sezona mora biti imenovana stvar sa listom opsega, a ne jedan datumski raspon</td></tr>
-  <tr><td><b>Osnova cene se razlikuje od reda do reda</b> unutar istog cenovnika</td><td>Aycon: sve sobe „per person per day", ali Deluxe suite „per room per day"</td><td>Osnova je osobina reda, ne celog cenovnika</td></tr>
-  <tr><td><b>Red je kombinacija popunjenosti</b>, ne samo tip sobe</td><td>Solvex: „1 Adult + 1 Chd (07-11,99)", „2 Adult + 1 Chd (02-6,99)"</td><td>Ispod tipa sobe ide više cenovnih redova</td></tr>
-  <tr><td><b>Cena po boravku</b>, ne po noći</td><td>Plava Laguna: kolona <code>Rate Base</code> = <code>STAY</code></td><td>Potrebne su četiri osnove, ne dve</td></tr>
-  <tr><td><b>Dani u nedelji za dolazak/odlazak</b></td><td>Plava Laguna: kolone <code>S M T W T F S</code></td><td>Turnusi (subota–subota) su stvarni, ne izuzetak</td></tr>
-  <tr><td><b>Rok za rezervisanje ≠ period boravka</b></td><td>Aycon: „bookings made till 31.12.2025 for period of stay 01.04–30.10.2026"</td><td>Svaka stavka nosi i „za rezervacije od–do"</td></tr>
-</table>
+  <!-- ══════════════════ EKRAN 1 ══════════════════ -->
+  <h2>Ekran 1 — Cenovnik hotela (mreža cena)</h2>
+  <p class="lead">
+    Jedan ekran za ceo hotel. Danas je isto ovo razbijeno na po jedan ekran za svaku kombinaciju
+    sobe i datuma.
+  </p>
 
-<!-- ══════════════════ EKRAN 1 ══════════════════ -->
-<h2>Ekran 1 — Cenovnik hotela (mreža cena)</h2>
-<p class="lead">Jedan ekran za ceo hotel. Danas je isto ovo razbijeno na po jedan ekran za svaku kombinaciju sobe i datuma.</p>
-
-<div class="screen">
-  <div class="screen-bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span> localhost:3100/ugovori/…/cenovnik</div>
-  <div class="screen-body">
-
-    <div class="hdr">
-      <h4>Lusso Mare by Aycon — cenovnik 2026</h4>
-      <span class="meta">Dobavljač <b>Aycon Hotels</b></span>
-      <span class="meta">Ugovor <b>TT-2026-014</b></span>
-      <span class="meta">Valuta <b>EUR</b></span>
-      <span class="meta">Cenovnik je <b>neto</b> · provizija 5%</span>
-      <span class="chip ok">objavljen</span>
+  <div class="screen">
+    <div class="screen-bar">
+      <span class="dot"></span><span class="dot"></span
+      ><span class="dot"></span> localhost:3100/ugovori/…/cenovnik
     </div>
+    <div class="screen-body">
+      <div class="hdr">
+        <h4>Lusso Mare by Aycon — cenovnik 2026</h4>
+        <span class="meta">Dobavljač <b>Aycon Hotels</b></span>
+        <span class="meta">Ugovor <b>TT-2026-014</b></span>
+        <span class="meta">Valuta <b>EUR</b></span>
+        <span class="meta">Cenovnik je <b>neto</b> · provizija 5%</span>
+        <span class="chip ok">objavljen</span>
+      </div>
 
-    <h3 style="margin-top:0">Sezone <span class="sub" style="text-transform:none;letter-spacing:0">— definišu se jednom, važe za sve redove ispod</span></h3>
-    <div class="seasons">
-      <div class="season"><b>1 &nbsp;<span class="sub">Predsezona</span></b><span>01.04 – 31.05</span><span>01.10 – 31.10</span></div>
-      <div class="season"><b>2</b><span>01.06 – 10.06</span><span>17.09 – 30.09</span></div>
-      <div class="season"><b>3</b><span>11.06 – 10.07</span><span>01.09 – 16.09</span></div>
-      <div class="season"><b>4</b><span>11.07 – 18.07</span><span>25.08 – 31.08</span></div>
-      <div class="season"><b>5 &nbsp;<span class="sub">Špic</span></b><span>19.07 – 24.08</span></div>
-      <div class="season add">+ nova sezona</div>
+      <h3 style="margin-top: 0">
+        Sezone
+        <span class="sub" style="text-transform: none; letter-spacing: 0"
+          >— definišu se jednom, važe za sve redove ispod</span
+        >
+      </h3>
+      <div class="seasons">
+        <div class="season">
+          <b>1 &nbsp;<span class="sub">Predsezona</span></b
+          ><span>01.04 – 31.05</span><span>01.10 – 31.10</span>
+        </div>
+        <div class="season"><b>2</b><span>01.06 – 10.06</span><span>17.09 – 30.09</span></div>
+        <div class="season"><b>3</b><span>11.06 – 10.07</span><span>01.09 – 16.09</span></div>
+        <div class="season"><b>4</b><span>11.07 – 18.07</span><span>25.08 – 31.08</span></div>
+        <div class="season">
+          <b>5 &nbsp;<span class="sub">Špic</span></b
+          ><span>19.07 – 24.08</span>
+        </div>
+        <div class="season add">+ nova sezona</div>
+      </div>
+
+      <div class="toolbar">
+        <span class="btn primary">+ Tip sobe</span>
+        <span class="btn">+ Cenovni red</span>
+        <span class="btn">Kopiraj sezonu →</span>
+        <span class="btn">Prošla godina + %</span>
+        <span class="btn">Nalepi iz Excela</span>
+        <span class="btn ghost">Uvezi AI-em iz PDF-a</span>
+      </div>
+
+      <table class="grid">
+        <thead>
+          <tr>
+            <th class="lbl">Tip sobe / cenovni red</th>
+            <th>
+              1<br /><span class="sub" style="font-weight: 400">01.04–31.05<br />01.10–31.10</span>
+            </th>
+            <th>
+              2<br /><span class="sub" style="font-weight: 400">01.06–10.06<br />17.09–30.09</span>
+            </th>
+            <th>
+              3<br /><span class="sub" style="font-weight: 400">11.06–10.07<br />01.09–16.09</span>
+            </th>
+            <th>
+              4<br /><span class="sub" style="font-weight: 400">11.07–18.07<br />25.08–31.08</span>
+            </th>
+            <th>5<br /><span class="sub" style="font-weight: 400">19.07–24.08</span></th>
+            <th>Osnova</th>
+            <th>Popunjenost</th>
+            <th>Jedinica</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="group">
+            <td class="lbl">Budget double room</td>
+            <td
+              colspan="5"
+              style="
+                text-align: left;
+                color: var(--text-faint);
+                font-weight: 400;
+                font-size: 11.5px;
+              "
+            >
+              min 1 · max 2+0 · 5 jedinica
+            </td>
+            <td colspan="3"></td>
+          </tr>
+          <tr>
+            <td class="lbl">&nbsp;&nbsp;&nbsp;└ Noćenje sa doručkom · po osobi</td>
+            <td><span class="cell">36,00</span></td>
+            <td><span class="cell">48,00</span></td>
+            <td><span class="cell focus">55,00</span></td>
+            <td><span class="cell">62,00</span></td>
+            <td><span class="cell">65,00</span></td>
+            <td><span class="chip">po osobi / noć</span></td>
+            <td>2+0</td>
+            <td>€</td>
+          </tr>
+          <tr class="meta-row">
+            <td class="lbl">&nbsp;&nbsp;&nbsp;└ Doplata za jednu osobu u sobi</td>
+            <td><span class="cell pct">50 %</span></td>
+            <td><span class="cell pct">50 %</span></td>
+            <td><span class="cell pct">70 %</span></td>
+            <td><span class="cell pct">70 %</span></td>
+            <td><span class="cell pct">100 %</span></td>
+            <td><span class="chip purple">% od cene</span></td>
+            <td>1</td>
+            <td></td>
+          </tr>
+
+          <tr class="group">
+            <td class="lbl">Standard double room</td>
+            <td
+              colspan="5"
+              style="
+                text-align: left;
+                color: var(--text-faint);
+                font-weight: 400;
+                font-size: 11.5px;
+              "
+            >
+              min 1 · max 2+0 · 2 jedinice
+            </td>
+            <td colspan="3"></td>
+          </tr>
+          <tr>
+            <td class="lbl">&nbsp;&nbsp;&nbsp;└ Noćenje sa doručkom · po osobi</td>
+            <td><span class="cell">39,00</span></td>
+            <td><span class="cell">51,00</span></td>
+            <td><span class="cell">61,00</span></td>
+            <td><span class="cell">67,00</span></td>
+            <td><span class="cell">71,00</span></td>
+            <td><span class="chip">po osobi / noć</span></td>
+            <td>2+0</td>
+            <td>€</td>
+          </tr>
+
+          <tr class="group">
+            <td class="lbl">One bedroom apartment</td>
+            <td
+              colspan="5"
+              style="
+                text-align: left;
+                color: var(--text-faint);
+                font-weight: 400;
+                font-size: 11.5px;
+              "
+            >
+              min 2 · max 2+2 · 13 jedinica
+            </td>
+            <td colspan="3"></td>
+          </tr>
+          <tr>
+            <td class="lbl">&nbsp;&nbsp;&nbsp;└ NsD · 2 odrasle osobe</td>
+            <td><span class="cell">51,00</span></td>
+            <td><span class="cell">58,00</span></td>
+            <td><span class="cell">72,00</span></td>
+            <td><span class="cell">78,00</span></td>
+            <td><span class="cell">84,00</span></td>
+            <td><span class="chip">po osobi / noć</span></td>
+            <td>2+0</td>
+            <td>€</td>
+          </tr>
+          <tr>
+            <td class="lbl">&nbsp;&nbsp;&nbsp;└ NsD · 2 odrasle + 1 dete 0–11,99</td>
+            <td><span class="cell">51,00</span></td>
+            <td><span class="cell">58,00</span></td>
+            <td><span class="cell">72,00</span></td>
+            <td><span class="cell">78,00</span></td>
+            <td><span class="cell">84,00</span></td>
+            <td><span class="chip">po osobi / noć</span></td>
+            <td>2+1</td>
+            <td>€</td>
+          </tr>
+
+          <tr class="group">
+            <td class="lbl">Deluxe suite with sea view <span class="chip warn">na upit</span></td>
+            <td
+              colspan="5"
+              style="
+                text-align: left;
+                color: var(--text-faint);
+                font-weight: 400;
+                font-size: 11.5px;
+              "
+            >
+              min 2 · max 4+1 · 1 jedinica
+            </td>
+            <td colspan="3"></td>
+          </tr>
+          <tr>
+            <td class="lbl">&nbsp;&nbsp;&nbsp;└ NsD · cela soba</td>
+            <td><span class="cell">162,00</span></td>
+            <td><span class="cell">200,00</span></td>
+            <td><span class="cell">250,00</span></td>
+            <td><span class="cell">270,00</span></td>
+            <td><span class="cell">295,00</span></td>
+            <td><span class="chip info">po sobi / noć</span></td>
+            <td>4+1</td>
+            <td>€</td>
+          </tr>
+
+          <tr class="group">
+            <td class="lbl">Studio <span class="chip warn">cena po danima u nedelji</span></td>
+            <td
+              colspan="5"
+              style="
+                text-align: left;
+                color: var(--text-faint);
+                font-weight: 400;
+                font-size: 11.5px;
+              "
+            >
+              min 2 · max 2+1 · 6 jedinica
+            </td>
+            <td colspan="3"></td>
+          </tr>
+          <tr>
+            <td class="lbl">
+              &nbsp;&nbsp;&nbsp;└ NsD · po sobi &nbsp; <span class="chip ok">ned</span
+              ><span class="chip ok">pon</span><span class="chip ok">uto</span
+              ><span class="chip ok">sre</span><span class="chip ok">čet</span
+              ><span class="chip gray">pet</span><span class="chip gray">sub</span>
+            </td>
+            <td><span class="cell">70,00</span></td>
+            <td><span class="cell">82,00</span></td>
+            <td><span class="cell">95,00</span></td>
+            <td><span class="cell">104,00</span></td>
+            <td><span class="cell">118,00</span></td>
+            <td><span class="chip info">po sobi / noć</span></td>
+            <td>2+1</td>
+            <td>€</td>
+          </tr>
+          <tr>
+            <td class="lbl">
+              &nbsp;&nbsp;&nbsp;└ NsD · po sobi &nbsp; <span class="chip gray">ned</span
+              ><span class="chip gray">pon</span><span class="chip gray">uto</span
+              ><span class="chip gray">sre</span><span class="chip gray">čet</span
+              ><span class="chip warn">pet</span><span class="chip warn">sub</span>
+            </td>
+            <td><span class="cell">88,00</span></td>
+            <td><span class="cell">99,00</span></td>
+            <td><span class="cell">115,00</span></td>
+            <td><span class="cell">126,00</span></td>
+            <td><span class="cell">140,00</span></td>
+            <td><span class="chip info">po sobi / noć</span></td>
+            <td>2+1</td>
+            <td>€</td>
+          </tr>
+          <tr class="meta-row">
+            <td class="lbl" colspan="9" style="text-align: left">
+              Dani se biraju klikom na tag. Uključen dan je obojen.
+              <b>Svi dani moraju biti pokriveni</b> — ako neki ostane bez cene, ekran to javlja pre
+              čuvanja, jer bi inače taj datum tiho nestao iz pretrage.
+            </td>
+          </tr>
+
+          <tr class="meta-row">
+            <td class="lbl">
+              Provizija koju hotel odobrava nama <span class="chip warn">po sezoni</span>
+            </td>
+            <td><span class="cell pct">10 %</span></td>
+            <td><span class="cell pct">10 %</span></td>
+            <td><span class="cell pct">7 %</span></td>
+            <td><span class="cell pct">7 %</span></td>
+            <td><span class="cell pct">7 %</span></td>
+            <td colspan="3" style="text-align: left" class="sub">
+              skida se posle popusta, pre marže (korak 3)
+            </td>
+          </tr>
+          <tr class="meta-row">
+            <td class="lbl">Rok za otkazivanje alotmana (dana)</td>
+            <td><span class="cell num">3</span></td>
+            <td><span class="cell num">7</span></td>
+            <td><span class="cell num">7</span></td>
+            <td><span class="cell num">10</span></td>
+            <td><span class="cell num">10</span></td>
+            <td colspan="3"></td>
+          </tr>
+          <tr class="meta-row">
+            <td class="lbl">Dolazak moguć danima</td>
+            <td colspan="5" style="text-align: left">
+              <span class="chip gray">ned</span><span class="chip gray">pon</span
+              ><span class="chip gray">uto</span> <span class="chip gray">sre</span
+              ><span class="chip gray">čet</span><span class="chip gray">pet</span
+              ><span class="chip ok">sub</span>
+              <span class="sub">&nbsp; turnus 7 / 10 / 14 noći</span>
+            </td>
+            <td colspan="3"></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p class="sub" style="margin-top: 12px">
+        Cena se kuca kao <b>89,50</b> — ne kao 8950. Danas u polju stoji doslovno „Cena (u najmanjoj
+        jedinici valute ugovora)", što je unutrašnji format baze koji je procureo na ekran.
+      </p>
     </div>
+  </div>
 
-    <div class="toolbar">
-      <span class="btn primary">+ Tip sobe</span>
-      <span class="btn">+ Cenovni red</span>
-      <span class="btn">Kopiraj sezonu →</span>
-      <span class="btn">Prošla godina + %</span>
-      <span class="btn">Nalepi iz Excela</span>
-      <span class="btn ghost">Uvezi AI-em iz PDF-a</span>
+  <h3>Sedam pravila koja ovaj ekran sprovodi</h3>
+  <ol>
+    <li>
+      <b>Sezone se definišu jednom, gore.</b> Svaka sezona ima ime/broj i <i>listu</i> datumskih
+      opsega. Kolone su sezone.
+    </li>
+    <li>
+      <b>Tip sobe je zaglavlje grupe, ne red.</b> Ispod njega ide jedan ili više cenovnih redova —
+      po usluzi i po kombinaciji popunjenosti.
+    </li>
+    <li>
+      <b>Osnova cene je osobina reda.</b> U istom hotelu jedna soba može biti po osobi, druga po
+      sobi — što Aycon cenovnik doslovno i radi.
+    </li>
+    <li>
+      <b>Vikend cena je drugi red sa drugim danima</b>, ne nova sezona. Dani se biraju tagovima
+      (ned–čet u jednom redu, pet–sub u drugom). Sezona ostaje 5, ne postaje 10.
+      <span class="sub"
+        >Odluka vlasnika 9.9.2026: tagovi, ne fiksna podela — jer „vikend" nije isti u svakom
+        hotelu.</span
+      >
+    </li>
+    <li>
+      <b>Kapaciteta nema na ovom ekranu</b> — po vašoj odluci: kapacitet ide po sopstvenim datumima,
+      ne po sezonama.
+    </li>
+    <li>
+      <b>Izuzetak po tipu sobe:</b> ako jedna soba ima drugačije sezone, ona se „odvaja" i dobija
+      sopstveni red sezona iznad svoje grupe. Ostale ostaju na zajedničkim.
+    </li>
+    <li>
+      <b>Prazna ćelija ≠ nula.</b> Prazno znači „ne prodaje se u toj sezoni" i tako ide u pretragu.
+    </li>
+  </ol>
+
+  <!-- ══════════════════ EKRAN 2 ══════════════════ -->
+  <h2>Ekran 2 — Doplate i popusti</h2>
+  <p class="lead">
+    Isti ekran, kartica ispod cena. Redosled je namerno vaš: <b>prvo cene, pa doplate i popusti.</b>
+  </p>
+
+  <div class="note ok">
+    <p>
+      <b>Dobra vest iz provere modela.</b> Veći deo onoga što ste tražili baza <i>već</i> ima:
+      <code>AncillaryService</code> nosi <code>isMandatory</code> (obavezno/opciono),
+      <code>payable</code> = <code>AGENCY</code> ili <code>ON_SITE</code> (plaća se u agenciji ili u
+      hotelu), <code>kind</code> = <code>SURCHARGE</code> ili <code>DISCOUNT</code> (doplate i
+      popusti u istoj strukturi), i <b>četiri osnove obračuna</b> — po osobi/noć, po sobi/noć, po
+      osobi/boravak, po sobi/boravak. Nedostaje ekran, ne model.
+    </p>
+  </div>
+
+  <div class="screen">
+    <div class="screen-bar">
+      <span class="dot"></span><span class="dot"></span
+      ><span class="dot"></span> localhost:3100/ugovori/…/cenovnik#doplate
     </div>
+    <div class="screen-body">
+      <div class="toolbar">
+        <span class="btn primary">+ Doplata</span>
+        <span class="btn primary">+ Popust</span>
+        <span class="btn">+ Ponuda (rana rezervacija / X za Y)</span>
+        <span class="btn ghost">Kopiraj iz prošle godine</span>
+      </div>
 
-    <table class="grid">
-      <thead>
-        <tr>
-          <th class="lbl">Tip sobe / cenovni red</th>
-          <th>1<br><span class="sub" style="font-weight:400">01.04–31.05<br>01.10–31.10</span></th>
-          <th>2<br><span class="sub" style="font-weight:400">01.06–10.06<br>17.09–30.09</span></th>
-          <th>3<br><span class="sub" style="font-weight:400">11.06–10.07<br>01.09–16.09</span></th>
-          <th>4<br><span class="sub" style="font-weight:400">11.07–18.07<br>25.08–31.08</span></th>
-          <th>5<br><span class="sub" style="font-weight:400">19.07–24.08</span></th>
-          <th>Osnova</th><th>Popunjenost</th><th>Jedinica</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr class="group">
-          <td class="lbl">Budget double room</td>
-          <td colspan="5" style="text-align:left;color:var(--text-faint);font-weight:400;font-size:11.5px">min 1 · max 2+0 · 5 jedinica</td>
-          <td colspan="3"></td>
-        </tr>
-        <tr>
-          <td class="lbl">&nbsp;&nbsp;&nbsp;└ Noćenje sa doručkom · po osobi</td>
-          <td><span class="cell">36,00</span></td><td><span class="cell">48,00</span></td>
-          <td><span class="cell focus">55,00</span></td><td><span class="cell">62,00</span></td><td><span class="cell">65,00</span></td>
-          <td><span class="chip">po osobi / noć</span></td><td>2+0</td><td>€</td>
-        </tr>
-        <tr class="meta-row">
-          <td class="lbl">&nbsp;&nbsp;&nbsp;└ Doplata za jednu osobu u sobi</td>
-          <td><span class="cell pct">50 %</span></td><td><span class="cell pct">50 %</span></td>
-          <td><span class="cell pct">70 %</span></td><td><span class="cell pct">70 %</span></td><td><span class="cell pct">100 %</span></td>
-          <td><span class="chip purple">% od cene</span></td><td>1</td><td></td>
-        </tr>
+      <table class="grid">
+        <thead>
+          <tr>
+            <th class="lbl">Stavka</th>
+            <th>Sez. 1</th>
+            <th>Sez. 2</th>
+            <th>Sez. 3</th>
+            <th>Sez. 4</th>
+            <th>Sez. 5</th>
+            <th>Obračun</th>
+            <th>Obavezno</th>
+            <th>Plaća se</th>
+            <th>Važi za sobe</th>
+            <th>Rezervacije od–do</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="lbl">Večera — odrasli</td>
+            <td colspan="5">
+              <span class="cell">15,00 &nbsp;<span class="sub">isto u svim sezonama</span></span>
+            </td>
+            <td><span class="chip">po osobi / noć</span></td>
+            <td><span class="chip gray">opciono</span></td>
+            <td><span class="chip">agencija</span></td>
+            <td><span class="chip ok">sve</span></td>
+            <td class="sub">—</td>
+          </tr>
+          <tr>
+            <td class="lbl">Večera — deca 2–11,99</td>
+            <td colspan="5"><span class="cell">10,00</span></td>
+            <td><span class="chip">po osobi / noć</span></td>
+            <td><span class="chip gray">opciono</span></td>
+            <td><span class="chip">agencija</span></td>
+            <td><span class="chip ok">sve</span></td>
+            <td class="sub">—</td>
+          </tr>
+          <tr>
+            <td class="lbl">Doplata za jednu osobu u sobi</td>
+            <td><span class="cell pct">50 %</span></td>
+            <td><span class="cell pct">50 %</span></td>
+            <td><span class="cell pct">70 %</span></td>
+            <td><span class="cell pct">70 %</span></td>
+            <td><span class="cell pct">100 %</span></td>
+            <td><span class="chip purple">% od cene</span></td>
+            <td><span class="chip warn">obavezno</span></td>
+            <td><span class="chip">agencija</span></td>
+            <td><span class="chip info">2 tipa ▾</span></td>
+            <td class="sub">—</td>
+          </tr>
+          <tr>
+            <td class="lbl">Popust 3. i 4. osoba · 0–11,99 g.</td>
+            <td colspan="5"><span class="cell pct">−100 %</span></td>
+            <td><span class="chip purple">% od cene</span></td>
+            <td><span class="chip warn">obavezno</span></td>
+            <td><span class="chip">agencija</span></td>
+            <td><span class="chip info">samo apartmani ▾</span></td>
+            <td class="sub">—</td>
+          </tr>
+          <tr>
+            <td class="lbl">Popust 3. i 4. osoba · 12+ g.</td>
+            <td colspan="5"><span class="cell pct">−50 %</span></td>
+            <td><span class="chip purple">% od cene</span></td>
+            <td><span class="chip warn">obavezno</span></td>
+            <td><span class="chip">agencija</span></td>
+            <td><span class="chip info">samo apartmani ▾</span></td>
+            <td class="sub">—</td>
+          </tr>
+          <tr>
+            <td class="lbl">Rana rezervacija — 1. krug</td>
+            <td colspan="5"><span class="cell pct">−15 %</span></td>
+            <td><span class="chip purple">% od cene</span></td>
+            <td><span class="chip gray">automatski</span></td>
+            <td><span class="chip">agencija</span></td>
+            <td><span class="chip ok">sve</span></td>
+            <td><span class="cell" style="min-width: auto">do 31.12.2025</span></td>
+          </tr>
+          <tr>
+            <td class="lbl">Rana rezervacija — 2. krug</td>
+            <td colspan="5"><span class="cell pct">−10 %</span></td>
+            <td><span class="chip purple">% od cene</span></td>
+            <td><span class="chip gray">automatski</span></td>
+            <td><span class="chip">agencija</span></td>
+            <td><span class="chip ok">sve</span></td>
+            <td><span class="cell" style="min-width: auto">do 31.03.2026</span></td>
+          </tr>
+          <tr>
+            <td class="lbl">SPO — dolasci 01.04–15.05 i 21.09–30.10</td>
+            <td colspan="5"><span class="cell pct">−10 %</span></td>
+            <td><span class="chip purple">% od cene</span></td>
+            <td><span class="chip gray">automatski</span></td>
+            <td><span class="chip">agencija</span></td>
+            <td><span class="chip ok">sve</span></td>
+            <td class="sub">spojiv sa ranom rez.</td>
+          </tr>
+          <tr>
+            <td class="lbl">Boravišna taksa i osiguranje — odrasli</td>
+            <td colspan="5"><span class="cell">1,50</span></td>
+            <td><span class="chip">po osobi / noć</span></td>
+            <td><span class="chip warn">obavezno</span></td>
+            <td><span class="chip warn">u hotelu</span></td>
+            <td><span class="chip ok">sve</span></td>
+            <td class="sub">—</td>
+          </tr>
+          <tr>
+            <td class="lbl">Boravišna taksa — deca 12–17,99</td>
+            <td colspan="5"><span class="cell">1,00</span></td>
+            <td><span class="chip">po osobi / noć</span></td>
+            <td><span class="chip warn">obavezno</span></td>
+            <td><span class="chip warn">u hotelu</span></td>
+            <td><span class="chip ok">sve</span></td>
+            <td class="sub">—</td>
+          </tr>
+          <tr>
+            <td class="lbl">Boravišna taksa — deca 0–11,99</td>
+            <td colspan="5"><span class="cell">0,50</span></td>
+            <td><span class="chip">po osobi / noć</span></td>
+            <td><span class="chip warn">obavezno</span></td>
+            <td><span class="chip warn">u hotelu</span></td>
+            <td><span class="chip ok">sve</span></td>
+            <td class="sub">—</td>
+          </tr>
+        </tbody>
+      </table>
 
-        <tr class="group">
-          <td class="lbl">Standard double room</td>
-          <td colspan="5" style="text-align:left;color:var(--text-faint);font-weight:400;font-size:11.5px">min 1 · max 2+0 · 2 jedinice</td>
-          <td colspan="3"></td>
-        </tr>
-        <tr>
-          <td class="lbl">&nbsp;&nbsp;&nbsp;└ Noćenje sa doručkom · po osobi</td>
-          <td><span class="cell">39,00</span></td><td><span class="cell">51,00</span></td>
-          <td><span class="cell">61,00</span></td><td><span class="cell">67,00</span></td><td><span class="cell">71,00</span></td>
-          <td><span class="chip">po osobi / noć</span></td><td>2+0</td><td>€</td>
-        </tr>
+      <div class="note warn" style="margin-top: 14px">
+        <p>
+          <b>Boravišna taksa je doplata, ne napomena.</b> Danas je u modelu
+          <code>TouristTaxInfo</code> — jedan zapis po periodu, jedan iznos, <b>samo opisno</b>. To
+          ne može da opiše ni ovaj jedan cenovnik, koji ima <b>tri uzrasna stepena</b> (1,50 / 1,00
+          / 0,50). Zato taksa ovde stoji kao obična doplata, sa istim ponašanjem kao svaka druga:
+        </p>
+        <ul>
+          <li>
+            <b>Naplaćujemo je mi</b> (<span class="chip">agencija</span>) → <b>ulazi u obračun</b>,
+            u ukupnu cenu i na fakturu.
+          </li>
+          <li>
+            <b>Plaća se na licu mesta</b> (<span class="chip warn">u hotelu</span>) →
+            <b>ne ulazi u obračun</b>, ali se <b>iznos i dalje unosi i prikazuje</b> gostu na ponudi
+            i vaučeru kao „plaća se u hotelu: 1,50 € po osobi/noć".
+          </li>
+        </ul>
+        <p class="sub">
+          Isto pravilo važi za svaku doplatu, ne samo za taksu — zato kolona „Plaća se" nije
+          informacija nego prekidač koji odlučuje ulazi li stavka u zbir.
+        </p>
+      </div>
 
-        <tr class="group">
-          <td class="lbl">One bedroom apartment</td>
-          <td colspan="5" style="text-align:left;color:var(--text-faint);font-weight:400;font-size:11.5px">min 2 · max 2+2 · 13 jedinica</td>
-          <td colspan="3"></td>
-        </tr>
-        <tr>
-          <td class="lbl">&nbsp;&nbsp;&nbsp;└ NsD · 2 odrasle osobe</td>
-          <td><span class="cell">51,00</span></td><td><span class="cell">58,00</span></td>
-          <td><span class="cell">72,00</span></td><td><span class="cell">78,00</span></td><td><span class="cell">84,00</span></td>
-          <td><span class="chip">po osobi / noć</span></td><td>2+0</td><td>€</td>
-        </tr>
-        <tr>
-          <td class="lbl">&nbsp;&nbsp;&nbsp;└ NsD · 2 odrasle + 1 dete 0–11,99</td>
-          <td><span class="cell">51,00</span></td><td><span class="cell">58,00</span></td>
-          <td><span class="cell">72,00</span></td><td><span class="cell">78,00</span></td><td><span class="cell">84,00</span></td>
-          <td><span class="chip">po osobi / noć</span></td><td>2+1</td><td>€</td>
-        </tr>
+      <p class="sub" style="margin-top: 12px">
+        Svaka stavka ima <b>prekidač „isti iznos u svim sezonama / po sezonama"</b>. Kad je isti —
+        jedna ćelija preko svih kolona (kao večera gore). Kad nije — ćelija po sezoni (kao doplata
+        za jednu osobu). Isto važi za kolonu <b>„Važi za sobe"</b>:
+        <span class="chip ok">sve</span> ili izbor tipova.
+      </p>
+    </div>
+  </div>
 
-        <tr class="group">
-          <td class="lbl">Deluxe suite with sea view <span class="chip warn">na upit</span></td>
-          <td colspan="5" style="text-align:left;color:var(--text-faint);font-weight:400;font-size:11.5px">min 2 · max 4+1 · 1 jedinica</td>
-          <td colspan="3"></td>
-        </tr>
-        <tr>
-          <td class="lbl">&nbsp;&nbsp;&nbsp;└ NsD · cela soba</td>
-          <td><span class="cell">162,00</span></td><td><span class="cell">200,00</span></td>
-          <td><span class="cell">250,00</span></td><td><span class="cell">270,00</span></td><td><span class="cell">295,00</span></td>
-          <td><span class="chip info">po sobi / noć</span></td><td>4+1</td><td>€</td>
-        </tr>
+  <h3>Kako su rešena vaša četiri pitanja o doplatama</h3>
+  <table class="plain">
+    <tr>
+      <th>Zahtev</th>
+      <th>Rešenje na ekranu</th>
+      <th>U modelu</th>
+    </tr>
+    <tr>
+      <td>Opciono ili obavezno</td>
+      <td>
+        Kolona <b>Obavezno</b> — tri stanja: opciono (gost bira), obavezno (uvek u ceni), automatski
+        (sistem primeni kad uslovi važe, npr. rana rezervacija)
+      </td>
+      <td><span class="chip ok">postoji</span> <code>isMandatory</code></td>
+    </tr>
+    <tr>
+      <td>Plaća se u agenciji ili u hotelu</td>
+      <td>
+        Kolona <b>Plaća se</b>. Ono što se plaća u hotelu <i>ne ulazi</i> u iznos fakture, ali se
+        <b>mora prikazati gostu</b> na ponudi i vaučeru
+      </td>
+      <td><span class="chip ok">postoji</span> <code>payable</code></td>
+    </tr>
+    <tr>
+      <td>Različito po datumima boravka</td>
+      <td>Iznos po sezonama (ćelija po koloni)</td>
+      <td><span class="chip ok">postoji</span> — vezano za period</td>
+    </tr>
+    <tr>
+      <td>Različito po tipovima smeštaja — ili jednako za sve</td>
+      <td>Kolona <b>Važi za sobe</b>: „sve" ili izbor tipova</td>
+      <td>
+        <span class="chip warn">nedostaje</span> — danas je stavka vezana za jedan period, pa „isto
+        za sve sobe" znači prepisati je 6 puta
+      </td>
+    </tr>
+    <tr>
+      <td>Za rezervacije od–do (na svakoj stavci)</td>
+      <td>Poslednja kolona</td>
+      <td>
+        <span class="chip warn">delimično</span> — postoji na ponudama
+        (<code>PricelistOffer</code>), nema na ceni ni na doplati
+      </td>
+    </tr>
+  </table>
 
-        <tr class="group">
-          <td class="lbl">Studio <span class="chip warn">cena po danima u nedelji</span></td>
-          <td colspan="5" style="text-align:left;color:var(--text-faint);font-weight:400;font-size:11.5px">min 2 · max 2+1 · 6 jedinica</td>
-          <td colspan="3"></td>
+  <!-- ══════════════════ EKRAN 2b ══════════════════ -->
+  <h2>Ekran 2b — Marža i subagentska provizija, po stavci</h2>
+  <p class="lead">
+    Do sada su cene bile <b>nabavne</b>. Ovde se odlučuje šta se na njih dodaje — i to
+    <b>za svaku stavku posebno, sa izuzecima</b>.
+  </p>
+
+  <div class="note ok">
+    <p>
+      <b>Model već zna da marža bude i procenat i iznos istovremeno.</b> <code>MarkupRule</code> ima
+      <i>oba</i> polja — <code>percentage</code> i <code>fixedAmount</code> — i mogu se popuniti
+      zajedno. Ima i <code>activeFrom</code>/<code>activeTo</code>. Ono što nedostaje je
+      <b>domet</b>: pravilo danas može da se veže na dobavljača, ugovor, period ili proizvod —
+      <b>ne i na pojedinačnu cenovnu stavku ili doplatu</b>.
+    </p>
+  </div>
+
+  <div class="screen">
+    <div class="screen-bar">
+      <span class="dot"></span><span class="dot"></span
+      ><span class="dot"></span> localhost:3100/ugovori/…/cenovnik#marza
+    </div>
+    <div class="screen-body">
+      <div class="hdr">
+        <h4>Marža i provizija</h4>
+        <span class="meta"
+          >Podrazumevano za ovaj ugovor: <b>marža 18 %</b> · <b>subagentska provizija 8 %</b></span
+        >
+        <span class="btn">Promeni podrazumevano</span>
+      </div>
+
+      <p class="sub" style="margin-top: 0">
+        Popunjava se samo ono što <b>odstupa</b> od podrazumevanog. Prazan red znači „kao ugovor" —
+        ne mora se dirati.
+      </p>
+
+      <table class="grid">
+        <thead>
+          <tr>
+            <th class="lbl">Stavka</th>
+            <th>Marža %</th>
+            <th>Marža iznos</th>
+            <th>Ukupno na primeru</th>
+            <th>Provizija subagenta</th>
+            <th>Važi za rezervacije</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="meta-row">
+            <td class="lbl">Sve cene i doplate <span class="chip gray">podrazumevano</span></td>
+            <td><span class="cell pct">18 %</span></td>
+            <td><span class="cell">—</span></td>
+            <td class="sub">55,00 → 64,90</td>
+            <td><span class="cell pct">8 %</span></td>
+            <td class="sub">—</td>
+          </tr>
+          <tr>
+            <td class="lbl">Deluxe suite · NsD <span class="chip warn">izuzetak</span></td>
+            <td><span class="cell pct focus">12 %</span></td>
+            <td><span class="cell focus">5,00</span></td>
+            <td class="sub">295,00 → 335,40</td>
+            <td><span class="cell pct">8 %</span></td>
+            <td class="sub">—</td>
+          </tr>
+          <tr>
+            <td class="lbl">Večera — odrasli <span class="chip warn">izuzetak</span></td>
+            <td><span class="cell pct">0 %</span></td>
+            <td><span class="cell">2,00</span></td>
+            <td class="sub">15,00 → 17,00</td>
+            <td>
+              <span
+                class="chip danger"
+                style="
+                  border-color: var(--danger);
+                  color: var(--danger);
+                  background: var(--danger-bg);
+                "
+                >bez provizije</span
+              >
+            </td>
+            <td class="sub">—</td>
+          </tr>
+          <tr>
+            <td class="lbl">
+              Boravišna taksa — sve uzrasne <span class="chip warn">izuzetak</span>
+            </td>
+            <td><span class="cell pct">0 %</span></td>
+            <td><span class="cell">—</span></td>
+            <td class="sub">1,50 → 1,50 <span class="chip warn">u hotelu</span></td>
+            <td>
+              <span
+                class="chip"
+                style="
+                  border-color: var(--danger);
+                  color: var(--danger);
+                  background: var(--danger-bg);
+                "
+                >bez provizije</span
+              >
+            </td>
+            <td class="sub">—</td>
+          </tr>
+          <tr>
+            <td class="lbl">Rana rezervacija 1. krug <span class="chip warn">izuzetak</span></td>
+            <td><span class="cell pct">18 %</span></td>
+            <td><span class="cell">—</span></td>
+            <td class="sub">popust se računa <b>pre</b> marže</td>
+            <td><span class="cell">10,00</span></td>
+            <td><span class="cell" style="min-width: auto">do 31.12.2025</span></td>
+          </tr>
+          <tr>
+            <td class="lbl">Studio · vikend cena <span class="chip warn">izuzetak</span></td>
+            <td><span class="cell pct">22 %</span></td>
+            <td><span class="cell">—</span></td>
+            <td class="sub">140,00 → 170,80</td>
+            <td><span class="cell pct">5 %</span></td>
+            <td><span class="cell" style="min-width: auto">01.01 – 30.04.2026</span></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p class="sub" style="margin-top: 12px">
+        Kolona <b>„Ukupno na primeru"</b> nije ukras — ona je jedina provera da se procenat i iznos
+        slažu sa onim što ste mislili. Bez nje se greška u marži vidi tek na fakturi.
+      </p>
+    </div>
+  </div>
+
+  <h3>Tri pravila obračuna koja moraju biti pisana, ne podrazumevana</h3>
+  <ol>
+    <li>
+      <b>Procenat i iznos se sabiraju, ne biraju.</b> „12 % + 5,00" na 295,00 daje 295 + 35,40 +
+      5,00 = <b>335,40</b>. Ako se popuni samo jedno polje, drugo je nula.
+    </li>
+    <li>
+      <b>Redosled obračuna — pet koraka, ovim redom.</b>
+      <span class="chip ok">potvrdio vlasnik 9.9.2026</span>
+      <table class="plain" style="margin-top: 6px">
+        <tr>
+          <th>#</th>
+          <th>Korak</th>
+          <th>Primer</th>
         </tr>
         <tr>
-          <td class="lbl">&nbsp;&nbsp;&nbsp;└ NsD · po sobi &nbsp;
-            <span class="chip ok">ned</span><span class="chip ok">pon</span><span class="chip ok">uto</span><span class="chip ok">sre</span><span class="chip ok">čet</span><span class="chip gray">pet</span><span class="chip gray">sub</span>
+          <td>1</td>
+          <td>Ulazna hotelska cena</td>
+          <td>55,00</td>
+        </tr>
+        <tr>
+          <td>2</td>
+          <td><b>Popust / akcija</b> (rani buking, SPO…) &nbsp;−15 %</td>
+          <td>46,75</td>
+        </tr>
+        <tr>
+          <td>3</td>
+          <td>
+            <b>Provizija koju hotel odobrava nama</b> &nbsp;−10 %<br /><span class="sub"
+              >razlikuje se po periodu — 10 % u jednom, 7 % u drugom</span
+            >
           </td>
-          <td><span class="cell">70,00</span></td><td><span class="cell">82,00</span></td>
-          <td><span class="cell">95,00</span></td><td><span class="cell">104,00</span></td><td><span class="cell">118,00</span></td>
-          <td><span class="chip info">po sobi / noć</span></td><td>2+1</td><td>€</td>
+          <td>42,08</td>
         </tr>
         <tr>
-          <td class="lbl">&nbsp;&nbsp;&nbsp;└ NsD · po sobi &nbsp;
-            <span class="chip gray">ned</span><span class="chip gray">pon</span><span class="chip gray">uto</span><span class="chip gray">sre</span><span class="chip gray">čet</span><span class="chip warn">pet</span><span class="chip warn">sub</span>
-          </td>
-          <td><span class="cell">88,00</span></td><td><span class="cell">99,00</span></td>
-          <td><span class="cell">115,00</span></td><td><span class="cell">126,00</span></td><td><span class="cell">140,00</span></td>
-          <td><span class="chip info">po sobi / noć</span></td><td>2+1</td><td>€</td>
+          <td>4</td>
+          <td><b>Naša marža</b> &nbsp;+18 %</td>
+          <td>49,65 &nbsp;<span class="sub">prodajna cena</span></td>
         </tr>
-        <tr class="meta-row">
-          <td class="lbl" colspan="9" style="text-align:left">
-            Dani se biraju klikom na tag. Uključen dan je obojen. <b>Svi dani moraju biti pokriveni</b> —
-            ako neki ostane bez cene, ekran to javlja pre čuvanja, jer bi inače taj datum tiho nestao iz pretrage.
-          </td>
+        <tr>
+          <td>5</td>
+          <td><b>Provizija subagenta</b> &nbsp;8 % od prodajne</td>
+          <td>3,97 <span class="sub">njegova zarada, ne dodatak na cenu</span></td>
         </tr>
+      </table>
+      <div class="sub" style="margin-top: 4px">
+        Redosled nije proizvoljan: hotelska provizija se skida sa <b>već umanjene</b> cene, ne sa
+        pune. Da se skida sa pune, agencija bi obračunala veći odbitak nego što joj hotel stvarno
+        daje.
+      </div>
+    </li>
+    <li>
+      <b>Svaki popust po osobi računa se od ulazne hotelske osnovne cene</b>, ne od cene sobe u
+      kojoj gost leži i ne od cene posle drugih popusta.
+      <span class="chip ok">potvrdio vlasnik 9.9.2026</span> Važi za popust 3. i 4. osobe i za sve
+      ostale osobe.
+    </li>
+    <li>
+      <b>Izuzetak nadjačava podrazumevano, i vidi se da je izuzetak.</b> Stavka bez unosa nasleđuje
+      maržu ugovora. Kad se unese, red dobija oznaku <span class="chip warn">izuzetak</span> — inače
+      se posle ne zna zašto jedna stavka odstupa.
+    </li>
+  </ol>
 
-        <tr class="meta-row">
-          <td class="lbl">Provizija koju hotel odobrava nama <span class="chip warn">po sezoni</span></td>
-          <td><span class="cell pct">10 %</span></td><td><span class="cell pct">10 %</span></td>
-          <td><span class="cell pct">7 %</span></td><td><span class="cell pct">7 %</span></td><td><span class="cell pct">7 %</span></td>
-          <td colspan="3" style="text-align:left" class="sub">skida se posle popusta, pre marže (korak 3)</td>
-        </tr>
-        <tr class="meta-row">
-          <td class="lbl">Rok za otkazivanje alotmana (dana)</td>
-          <td><span class="cell num">3</span></td><td><span class="cell num">7</span></td>
-          <td><span class="cell num">7</span></td><td><span class="cell num">10</span></td><td><span class="cell num">10</span></td>
-          <td colspan="3"></td>
-        </tr>
-        <tr class="meta-row">
-          <td class="lbl">Dolazak moguć danima</td>
-          <td colspan="5" style="text-align:left">
-            <span class="chip gray">ned</span><span class="chip gray">pon</span><span class="chip gray">uto</span>
-            <span class="chip gray">sre</span><span class="chip gray">čet</span><span class="chip gray">pet</span><span class="chip ok">sub</span>
-            <span class="sub">&nbsp; turnus 7 / 10 / 14 noći</span>
-          </td>
-          <td colspan="3"></td>
-        </tr>
-      </tbody>
-    </table>
+  <!-- ══════════════════ EKRAN 3 ══════════════════ -->
+  <h2>Ekran 3 — Kalendar cena i raspoloživosti</h2>
+  <p class="lead">
+    Vaša ideja iz pitanja 6, razrađena. Ovo <b>nije</b> ekran za unos — ovo je pregled i ulaz u
+    pretragu.
+  </p>
 
-    <p class="sub" style="margin-top:12px">Cena se kuca kao <b>89,50</b> — ne kao 8950. Danas u polju stoji doslovno „Cena (u najmanjoj jedinici valute ugovora)", što je unutrašnji format baze koji je procureo na ekran.</p>
-  </div>
-</div>
+  <p>
+    Biraju se tri stvari: <b>hotel</b>, <b>tip sobe</b> i <b>sastav gostiju</b> (npr. 2 odrasle + 1
+    dete od 8 godina). Kalendar onda za svaki dan pokazuje <b>cenu za taj sastav</b> i
+    <b>koliko je jedinica slobodno</b>. Tako se na jednom mestu vidi ono što se danas vidi tek posle
+    pretrage.
+  </p>
 
-<h3>Sedam pravila koja ovaj ekran sprovodi</h3>
-<ol>
-  <li><b>Sezone se definišu jednom, gore.</b> Svaka sezona ima ime/broj i <i>listu</i> datumskih opsega. Kolone su sezone.</li>
-  <li><b>Tip sobe je zaglavlje grupe, ne red.</b> Ispod njega ide jedan ili više cenovnih redova — po usluzi i po kombinaciji popunjenosti.</li>
-  <li><b>Osnova cene je osobina reda.</b> U istom hotelu jedna soba može biti po osobi, druga po sobi — što Aycon cenovnik doslovno i radi.</li>
-  <li><b>Vikend cena je drugi red sa drugim danima</b>, ne nova sezona. Dani se biraju tagovima (ned–čet u jednom redu, pet–sub u drugom). Sezona ostaje 5, ne postaje 10. <span class="sub">Odluka vlasnika 9.9.2026: tagovi, ne fiksna podela — jer „vikend" nije isti u svakom hotelu.</span></li>
-  <li><b>Kapaciteta nema na ovom ekranu</b> — po vašoj odluci: kapacitet ide po sopstvenim datumima, ne po sezonama.</li>
-  <li><b>Izuzetak po tipu sobe:</b> ako jedna soba ima drugačije sezone, ona se „odvaja" i dobija sopstveni red sezona iznad svoje grupe. Ostale ostaju na zajedničkim.</li>
-  <li><b>Prazna ćelija ≠ nula.</b> Prazno znači „ne prodaje se u toj sezoni" i tako ide u pretragu.</li>
-</ol>
-
-<!-- ══════════════════ EKRAN 2 ══════════════════ -->
-<h2>Ekran 2 — Doplate i popusti</h2>
-<p class="lead">Isti ekran, kartica ispod cena. Redosled je namerno vaš: <b>prvo cene, pa doplate i popusti.</b></p>
-
-<div class="note ok">
-  <p><b>Dobra vest iz provere modela.</b> Veći deo onoga što ste tražili baza <i>već</i> ima: <code>AncillaryService</code> nosi <code>isMandatory</code> (obavezno/opciono), <code>payable</code> = <code>AGENCY</code> ili <code>ON_SITE</code> (plaća se u agenciji ili u hotelu), <code>kind</code> = <code>SURCHARGE</code> ili <code>DISCOUNT</code> (doplate i popusti u istoj strukturi), i <b>četiri osnove obračuna</b> — po osobi/noć, po sobi/noć, po osobi/boravak, po sobi/boravak. Nedostaje ekran, ne model.</p>
-</div>
-
-<div class="screen">
-  <div class="screen-bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span> localhost:3100/ugovori/…/cenovnik#doplate</div>
-  <div class="screen-body">
-    <div class="toolbar">
-      <span class="btn primary">+ Doplata</span>
-      <span class="btn primary">+ Popust</span>
-      <span class="btn">+ Ponuda (rana rezervacija / X za Y)</span>
-      <span class="btn ghost">Kopiraj iz prošle godine</span>
+  <div class="screen">
+    <div class="screen-bar">
+      <span class="dot"></span><span class="dot"></span
+      ><span class="dot"></span> localhost:3100/kapaciteti/kalendar
     </div>
+    <div class="screen-body">
+      <div class="hdr">
+        <h4>
+          Lusso Mare by Aycon · Studio ·
+          <span style="font-weight: 400">2 odrasle + 1 dete (8 g.)</span>
+        </h4>
+        <span class="meta">jul 2026</span>
+        <span class="btn">‹</span><span class="btn">›</span>
+        <span class="chip info">cene sa doplatama koje se plaćaju u agenciji</span>
+      </div>
 
-    <table class="grid">
-      <thead>
-        <tr>
-          <th class="lbl">Stavka</th>
-          <th>Sez. 1</th><th>Sez. 2</th><th>Sez. 3</th><th>Sez. 4</th><th>Sez. 5</th>
-          <th>Obračun</th><th>Obavezno</th><th>Plaća se</th><th>Važi za sobe</th><th>Rezervacije od–do</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td class="lbl">Večera — odrasli</td>
-          <td colspan="5"><span class="cell">15,00 &nbsp;<span class="sub">isto u svim sezonama</span></span></td>
-          <td><span class="chip">po osobi / noć</span></td>
-          <td><span class="chip gray">opciono</span></td>
-          <td><span class="chip">agencija</span></td>
-          <td><span class="chip ok">sve</span></td>
-          <td class="sub">—</td>
-        </tr>
-        <tr>
-          <td class="lbl">Večera — deca 2–11,99</td>
-          <td colspan="5"><span class="cell">10,00</span></td>
-          <td><span class="chip">po osobi / noć</span></td>
-          <td><span class="chip gray">opciono</span></td>
-          <td><span class="chip">agencija</span></td>
-          <td><span class="chip ok">sve</span></td>
-          <td class="sub">—</td>
-        </tr>
-        <tr>
-          <td class="lbl">Doplata za jednu osobu u sobi</td>
-          <td><span class="cell pct">50 %</span></td><td><span class="cell pct">50 %</span></td>
-          <td><span class="cell pct">70 %</span></td><td><span class="cell pct">70 %</span></td><td><span class="cell pct">100 %</span></td>
-          <td><span class="chip purple">% od cene</span></td>
-          <td><span class="chip warn">obavezno</span></td>
-          <td><span class="chip">agencija</span></td>
-          <td><span class="chip info">2 tipa ▾</span></td>
-          <td class="sub">—</td>
-        </tr>
-        <tr>
-          <td class="lbl">Popust 3. i 4. osoba · 0–11,99 g.</td>
-          <td colspan="5"><span class="cell pct">−100 %</span></td>
-          <td><span class="chip purple">% od cene</span></td>
-          <td><span class="chip warn">obavezno</span></td>
-          <td><span class="chip">agencija</span></td>
-          <td><span class="chip info">samo apartmani ▾</span></td>
-          <td class="sub">—</td>
-        </tr>
-        <tr>
-          <td class="lbl">Popust 3. i 4. osoba · 12+ g.</td>
-          <td colspan="5"><span class="cell pct">−50 %</span></td>
-          <td><span class="chip purple">% od cene</span></td>
-          <td><span class="chip warn">obavezno</span></td>
-          <td><span class="chip">agencija</span></td>
-          <td><span class="chip info">samo apartmani ▾</span></td>
-          <td class="sub">—</td>
-        </tr>
-        <tr>
-          <td class="lbl">Rana rezervacija — 1. krug</td>
-          <td colspan="5"><span class="cell pct">−15 %</span></td>
-          <td><span class="chip purple">% od cene</span></td>
-          <td><span class="chip gray">automatski</span></td>
-          <td><span class="chip">agencija</span></td>
-          <td><span class="chip ok">sve</span></td>
-          <td><span class="cell" style="min-width:auto">do 31.12.2025</span></td>
-        </tr>
-        <tr>
-          <td class="lbl">Rana rezervacija — 2. krug</td>
-          <td colspan="5"><span class="cell pct">−10 %</span></td>
-          <td><span class="chip purple">% od cene</span></td>
-          <td><span class="chip gray">automatski</span></td>
-          <td><span class="chip">agencija</span></td>
-          <td><span class="chip ok">sve</span></td>
-          <td><span class="cell" style="min-width:auto">do 31.03.2026</span></td>
-        </tr>
-        <tr>
-          <td class="lbl">SPO — dolasci 01.04–15.05 i 21.09–30.10</td>
-          <td colspan="5"><span class="cell pct">−10 %</span></td>
-          <td><span class="chip purple">% od cene</span></td>
-          <td><span class="chip gray">automatski</span></td>
-          <td><span class="chip">agencija</span></td>
-          <td><span class="chip ok">sve</span></td>
-          <td class="sub">spojiv sa ranom rez.</td>
-        </tr>
-        <tr>
-          <td class="lbl">Boravišna taksa i osiguranje — odrasli</td>
-          <td colspan="5"><span class="cell">1,50</span></td>
-          <td><span class="chip">po osobi / noć</span></td>
-          <td><span class="chip warn">obavezno</span></td>
-          <td><span class="chip warn">u hotelu</span></td>
-          <td><span class="chip ok">sve</span></td>
-          <td class="sub">—</td>
-        </tr>
-        <tr>
-          <td class="lbl">Boravišna taksa — deca 12–17,99</td>
-          <td colspan="5"><span class="cell">1,00</span></td>
-          <td><span class="chip">po osobi / noć</span></td>
-          <td><span class="chip warn">obavezno</span></td>
-          <td><span class="chip warn">u hotelu</span></td>
-          <td><span class="chip ok">sve</span></td>
-          <td class="sub">—</td>
-        </tr>
-        <tr>
-          <td class="lbl">Boravišna taksa — deca 0–11,99</td>
-          <td colspan="5"><span class="cell">0,50</span></td>
-          <td><span class="chip">po osobi / noć</span></td>
-          <td><span class="chip warn">obavezno</span></td>
-          <td><span class="chip warn">u hotelu</span></td>
-          <td><span class="chip ok">sve</span></td>
-          <td class="sub">—</td>
-        </tr>
-      </tbody>
-    </table>
+      <div class="cal">
+        <div class="dow">pon</div>
+        <div class="dow">uto</div>
+        <div class="dow">sre</div>
+        <div class="dow">čet</div>
+        <div class="dow">pet</div>
+        <div class="dow">sub</div>
+        <div class="dow">ned</div>
 
-    <div class="note warn" style="margin-top:14px">
-      <p><b>Boravišna taksa je doplata, ne napomena.</b> Danas je u modelu <code>TouristTaxInfo</code> — jedan zapis po periodu, jedan iznos, <b>samo opisno</b>. To ne može da opiše ni ovaj jedan cenovnik, koji ima <b>tri uzrasna stepena</b> (1,50 / 1,00 / 0,50). Zato taksa ovde stoji kao obična doplata, sa istim ponašanjem kao svaka druga:</p>
-      <ul>
-        <li><b>Naplaćujemo je mi</b> (<span class="chip">agencija</span>) → <b>ulazi u obračun</b>, u ukupnu cenu i na fakturu.</li>
-        <li><b>Plaća se na licu mesta</b> (<span class="chip warn">u hotelu</span>) → <b>ne ulazi u obračun</b>, ali se <b>iznos i dalje unosi i prikazuje</b> gostu na ponudi i vaučeru kao „plaća se u hotelu: 1,50 € po osobi/noć".</li>
-      </ul>
-      <p class="sub">Isto pravilo važi za svaku doplatu, ne samo za taksu — zato kolona „Plaća se" nije informacija nego prekidač koji odlučuje ulazi li stavka u zbir.</p>
-    </div>
+        <div class="day out"><div class="d">29</div></div>
+        <div class="day out"><div class="d">30</div></div>
+        <div class="day">
+          <div class="d">1</div>
+          <div class="p">95,00</div>
+          <div class="c">6 slob.</div>
+        </div>
+        <div class="day">
+          <div class="d">2</div>
+          <div class="p">95,00</div>
+          <div class="c">6 slob.</div>
+        </div>
+        <div class="day we">
+          <div class="d">3</div>
+          <div class="p">115,00</div>
+          <div class="c">5 slob.</div>
+        </div>
+        <div class="day we arr">
+          <div class="d">4</div>
+          <div class="p">115,00</div>
+          <div class="c">4 slob.</div>
+        </div>
+        <div class="day">
+          <div class="d">5</div>
+          <div class="p">95,00</div>
+          <div class="c">4 slob.</div>
+        </div>
 
-    <p class="sub" style="margin-top:12px">Svaka stavka ima <b>prekidač „isti iznos u svim sezonama / po sezonama"</b>. Kad je isti — jedna ćelija preko svih kolona (kao večera gore). Kad nije — ćelija po sezoni (kao doplata za jednu osobu). Isto važi za kolonu <b>„Važi za sobe"</b>: <span class="chip ok">sve</span> ili izbor tipova.</p>
-  </div>
-</div>
+        <div class="day">
+          <div class="d">6</div>
+          <div class="p">95,00</div>
+          <div class="c">4 slob.</div>
+        </div>
+        <div class="day">
+          <div class="d">7</div>
+          <div class="p">95,00</div>
+          <div class="c">3 slob.</div>
+        </div>
+        <div class="day">
+          <div class="d">8</div>
+          <div class="p">95,00</div>
+          <div class="c">3 slob.</div>
+        </div>
+        <div class="day">
+          <div class="d">9</div>
+          <div class="p">95,00</div>
+          <div class="c">3 slob.</div>
+        </div>
+        <div class="day we">
+          <div class="d">10</div>
+          <div class="p">115,00</div>
+          <div class="c">2 slob.</div>
+        </div>
+        <div class="day we arr">
+          <div class="d">11</div>
+          <div class="p">126,00</div>
+          <div class="c">2 slob.</div>
+        </div>
+        <div class="day">
+          <div class="d">12</div>
+          <div class="p">104,00</div>
+          <div class="c">2 slob.</div>
+        </div>
 
-<h3>Kako su rešena vaša četiri pitanja o doplatama</h3>
-<table class="plain">
-  <tr><th>Zahtev</th><th>Rešenje na ekranu</th><th>U modelu</th></tr>
-  <tr><td>Opciono ili obavezno</td><td>Kolona <b>Obavezno</b> — tri stanja: opciono (gost bira), obavezno (uvek u ceni), automatski (sistem primeni kad uslovi važe, npr. rana rezervacija)</td><td><span class="chip ok">postoji</span> <code>isMandatory</code></td></tr>
-  <tr><td>Plaća se u agenciji ili u hotelu</td><td>Kolona <b>Plaća se</b>. Ono što se plaća u hotelu <i>ne ulazi</i> u iznos fakture, ali se <b>mora prikazati gostu</b> na ponudi i vaučeru</td><td><span class="chip ok">postoji</span> <code>payable</code></td></tr>
-  <tr><td>Različito po datumima boravka</td><td>Iznos po sezonama (ćelija po koloni)</td><td><span class="chip ok">postoji</span> — vezano za period</td></tr>
-  <tr><td>Različito po tipovima smeštaja — ili jednako za sve</td><td>Kolona <b>Važi za sobe</b>: „sve" ili izbor tipova</td><td><span class="chip warn">nedostaje</span> — danas je stavka vezana za jedan period, pa „isto za sve sobe" znači prepisati je 6 puta</td></tr>
-  <tr><td>Za rezervacije od–do (na svakoj stavci)</td><td>Poslednja kolona</td><td><span class="chip warn">delimično</span> — postoji na ponudama (<code>PricelistOffer</code>), nema na ceni ni na doplati</td></tr>
-</table>
+        <div class="day">
+          <div class="d">13</div>
+          <div class="p">104,00</div>
+          <div class="c">2 slob.</div>
+        </div>
+        <div class="day">
+          <div class="d">14</div>
+          <div class="p">104,00</div>
+          <div class="c">1 slob.</div>
+        </div>
+        <div class="day">
+          <div class="d">15</div>
+          <div class="p">104,00</div>
+          <div class="c">1 slob.</div>
+        </div>
+        <div class="day">
+          <div class="d">16</div>
+          <div class="p">104,00</div>
+          <div class="c">1 slob.</div>
+        </div>
+        <div class="day we">
+          <div class="d">17</div>
+          <div class="p">126,00</div>
+          <div class="c">1 slob.</div>
+        </div>
+        <div class="day we arr full">
+          <div class="d">18</div>
+          <div class="p">126,00</div>
+          <div class="c">popunjeno</div>
+        </div>
+        <div class="day full">
+          <div class="d">19</div>
+          <div class="p">118,00</div>
+          <div class="c">popunjeno</div>
+        </div>
 
-<!-- ══════════════════ EKRAN 2b ══════════════════ -->
-<h2>Ekran 2b — Marža i subagentska provizija, po stavci</h2>
-<p class="lead">Do sada su cene bile <b>nabavne</b>. Ovde se odlučuje šta se na njih dodaje — i to <b>za svaku stavku posebno, sa izuzecima</b>.</p>
+        <div class="day">
+          <div class="d">20</div>
+          <div class="p">118,00</div>
+          <div class="c">1 slob.</div>
+        </div>
+        <div class="day">
+          <div class="d">21</div>
+          <div class="p">118,00</div>
+          <div class="c">1 slob.</div>
+        </div>
+        <div class="day">
+          <div class="d">22</div>
+          <div class="p">118,00</div>
+          <div class="c">1 slob.</div>
+        </div>
+        <div class="day">
+          <div class="d">23</div>
+          <div class="p">118,00</div>
+          <div class="c">2 slob.</div>
+        </div>
+        <div class="day we">
+          <div class="d">24</div>
+          <div class="p">140,00</div>
+          <div class="c">2 slob.</div>
+        </div>
+        <div class="day we arr">
+          <div class="d">25</div>
+          <div class="p">140,00</div>
+          <div class="c">2 slob.</div>
+        </div>
+        <div class="day">
+          <div class="d">26</div>
+          <div class="p">118,00</div>
+          <div class="c">3 slob.</div>
+        </div>
 
-<div class="note ok">
-  <p><b>Model već zna da marža bude i procenat i iznos istovremeno.</b> <code>MarkupRule</code> ima <i>oba</i> polja — <code>percentage</code> i <code>fixedAmount</code> — i mogu se popuniti zajedno. Ima i <code>activeFrom</code>/<code>activeTo</code>. Ono što nedostaje je <b>domet</b>: pravilo danas može da se veže na dobavljača, ugovor, period ili proizvod — <b>ne i na pojedinačnu cenovnu stavku ili doplatu</b>.</p>
-</div>
+        <div class="day">
+          <div class="d">27</div>
+          <div class="p">118,00</div>
+          <div class="c">3 slob.</div>
+        </div>
+        <div class="day">
+          <div class="d">28</div>
+          <div class="p">118,00</div>
+          <div class="c">3 slob.</div>
+        </div>
+        <div class="day">
+          <div class="d">29</div>
+          <div class="p">118,00</div>
+          <div class="c">4 slob.</div>
+        </div>
+        <div class="day">
+          <div class="d">30</div>
+          <div class="p">118,00</div>
+          <div class="c">4 slob.</div>
+        </div>
+        <div class="day we">
+          <div class="d">31</div>
+          <div class="p">140,00</div>
+          <div class="c">4 slob.</div>
+        </div>
+        <div class="day out"><div class="d">1</div></div>
+        <div class="day out"><div class="d">2</div></div>
+      </div>
 
-<div class="screen">
-  <div class="screen-bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span> localhost:3100/ugovori/…/cenovnik#marza</div>
-  <div class="screen-body">
-
-    <div class="hdr">
-      <h4>Marža i provizija</h4>
-      <span class="meta">Podrazumevano za ovaj ugovor: <b>marža 18 %</b> · <b>subagentska provizija 8 %</b></span>
-      <span class="btn">Promeni podrazumevano</span>
-    </div>
-
-    <p class="sub" style="margin-top:0">Popunjava se samo ono što <b>odstupa</b> od podrazumevanog. Prazan red znači „kao ugovor" — ne mora se dirati.</p>
-
-    <table class="grid">
-      <thead>
-        <tr>
-          <th class="lbl">Stavka</th>
-          <th>Marža %</th><th>Marža iznos</th><th>Ukupno na primeru</th>
-          <th>Provizija subagenta</th><th>Važi za rezervacije</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr class="meta-row">
-          <td class="lbl">Sve cene i doplate <span class="chip gray">podrazumevano</span></td>
-          <td><span class="cell pct">18 %</span></td><td><span class="cell">—</span></td>
-          <td class="sub">55,00 → 64,90</td>
-          <td><span class="cell pct">8 %</span></td>
-          <td class="sub">—</td>
-        </tr>
-        <tr>
-          <td class="lbl">Deluxe suite · NsD <span class="chip warn">izuzetak</span></td>
-          <td><span class="cell pct focus">12 %</span></td><td><span class="cell focus">5,00</span></td>
-          <td class="sub">295,00 → 335,40</td>
-          <td><span class="cell pct">8 %</span></td>
-          <td class="sub">—</td>
-        </tr>
-        <tr>
-          <td class="lbl">Večera — odrasli <span class="chip warn">izuzetak</span></td>
-          <td><span class="cell pct">0 %</span></td><td><span class="cell">2,00</span></td>
-          <td class="sub">15,00 → 17,00</td>
-          <td><span class="chip danger" style="border-color:var(--danger);color:var(--danger);background:var(--danger-bg)">bez provizije</span></td>
-          <td class="sub">—</td>
-        </tr>
-        <tr>
-          <td class="lbl">Boravišna taksa — sve uzrasne <span class="chip warn">izuzetak</span></td>
-          <td><span class="cell pct">0 %</span></td><td><span class="cell">—</span></td>
-          <td class="sub">1,50 → 1,50 <span class="chip warn">u hotelu</span></td>
-          <td><span class="chip" style="border-color:var(--danger);color:var(--danger);background:var(--danger-bg)">bez provizije</span></td>
-          <td class="sub">—</td>
-        </tr>
-        <tr>
-          <td class="lbl">Rana rezervacija 1. krug <span class="chip warn">izuzetak</span></td>
-          <td><span class="cell pct">18 %</span></td><td><span class="cell">—</span></td>
-          <td class="sub">popust se računa <b>pre</b> marže</td>
-          <td><span class="cell">10,00</span></td>
-          <td><span class="cell" style="min-width:auto">do 31.12.2025</span></td>
-        </tr>
-        <tr>
-          <td class="lbl">Studio · vikend cena <span class="chip warn">izuzetak</span></td>
-          <td><span class="cell pct">22 %</span></td><td><span class="cell">—</span></td>
-          <td class="sub">140,00 → 170,80</td>
-          <td><span class="cell pct">5 %</span></td>
-          <td><span class="cell" style="min-width:auto">01.01 – 30.04.2026</span></td>
-        </tr>
-      </tbody>
-    </table>
-
-    <p class="sub" style="margin-top:12px">Kolona <b>„Ukupno na primeru"</b> nije ukras — ona je jedina provera da se procenat i iznos slažu sa onim što ste mislili. Bez nje se greška u marži vidi tek na fakturi.</p>
-  </div>
-</div>
-
-<h3>Tri pravila obračuna koja moraju biti pisana, ne podrazumevana</h3>
-<ol>
-  <li><b>Procenat i iznos se sabiraju, ne biraju.</b> „12 % + 5,00" na 295,00 daje 295 + 35,40 + 5,00 = <b>335,40</b>. Ako se popuni samo jedno polje, drugo je nula.</li>
-  <li><b>Redosled obračuna — pet koraka, ovim redom.</b> <span class="chip ok">potvrdio vlasnik 9.9.2026</span>
-    <table class="plain" style="margin-top:6px">
-      <tr><th>#</th><th>Korak</th><th>Primer</th></tr>
-      <tr><td>1</td><td>Ulazna hotelska cena</td><td>55,00</td></tr>
-      <tr><td>2</td><td><b>Popust / akcija</b> (rani buking, SPO…) &nbsp;−15 %</td><td>46,75</td></tr>
-      <tr><td>3</td><td><b>Provizija koju hotel odobrava nama</b> &nbsp;−10 %<br><span class="sub">razlikuje se po periodu — 10 % u jednom, 7 % u drugom</span></td><td>42,08</td></tr>
-      <tr><td>4</td><td><b>Naša marža</b> &nbsp;+18 %</td><td>49,65 &nbsp;<span class="sub">prodajna cena</span></td></tr>
-      <tr><td>5</td><td><b>Provizija subagenta</b> &nbsp;8 % od prodajne</td><td>3,97 <span class="sub">njegova zarada, ne dodatak na cenu</span></td></tr>
-    </table>
-    <div class="sub" style="margin-top:4px">Redosled nije proizvoljan: hotelska provizija se skida sa <b>već umanjene</b> cene, ne sa pune. Da se skida sa pune, agencija bi obračunala veći odbitak nego što joj hotel stvarno daje.</div></li>
-  <li><b>Svaki popust po osobi računa se od ulazne hotelske osnovne cene</b>, ne od cene sobe u kojoj gost leži i ne od cene posle drugih popusta. <span class="chip ok">potvrdio vlasnik 9.9.2026</span> Važi za popust 3. i 4. osobe i za sve ostale osobe.</li>
-  <li><b>Izuzetak nadjačava podrazumevano, i vidi se da je izuzetak.</b> Stavka bez unosa nasleđuje maržu ugovora. Kad se unese, red dobija oznaku <span class="chip warn">izuzetak</span> — inače se posle ne zna zašto jedna stavka odstupa.</li>
-</ol>
-
-<!-- ══════════════════ EKRAN 3 ══════════════════ -->
-<h2>Ekran 3 — Kalendar cena i raspoloživosti</h2>
-<p class="lead">Vaša ideja iz pitanja 6, razrađena. Ovo <b>nije</b> ekran za unos — ovo je pregled i ulaz u pretragu.</p>
-
-<p>Biraju se tri stvari: <b>hotel</b>, <b>tip sobe</b> i <b>sastav gostiju</b> (npr. 2 odrasle + 1 dete od 8 godina). Kalendar onda za svaki dan pokazuje <b>cenu za taj sastav</b> i <b>koliko je jedinica slobodno</b>. Tako se na jednom mestu vidi ono što se danas vidi tek posle pretrage.</p>
-
-<div class="screen">
-  <div class="screen-bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span> localhost:3100/kapaciteti/kalendar</div>
-  <div class="screen-body">
-    <div class="hdr">
-      <h4>Lusso Mare by Aycon · Studio · <span style="font-weight:400">2 odrasle + 1 dete (8 g.)</span></h4>
-      <span class="meta">jul 2026</span>
-      <span class="btn">‹</span><span class="btn">›</span>
-      <span class="chip info">cene sa doplatama koje se plaćaju u agenciji</span>
-    </div>
-
-    <div class="cal">
-      <div class="dow">pon</div><div class="dow">uto</div><div class="dow">sre</div><div class="dow">čet</div><div class="dow">pet</div><div class="dow">sub</div><div class="dow">ned</div>
-
-      <div class="day out"><div class="d">29</div></div>
-      <div class="day out"><div class="d">30</div></div>
-      <div class="day"><div class="d">1</div><div class="p">95,00</div><div class="c">6 slob.</div></div>
-      <div class="day"><div class="d">2</div><div class="p">95,00</div><div class="c">6 slob.</div></div>
-      <div class="day we"><div class="d">3</div><div class="p">115,00</div><div class="c">5 slob.</div></div>
-      <div class="day we arr"><div class="d">4</div><div class="p">115,00</div><div class="c">4 slob.</div></div>
-      <div class="day"><div class="d">5</div><div class="p">95,00</div><div class="c">4 slob.</div></div>
-
-      <div class="day"><div class="d">6</div><div class="p">95,00</div><div class="c">4 slob.</div></div>
-      <div class="day"><div class="d">7</div><div class="p">95,00</div><div class="c">3 slob.</div></div>
-      <div class="day"><div class="d">8</div><div class="p">95,00</div><div class="c">3 slob.</div></div>
-      <div class="day"><div class="d">9</div><div class="p">95,00</div><div class="c">3 slob.</div></div>
-      <div class="day we"><div class="d">10</div><div class="p">115,00</div><div class="c">2 slob.</div></div>
-      <div class="day we arr"><div class="d">11</div><div class="p">126,00</div><div class="c">2 slob.</div></div>
-      <div class="day"><div class="d">12</div><div class="p">104,00</div><div class="c">2 slob.</div></div>
-
-      <div class="day"><div class="d">13</div><div class="p">104,00</div><div class="c">2 slob.</div></div>
-      <div class="day"><div class="d">14</div><div class="p">104,00</div><div class="c">1 slob.</div></div>
-      <div class="day"><div class="d">15</div><div class="p">104,00</div><div class="c">1 slob.</div></div>
-      <div class="day"><div class="d">16</div><div class="p">104,00</div><div class="c">1 slob.</div></div>
-      <div class="day we"><div class="d">17</div><div class="p">126,00</div><div class="c">1 slob.</div></div>
-      <div class="day we arr full"><div class="d">18</div><div class="p">126,00</div><div class="c">popunjeno</div></div>
-      <div class="day full"><div class="d">19</div><div class="p">118,00</div><div class="c">popunjeno</div></div>
-
-      <div class="day"><div class="d">20</div><div class="p">118,00</div><div class="c">1 slob.</div></div>
-      <div class="day"><div class="d">21</div><div class="p">118,00</div><div class="c">1 slob.</div></div>
-      <div class="day"><div class="d">22</div><div class="p">118,00</div><div class="c">1 slob.</div></div>
-      <div class="day"><div class="d">23</div><div class="p">118,00</div><div class="c">2 slob.</div></div>
-      <div class="day we"><div class="d">24</div><div class="p">140,00</div><div class="c">2 slob.</div></div>
-      <div class="day we arr"><div class="d">25</div><div class="p">140,00</div><div class="c">2 slob.</div></div>
-      <div class="day"><div class="d">26</div><div class="p">118,00</div><div class="c">3 slob.</div></div>
-
-      <div class="day"><div class="d">27</div><div class="p">118,00</div><div class="c">3 slob.</div></div>
-      <div class="day"><div class="d">28</div><div class="p">118,00</div><div class="c">3 slob.</div></div>
-      <div class="day"><div class="d">29</div><div class="p">118,00</div><div class="c">4 slob.</div></div>
-      <div class="day"><div class="d">30</div><div class="p">118,00</div><div class="c">4 slob.</div></div>
-      <div class="day we"><div class="d">31</div><div class="p">140,00</div><div class="c">4 slob.</div></div>
-      <div class="day out"><div class="d">1</div></div>
-      <div class="day out"><div class="d">2</div></div>
-    </div>
-
-    <div class="legend">
-      <span><span class="chip warn">žuto</span> vikend cena (pet–sub)</span>
-      <span><span class="chip ok">zelena crta levo</span> dan kad je dolazak dozvoljen (turnus)</span>
-      <span><span class="chip" style="border-color:var(--danger);color:var(--danger);background:var(--danger-bg)">crveno</span> nema slobodnih jedinica</span>
-      <span>prelaz sezone se vidi kao skok cene — 11.07. i 19.07.</span>
+      <div class="legend">
+        <span><span class="chip warn">žuto</span> vikend cena (pet–sub)</span>
+        <span
+          ><span class="chip ok">zelena crta levo</span> dan kad je dolazak dozvoljen (turnus)</span
+        >
+        <span
+          ><span
+            class="chip"
+            style="border-color: var(--danger); color: var(--danger); background: var(--danger-bg)"
+            >crveno</span
+          >
+          nema slobodnih jedinica</span
+        >
+        <span>prelaz sezone se vidi kao skok cene — 11.07. i 19.07.</span>
+      </div>
     </div>
   </div>
-</div>
 
-<h3>Zašto je ovaj kalendar vredniji nego što izgleda</h3>
-<ul>
-  <li><b>Greška u cenovniku se vidi golim okom.</b> Pogrešno unet datumski opseg proizvede skok ili rupu u nizu — u mreži se to ne primeti, u kalendaru bode oči.</li>
-  <li><b>Rupa u kapacitetu se vidi na istom mestu.</b> Kapacitet ide po sopstvenim datumima (vaša odluka), pa je kalendar jedino mesto gde se cena i kapacitet <i>sreću</i> — bez mešanja u sam cenovnik.</li>
-  <li><b>Ovo je prirodan ulaz u pretragu.</b> Prodavac na telefonu vidi „14. i 15. imate mesta po 104" i odmah nudi alternativu, umesto da pretražuje datum po datum.</li>
-  <li><b>Turnusi postaju očigledni.</b> Ako je dolazak samo subotom, kalendar to pokazuje kao raspored, a ne kao poruku o grešci posle pokušaja rezervacije.</li>
-</ul>
+  <h3>Zašto je ovaj kalendar vredniji nego što izgleda</h3>
+  <ul>
+    <li>
+      <b>Greška u cenovniku se vidi golim okom.</b> Pogrešno unet datumski opseg proizvede skok ili
+      rupu u nizu — u mreži se to ne primeti, u kalendaru bode oči.
+    </li>
+    <li>
+      <b>Rupa u kapacitetu se vidi na istom mestu.</b> Kapacitet ide po sopstvenim datumima (vaša
+      odluka), pa je kalendar jedino mesto gde se cena i kapacitet <i>sreću</i> — bez mešanja u sam
+      cenovnik.
+    </li>
+    <li>
+      <b>Ovo je prirodan ulaz u pretragu.</b> Prodavac na telefonu vidi „14. i 15. imate mesta po
+      104" i odmah nudi alternativu, umesto da pretražuje datum po datum.
+    </li>
+    <li>
+      <b>Turnusi postaju očigledni.</b> Ako je dolazak samo subotom, kalendar to pokazuje kao
+      raspored, a ne kao poruku o grešci posle pokušaja rezervacije.
+    </li>
+  </ul>
 
-<!-- ══════════════════ MODEL ══════════════════ -->
-<h2>Šta baza već ima, a šta stvarno nedostaje</h2>
-<p class="lead">Izmereno čitanjem <code>apps/api/prisma/schema.prisma</code>, ne procenjeno.</p>
+  <!-- ══════════════════ MODEL ══════════════════ -->
+  <h2>Šta baza već ima, a šta stvarno nedostaje</h2>
+  <p class="lead">Izmereno čitanjem <code>apps/api/prisma/schema.prisma</code>, ne procenjeno.</p>
 
-<table class="plain">
-  <tr><th>Potrebno</th><th>Stanje</th><th>Napomena</th></tr>
-  <tr><td>Doplata/popust u istoj strukturi</td><td><span class="chip ok">ima</span></td><td><code>AncillaryKind</code> = SURCHARGE / DISCOUNT</td></tr>
-  <tr><td>Obavezno / opciono</td><td><span class="chip ok">ima</span></td><td><code>isMandatory</code></td></tr>
-  <tr><td>Plaća se u agenciji / u hotelu</td><td><span class="chip ok">ima</span></td><td><code>payable</code> = AGENCY / ON_SITE</td></tr>
-  <tr><td>Četiri osnove obračuna za <b>doplate</b></td><td><span class="chip ok">ima</span></td><td>po osobi/noć, po sobi/noć, po osobi/boravak, po sobi/boravak</td></tr>
-  <tr><td>Uzrasne kategorije i cena po uzrastu</td><td><span class="chip ok">ima</span></td><td><code>RateLineAgePricing</code></td></tr>
-  <tr><td>Rana rezervacija, X za Y, dani dolaska na ponudi</td><td><span class="chip ok">ima</span></td><td><code>PricelistOffer</code> sa <code>bookingFrom/To</code></td></tr>
-  <tr><td>Marža kao <b>procenat i iznos istovremeno</b></td><td><span class="chip ok">ima</span></td><td><code>MarkupRule</code> nosi i <code>percentage</code> i <code>fixedAmount</code>, plus <code>activeFrom/To</code></td></tr>
-  <tr><td>Taksa: razlika „naplaćuje agencija" / „plaća se na licu mesta"</td><td><span class="chip ok">ima</span></td><td><code>TouristTaxCollectedBy</code> = INVOICED_TO_AGENCY / PAID_ON_SITE_BY_GUEST</td></tr>
-  <tr><td><b>Četiri osnove za samu cenu</b></td><td><span class="chip warn">nedostaje</span></td><td><code>PriceBasis</code> ima samo dve — po sobi/noć i po osobi/noć. <b>Nema po boravku</b>, a Plava Laguna cenovnik doslovno nosi <code>Rate Base = STAY</code></td></tr>
-  <tr><td><b>„Za rezervacije od–do" na ceni i doplati</b></td><td><span class="chip warn">nedostaje</span></td><td>postoji samo na ponudama</td></tr>
-  <tr><td><b>Sezona kao imenovana stvar sa više opsega</b></td><td><span class="chip warn">nedostaje</span></td><td>danas je period = jedan datumski opseg + jedan tip sobe</td></tr>
-  <tr><td><b>Doplata koja važi za više tipova soba</b></td><td><span class="chip warn">nedostaje</span></td><td>vezana je za jedan period, pa se za 6 soba unosi 6 puta</td></tr>
-  <tr><td><b>Cena po danu u nedelji (vikend)</b></td><td><span class="chip warn">nedostaje</span></td><td>danas bi tražilo duplo više perioda</td></tr>
-  <tr><td><b>Dani dolaska/odlaska i dužina turnusa</b></td><td><span class="chip warn">nedostaje</span></td><td>postoji na ponudi, ne na periodu</td></tr>
-  <tr><td><b>Tip sobe kao šifarnik</b></td><td><span class="chip warn">nedostaje</span></td><td>danas slobodan tekst — u šemi stoji „konvencija ka M2, <i>ne strogi FK</i>"</td></tr>
-  <tr><td><b>Marža na pojedinačnu stavku</b></td><td><span class="chip warn">nedostaje</span></td><td><code>MarkupScopeType</code> ide do dobavljača, ugovora, perioda i proizvoda — <b>ne do cenovne stavke ni doplate</b></td></tr>
-  <tr><td><b>Subagentska provizija po stavci</b></td><td><span class="chip warn">nedostaje</span></td><td>danas postoji samo <code>Subagent.commissionPercentage</code> (jedan procenat po subagentu) i stepenice po prometu — nema „na ovoj doplati nema provizije"</td></tr>
-  <tr><td><b>Boravišna taksa u obračunu, sa uzrasnim stepenima</b></td><td><span class="chip warn">nedostaje</span></td><td><code>TouristTaxInfo</code> je <i>jedan</i> zapis po periodu sa <i>jednim</i> iznosom i samo opisan — ne može da opiše 1,50 / 1,00 / 0,50 po uzrastu, niti da uđe u zbir</td></tr>
-  <tr><td><b>Provizija hotela po periodu</b></td><td><span class="chip warn">nedostaje</span></td><td><code>Contract.commissionPercentage</code> postoji, ali <b>jedan po celom ugovoru</b> — a vlasnik potvrđuje 10 % u jednom periodu, 7 % u drugom</td></tr>
-  <tr><td><b>Verzije cenovnika i razlika među njima</b></td><td><span class="chip warn">nedostaje</span></td><td>stavke danas imaju <code>status</code> i <code>replacesId</code> (gašenje i zamena pojedinačne stavke), ali nema pojma „verzija cenovnika" ni poređenja dve verzije</td></tr>
-  <tr><td><b>Ugovor za subagenta u dve varijante</b></td><td><span class="chip warn">nedostaje</span></td><td>sa prikazanom provizijom i bez nje — razlika je samo u izostavljenoj koloni, ali dotiče M7, ne M3</td></tr>
-  <tr><td><b>Izmena cenovnika rečima</b></td><td><span class="chip warn">nedostaje</span></td><td>nov ekran i nov AI zadatak; oslanja se na verzije cenovnika, pa ide posle njih</td></tr>
-</table>
+  <table class="plain">
+    <tr>
+      <th>Potrebno</th>
+      <th>Stanje</th>
+      <th>Napomena</th>
+    </tr>
+    <tr>
+      <td>Doplata/popust u istoj strukturi</td>
+      <td><span class="chip ok">ima</span></td>
+      <td><code>AncillaryKind</code> = SURCHARGE / DISCOUNT</td>
+    </tr>
+    <tr>
+      <td>Obavezno / opciono</td>
+      <td><span class="chip ok">ima</span></td>
+      <td><code>isMandatory</code></td>
+    </tr>
+    <tr>
+      <td>Plaća se u agenciji / u hotelu</td>
+      <td><span class="chip ok">ima</span></td>
+      <td><code>payable</code> = AGENCY / ON_SITE</td>
+    </tr>
+    <tr>
+      <td>Četiri osnove obračuna za <b>doplate</b></td>
+      <td><span class="chip ok">ima</span></td>
+      <td>po osobi/noć, po sobi/noć, po osobi/boravak, po sobi/boravak</td>
+    </tr>
+    <tr>
+      <td>Uzrasne kategorije i cena po uzrastu</td>
+      <td><span class="chip ok">ima</span></td>
+      <td><code>RateLineAgePricing</code></td>
+    </tr>
+    <tr>
+      <td>Rana rezervacija, X za Y, dani dolaska na ponudi</td>
+      <td><span class="chip ok">ima</span></td>
+      <td><code>PricelistOffer</code> sa <code>bookingFrom/To</code></td>
+    </tr>
+    <tr>
+      <td>Marža kao <b>procenat i iznos istovremeno</b></td>
+      <td><span class="chip ok">ima</span></td>
+      <td>
+        <code>MarkupRule</code> nosi i <code>percentage</code> i <code>fixedAmount</code>, plus
+        <code>activeFrom/To</code>
+      </td>
+    </tr>
+    <tr>
+      <td>Taksa: razlika „naplaćuje agencija" / „plaća se na licu mesta"</td>
+      <td><span class="chip ok">ima</span></td>
+      <td><code>TouristTaxCollectedBy</code> = INVOICED_TO_AGENCY / PAID_ON_SITE_BY_GUEST</td>
+    </tr>
+    <tr>
+      <td><b>Četiri osnove za samu cenu</b></td>
+      <td><span class="chip warn">nedostaje</span></td>
+      <td>
+        <code>PriceBasis</code> ima samo dve — po sobi/noć i po osobi/noć. <b>Nema po boravku</b>, a
+        Plava Laguna cenovnik doslovno nosi <code>Rate Base = STAY</code>
+      </td>
+    </tr>
+    <tr>
+      <td><b>„Za rezervacije od–do" na ceni i doplati</b></td>
+      <td><span class="chip warn">nedostaje</span></td>
+      <td>postoji samo na ponudama</td>
+    </tr>
+    <tr>
+      <td><b>Sezona kao imenovana stvar sa više opsega</b></td>
+      <td><span class="chip warn">nedostaje</span></td>
+      <td>danas je period = jedan datumski opseg + jedan tip sobe</td>
+    </tr>
+    <tr>
+      <td><b>Doplata koja važi za više tipova soba</b></td>
+      <td><span class="chip warn">nedostaje</span></td>
+      <td>vezana je za jedan period, pa se za 6 soba unosi 6 puta</td>
+    </tr>
+    <tr>
+      <td><b>Cena po danu u nedelji (vikend)</b></td>
+      <td><span class="chip warn">nedostaje</span></td>
+      <td>danas bi tražilo duplo više perioda</td>
+    </tr>
+    <tr>
+      <td><b>Dani dolaska/odlaska i dužina turnusa</b></td>
+      <td><span class="chip warn">nedostaje</span></td>
+      <td>postoji na ponudi, ne na periodu</td>
+    </tr>
+    <tr>
+      <td><b>Tip sobe kao šifarnik</b></td>
+      <td><span class="chip warn">nedostaje</span></td>
+      <td>danas slobodan tekst — u šemi stoji „konvencija ka M2, <i>ne strogi FK</i>"</td>
+    </tr>
+    <tr>
+      <td><b>Marža na pojedinačnu stavku</b></td>
+      <td><span class="chip warn">nedostaje</span></td>
+      <td>
+        <code>MarkupScopeType</code> ide do dobavljača, ugovora, perioda i proizvoda —
+        <b>ne do cenovne stavke ni doplate</b>
+      </td>
+    </tr>
+    <tr>
+      <td><b>Subagentska provizija po stavci</b></td>
+      <td><span class="chip warn">nedostaje</span></td>
+      <td>
+        danas postoji samo <code>Subagent.commissionPercentage</code> (jedan procenat po subagentu)
+        i stepenice po prometu — nema „na ovoj doplati nema provizije"
+      </td>
+    </tr>
+    <tr>
+      <td><b>Boravišna taksa u obračunu, sa uzrasnim stepenima</b></td>
+      <td><span class="chip warn">nedostaje</span></td>
+      <td>
+        <code>TouristTaxInfo</code> je <i>jedan</i> zapis po periodu sa <i>jednim</i> iznosom i samo
+        opisan — ne može da opiše 1,50 / 1,00 / 0,50 po uzrastu, niti da uđe u zbir
+      </td>
+    </tr>
+    <tr>
+      <td><b>Provizija hotela po periodu</b></td>
+      <td><span class="chip warn">nedostaje</span></td>
+      <td>
+        <code>Contract.commissionPercentage</code> postoji, ali <b>jedan po celom ugovoru</b> — a
+        vlasnik potvrđuje 10 % u jednom periodu, 7 % u drugom
+      </td>
+    </tr>
+    <tr>
+      <td><b>Verzije cenovnika i razlika među njima</b></td>
+      <td><span class="chip warn">nedostaje</span></td>
+      <td>
+        stavke danas imaju <code>status</code> i <code>replacesId</code> (gašenje i zamena
+        pojedinačne stavke), ali nema pojma „verzija cenovnika" ni poređenja dve verzije
+      </td>
+    </tr>
+    <tr>
+      <td><b>Ugovor za subagenta u dve varijante</b></td>
+      <td><span class="chip warn">nedostaje</span></td>
+      <td>
+        sa prikazanom provizijom i bez nje — razlika je samo u izostavljenoj koloni, ali dotiče M7,
+        ne M3
+      </td>
+    </tr>
+    <tr>
+      <td><b>Izmena cenovnika rečima</b></td>
+      <td><span class="chip warn">nedostaje</span></td>
+      <td>nov ekran i nov AI zadatak; oslanja se na verzije cenovnika, pa ide posle njih</td>
+    </tr>
+  </table>
 
-<div class="note warn">
-  <p><b>Zaključak.</b> Šesnaest stavki nedostaje, ali <b>samo jedna je prepravka</b> — boravišna taksa, koja iz zasebne opisne tabele prelazi u običnu doplatu. Sve ostalo je dodavanje. Tri su veće od ostalih: <b>sezona</b> (uvodi nov pojam između ugovora i perioda), <b>verzije cenovnika</b> (traži poređenje dve verzije, ne samo zamenu stavke) i <b>domet marže</b> (dva nova stepena u <code>MarkupScopeType</code>). Poslednja, dva ugovora za subagenta, uopšte nije M3 — to je M7.</p>
-</div>
-
-<h2>Redosled rada — predlog</h2>
-<ol>
-  <li><b>Dopuna specifikacije M3</b> sa osam stavki iznad, pa vaša potvrda. Bez toga nema koda (pravilo iz <code>CLAUDE.md</code>).</li>
-  <li><b>Cene:</b> sezone + mreža + četiri osnove + „za rezervacije od–do". Ovo je jezgro i samo za sebe ima smisla.</li>
-  <li><b>Doplate i popusti</b> po ovoj drugoj kartici — uključujući boravišnu taksu koja prelazi iz opisne u obračunsku.</li>
-  <li><b>Marža i provizija po stavci</b> (ekran 2b).</li>
-  <li><b>Dani u nedelji i turnusi</b> (tagovi po redu).</li>
-  <li><b>Verzije cenovnika</b> — nova verzija, poređenje sa prethodnom, potvrda samo razlika.</li>
-  <li><b>Kalendar</b> cena i raspoloživosti.</li>
-  <li><b>Izmena rečima</b> (ekran 4) — poslednja, jer se oslanja na sve prethodno: bez verzija nema šta da se uporedi, bez mreže nema šta da se izmeni.</li>
-</ol>
-<p class="sub">Koraci 2–5 su upotrebljivi svaki za sebe. Ako se stane posle koraka 3, cenovnik se već unosi brže nego danas.</p>
-
-<h2>Odluke vlasnika (9.9.2026)</h2>
-<p class="lead">Odgovori na pitanja iz prve verzije ovog mockupa. Ovo su sada obavezujuća pravila, ne predlozi.</p>
-
-<table class="plain">
-  <tr><th>Pitanje</th><th>Odluka</th><th>Posledica</th></tr>
-  <tr>
-    <td>Sezone — ime ili broj?</td>
-    <td><b>Vide se datumi.</b></td>
-    <td>Zaglavlje kolone nosi datumske opsege, ne samo broj. Broj ostaje kao kratka oznaka.</td>
-  </tr>
-  <tr>
-    <td>Vikend — koji dani?</td>
-    <td><b>Dani u nedelji kao tagovi</b>, biraju se klikom. (Kod njih je to petak i subota — nedelja se ne računa, jer gost te noći više ne spava.)</td>
-    <td>Nema pojma „vikend" u sistemu — postoji samo skup dana po redu. Ekran proverava da su svi dani pokriveni.</td>
-  </tr>
-  <tr>
-    <td>Redosled obračuna</td>
-    <td><b>Popust → provizija hotela → marža → provizija subagenta.</b></td>
-    <td>Provizija koju hotel daje agenciji skida se sa <i>već umanjene</i> cene. Vidi tabelu u pravilu 3 iznad.</td>
-  </tr>
-  <tr>
-    <td>Provizija hotela</td>
-    <td><b>Razlikuje se po periodu</b> — npr. 10 % u jednom, 7 % u drugom.</td>
-    <td>Novi red u mreži, jedna vrednost po sezoni. Danas model ima <b>jednu</b> proviziju po celom ugovoru.</td>
-  </tr>
-  <tr>
-    <td>Ono što se plaća u hotelu</td>
-    <td><b>Ne ulazi u fakturisanje.</b> Samo obaveštavamo kupca šta plaća na licu mesta.</td>
-    <td>Iznos se unosi i prikazuje, ali nikad ne ulazi u zbir ni na fakturu. Isto za boravišnu taksu kad je naplaćuje hotel.</td>
-  </tr>
-  <tr>
-    <td>Subagentska provizija</td>
-    <td><b>Subagent vidi koliko mu je dodeljeno.</b> Potrebna su <b>dva dokumenta</b>: ugovor <i>sa</i> prikazanom provizijom (za subagenta) i ugovor <i>bez</i> nje (za njegovog kupca).</td>
-    <td>Nije samo prikaz — dva odvojena ispisa istog posla. Dotiče M7 (B2B subagenti) i M10 (dokumenti).</td>
-  </tr>
-  <tr>
-    <td>Popust za 3. i 4. osobu</td>
-    <td><b>Od ulazne hotelske osnovne cene.</b> Važi i za sve ostale osobe.</td>
-    <td>Ne od cene sobe u kojoj gost leži, ne od cene posle drugih popusta.</td>
-  </tr>
-  <tr>
-    <td>Kalendar</td>
-    <td><b>Samo koliko je slobodno.</b></td>
-    <td>Bez „4 od 6".</td>
-  </tr>
-  <tr>
-    <td>Izmena cenovnika usred sezone</td>
-    <td><b>Ceo cenovnik ponovo</b>, ali menja se samo ono što je dobavljač promenio. <b>AI upoređuje sa prethodnom verzijom</b> i koriguje samo razliku.</td>
-    <td>Uvoz mora da zna prethodnu verziju i da pokaže <i>razliku</i>, ne novi spisak od nule. Vidi ispod.</td>
-  </tr>
-</table>
-
-<h3>Izmena cenovnika — šta ta odluka traži</h3>
-<p>Ovo je jedina odluka koja otvara nov ekran, pa je vredi razdvojiti:</p>
-<ul>
-  <li><b>Cenovnik dobija verzije.</b> Nova verzija ne briše staru — stara ostaje, jer rezervacije napravljene po njoj moraju i dalje da se objasne.</li>
-  <li><b>AI poredi novu verziju sa prethodnom</b> i pokazuje <b>samo razlike</b>: „Standard double, sezona 3: <s>61,00</s> → <b>64,00</b>", „nova stavka: doplata za parking", „nestalo: SPO 10 %".</li>
-  <li><b>Čovek potvrđuje razlike, ne ceo cenovnik.</b> Deset izmena u cenovniku od dvesta redova znači deset odluka, ne dvesta.</li>
-  <li><b>Postojeće rezervacije ostaju na staroj ceni.</b> Nova verzija važi od dana potvrde nadalje.</li>
-</ul>
-
-<h3>Dopunske odluke (isti dan, posle drugog kruga pitanja)</h3>
-<table class="plain">
-  <tr><th>Pitanje</th><th>Odluka</th><th>Posledica</th></tr>
-  <tr>
-    <td>Dva ugovora za subagenta</td>
-    <td><b>Razlika je samo u izostavljenoj proviziji.</b></td>
-    <td>Jedan šablon, dva ispisa — nije nov dokument. Posao je mali i pripada M7.</td>
-  </tr>
-  <tr>
-    <td>Provizija hotela</td>
-    <td><b>Za sada samo po periodu</b>, ali se ne isključuje da neki hotel jednom uvede i po tipu sobe.</td>
-    <td>Gradi se po periodu, ali istim obrascem kao marža — tako da se kasnije doda uži nivo bez prepravke. Vidi napomenu ispod.</td>
-  </tr>
-  <tr>
-    <td>Izmena cenovnika</td>
-    <td><b>Hotel šalje ceo nov cenovnik.</b> Uz to: <b>AI agent kome se kaže rečima šta da izmeni</b> kad su izmene male — i za cene i za sve ostale stavke.</td>
-    <td>Dve odvojene sposobnosti, ne jedna. Vidi ekran 4.</td>
-  </tr>
-</table>
-
-<div class="note info">
-  <p><b>Zašto provizija hotela ide „po periodu, ali spremno za uže".</b> Isti obrazac već postoji u sistemu: <code>MarkupRule</code> ne pripada nijednoj tabeli nego nosi <code>scopeType</code> + <code>scopeId</code> — pa se isto pravilo veže na dobavljača, ugovor ili proizvod, bez ijedne izmene u modelu kad se doda nov nivo. Provizija hotela se pravi tako, čak i dok postoji samo jedan nivo. Cena toga danas je nula; cena naknadnog prelaska sa fiksnog polja na obrazac je prepravka svega što je u međuvremenu čita.</p>
-</div>
-
-<!-- ══════════════════ EKRAN 4 ══════════════════ -->
-<h2>Ekran 4 — Izmena cenovnika rečima (AI agent)</h2>
-<p class="lead">„Kad su manje izmene, da mu kažemo šta treba da izmeni, on to izmeni, prikaže, sačeka odobrenje i primeni." — odluka vlasnika, 9.9.2026</p>
-
-<div class="screen">
-  <div class="screen-bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span> localhost:3100/ugovori/…/cenovnik#izmena</div>
-  <div class="screen-body">
-
-    <div class="hdr">
-      <h4>Izmena cenovnika — Lusso Mare by Aycon 2026</h4>
-      <span class="chip info">verzija 3 · na snazi od 12.05.2026</span>
-    </div>
-
-    <p class="sub" style="margin-top:0">Recite šta treba izmeniti. Isto kao da kažete kolegi — ne morate znati nazive polja.</p>
-    <div style="border:1px solid var(--rule-strong);border-radius:8px;background:var(--paper-2);padding:10px 12px;font-family:var(--mono);font-size:12.5px;margin-bottom:10px">
-      Hotel je javio: cene za sezonu 4 i 5 idu gore 5%, rok za otkazivanje alotmana u sezoni 5 je sada 14 dana umesto 10,
-      i uvode doplatu za parking 5 € po sobi po noći koja se plaća na licu mesta. Rani buking 2. krug se ukida.
-      <span style="color:var(--accent)">▌</span>
-    </div>
-    <div class="toolbar" style="margin-bottom:16px">
-      <span class="btn primary">Pripremi izmene</span>
-      <span class="btn ghost">Priloži mejl dobavljača</span>
-    </div>
-
-    <h3 style="margin-top:0">Predlog izmena <span class="chip warn" style="text-transform:none;letter-spacing:0">ništa još nije primenjeno</span></h3>
-
-    <table class="grid" style="min-width:760px">
-      <thead>
-        <tr>
-          <th class="lbl">Šta se menja</th><th>Sada</th><th>Postaje</th><th>Odluka</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td class="lbl">Budget double · NsD · sezona 4</td>
-          <td><span class="cell">62,00</span></td><td><span class="cell focus">65,10</span></td>
-          <td><span class="chip ok">✓ prihvati</span><span class="chip gray">✕</span></td>
-        </tr>
-        <tr>
-          <td class="lbl">Budget double · NsD · sezona 5</td>
-          <td><span class="cell">65,00</span></td><td><span class="cell focus">68,25</span></td>
-          <td><span class="chip ok">✓ prihvati</span><span class="chip gray">✕</span></td>
-        </tr>
-        <tr>
-          <td class="lbl">Standard double · NsD · sezona 4</td>
-          <td><span class="cell">67,00</span></td><td><span class="cell focus">70,35</span></td>
-          <td><span class="chip ok">✓ prihvati</span><span class="chip gray">✕</span></td>
-        </tr>
-        <tr class="meta-row">
-          <td class="lbl" colspan="4" style="text-align:left">… još 9 cenovnih redova sa istim podizanjem od 5 % &nbsp;<span class="chip">prikaži sve</span></td>
-        </tr>
-        <tr>
-          <td class="lbl">Rok otkazivanja alotmana · sezona 5</td>
-          <td><span class="cell num">10 dana</span></td><td><span class="cell num focus">14 dana</span></td>
-          <td><span class="chip ok">✓ prihvati</span><span class="chip gray">✕</span></td>
-        </tr>
-        <tr>
-          <td class="lbl">Parking <span class="chip ok">nova stavka</span></td>
-          <td class="sub">—</td>
-          <td style="text-align:left"><span class="cell">5,00</span> <span class="chip">po sobi / noć</span> <span class="chip warn">u hotelu</span> <span class="chip gray">opciono</span></td>
-          <td><span class="chip ok">✓ prihvati</span><span class="chip gray">✕</span></td>
-        </tr>
-        <tr>
-          <td class="lbl">Rana rezervacija 2. krug <span class="chip" style="border-color:var(--danger);color:var(--danger);background:var(--danger-bg)">gasi se</span></td>
-          <td><span class="cell pct">−10 %</span></td>
-          <td class="sub">gasi se od 12.05.2026 — postojeće rezervacije ostaju</td>
-          <td><span class="chip ok">✓ prihvati</span><span class="chip gray">✕</span></td>
-        </tr>
-      </tbody>
-    </table>
-
-    <div class="toolbar" style="margin-top:12px">
-      <span class="btn primary">Primeni 15 prihvaćenih izmena</span>
-      <span class="btn">Prihvati sve</span>
-      <span class="btn ghost">Odustani</span>
-    </div>
-
-    <p class="sub" style="margin-top:10px">Posle primene nastaje <b>verzija 4</b>. Verzija 3 ostaje zapisana, zajedno sa rečenicom koja je izmenu tražila i imenom onoga ko je odobrio.</p>
+  <div class="note warn">
+    <p>
+      <b>Zaključak.</b> Šesnaest stavki nedostaje, ali <b>samo jedna je prepravka</b> — boravišna
+      taksa, koja iz zasebne opisne tabele prelazi u običnu doplatu. Sve ostalo je dodavanje. Tri su
+      veće od ostalih: <b>sezona</b> (uvodi nov pojam između ugovora i perioda),
+      <b>verzije cenovnika</b> (traži poređenje dve verzije, ne samo zamenu stavke) i
+      <b>domet marže</b> (dva nova stepena u <code>MarkupScopeType</code>). Poslednja, dva ugovora
+      za subagenta, uopšte nije M3 — to je M7.
+    </p>
   </div>
-</div>
 
-<h3>Četiri pravila koja ovaj ekran mora da poštuje</h3>
-<ol>
-  <li><b>AI ne upisuje ništa.</b> On priprema predlog; upis se dešava tek klikom čoveka. Isto pravilo koje već važi za AI uvoz cenovnika (§4.2.4).</li>
-  <li><b>Svaka izmena se odobrava posebno.</b> „Prihvati sve" postoji zbog brzine, ali pojedinačno odbijanje mora biti moguće — inače jedna pogrešno shvaćena rečenica prolazi zajedno sa četrnaest ispravnih.</li>
-  <li><b>Rečenica koja je tražila izmenu se čuva</b> uz rezultat. Bez nje se posle ne može utvrditi da li je AI pogrešno razumeo ili je tako i rečeno — isto kao što se kod uvoza čuva izvorni tekst cenovnika.</li>
-  <li><b>Gašenje, ne brisanje.</b> Ukinuta stavka se gasi sa datumom; rezervacije napravljene dok je važila ostaju objašnjive. Ovo model već ume — <code>status</code> + <code>deactivatedAt</code> + <code>replacesId</code>.</li>
-</ol>
+  <h2>Redosled rada — predlog</h2>
+  <ol>
+    <li>
+      <b>Dopuna specifikacije M3</b> sa osam stavki iznad, pa vaša potvrda. Bez toga nema koda
+      (pravilo iz <code>CLAUDE.md</code>).
+    </li>
+    <li>
+      <b>Cene:</b> sezone + mreža + četiri osnove + „za rezervacije od–do". Ovo je jezgro i samo za
+      sebe ima smisla.
+    </li>
+    <li>
+      <b>Doplate i popusti</b> po ovoj drugoj kartici — uključujući boravišnu taksu koja prelazi iz
+      opisne u obračunsku.
+    </li>
+    <li><b>Marža i provizija po stavci</b> (ekran 2b).</li>
+    <li><b>Dani u nedelji i turnusi</b> (tagovi po redu).</li>
+    <li><b>Verzije cenovnika</b> — nova verzija, poređenje sa prethodnom, potvrda samo razlika.</li>
+    <li><b>Kalendar</b> cena i raspoloživosti.</li>
+    <li>
+      <b>Izmena rečima</b> (ekran 4) — poslednja, jer se oslanja na sve prethodno: bez verzija nema
+      šta da se uporedi, bez mreže nema šta da se izmeni.
+    </li>
+  </ol>
+  <p class="sub">
+    Koraci 2–5 su upotrebljivi svaki za sebe. Ako se stane posle koraka 3, cenovnik se već unosi
+    brže nego danas.
+  </p>
 
-<div class="note info">
-  <p><b>Odnos prema uvozu iz PDF-a.</b> Ovo su dve različite stvari i obe su potrebne: <b>ceo nov cenovnik</b> ide kroz uvoz i poređenje verzija (AI čita dokument), a <b>sitna izmena</b> ide kroz ovaj ekran (AI sluša rečenicu). Zajedničko im je da obe završavaju na istom mestu — spisak razlika koji čovek odobrava red po red.</p>
-</div>
+  <h2>Odluke vlasnika (9.9.2026)</h2>
+  <p class="lead">
+    Odgovori na pitanja iz prve verzije ovog mockupa. Ovo su sada obavezujuća pravila, ne predlozi.
+  </p>
 
-<hr>
-<p class="sub">Mockup, ne implementacija. Podaci su iz stvarnog cenovnika <i>Allotment pricelist 2026 — Lusso Mare by Aycon</i>; oblici provereni i na <i>PUY_Hotel Park Plava Laguna</i>, <i>Alpine Palace / Olympic Travel</i> i <i>Solvex Offer Summer 2025</i>.</p>
+  <table class="plain">
+    <tr>
+      <th>Pitanje</th>
+      <th>Odluka</th>
+      <th>Posledica</th>
+    </tr>
+    <tr>
+      <td>Sezone — ime ili broj?</td>
+      <td><b>Vide se datumi.</b></td>
+      <td>Zaglavlje kolone nosi datumske opsege, ne samo broj. Broj ostaje kao kratka oznaka.</td>
+    </tr>
+    <tr>
+      <td>Vikend — koji dani?</td>
+      <td>
+        <b>Dani u nedelji kao tagovi</b>, biraju se klikom. (Kod njih je to petak i subota — nedelja
+        se ne računa, jer gost te noći više ne spava.)
+      </td>
+      <td>
+        Nema pojma „vikend" u sistemu — postoji samo skup dana po redu. Ekran proverava da su svi
+        dani pokriveni.
+      </td>
+    </tr>
+    <tr>
+      <td>Redosled obračuna</td>
+      <td><b>Popust → provizija hotela → marža → provizija subagenta.</b></td>
+      <td>
+        Provizija koju hotel daje agenciji skida se sa <i>već umanjene</i> cene. Vidi tabelu u
+        pravilu 3 iznad.
+      </td>
+    </tr>
+    <tr>
+      <td>Provizija hotela</td>
+      <td><b>Razlikuje se po periodu</b> — npr. 10 % u jednom, 7 % u drugom.</td>
+      <td>
+        Novi red u mreži, jedna vrednost po sezoni. Danas model ima <b>jednu</b> proviziju po celom
+        ugovoru.
+      </td>
+    </tr>
+    <tr>
+      <td>Ono što se plaća u hotelu</td>
+      <td><b>Ne ulazi u fakturisanje.</b> Samo obaveštavamo kupca šta plaća na licu mesta.</td>
+      <td>
+        Iznos se unosi i prikazuje, ali nikad ne ulazi u zbir ni na fakturu. Isto za boravišnu taksu
+        kad je naplaćuje hotel.
+      </td>
+    </tr>
+    <tr>
+      <td>Subagentska provizija</td>
+      <td>
+        <b>Subagent vidi koliko mu je dodeljeno.</b> Potrebna su <b>dva dokumenta</b>: ugovor
+        <i>sa</i> prikazanom provizijom (za subagenta) i ugovor <i>bez</i> nje (za njegovog kupca).
+      </td>
+      <td>
+        Nije samo prikaz — dva odvojena ispisa istog posla. Dotiče M7 (B2B subagenti) i M10
+        (dokumenti).
+      </td>
+    </tr>
+    <tr>
+      <td>Popust za 3. i 4. osobu</td>
+      <td><b>Od ulazne hotelske osnovne cene.</b> Važi i za sve ostale osobe.</td>
+      <td>Ne od cene sobe u kojoj gost leži, ne od cene posle drugih popusta.</td>
+    </tr>
+    <tr>
+      <td>Kalendar</td>
+      <td><b>Samo koliko je slobodno.</b></td>
+      <td>Bez „4 od 6".</td>
+    </tr>
+    <tr>
+      <td>Izmena cenovnika usred sezone</td>
+      <td>
+        <b>Ceo cenovnik ponovo</b>, ali menja se samo ono što je dobavljač promenio.
+        <b>AI upoređuje sa prethodnom verzijom</b> i koriguje samo razliku.
+      </td>
+      <td>
+        Uvoz mora da zna prethodnu verziju i da pokaže <i>razliku</i>, ne novi spisak od nule. Vidi
+        ispod.
+      </td>
+    </tr>
+  </table>
 
+  <h3>Izmena cenovnika — šta ta odluka traži</h3>
+  <p>Ovo je jedina odluka koja otvara nov ekran, pa je vredi razdvojiti:</p>
+  <ul>
+    <li>
+      <b>Cenovnik dobija verzije.</b> Nova verzija ne briše staru — stara ostaje, jer rezervacije
+      napravljene po njoj moraju i dalje da se objasne.
+    </li>
+    <li>
+      <b>AI poredi novu verziju sa prethodnom</b> i pokazuje <b>samo razlike</b>: „Standard double,
+      sezona 3: <s>61,00</s> → <b>64,00</b>", „nova stavka: doplata za parking", „nestalo: SPO 10
+      %".
+    </li>
+    <li>
+      <b>Čovek potvrđuje razlike, ne ceo cenovnik.</b> Deset izmena u cenovniku od dvesta redova
+      znači deset odluka, ne dvesta.
+    </li>
+    <li>
+      <b>Postojeće rezervacije ostaju na staroj ceni.</b> Nova verzija važi od dana potvrde nadalje.
+    </li>
+  </ul>
+
+  <h3>Dopunske odluke (isti dan, posle drugog kruga pitanja)</h3>
+  <table class="plain">
+    <tr>
+      <th>Pitanje</th>
+      <th>Odluka</th>
+      <th>Posledica</th>
+    </tr>
+    <tr>
+      <td>Dva ugovora za subagenta</td>
+      <td><b>Razlika je samo u izostavljenoj proviziji.</b></td>
+      <td>Jedan šablon, dva ispisa — nije nov dokument. Posao je mali i pripada M7.</td>
+    </tr>
+    <tr>
+      <td>Provizija hotela</td>
+      <td>
+        <b>Za sada samo po periodu</b>, ali se ne isključuje da neki hotel jednom uvede i po tipu
+        sobe.
+      </td>
+      <td>
+        Gradi se po periodu, ali istim obrascem kao marža — tako da se kasnije doda uži nivo bez
+        prepravke. Vidi napomenu ispod.
+      </td>
+    </tr>
+    <tr>
+      <td>Izmena cenovnika</td>
+      <td>
+        <b>Hotel šalje ceo nov cenovnik.</b> Uz to:
+        <b>AI agent kome se kaže rečima šta da izmeni</b> kad su izmene male — i za cene i za sve
+        ostale stavke.
+      </td>
+      <td>Dve odvojene sposobnosti, ne jedna. Vidi ekran 4.</td>
+    </tr>
+  </table>
+
+  <div class="note info">
+    <p>
+      <b>Zašto provizija hotela ide „po periodu, ali spremno za uže".</b> Isti obrazac već postoji u
+      sistemu: <code>MarkupRule</code> ne pripada nijednoj tabeli nego nosi <code>scopeType</code> +
+      <code>scopeId</code> — pa se isto pravilo veže na dobavljača, ugovor ili proizvod, bez ijedne
+      izmene u modelu kad se doda nov nivo. Provizija hotela se pravi tako, čak i dok postoji samo
+      jedan nivo. Cena toga danas je nula; cena naknadnog prelaska sa fiksnog polja na obrazac je
+      prepravka svega što je u međuvremenu čita.
+    </p>
+  </div>
+
+  <!-- ══════════════════ EKRAN 4 ══════════════════ -->
+  <h2>Ekran 4 — Izmena cenovnika rečima (AI agent)</h2>
+  <p class="lead">
+    „Kad su manje izmene, da mu kažemo šta treba da izmeni, on to izmeni, prikaže, sačeka odobrenje
+    i primeni." — odluka vlasnika, 9.9.2026
+  </p>
+
+  <div class="screen">
+    <div class="screen-bar">
+      <span class="dot"></span><span class="dot"></span
+      ><span class="dot"></span> localhost:3100/ugovori/…/cenovnik#izmena
+    </div>
+    <div class="screen-body">
+      <div class="hdr">
+        <h4>Izmena cenovnika — Lusso Mare by Aycon 2026</h4>
+        <span class="chip info">verzija 3 · na snazi od 12.05.2026</span>
+      </div>
+
+      <p class="sub" style="margin-top: 0">
+        Recite šta treba izmeniti. Isto kao da kažete kolegi — ne morate znati nazive polja.
+      </p>
+      <div
+        style="
+          border: 1px solid var(--rule-strong);
+          border-radius: 8px;
+          background: var(--paper-2);
+          padding: 10px 12px;
+          font-family: var(--mono);
+          font-size: 12.5px;
+          margin-bottom: 10px;
+        "
+      >
+        Hotel je javio: cene za sezonu 4 i 5 idu gore 5%, rok za otkazivanje alotmana u sezoni 5 je
+        sada 14 dana umesto 10, i uvode doplatu za parking 5 € po sobi po noći koja se plaća na licu
+        mesta. Rani buking 2. krug se ukida.
+        <span style="color: var(--accent)">▌</span>
+      </div>
+      <div class="toolbar" style="margin-bottom: 16px">
+        <span class="btn primary">Pripremi izmene</span>
+        <span class="btn ghost">Priloži mejl dobavljača</span>
+      </div>
+
+      <h3 style="margin-top: 0">
+        Predlog izmena
+        <span class="chip warn" style="text-transform: none; letter-spacing: 0"
+          >ništa još nije primenjeno</span
+        >
+      </h3>
+
+      <table class="grid" style="min-width: 760px">
+        <thead>
+          <tr>
+            <th class="lbl">Šta se menja</th>
+            <th>Sada</th>
+            <th>Postaje</th>
+            <th>Odluka</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="lbl">Budget double · NsD · sezona 4</td>
+            <td><span class="cell">62,00</span></td>
+            <td><span class="cell focus">65,10</span></td>
+            <td><span class="chip ok">✓ prihvati</span><span class="chip gray">✕</span></td>
+          </tr>
+          <tr>
+            <td class="lbl">Budget double · NsD · sezona 5</td>
+            <td><span class="cell">65,00</span></td>
+            <td><span class="cell focus">68,25</span></td>
+            <td><span class="chip ok">✓ prihvati</span><span class="chip gray">✕</span></td>
+          </tr>
+          <tr>
+            <td class="lbl">Standard double · NsD · sezona 4</td>
+            <td><span class="cell">67,00</span></td>
+            <td><span class="cell focus">70,35</span></td>
+            <td><span class="chip ok">✓ prihvati</span><span class="chip gray">✕</span></td>
+          </tr>
+          <tr class="meta-row">
+            <td class="lbl" colspan="4" style="text-align: left">
+              … još 9 cenovnih redova sa istim podizanjem od 5 % &nbsp;<span class="chip"
+                >prikaži sve</span
+              >
+            </td>
+          </tr>
+          <tr>
+            <td class="lbl">Rok otkazivanja alotmana · sezona 5</td>
+            <td><span class="cell num">10 dana</span></td>
+            <td><span class="cell num focus">14 dana</span></td>
+            <td><span class="chip ok">✓ prihvati</span><span class="chip gray">✕</span></td>
+          </tr>
+          <tr>
+            <td class="lbl">Parking <span class="chip ok">nova stavka</span></td>
+            <td class="sub">—</td>
+            <td style="text-align: left">
+              <span class="cell">5,00</span> <span class="chip">po sobi / noć</span>
+              <span class="chip warn">u hotelu</span> <span class="chip gray">opciono</span>
+            </td>
+            <td><span class="chip ok">✓ prihvati</span><span class="chip gray">✕</span></td>
+          </tr>
+          <tr>
+            <td class="lbl">
+              Rana rezervacija 2. krug
+              <span
+                class="chip"
+                style="
+                  border-color: var(--danger);
+                  color: var(--danger);
+                  background: var(--danger-bg);
+                "
+                >gasi se</span
+              >
+            </td>
+            <td><span class="cell pct">−10 %</span></td>
+            <td class="sub">gasi se od 12.05.2026 — postojeće rezervacije ostaju</td>
+            <td><span class="chip ok">✓ prihvati</span><span class="chip gray">✕</span></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="toolbar" style="margin-top: 12px">
+        <span class="btn primary">Primeni 15 prihvaćenih izmena</span>
+        <span class="btn">Prihvati sve</span>
+        <span class="btn ghost">Odustani</span>
+      </div>
+
+      <p class="sub" style="margin-top: 10px">
+        Posle primene nastaje <b>verzija 4</b>. Verzija 3 ostaje zapisana, zajedno sa rečenicom koja
+        je izmenu tražila i imenom onoga ko je odobrio.
+      </p>
+    </div>
+  </div>
+
+  <h3>Četiri pravila koja ovaj ekran mora da poštuje</h3>
+  <ol>
+    <li>
+      <b>AI ne upisuje ništa.</b> On priprema predlog; upis se dešava tek klikom čoveka. Isto
+      pravilo koje već važi za AI uvoz cenovnika (§4.2.4).
+    </li>
+    <li>
+      <b>Svaka izmena se odobrava posebno.</b> „Prihvati sve" postoji zbog brzine, ali pojedinačno
+      odbijanje mora biti moguće — inače jedna pogrešno shvaćena rečenica prolazi zajedno sa
+      četrnaest ispravnih.
+    </li>
+    <li>
+      <b>Rečenica koja je tražila izmenu se čuva</b> uz rezultat. Bez nje se posle ne može utvrditi
+      da li je AI pogrešno razumeo ili je tako i rečeno — isto kao što se kod uvoza čuva izvorni
+      tekst cenovnika.
+    </li>
+    <li>
+      <b>Gašenje, ne brisanje.</b> Ukinuta stavka se gasi sa datumom; rezervacije napravljene dok je
+      važila ostaju objašnjive. Ovo model već ume — <code>status</code> +
+      <code>deactivatedAt</code> + <code>replacesId</code>.
+    </li>
+  </ol>
+
+  <div class="note info">
+    <p>
+      <b>Odnos prema uvozu iz PDF-a.</b> Ovo su dve različite stvari i obe su potrebne:
+      <b>ceo nov cenovnik</b> ide kroz uvoz i poređenje verzija (AI čita dokument), a
+      <b>sitna izmena</b> ide kroz ovaj ekran (AI sluša rečenicu). Zajedničko im je da obe
+      završavaju na istom mestu — spisak razlika koji čovek odobrava red po red.
+    </p>
+  </div>
+
+  <hr />
+  <p class="sub">
+    Mockup, ne implementacija. Podaci su iz stvarnog cenovnika
+    <i>Allotment pricelist 2026 — Lusso Mare by Aycon</i>; oblici provereni i na
+    <i>PUY_Hotel Park Plava Laguna</i>, <i>Alpine Palace / Olympic Travel</i> i
+    <i>Solvex Offer Summer 2025</i>.
+  </p>
 </div>
