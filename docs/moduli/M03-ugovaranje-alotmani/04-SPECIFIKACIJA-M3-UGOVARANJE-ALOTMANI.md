@@ -3,6 +3,16 @@
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M3) i poglavlje 8 (Faza 1)
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje
+**Verzija:** 1.33 — **verzije cenovnika napravljene** (9.9.2026, korak 5 od sedam iz `docs/analize/46-PREDAJA-RADA-CENOVNIK.md`). Nov zapis `PricelistVersion` (migracija `20260909201500`) i čista logika poređenja `pricelist/pricelist-diff.ts`. Verzija nosi **snimak celog cenovnika**, ne samo razlike — bez snimka se razlika prema prošloj verziji ne može izračunati kasnije, jer se žive stavke u međuvremenu gase i zamenjuju (§2.4c), pa „kako je cenovnik izgledao tada" prestaje da bude upit nad tabelama.
+
+**Dva ulaza u isti tok, i razlika je namerna.** *Ručna izmena:* čovek menja ćeliju u mreži, izmena se primenjuje odmah (kao i do sada), a verzija se snima posle — ekran „Verzije" pokazuje **samo razlike** prema poslednjoj potvrđenoj verziji i jedno dugme koje ih zapisuje. *Predlog spolja* (§4.2 uvoz dokumenta, §4.8 izmena rečima): predlagač je mašina, pa se **ništa ne upisuje pre potvrde** — `POST .../pricelist-versions/predlog` vraća samo razlike, `POST .../pricelist-versions/primeni` upisuje **isključivo potvrđene** ključeve. Nepotvrđena razlika ostaje na staroj vrednosti i vraća se u odgovoru kao `odbijeno`, da se ne izgubi bez traga.
+
+**Ključ stavke** je ono što čini poređenje čitljivim: tip sobe + sezona + pansion + popunjenost + osnova cene + dani u nedelji, **bez cene**. Zato promena cene izlazi kao jedan red „100,00 → 110,00", a ne kao „jedna nestala + jedna nova". Doplate se porede po **imenu i dometu**, ne po `id`-u zapisa (nov dokument donosi nove zapise iste doplate).
+
+**Dve namerne granice ovog prolaza.** (1) Verzija bez ijedne razlike se **odbija** — istorija ne sme postati spisak istovetnih snimaka. (2) Doplate i popusti se **prikazuju** u razlikama i ulaze u snimak, ali se kroz predlog cena **ne menjaju** — predlog nema polja kojima bi se doplata opisala (osnova, uzrast, obaveznošć, način plaćanja); menjaju se na svom ekranu (§2.11k), pa se verzija snima posle. Potvrda doplate kroz `primeni` vraća 400 sa tim objašnjenjem, ne ćuti.
+
+**Izmereno kroz iste endpoint-e koje panel zove, nad pravom bazom:** verzija 1 snima cenovnik od 100,00; posle izmene ćelije `GET .../pricelist-versions/razlike` vraća **tačno jednu** razliku sa porukom „100,00 → 110,00"; ponovljena potvrda bez ijedne izmene pada na 400; predlog sa dve izmene od kojih je potvrđena jedna ostavlja drugu sobu na staroj ceni (12000 i 20000 u mreži posle primene); potvrđeno gašenje uklanja cenu iz mreže, a verzija 1 je i dalje čita. **Provera:** 30 novih jediničnih testova + `test/m3-pricelist-versions.e2e-spec.ts` (4 testa) nad sveže napravljenom bazom. Ekran: kartica „Verzije" na `/ugovori/[id]/cenovnik`.
+
 **Verzija:** 1.32 — **dani u nedelji i turnusi napravljeni** (9.9.2026, korak 4 od sedam iz `docs/analize/46-PREDAJA-RADA-CENOVNIK.md`). Model: `RateLine.valid_weekdays`, `ContractPeriod.arrival_weekdays`/`departure_weekdays`/`allowed_stay_nights` (migracija `20260909185617`), svuda prazan niz = bez ograničenja. Ekran cenovnika bira dane **kao tagove** (vlasnikova odluka), red nosi oznaku dana, a period dobija kvačice za dane prijave/odjave i polje za dozvoljene dužine boravka.
 
 **Jedno odstupanje od teksta §2.11d, sa razlogom.** Spec je tražio da se odbije i red koji ostavlja **nepokriven dan**. Tako napisano, unos je nemoguć: prvi red „ned–čet" bi bio odbijen jer petak i subota još ne postoje, pa se drugi red nikad ne bi ni stigao dodati. Zato se **preklapanje odbija** (dva reda ne smeju dati dve cene za isti datum), a **nepokriven dan se prijavljuje kao upozorenje** uz odgovor i vidi se na ekranu; posledica ostaje stvarna — za taj datum nema cene i boravak se ne može ponuditi.
@@ -898,6 +908,23 @@ Nov zapis `PricelistVersion` (`contract_id`, `version_no`, `effective_from`, `cr
 - **Čovek potvrđuje razlike, ne ceo cenovnik.** Deset izmena u cenovniku od dvesta redova znači deset odluka, ne dvesta.
 - Postojeće rezervacije ostaju na staroj ceni; nova verzija važi od `effective_from` nadalje. Stavka rezervacije ionako nosi svoju cenovnu liniju kao snimak (M5 §6).
 
+**Napravljeno u v1.33.** Zapis nosi i `snapshot` (ceo cenovnik u trenutku potvrde) i `change_count` (koliko je razlika ta verzija donela), a `note` je dopunjen sa `instruction_text` (§4.8) i `source_import_id` (§4.2). Snimak je obavezan, ne ukras: žive stavke se gase i zamenjuju (§2.4c), pa se posle nekoliko izmena razlika prema prošloj verziji ne može rekonstruisati iz tabela.
+
+**Ključ stavke.** Dve stavke su „ista stavka u dve verzije" ako im se poklapa sve **osim vrednosti**: tip sobe, sezona (po oznaci, ne po `id`-u), pansion, popunjenost, osnova cene i dani u nedelji. Doplata se prepoznaje po imenu, vrsti, dometu, tipovima soba i uzrasnom opsegu — namerno **ne po `id`-u**, jer nov dokument od dobavljača donosi nove zapise iste doplate, pa bi poređenje po `id`-u sve prikazalo kao „ugašeno + novo".
+
+**Četiri pravila primene:**
+
+1. Verzija **bez ijedne razlike se odbija** (400) — istorija bez toga postaje spisak istovetnih snimaka kroz koji se ne može tražiti kada se nešto promenilo.
+2. Predlog spolja (§4.2/§4.8) **ništa ne upisuje**. Upisuje tek `primeni`, i to samo ključeve koje je čovek potvrdio; nepotvrđena razlika ostaje na staroj vrednosti i vraća se kao `odbijeno`.
+3. Potvrđen ključ kog više nema među razlikama vraća 400 („cenovnik se u međuvremenu promenio"), umesto da se primeni nešto drugo od onoga što je čovek video.
+4. Potvrđeno **gašenje** gasi cenovne redove (`status = INACTIVE`), nikad ih ne briše — isto pravilo kao §2.4c.
+
+**Namerna granica.** Doplate i popusti ulaze u snimak i prikazuju se među razlikama, ali se kroz predlog cena **ne menjaju**: predlog nosi samo cenovne redove, a doplata traži osnovu, uzrast, obaveznost i način plaćanja. Menjaju se na svom ekranu (§2.11k), pa se verzija snima posle. Pokušaj da se doplata potvrdi kroz `primeni` vraća 400 sa tim objašnjenjem.
+
+**Ekran.** Kartica „Verzije" na `/ugovori/[id]/cenovnik`: gore spisak razlika prema poslednjoj verziji sa poljem „važi od" i jednim dugmetom, dole istorija verzija. Kad razlika nema, ekran to kaže rečenicom — prazan spisak ovde je dobra vest, ne prazna baza.
+
+**Endpoint-i (§8):** `GET|POST /contracting/contracts/:id/pricelist-versions`, `GET .../razlike`, `GET .../:versionNo`, `GET .../:versionNo/diff`, `POST .../predlog`, `POST .../primeni`. Dozvole su iste kao za ostatak cenovnika (`M3/contract-period` VIEW/EDIT) — ko sme da menja cenu sme i da potvrdi verziju o toj istoj izmeni.
+
 #### 2.11m Tip sobe kao šifarnik
 
 `ContractPeriod.room_type` je slobodan tekst; u šemi stoji „konvencija ka M2 `attributes.room_types[].code`, **ne strogi FK**". Posledica: „DBL" se kuca ručno pri svakom unosu, multiselect nije moguć bez šifarnika, a AI poklapanje je teže nego što mora biti.
@@ -1297,7 +1324,7 @@ Prefiks: `/api/v1/contracting`
 - [x] **Taksa u obračunu (2.11j):** taksa sa `payable = AGENCY` ulazi u ukupnu cenu i na fakturu; ista sa `ON_SITE` **ne ulazi u zbir** ali je odštampana na ponudi i vaučeru sa iznosom. _(izmereno 9.9.2026 nad pravom bazom: tri uzrasna stepena 1,50 / 1,00 / 0,50 upisana kao doplate sa ON_SITE; API vraca ulaziUZbir=false za sve tri, a true za veceru i popuste — 3 od 6 ulazi u zbir)_
 - [x] **Domet doplate važi i u prodaji (2.11k):** doplata sa dometom „ceo ugovor" se prikazuje na stavci rezervacije preko `GET /sales/bookings/:id/items/:itemId/ancillaries`, dok doplata druge sobe, drugog perioda i ugašena stavka (§2.4c) ne ulaze u spisak. _(9.9.2026: pre ove izmene M5 je čitao samo `contractPeriod.ancillaryServices` i nijedna doplata sa dometom ugovora nije stizala do prodavca; dokazano novim e2e testom nad pravom bazom — pet doplata, dve moraju da se vide, tri ne smeju)_
 - [x] **Doplata za više soba (2.11k):** jedna doplata sa `scope_type = M3_CONTRACT` važi za sve tipove soba bez ijednog dupliranog zapisa. _(9.9.2026: doplata bez dometa vazi za sve sobe; popust za 3. osobu ogranicen na dva tipa apartmana jednim zapisom, bez dupliranja; 18 jedinicnih testova nad `surcharge-scope`)_
-- [ ] **Verzija cenovnika (2.11l):** posle uvoza izmenjenog cenovnika ekran prikazuje **samo razlike**; prethodna verzija ostaje čitljiva, a rezervacija napravljena pre izmene i dalje prikazuje staru cenu.
+- [x] **Verzija cenovnika (2.11l):** posle uvoza izmenjenog cenovnika ekran prikazuje **samo razlike**; prethodna verzija ostaje čitljiva, a rezervacija napravljena pre izmene i dalje prikazuje staru cenu. _(v1.33 — tok razlike/potvrde je napravljen i izmeren; ekran AI uvoza iz §4.2 još ne zove `predlog`/`primeni` nego upisuje red po red, što se spaja u koraku 7.)_
 - [ ] **Izmena rečima (4.8):** rečenica koja traži tri različite izmene proizvodi tri odvojene stavke za odobrenje; odbijanje jedne ne sprečava primenu ostale dve; `instruction_text` je sačuvan uz nastalu verziju.
 - [ ] **Mreža na ekranu (M17 §6d):** ceo cenovnik jednog hotela sa 5 tipova soba i 5 sezona se unosi **sa jednog ekrana**, a cena se kuca kao `89,50` — ne kao `8950`.
 - [ ] **Kalendar (2.11o):** za izabran hotel, tip sobe i sastav gostiju kalendar prikazuje cenu po danu i broj slobodnih jedinica; prelaz sezone se vidi kao promena cene.

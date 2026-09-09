@@ -249,3 +249,25 @@ export async function ukloniPravilo(
   revalidatePath(`/ugovori/${contractId}/cenovnik`);
   return { error: null };
 }
+
+/**
+ * M3 spec §2.11l — potvrda trenutnog stanja cenovnika kao nove verzije.
+ *
+ * Ne šalje cene: cene su već upisane kroz mrežu. Šalje se samo od kada nova cena važi i zašto
+ * je verzija nastala — verzija je zapis o izmenama, ne još jedan način da se cena upiše.
+ */
+export async function potvrdiVerziju(
+  contractId: string,
+  telo: { effectiveFrom: string; note?: string },
+): Promise<Ishod> {
+  try {
+    await apiFetch(`/contracting/contracts/${contractId}/pricelist-versions`, {
+      method: 'POST',
+      body: telo,
+    });
+  } catch (err) {
+    return { error: poruka(err, 'Snimanje verzije cenovnika nije uspelo.') };
+  }
+  revalidatePath(`/ugovori/${contractId}/cenovnik`);
+  return { error: null };
+}

@@ -7,6 +7,7 @@ import SeasonsBar from './SeasonsBar';
 import SurchargesPanel, { type Doplata } from './SurchargesPanel';
 import Kartice from './Kartice';
 import PricingRulesPanel, { type PravilioRed } from './PricingRulesPanel';
+import VerzijePanel, { type RazlikeOdgovor, type Verzija } from './VerzijePanel';
 
 /**
  * M3 spec §2.11, M17 §6d — cenovnik jednog ugovora kao mreža.
@@ -40,7 +41,7 @@ export default async function CenovnikPage(props: { params: Promise<{ id: string
   }
   const canEdit = hasPermission(me, 'M3', 'contract-period', 'EDIT');
 
-  const [mreza, ugovor, doplate, pravila] = await Promise.all([
+  const [mreza, ugovor, doplate, pravila, verzije, razlike] = await Promise.all([
     apiFetch<Mreza>(`/contracting/contracts/${id}/pricelist-grid`),
     apiFetch<Ugovor>(`/contracting/contracts/${id}`).catch(() => null),
     apiFetch<Doplata[]>(`/contracting/contracts/${id}/pricelist-surcharges`).catch(
@@ -48,6 +49,21 @@ export default async function CenovnikPage(props: { params: Promise<{ id: string
     ),
     apiFetch<PravilioRed[]>(`/contracting/contracts/${id}/pricing-rules`).catch(
       () => [] as PravilioRed[],
+    ),
+    // §2.11l — verzije cenovnika. `catch` daje prazan spisak umesto pada cele strane: ugovor
+    // bez ijedne verzije je uobičajeno stanje, ne greška.
+    apiFetch<{ versions: Verzija[] }>(`/contracting/contracts/${id}/pricelist-versions`).catch(
+      () => ({ versions: [] as Verzija[] }),
+    ),
+    apiFetch<RazlikeOdgovor>(`/contracting/contracts/${id}/pricelist-versions/razlike`).catch(
+      () =>
+        ({
+          poslednjaVerzija: null,
+          sledecaVerzija: 1,
+          razlike: [],
+          ukupno: 0,
+          stavkiUCenovniku: 0,
+        }) as RazlikeOdgovor,
     ),
   ]);
 
@@ -111,6 +127,16 @@ export default async function CenovnikPage(props: { params: Promise<{ id: string
             />
           }
           brojIzuzetaka={pravila.filter((p) => p.jeIzuzetak).length}
+          verzije={
+            <VerzijePanel
+              contractId={id}
+              verzije={verzije.versions}
+              razlike={razlike}
+              currency={mreza.currency}
+              canEdit={canEdit}
+            />
+          }
+          brojRazlika={razlike.ukupno}
         />
       )}
     </div>

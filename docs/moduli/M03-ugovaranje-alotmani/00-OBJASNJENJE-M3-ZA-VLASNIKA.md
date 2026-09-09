@@ -122,6 +122,30 @@ Zato vikend cena **nije nova sezona** nego **drugi red u istom cenovniku**, sa s
 
 ---
 
+## Kad dobavljač pošalje izmenu: potvrđujete razlike, ne ceo cenovnik — dodato 9.9.2026
+
+Rekli ste: _„Moramo sve iz početka, menjamo ono što su oni promenili. AI agent može da vidi šta je promenjeno pa samo to da koriguje."_ Ovo je to, napravljeno.
+
+**Šta se promenilo u praksi.** Cenovnik od dvesta redova u kom je dobavljač promenio deset cena više ne traži da neko pregleda dvesta redova. Ekran pokazuje **deset redova**: „Studio · sezona 1 · polupansion · dvokrevetna: 100,00 → 110,00". Vi potvrđujete tih deset.
+
+**Verzija je fotografija cenovnika.** Kad potvrdite, sistem sačuva **ceo cenovnik onako kako izgleda u tom trenutku** i da mu redni broj — verzija 1, verzija 2, i tako dalje. Stara verzija se **ne briše nikad**. Razlog je praktičan: rezervacija napravljena u martu po ceni iz marta mora i za godinu dana da se objasni. Bez sačuvane fotografije, posle nekoliko izmena više niko ne bi mogao da kaže kako je cenovnik tada izgledao.
+
+**Dva puta do iste stvari.**
+
+- _Vi menjate ručno._ Ispravite ćeliju u tabeli cena kao i do sada. Kartica „Verzije" onda pokazuje šta se promenilo od poslednji put, i jedno dugme to zapiše kao novu verziju.
+- _AI čita nov dokument (ili mu kažete rečenicom šta da promeni)._ Tu se **ništa ne upisuje dok ne potvrdite**. Mašina predlaže, vi birate. Ono što ne potvrdite ostaje na staroj ceni — i sistem vam u odgovoru izlišta šta ste odbili, da se ne izgubi ćutke.
+
+**Šta sistem sam pazi:**
+
+- Ne dozvoljava da snimite verziju u kojoj se ništa nije promenilo. Inače bi istorija postala spisak istih fotografija kroz koji se ne može tražiti kada se nešto promenilo.
+- Ako se cenovnik promenio dok ste gledali razlike, potvrda se odbija sa porukom da razlike treba otvoriti ponovo — ne primenjuje nešto drugo od onoga što ste videli.
+- Kad potvrdite da neka cena više ne postoji, ona se **gasi**, ne briše. Prodaja je više ne nudi, ali stara verzija je i dalje pokazuje.
+- Kad je izmena tražena rečenicom, **ta rečenica se čuva uz verziju**. Bez nje se kasnije ne može utvrditi da li je AI pogrešno razumeo ili je baš tako i rečeno.
+
+**Šta još nije spojeno.** Doplate i popusti se **vide** među razlikama, ali se kroz predlog cena ne menjaju — menjaju se na svom ekranu, pa se verzija snimi posle. Razlog: predlog nosi samo cene, a doplata traži još četiri podatka (po čemu se računa, za koji uzrast, da li je obavezna, gde se plaća). Ako pokušate da doplatu potvrdite tim putem, sistem to jasno kaže umesto da prećuti.
+
+---
+
 ## Kapacitet: dve prodaje u istoj sekundi ne mogu obe proći
 
 Ako dva prodajna agenta u istom trenutku prodaju **poslednju** slobodnu sobu, šta se dešava?

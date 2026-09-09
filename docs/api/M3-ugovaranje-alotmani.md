@@ -1065,6 +1065,151 @@ Tri pravila koja ova ruta sprovodi:
 
 `priceBasis` ima četiri vrednosti (v1.27): `PER_ROOM_PER_NIGHT`, `PER_PERSON_PER_NIGHT`, `PER_ROOM_PER_STAY`, `PER_PERSON_PER_STAY`. Osnove sa `_PER_STAY` znače cenu za **ceo boravak** — M5 ih ne množi brojem noćenja.
 
+## Verzije cenovnika (v1.33, M3 §2.11l)
+
+Nova verzija **ne briše staru**: rezervacije napravljene po staroj ceni moraju i dalje da se objasne. Verzija nosi **snimak celog cenovnika** u trenutku potvrde — bez njega se razlika prema prošloj verziji ne može izračunati kasnije, jer se žive stavke gase i zamenjuju (§2.4c).
+
+Dva ulaza, i razlika je namerna:
+
+- **Ručna izmena** — cene se menjaju kroz `PUT .../pricelist-grid/cell` (primenjuje se odmah), pa se verzija snima: `GET .../razlike` → `POST .../pricelist-versions`.
+- **Predlog spolja** (uvoz dokumenta §4.2, izmena rečima §4.8) — predlagač je mašina, pa se **ništa ne upisuje pre potvrde**: `POST .../predlog` → `POST .../primeni` sa spiskom potvrđenih ključeva.
+
+### GET /contracts/:contractId/pricelist-versions
+
+```json
+{
+  "contractId": "b2c1…",
+  "versions": [
+    {
+      "id": "9f3a…",
+      "versionNo": 2,
+      "effectiveFrom": "2027-03-01",
+      "changeCount": 1,
+      "stavki": 12,
+      "note": null,
+      "instructionText": null,
+      "sourceImportId": null,
+      "createdBy": "u-14…",
+      "createdAt": "2026-09-09T20:41:02.113Z"
+    },
+    {
+      "id": "5c11…",
+      "versionNo": 1,
+      "effectiveFrom": "2027-01-01",
+      "changeCount": 12,
+      "stavki": 12,
+      "note": "Prvi cenovnik dobavljača",
+      "instructionText": null,
+      "sourceImportId": null,
+      "createdBy": "u-14…",
+      "createdAt": "2026-09-09T20:39:55.004Z"
+    }
+  ]
+}
+```
+
+### GET /contracts/:contractId/pricelist-versions/razlike
+
+Razlike **živog** cenovnika prema poslednjoj potvrđenoj verziji — ono što čovek potvrđuje.
+
+```json
+{
+  "contractId": "b2c1…",
+  "poslednjaVerzija": 1,
+  "sledecaVerzija": 2,
+  "ukupno": 1,
+  "stavkiUCenovniku": 12,
+  "razlike": [
+    {
+      "kljuc": "CENA|STD|1|BB|2ADT|PER_ROOM_PER_NIGHT|svi",
+      "vrsta": "IZMENJENA",
+      "stavka": "CENA",
+      "opis": "STD · sezona 1 · BB · 2ADT",
+      "poruka": "STD · sezona 1 · BB · 2ADT: 100,00 → 110,00",
+      "staraVrednost": 10000,
+      "novaVrednost": 11000,
+      "izmenjenaPolja": []
+    }
+  ]
+}
+```
+
+`vrsta` je `IZMENJENA`, `NOVA` ili `UGASENA`. `kljuc` je tip sobe + sezona + pansion + popunjenost + osnova cene + dani u nedelji — **bez cene**, da promena cene izlazi kao jedan red, a ne kao „jedna nestala + jedna nova". `izmenjenaPolja` nosi promene van cene (npr. `prodaja do`).
+
+### POST /contracts/:contractId/pricelist-versions
+
+Snima trenutno stanje kao novu verziju. Ne menja nijednu cenu.
+
+```json
+{ "effectiveFrom": "2027-03-01", "note": "Korekcija dobavljača od 5.6." }
+```
+
+Odgovor `201` nosi `versionNo`, `changeCount` i spisak `razlike`. **`400`** kad cenovnik nema nijednu razliku u odnosu na poslednju verziju — istorija ne sme biti spisak istovetnih snimaka.
+
+### POST /contracts/:contractId/pricelist-versions/predlog
+
+**Ništa ne upisuje.** Vraća razlike između živog cenovnika i predloženog.
+
+```json
+{
+  "effectiveFrom": "2027-04-01",
+  "redovi": [
+    {
+      "roomType": "STD",
+      "seasonCode": "1",
+      "boardType": "BB",
+      "occupancy": "2ADT",
+      "priceBasis": "PER_ROOM_PER_NIGHT",
+      "price": 12000,
+      "validWeekdays": [],
+      "bookingTo": "2026-12-31"
+    }
+  ],
+  "instructionText": "Podigni cenu studija u predsezoni na 120 evra"
+}
+```
+
+Sezona se navodi **oznakom** (`seasonCode`), ne `id`-em — predlog dolazi iz pročitanog dokumenta, gde piše „sezona 1". Stavka koje u `redovi` nema prijavljuje se kao `UGASENA`. Doplate se ovim putem ne menjaju, pa se **ne** prijavljuju kao ugašene.
+
+Odgovor nosi `razlike` i `sviKljucevi` — panel vraća taj spisak umanjen za razlike koje je čovek odbio.
+
+### POST /contracts/:contractId/pricelist-versions/primeni
+
+Isto telo kao `predlog`, uz obavezno `prihvaceniKljucevi`.
+
+```json
+{
+  "effectiveFrom": "2027-04-01",
+  "redovi": [ … ],
+  "prihvaceniKljucevi": ["CENA|STD|1|BB|2ADT|PER_ROOM_PER_NIGHT|svi"],
+  "instructionText": "Podigni cenu studija u predsezoni na 120 evra"
+}
+```
+
+```json
+{
+  "id": "9f3a…",
+  "versionNo": 3,
+  "effectiveFrom": "2027-04-01",
+  "primenjeno": 1,
+  "odbijeno": ["APP · sezona 1 · BB · 4ADT: 200,00 → 250,00"]
+}
+```
+
+Pravila:
+
+1. **Prazno `prihvaceniKljucevi` → `400`.** „Primeni sve" nikad nije podrazumevano.
+2. **Ključ kog više nema među razlikama → `400`** — cenovnik se u međuvremenu promenio, razlike treba otvoriti ponovo.
+3. **Potvrđena doplata → `400`** — doplate i popusti se menjaju na svom ekranu (§2.11k); predlog nosi samo cene.
+4. Izmena se upisuje kroz isti put kao ručna (§2.4c: gašenje stare stavke, upis nove). Potvrđeno **gašenje** postavlja `status = INACTIVE`, ne briše.
+5. `instructionText` u telu čini da se potez u auditu vodi kao **AI potez** (`actorType: AI_AGENT`), a rečenica se čuva uz nastalu verziju (§4.8).
+
+### GET /contracts/:contractId/pricelist-versions/:versionNo · …/diff
+
+`:versionNo` vraća verziju sa celim `snapshot`-om; `/diff` vraća razlike te verzije prema onoj pre nje (`uporedjenoSa: null` za prvu).
+
+Dozvole: `M3/contract-period/VIEW` za čitanje i predlog, `M3/contract-period/EDIT` za potvrdu i primenu.
+
 ## Greške — zajednički oblik
 
 Sve greške imaju isti oblik (NestJS standard):

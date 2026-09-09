@@ -13,14 +13,19 @@ export default function Kartice({
   brojDoplata,
   pravila,
   brojIzuzetaka,
+  verzije,
+  brojRazlika,
 }: {
   cene: React.ReactNode;
   doplate: React.ReactNode;
   brojDoplata: number;
   pravila: React.ReactNode;
   brojIzuzetaka: number;
+  verzije: React.ReactNode;
+  /** Broj nepotvrđenih izmena prema poslednjoj verziji (§2.11l) — značka na kartici. */
+  brojRazlika: number;
 }) {
-  const [aktivna, setAktivna] = useState<'cene' | 'doplate' | 'pravila'>('cene');
+  const [aktivna, setAktivna] = useState<'cene' | 'doplate' | 'pravila' | 'verzije'>('cene');
 
   return (
     <div className="flex flex-col gap-3">
@@ -44,6 +49,14 @@ export default function Kartice({
             </span>
           )}
         </Dugme>
+        <Dugme aktivna={aktivna === 'verzije'} onClick={() => setAktivna('verzije')}>
+          Verzije
+          {brojRazlika > 0 && (
+            <span className="ml-1.5 rounded-full bg-warn-bg px-1.5 text-[10px] text-warn">
+              {brojRazlika}
+            </span>
+          )}
+        </Dugme>
       </div>
 
       {/* Obe kartice ostaju u DOM-u da se stanje unosa ne izgubi pri prebacivanju — čovek koji
@@ -51,6 +64,7 @@ export default function Kartice({
       <div hidden={aktivna !== 'cene'}>{cene}</div>
       <div hidden={aktivna !== 'doplate'}>{doplate}</div>
       <div hidden={aktivna !== 'pravila'}>{pravila}</div>
+      <div hidden={aktivna !== 'verzije'}>{verzije}</div>
     </div>
   );
 }

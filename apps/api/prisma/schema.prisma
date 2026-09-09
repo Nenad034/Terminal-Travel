@@ -689,6 +689,7 @@ model Contract {
   seasons           Season[] // M3 spec §2.11b (v1.27) — kolone cenovnika
   ancillaryServices AncillaryService[] // §2.11k — doplata/popust sa dometom na ceo ugovor
   products          Product[] // M2 Product.sourceContractId — proizvod referencira ugovor, ne duplira cenu (M3 spec §3)
+  pricelistVersions PricelistVersion[] // M3 spec §2.11l — verzije cenovnika
 
   // Indeksi na stranim ključevima (5.9.2026, dok. 39 nalaz 2.1). Postgres ih NE pravi sam:
   // pravi ih samo na strani na koju se pokazuje (PK), ne i na koloni koja pokazuje. Bez njih
@@ -915,6 +916,49 @@ model CapacityBlock {
 /// M3 §2.4c (v1.25) — životni ciklus cenovne stavke. Namerno ODVOJEN enum od
 /// `ContractPeriodStatus`, iako su vrednosti iste: dva pojma koja se nezavisno menjaju ne
 /// dele tip, inače prva razlika među njima traži migraciju svih zapisa oba.
+/// M3 spec §2.11l (v1.33) — verzija cenovnika.
+///
+/// Vlasnik na pitanje šta se radi kad dobavljač pošalje izmenu: "Moramo sve iz početka,
+/// menjamo ono što su oni promenili. AI agent može da vidi šta je promenjeno pa samo to da
+/// koriguje." Zato verzija nosi SNIMAK celog cenovnika u trenutku potvrde: bez snimka se
+/// razlika prema prošloj verziji ne može izračunati posle toga — stavke se u međuvremenu gase
+/// i zamenjuju (§2.4c), pa "kako je cenovnik izgledao 1. juna" nije upit nad živim tabelama.
+///
+/// Nova verzija NE briše staru: rezervacije napravljene po staroj ceni moraju i dalje da se
+/// objasne. Stavka rezervacije ionako nosi svoju cenovnu liniju kao snimak (M5 §6).
+model PricelistVersion {
+  id         String @id @default(uuid())
+  contractId String @map("contract_id")
+  /// Redni broj unutar ugovora, počinje od 1. Ne globalni — verzija je pojam jednog cenovnika.
+  versionNo  Int    @map("version_no")
+
+  /// Od kog datuma nova cena važi. Rezervacije nastale ranije ostaju na staroj ceni.
+  effectiveFrom DateTime @map("effective_from") @db.Date
+
+  /// Ceo cenovnik u trenutku potvrde — oblik je `SnapshotRed[]` iz `pricelist-diff.ts`.
+  snapshot Json
+
+  /// Broj razlika koje je čovek potvrdio da bi ova verzija nastala (0 za prvu, početnu).
+  changeCount Int @default(0) @map("change_count")
+
+  /// §4.2 — uvoz iz kog je verzija nastala, kad je nastala uvozom dokumenta.
+  sourceImportId String? @map("source_import_id")
+
+  /// §4.8 — rečenica kojom je izmena tražena, kad je verzija nastala izmenom rečima.
+  /// Bez nje se ne može utvrditi da li je model pogrešno razumeo ili je tako i rečeno.
+  instructionText String? @map("instruction_text")
+
+  note      String?
+  createdBy String?  @map("created_by")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  contract Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+
+  @@unique([contractId, versionNo])
+  @@index([contractId])
+  @@map("pricelist_versions")
+}
+
 enum PricelistItemStatus {
   ACTIVE
   INACTIVE

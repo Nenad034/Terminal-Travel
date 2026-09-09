@@ -160,6 +160,19 @@ Model **još nije dodat**. Treba:
 
 ### Korak 5 — Verzije cenovnika (M3 §2.11l)
 
+> **URAĐENO 9.9.2026** — M3 v1.33, commit uz ovu izmenu. Nov zapis `PricelistVersion` (migracija `20260909201500`) sa **snimkom celog cenovnika**, čista logika poređenja `pricelist/pricelist-diff.ts`, servis `pricelist-versions.service.ts`, šest endpoint-a i kartica „Verzije" na `/ugovori/[id]/cenovnik`.
+>
+> **Dva ulaza, namerno različita.** Ručna izmena: ćelija se menja kao i do sada, pa `GET .../razlike` pokaže samo ono što se promenilo i jedno dugme to zapiše kao verziju. Predlog spolja (§4.2/§4.8): `POST .../predlog` **ništa ne upisuje**, `POST .../primeni` upisuje **isključivo potvrđene ključeve** — nepotvrđena razlika ostaje na staroj vrednosti i vraća se kao `odbijeno`.
+>
+> **Ključ stavke** je sve osim cene (soba + sezona + pansion + popunjenost + osnova + dani), pa izmena izlazi kao jedan red `100,00 → 110,00`, a ne kao „jedna nestala + jedna nova". Doplate se porede po imenu i dometu, ne po `id`-u zapisa.
+>
+> **Izmereno kroz iste endpoint-e koje panel zove, nad sveže napravljenom bazom:** verzija 1 snima 100,00; posle izmene ćelije razlike vraćaju **tačno jednu** stavku `100,00 → 110,00`; ponovljena potvrda bez izmene pada na 400; predlog sa dve izmene od kojih je potvrđena jedna ostavlja drugu sobu na staroj ceni (12000 i 20000 u mreži posle primene); potvrđeno gašenje uklanja cenu iz mreže, a verzija 1 je i dalje čita. **Provera:** 1385 unit testova (30 novih) + `test/m3-pricelist-versions.e2e-spec.ts` (4 testa).
+>
+> **Dve namerne granice, zapisane a ne prećutane.** (1) Verzija bez ijedne razlike se odbija — istorija ne sme postati spisak istovetnih snimaka. (2) Doplate se **vide** među razlikama i ulaze u snimak, ali se kroz predlog cena ne menjaju (predlog nema polja kojima bi se doplata opisala) — menjaju se na svom ekranu, pa se verzija snima posle; pokušaj vraća 400 sa tim objašnjenjem.
+>
+> **Još nije spojeno:** ekran AI uvoza (§4.2) i dalje upisuje red po red umesto da zove `predlog`/`primeni`. To je posao koraka 7, gde se oba ulaza spajaju na isti tok. Opis ispod ostaje kao zapis šta je traženo.
+
+
 Nov zapis `PricelistVersion` (`contract_id`, `version_no`, `effective_from`, `created_by`, `source_import_id?`, `instruction_text?`). Nova verzija **ne briše staru**. AI poredi novu sa prethodnom i prikazuje **samo razlike**; čovek potvrđuje razlike, ne ceo cenovnik.
 
 Vlasnik je izričito rekao: hotel šalje **ceo nov cenovnik**, ne spisak izmena.
