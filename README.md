@@ -128,7 +128,16 @@ Fiskalizacija i platni provajder se, po odluci vlasnika, rade **na kraju**, pred
 
 ## Šta je sledeće u kodu
 
+> **Ako preuzimaš rad na kapacitetima, počni od `docs/analize/45-PREDAJA-RADA-KAPACITETI.md`.**
+> Tamo stoji gde se tačno stalo (9.9.2026), šta je već u kodu a šta je samo specifikacija,
+> koji je sledeći korak i koje su odluke već odbačene — da se ne vraćaju.
+
 Otvoreno i zabeleženo (pun indeks: `docs/analize/27-BACKLOG-IDEJA-I-PREDLOZI.md`):
+
+- **Ekran „Kapaciteti" se preokreće oko hotela** (M17 §4b.0, na vlasnikov nalaz „zamislite ovde
+  2000 hotela") — pretraga hotela, radni spisak kao početno stanje, unos po opsegu datuma.
+  Backend za dnevnu proveru i prozor prijave je gotov (M3 v1.21); ekran nije. **To je prvi
+  sledeći posao.**
 
 - **31 ranjivost u bibliotekama (9 ozbiljnih)** + Postgres Row-Level Security (arhitektonska
   odluka, van obima) — svesno odloženo do servera (dok. 36 §3 nalaz 5, dok. 39 poglavlje 6).
