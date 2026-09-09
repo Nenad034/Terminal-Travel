@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { apiFetch, ApiError } from '@/lib/api-client';
-import { uNajmanjuJedinicu } from '@/lib/novac';
+import { uNajmanjuJedinicu, brojIzUnosa as broj } from '@/lib/novac';
 
 // M3 spec §2.11 — cenovnik kao mreža.
 
@@ -94,6 +94,84 @@ export async function upisiCeliju(
     });
   } catch (err) {
     return { error: poruka(err, 'Upis cene nije uspeo.') };
+  }
+  revalidatePath(`/ugovori/${contractId}/cenovnik`);
+  return { error: null };
+}
+
+// ── doplate i popusti (§2.11j/§2.11k)
+
+export interface DoplataUnos {
+  name: string;
+  kind: string;
+  pricingMode: string;
+  iznos: string;
+  priceBasis: string;
+  payable: string;
+  isMandatory: string;
+  seasonId: string;
+  ageFrom: string;
+  ageTo: string;
+  appliesFrom: string;
+  appliesTo: string;
+  bookingTo: string;
+  appliesToRoomTypes: string[];
+}
+
+export async function dodajDoplatu(contractId: string, u: DoplataUnos): Promise<Ishod> {
+  const jeFiksan = u.pricingMode === 'FLAT_PER_UNIT';
+
+  // Iznos se kuca kao „1,50", procenat kao „50" — dve različite stvari u istom polju, pa se
+  // i pretvaraju različito. Fiksan iznos ide u najmanju jedinicu valute, procenat ostaje broj.
+  let flatAmount: number | undefined;
+  let percentageOfNightlyRate: number | undefined;
+  if (jeFiksan) {
+    const n = uNajmanjuJedinicu(u.iznos);
+    if (n == null) return { error: `„${u.iznos}" nije iznos. Unesite na primer 1,50.` };
+    flatAmount = n;
+  } else {
+    const n = broj(u.iznos);
+    if (n == null || n < 0 || n > 100) {
+      return { error: `„${u.iznos}" nije procenat između 0 i 100.` };
+    }
+    percentageOfNightlyRate = n;
+  }
+
+  try {
+    await apiFetch(`/contracting/contracts/${contractId}/pricelist-surcharges`, {
+      method: 'POST',
+      body: {
+        name: u.name.trim(),
+        kind: u.kind,
+        pricingMode: u.pricingMode,
+        flatAmount,
+        percentageOfNightlyRate,
+        priceBasis: u.priceBasis,
+        payable: u.payable,
+        isMandatory: u.isMandatory === 'true',
+        seasonId: u.seasonId || undefined,
+        appliesToRoomTypes: u.appliesToRoomTypes,
+        appliesFrom: u.appliesFrom || undefined,
+        appliesTo: u.appliesTo || undefined,
+        ageFrom: broj(u.ageFrom) ?? undefined,
+        ageTo: broj(u.ageTo) ?? undefined,
+        bookingTo: u.bookingTo || undefined,
+      },
+    });
+  } catch (err) {
+    return { error: poruka(err, 'Upis doplate nije uspeo.') };
+  }
+  revalidatePath(`/ugovori/${contractId}/cenovnik`);
+  return { error: null };
+}
+
+export async function ugasiDoplatu(contractId: string, id: string): Promise<Ishod> {
+  try {
+    await apiFetch(`/contracting/contracts/${contractId}/pricelist-surcharges/${id}`, {
+      method: 'DELETE',
+    });
+  } catch (err) {
+    return { error: poruka(err, 'Gašenje stavke nije uspelo.') };
   }
   revalidatePath(`/ugovori/${contractId}/cenovnik`);
   return { error: null };

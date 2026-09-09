@@ -387,6 +387,9 @@ describe('ContractPeriodsService', () => {
   describe('upsertAncillaryService / listAncillaryServices (M3 spec §2.6, dopuna v1.12)', () => {
     it('kreira uslugu sa pricingMode FLAT_PER_UNIT', async () => {
       const { service, prisma, auditLog } = makeService();
+      // §2.11k (v1.27) — stavka od sada nosi i ugovor; servis ga čita iz perioda, pa mok mora
+      // da vrati period. Bez ovoga test pada na NotFoundException, ne na svojoj tvrdnji.
+      prisma.contractPeriod.findUnique.mockResolvedValue({ contractId: 'c1' });
       prisma.ancillaryService.create.mockResolvedValue({ id: 'a1' });
 
       await service.upsertAncillaryService(
@@ -416,6 +419,7 @@ describe('ContractPeriodsService', () => {
 
     it('kreira uslugu sa pricingMode PERCENTAGE_OF_NIGHTLY_RATE', async () => {
       const { service, prisma } = makeService();
+      prisma.contractPeriod.findUnique.mockResolvedValue({ contractId: 'c1' });
       prisma.ancillaryService.create.mockResolvedValue({ id: 'a2' });
 
       await service.upsertAncillaryService(

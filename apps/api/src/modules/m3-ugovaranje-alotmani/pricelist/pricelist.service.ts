@@ -6,6 +6,8 @@ import { assertNoContractPeriodOverlap } from '../contract-periods/overlap';
 import { danUtc, proveriSezonu } from './season-ranges';
 import { UpsertSeasonDto } from './dto/upsert-season.dto';
 import { WriteCellDto } from './dto/write-cell.dto';
+import { UpsertSurchargeDto } from './dto/upsert-surcharge.dto';
+import { domet, ulaziUZbir } from './surcharge-scope';
 
 /**
  * M3 spec §2.11 — cenovnik kao mreža.
@@ -356,6 +358,146 @@ export class PricelistService {
   }
 
   // ──────────────────────────────────────────────────────────── pomoćno
+
+  // ──────────────────────────────────────────────────────────── doplate i popusti (§2.11j/k)
+
+  /**
+   * Sve doplate i popusti jednog ugovora, sa razrešenim dometom.
+   *
+   * Čitaju se **svi** nivoi odjednom (ugovor + sezone + periodi) jer ekran prikazuje jednu
+   * tabelu, ne tri. Zato `contract_id` stoji i na najužim stavkama — bez njega bi ovo bila
+   * tri upita i spajanje u kodu.
+   */
+  async surcharges(contractId: string) {
+    await this.assertContract(contractId);
+    const stavke = await this.prisma.ancillaryService.findMany({
+      where: { contractId, status: 'ACTIVE' },
+      orderBy: [{ kind: 'asc' }, { name: 'asc' }],
+    });
+
+    return stavke.map((s) => ({
+      id: s.id,
+      name: s.name,
+      kind: s.kind,
+      pricingMode: s.pricingMode,
+      flatAmount: s.flatAmount,
+      percentageOfNightlyRate: s.percentageOfNightlyRate,
+      priceBasis: s.priceBasis,
+      payable: s.payable,
+      isMandatory: s.isMandatory,
+      // Prikaz mora reći da li stavka ulazi u zbir — vlasnikova odluka: ono što se plaća u
+      // hotelu se prikazuje, ali ne fakturiše (§2.11j).
+      ulaziUZbir: ulaziUZbir(s),
+      domet: domet(s),
+      seasonId: s.seasonId,
+      contractPeriodId: s.contractPeriodId,
+      appliesToRoomTypes: s.appliesToRoomTypes,
+      appliesFrom: s.appliesFrom ? iso(s.appliesFrom) : null,
+      appliesTo: s.appliesTo ? iso(s.appliesTo) : null,
+      ageFrom: s.ageFrom != null ? Number(s.ageFrom) : null,
+      ageTo: s.ageTo != null ? Number(s.ageTo) : null,
+      bookingFrom: s.bookingFrom ? iso(s.bookingFrom) : null,
+      bookingTo: s.bookingTo ? iso(s.bookingTo) : null,
+      coversPersons: s.coversPersons,
+      maxAdults: s.maxAdults,
+      maxChildren: s.maxChildren,
+      maxQuantity: s.maxQuantity,
+      notes: s.notes,
+    }));
+  }
+
+  async createSurcharge(contractId: string, dto: UpsertSurchargeDto, actorId: string) {
+    await this.assertContract(contractId);
+
+    // Način obračuna i iznos moraju da se slažu — bez ovoga bi stavka nastala bez ijedne cene
+    // i tiho ne radila ništa pri obračunu.
+    if (dto.pricingMode === 'FLAT_PER_UNIT' && dto.flatAmount == null) {
+      throw new BadRequestException('Za obračun „fiksan iznos" mora se uneti iznos.');
+    }
+    if (dto.pricingMode === 'PERCENTAGE_OF_NIGHTLY_RATE' && dto.percentageOfNightlyRate == null) {
+      throw new BadRequestException('Za obračun „procenat od cene" mora se uneti procenat.');
+    }
+    if (dto.ageFrom != null && dto.ageTo != null && dto.ageFrom > dto.ageTo) {
+      throw new BadRequestException('Uzrast „od" ne može biti veći od uzrasta „do".');
+    }
+
+    // Domet se proverava, ne veruje: sezona ili period iz drugog ugovora bi napravili stavku
+    // koja se nikad ne primeni, a na ekranu izgleda ispravno.
+    if (dto.seasonId) await this.assertSeason(contractId, dto.seasonId);
+    if (dto.contractPeriodId) {
+      const p = await this.prisma.contractPeriod.findUnique({
+        where: { id: dto.contractPeriodId },
+      });
+      if (!p || p.contractId !== contractId) {
+        throw new NotFoundException('Period nije pronađen u ovom ugovoru');
+      }
+    }
+
+    const stavka = await this.prisma.ancillaryService.create({
+      data: {
+        contractId,
+        seasonId: dto.seasonId ?? null,
+        contractPeriodId: dto.contractPeriodId ?? null,
+        appliesToRoomTypes: dto.appliesToRoomTypes ?? [],
+        appliesFrom: dto.appliesFrom ? dan(dto.appliesFrom) : null,
+        appliesTo: dto.appliesTo ? dan(dto.appliesTo) : null,
+        ageFrom: dto.ageFrom ?? null,
+        ageTo: dto.ageTo ?? null,
+        bookingFrom: dto.bookingFrom ? dan(dto.bookingFrom) : null,
+        bookingTo: dto.bookingTo ? dan(dto.bookingTo) : null,
+        name: dto.name,
+        kind: dto.kind ?? 'SURCHARGE',
+        pricingMode: dto.pricingMode,
+        flatAmount: dto.flatAmount ?? null,
+        percentageOfNightlyRate: dto.percentageOfNightlyRate ?? null,
+        priceBasis: dto.priceBasis,
+        payable: dto.payable ?? 'AGENCY',
+        isMandatory: dto.isMandatory ?? false,
+        coversPersons: dto.coversPersons ?? null,
+        maxAdults: dto.maxAdults ?? null,
+        maxChildren: dto.maxChildren ?? null,
+        maxQuantity: dto.maxQuantity ?? null,
+        notes: dto.notes ?? null,
+      },
+    });
+
+    await this.auditLog.write({
+      actorType: 'HUMAN',
+      actorId,
+      module: 'M3',
+      action: 'ancillary_service.created',
+      resourceType: 'AncillaryService',
+      resourceId: stavka.id,
+      context: { contractId, name: stavka.name, kind: stavka.kind, domet: domet(stavka) },
+    });
+    return stavka;
+  }
+
+  /** Gašenje, ne brisanje (§2.4c) — stavka je finansijski podatak. */
+  async deactivateSurcharge(contractId: string, id: string, actorId: string) {
+    const stavka = await this.prisma.ancillaryService.findUnique({ where: { id } });
+    if (!stavka || stavka.contractId !== contractId) {
+      throw new NotFoundException('Stavka nije pronađena u ovom ugovoru');
+    }
+    if (stavka.status !== 'ACTIVE') {
+      throw new BadRequestException('Stavka je već ugašena.');
+    }
+
+    await this.prisma.ancillaryService.update({
+      where: { id },
+      data: { status: 'INACTIVE', deactivatedBy: actorId, deactivatedAt: new Date() },
+    });
+    await this.auditLog.write({
+      actorType: 'HUMAN',
+      actorId,
+      module: 'M3',
+      action: 'ancillary_service.deactivated',
+      resourceType: 'AncillaryService',
+      resourceId: id,
+      context: { contractId, name: stavka.name },
+    });
+    return { deactivated: true };
+  }
 
   private async assertContract(contractId: string) {
     const c = await this.prisma.contract.findUnique({ where: { id: contractId } });

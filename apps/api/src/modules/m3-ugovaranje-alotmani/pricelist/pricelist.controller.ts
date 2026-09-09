@@ -3,6 +3,7 @@ import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { PricelistService } from './pricelist.service';
 import { UpsertSeasonDto } from './dto/upsert-season.dto';
 import { WriteCellDto } from './dto/write-cell.dto';
+import { UpsertSurchargeDto } from './dto/upsert-surcharge.dto';
 import { JwtAuthGuard } from '../../m1-core-identitet/auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../../common/guards/permissions.guard';
 import { RequirePermission } from '../../../common/decorators/require-permission.decorator';
@@ -64,6 +65,36 @@ export class PricelistController {
   @RequirePermission('M3', 'contract-period', 'VIEW')
   grid(@Param('contractId') contractId: string) {
     return this.pricelist.grid(contractId);
+  }
+
+  // ── doplate i popusti (§2.11j/§2.11k)
+
+  /** Sve doplate i popusti ugovora, sa razrešenim dometom i oznakom da li ulaze u zbir. */
+  @Get('contracts/:contractId/pricelist-surcharges')
+  @RequirePermission('M3', 'contract-period', 'VIEW')
+  surcharges(@Param('contractId') contractId: string) {
+    return this.pricelist.surcharges(contractId);
+  }
+
+  @Post('contracts/:contractId/pricelist-surcharges')
+  @RequirePermission('M3', 'contract-period', 'EDIT')
+  createSurcharge(
+    @Param('contractId') contractId: string,
+    @Body() dto: UpsertSurchargeDto,
+    @CurrentUser() actor: { userId: string },
+  ) {
+    return this.pricelist.createSurcharge(contractId, dto, actor.userId);
+  }
+
+  /** Gašenje, ne brisanje (§2.4c) — stavka je finansijski podatak. */
+  @Delete('contracts/:contractId/pricelist-surcharges/:id')
+  @RequirePermission('M3', 'contract-period', 'EDIT')
+  deactivateSurcharge(
+    @Param('contractId') contractId: string,
+    @Param('id') id: string,
+    @CurrentUser() actor: { userId: string },
+  ) {
+    return this.pricelist.deactivateSurcharge(contractId, id, actor.userId);
   }
 
   /** Upis jedne ćelije — ista cena u svaki period te sezone i tog tipa sobe. */

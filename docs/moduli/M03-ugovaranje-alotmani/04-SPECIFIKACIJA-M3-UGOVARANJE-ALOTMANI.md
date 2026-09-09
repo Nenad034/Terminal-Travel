@@ -1261,8 +1261,8 @@ Prefiks: `/api/v1/contracting`
 - [ ] **Osnovica popusta (2.11h):** popust za treću osobu se računa od ulazne hotelske osnovne cene, ne od cene sobe u kojoj gost leži.
 - [ ] **Marža po stavci (2.11i):** pravilo sa `percentage = 12` **i** `fixed_amount = 500` na 295,00 daje 335,40 (sabiraju se); stavka bez sopstvenog pravila nasleđuje ugovorno.
 - [ ] **Bez provizije subagentu (2.11i):** stavka označena „bez provizije" ne ulazi u obračun subagentove zarade, a i dalje ulazi u cenu za gosta.
-- [ ] **Taksa u obračunu (2.11j):** taksa sa `payable = AGENCY` ulazi u ukupnu cenu i na fakturu; ista sa `ON_SITE` **ne ulazi u zbir** ali je odštampana na ponudi i vaučeru sa iznosom.
-- [ ] **Doplata za više soba (2.11k):** jedna doplata sa `scope_type = M3_CONTRACT` važi za sve tipove soba bez ijednog dupliranog zapisa.
+- [x] **Taksa u obračunu (2.11j):** taksa sa `payable = AGENCY` ulazi u ukupnu cenu i na fakturu; ista sa `ON_SITE` **ne ulazi u zbir** ali je odštampana na ponudi i vaučeru sa iznosom. _(izmereno 9.9.2026 nad pravom bazom: tri uzrasna stepena 1,50 / 1,00 / 0,50 upisana kao doplate sa ON_SITE; API vraca ulaziUZbir=false za sve tri, a true za veceru i popuste — 3 od 6 ulazi u zbir)_
+- [x] **Doplata za više soba (2.11k):** jedna doplata sa `scope_type = M3_CONTRACT` važi za sve tipove soba bez ijednog dupliranog zapisa. _(9.9.2026: doplata bez dometa vazi za sve sobe; popust za 3. osobu ogranicen na dva tipa apartmana jednim zapisom, bez dupliranja; 18 jedinicnih testova nad `surcharge-scope`)_
 - [ ] **Verzija cenovnika (2.11l):** posle uvoza izmenjenog cenovnika ekran prikazuje **samo razlike**; prethodna verzija ostaje čitljiva, a rezervacija napravljena pre izmene i dalje prikazuje staru cenu.
 - [ ] **Izmena rečima (4.8):** rečenica koja traži tri različite izmene proizvodi tri odvojene stavke za odobrenje; odbijanje jedne ne sprečava primenu ostale dve; `instruction_text` je sačuvan uz nastalu verziju.
 - [ ] **Mreža na ekranu (M17 §6d):** ceo cenovnik jednog hotela sa 5 tipova soba i 5 sezona se unosi **sa jednog ekrana**, a cena se kuca kao `89,50` — ne kao `8950`.

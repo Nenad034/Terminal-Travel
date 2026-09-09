@@ -4,6 +4,8 @@ import { getMe, hasPermission } from '@/lib/me';
 import RegisterTab from '@/components/RegisterTab';
 import PricelistGrid, { type Mreza } from './PricelistGrid';
 import SeasonsBar from './SeasonsBar';
+import SurchargesPanel, { type Doplata } from './SurchargesPanel';
+import Kartice from './Kartice';
 
 /**
  * M3 spec §2.11, M17 §6d — cenovnik jednog ugovora kao mreža.
@@ -37,9 +39,12 @@ export default async function CenovnikPage(props: { params: Promise<{ id: string
   }
   const canEdit = hasPermission(me, 'M3', 'contract-period', 'EDIT');
 
-  const [mreza, ugovor] = await Promise.all([
+  const [mreza, ugovor, doplate] = await Promise.all([
     apiFetch<Mreza>(`/contracting/contracts/${id}/pricelist-grid`),
     apiFetch<Ugovor>(`/contracting/contracts/${id}`).catch(() => null),
+    apiFetch<Doplata[]>(`/contracting/contracts/${id}/pricelist-surcharges`).catch(
+      () => [] as Doplata[],
+    ),
   ]);
 
   return (
@@ -78,7 +83,21 @@ export default async function CenovnikPage(props: { params: Promise<{ id: string
           se ispod pojavljuje mreža za unos cena.
         </p>
       ) : (
-        <PricelistGrid contractId={id} mreza={mreza} canEdit={canEdit} />
+        // Redosled kartica je vlasnikov (9.9.2026): prvo cene, pa doplate i popusti.
+        <Kartice
+          cene={<PricelistGrid contractId={id} mreza={mreza} canEdit={canEdit} />}
+          doplate={
+            <SurchargesPanel
+              contractId={id}
+              doplate={doplate}
+              seasons={mreza.seasons}
+              tipoviSoba={mreza.roomTypes.map((g) => g.roomType)}
+              currency={mreza.currency}
+              canEdit={canEdit}
+            />
+          }
+          brojDoplata={doplate.length}
+        />
       )}
     </div>
   );

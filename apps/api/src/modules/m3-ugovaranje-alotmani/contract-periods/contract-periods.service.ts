@@ -540,8 +540,19 @@ export class ContractPeriodsService {
 
   // §2.6 — dopuna v1.12. PUT uvek KREIRA novi red (isti obrazac kao upsertRateLine).
   async upsertAncillaryService(periodId: string, dto: UpsertAncillaryServiceDto, actorId: string) {
+    // §2.11k (v1.27) — stavka od sada nosi i ugovor, ne samo period. Ovaj stari put uvek pravi
+    // stavku najužeg dometa (jedan period); širi domet ide kroz `PricelistService` (§2.11k).
+    // `contractId` se čita iz perioda, ne prima od pozivaoca — inače bi se stavka mogla vezati
+    // za ugovor kom period ne pripada.
+    const period = await this.prisma.contractPeriod.findUnique({
+      where: { id: periodId },
+      select: { contractId: true },
+    });
+    if (!period) throw new NotFoundException('Period nije pronađen');
+
     const service = await this.prisma.ancillaryService.create({
       data: {
+        contractId: period.contractId,
         contractPeriodId: periodId,
         name: dto.name,
         // §2.6 v1.13 — doplata ili popust, osnova kao PAR, granice po sastavu gostiju i mesto

@@ -684,10 +684,11 @@ model Contract {
   updatedAt                DateTime         @updatedAt @map("updated_at")
   createdBy                String?          @map("created_by")
 
-  supplier Supplier         @relation(fields: [supplierId], references: [id])
-  periods  ContractPeriod[]
-  seasons  Season[] // M3 spec §2.11b (v1.27) — kolone cenovnika
-  products Product[] // M2 Product.sourceContractId — proizvod referencira ugovor, ne duplira cenu (M3 spec §3)
+  supplier          Supplier           @relation(fields: [supplierId], references: [id])
+  periods           ContractPeriod[]
+  seasons           Season[] // M3 spec §2.11b (v1.27) — kolone cenovnika
+  ancillaryServices AncillaryService[] // §2.11k — doplata/popust sa dometom na ceo ugovor
+  products          Product[] // M2 Product.sourceContractId — proizvod referencira ugovor, ne duplira cenu (M3 spec §3)
 
   // Indeksi na stranim ključevima (5.9.2026, dok. 39 nalaz 2.1). Postgres ih NE pravi sam:
   // pravi ih samo na strani na koju se pokazuje (PK), ne i na koloni koja pokazuje. Bez njih
@@ -736,9 +737,10 @@ model Season {
   createdAt  DateTime @default(now()) @map("created_at")
   updatedAt  DateTime @updatedAt @map("updated_at")
 
-  contract Contract         @relation(fields: [contractId], references: [id], onDelete: Cascade)
-  ranges   SeasonRange[]
-  periods  ContractPeriod[]
+  contract          Contract           @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  ranges            SeasonRange[]
+  periods           ContractPeriod[]
+  ancillaryServices AncillaryService[] // §2.11k — doplata sa dometom na jednu sezonu
 
   // Oznaka sezone je jedinstvena unutar ugovora -- dve kolone "1" bi bile nerazlucive na ekranu.
   @@unique([contractId, code])
@@ -1109,8 +1111,33 @@ enum OfferDiscountType {
 
 // §2.6 `AncillaryService` — pomoćni troškovi/usluge po periodu, dopuna v1.12
 model AncillaryService {
-  id                      String               @id @default(uuid())
-  contractPeriodId        String               @map("contract_period_id")
+  id String @id @default(uuid())
+
+  // M3 spec §2.11k (v1.27) -- domet stavke. Do v1.27 je doplata bila vezana iskljucivo za JEDAN
+  // period, pa se doplata koja vazi za ceo hotel unosila onoliko puta koliko ima perioda.
+  // Vlasnik trazi obe mogucnosti: "popusti i doplate mogu da budu razliciti po tipovima
+  // smestaja, a opet mogu da budu i jednaki".
+  //
+  // Domet je NAJUZI popunjen nivo: period -> sezona -> ugovor. `contractId` je uvek popunjen
+  // (i za najuze stavke), da se ceo cenovnik jednog ugovora cita jednim upitom.
+  contractId       String  @map("contract_id")
+  seasonId         String? @map("season_id")
+  contractPeriodId String? @map("contract_period_id")
+
+  /// Tipovi soba na koje se stavka odnosi; prazan niz = SVE sobe (§2.11k).
+  appliesToRoomTypes String[] @map("applies_to_room_types")
+
+  /// §2.11k -- datumski opseg SAME stavke, razlicit od stay_from/stay_to celog perioda.
+  /// Novogodisnja vecera je vezana za kalendarski datum, ne za sezonu.
+  appliesFrom DateTime? @map("applies_from") @db.Date
+  appliesTo   DateTime? @map("applies_to") @db.Date
+
+  /// §2.11j -- uzrasni opseg. Bez njega se ne moze opisati ni jedan procitan cenovnik:
+  /// Aycon boravisna taksa ima TRI stepena (odrasli 1,50 / 12-17,99 -> 1,00 / 0-11,99 -> 0,50).
+  /// `childMaxAge` ispod ostaje za stavke po sobi (koliko dece pokriva cena sobe) -- druga stvar.
+  ageFrom Decimal? @map("age_from")
+  ageTo   Decimal? @map("age_to")
+
   name                    String
   // M3 spec 2.6 dopuna v1.13 — ista struktura nosi doplatu i popust; iznos je UVEK pozitivan,
   // znak nosi `kind` (negativan iznos uz DISCOUNT bi bio dvostruka negacija).
@@ -1145,7 +1172,9 @@ model AncillaryService {
   createdAt               DateTime             @default(now()) @map("created_at")
   updatedAt               DateTime             @updatedAt @map("updated_at")
 
-  contractPeriod ContractPeriod @relation(fields: [contractPeriodId], references: [id], onDelete: Cascade)
+  contract       Contract        @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  season         Season?         @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  contractPeriod ContractPeriod? @relation(fields: [contractPeriodId], references: [id], onDelete: Cascade)
   bookingItems   BookingItem[]
 
   // Indeksi na stranim ključevima (5.9.2026, dok. 39 nalaz 2.1). Postgres ih NE pravi sam:
@@ -1161,6 +1190,8 @@ model AncillaryService {
   /// Kad je stavka nastala kao ispravka druge — veže novu za staru (§2.4c).
   replacesId    String?             @map("replaces_id")
 
+  @@index([contractId])
+  @@index([seasonId])
   @@index([contractPeriodId])
   @@map("ancillary_services")
 }

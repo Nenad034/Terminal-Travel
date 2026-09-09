@@ -22,3 +22,16 @@ export function izNajmanjeJedinice(iznos: number): string {
     maximumFractionDigits: 2,
   });
 }
+
+/**
+ * „11,99" ili „11.99" → 11.99. `null` kad polje nije broj ili je prazno.
+ *
+ * Odvojeno od `uNajmanjuJedinicu` namerno: uzrast i procenat NISU novac i ne množe se sa 100.
+ * Ista funkcija za oboje bi od „50%" napravila 5000.
+ */
+export function brojIzUnosa(unos: string): number | null {
+  const s = unos.trim().replace(/\s/g, '').replace(',', '.');
+  if (s === '') return null;
+  if (!/^\d+(\.\d+)?$/.test(s)) return null;
+  return parseFloat(s);
+}
