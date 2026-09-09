@@ -192,6 +192,16 @@ Pregled, **ne unos**. Bira se hotel, tip sobe i sastav gostiju; kalendar po danu
 
 ### Korak 7 — Izmena cenovnika rečima (M3 §4.8)
 
+> **URAĐENO 9.9.2026** — M3 v1.35, commit uz ovu izmenu. **Time su svih sedam koraka završena.** `POST /contracting/contracts/:id/pricelist-versions/recima` i kartica „Izmena rečima“. Bez novog zapisa u bazi: rečenica postaje **isti predlog** koji pravi i uvoz dokumenta, pa ide kroz tok verzija iz koraka 5; primena ide **istim** endpoint-om.
+>
+> **Model ne računa.** Šema alata nema polje za izračunatu cenu, pa je model ne može ni poslati — nove iznose računa kod (`pricelist/instruction-intents.ts`). Ograda koja postoji samo kao rečenica u uputstvu se pre ili kasnije prekrši; ograda koja ne postoji u strukturi se ne može prekršiti.
+>
+> **Četiri ograde iz §4.8.2 su sprovedene i proverene:** servis nema nijedan upis; predlog traži `VIEW` a upis `EDIT` (agent radi pravima korisnika); nijedna kvačica nije unapred označena; rečenica se čuva uz verziju i potez se u auditu vodi kao AI potez.
+>
+> **Namerna granica, zapisana a ne prećutana:** primenjuju se **cene**. Doplata iz rečenice se prepoznaje i **prikazuje sa svim podacima**, ali se dodaje na ekranu doplata (isti razlog kao u koraku 5). Izmene van cenovnika (rokovi otkazivanja, akcije, kapacitet) izlaze kao prijavljene stavke sa uputstvom na kom se ekranu rade. Vlasnikova rečenica iz §4.8.1 ima četiri dela: dva se primenjuju, dva se prijavljuju — i to je vidljivo na ekranu.
+>
+> **Provera:** 1444 unit testa (40 novih) + dva nova e2e testa. Sam poziv modelu se u testu namerno **ne pokreće** — odgovor jezičkog modela nije determinisan, pa bi test koji na njemu počiva bio ili spor i skup ili lažno zelen; mere se ograde koje stoje **ispred** modela. Prva stvarna provera nad živom rečenicom ostaje da se uradi ručno na ekranu, kao što je bio slučaj i sa uvozom cenovnika (§4.2.6, gde je prvi živi poziv otkrio tri nedorečenosti u uputstvu modelu).
+
 Poslednji, jer se oslanja na verzije. `PROPOSE_THEN_APPROVE`, akcija `pricelist.edit_from_instruction` (već upisana u M15 §4). Četiri ograde su u specifikaciji; najvažnija: **rečenica koja je izmenu tražila čuva se uz rezultat**, isto kao izvorni tekst kod uvoza.
 
 ---

@@ -300,3 +300,49 @@ export async function ucitajKalendar(
     return { podaci: null, error: poruka(err, 'Kalendar nije mogao da se učita.') };
   }
 }
+
+/**
+ * M3 spec §4.8 — izmena cenovnika rečima, priprema predloga.
+ *
+ * Ništa ne upisuje. Vraća isti spisak razlika koji daje i uvoz dokumenta (§2.11l), uz ono što je
+ * model razumeo i ono što ovaj tok ne ume da primeni.
+ */
+export async function pripremiIzmenuRecima(
+  contractId: string,
+  telo: { instructionText: string; effectiveFrom: string },
+): Promise<{ predlog: unknown | null; error: string | null }> {
+  try {
+    const predlog = await apiFetch(
+      `/contracting/contracts/${contractId}/pricelist-versions/recima`,
+      { method: 'POST', body: telo },
+    );
+    return { predlog, error: null };
+  } catch (err) {
+    return { predlog: null, error: poruka(err, 'Priprema izmene nije uspela.') };
+  }
+}
+
+/**
+ * Primena odobrenih razlika. Ide **istim** endpoint-om kao uvoz dokumenta — jedan put do upisa,
+ * jedno mesto na kom se pravi verzija. `instructionText` se čuva uz nastalu verziju (§4.8.2).
+ */
+export async function primeniIzmeneRecima(
+  contractId: string,
+  telo: {
+    effectiveFrom: string;
+    redovi: unknown[];
+    prihvaceniKljucevi: string[];
+    instructionText: string;
+  },
+): Promise<Ishod> {
+  try {
+    await apiFetch(`/contracting/contracts/${contractId}/pricelist-versions/primeni`, {
+      method: 'POST',
+      body: telo,
+    });
+  } catch (err) {
+    return { error: poruka(err, 'Primena izmena nije uspela.') };
+  }
+  revalidatePath(`/ugovori/${contractId}/cenovnik`);
+  return { error: null };
+}

@@ -3,6 +3,8 @@ import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { PricelistVersionsService } from './pricelist-versions.service';
 import { PotvrdiVerzijuDto } from './dto/potvrdi-verziju.dto';
 import { PredlogCenovnikaDto } from './dto/predlog-cenovnika.dto';
+import { PricelistInstructionDto } from './dto/pricelist-instruction.dto';
+import { PricelistInstructionService } from './pricelist-instruction.service';
 import { JwtAuthGuard } from '../../m1-core-identitet/auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../../common/guards/permissions.guard';
 import { RequirePermission } from '../../../common/decorators/require-permission.decorator';
@@ -20,7 +22,10 @@ import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 @Controller('contracting')
 export class PricelistVersionsController {
-  constructor(private readonly verzije: PricelistVersionsService) {}
+  constructor(
+    private readonly verzije: PricelistVersionsService,
+    private readonly recima: PricelistInstructionService,
+  ) {}
 
   /** Sve verzije cenovnika jednog ugovora, najnovija prva. */
   @Get('contracts/:contractId/pricelist-versions')
@@ -76,6 +81,20 @@ export class PricelistVersionsController {
   @RequirePermission('M3', 'contract-period', 'VIEW')
   predlozi(@Param('contractId') contractId: string, @Body() dto: PredlogCenovnikaDto) {
     return this.verzije.predlozi(contractId, dto);
+  }
+
+  /**
+   * §4.8 — izmena cenovnika **rečima**. Vraća isti spisak razlika kao uvoz dokumenta,
+   * i **ništa ne upisuje** (nivo `PROPOSE_THEN_APPROVE`).
+   *
+   * Dozvola je `contract-period/VIEW`, ne `EDIT`: ovaj poziv je predlog, ne izmena. Upis se
+   * dešava tek kroz `primeni`, koji traži `EDIT` — ograda iz §4.4 da agent radi pravima
+   * korisnika time važi sama od sebe: ko ne sme da menja cene ne može ni preko agenta.
+   */
+  @Post('contracts/:contractId/pricelist-versions/recima')
+  @RequirePermission('M3', 'contract-period', 'VIEW')
+  recimaPredlog(@Param('contractId') contractId: string, @Body() dto: PricelistInstructionDto) {
+    return this.recima.predlozi(contractId, dto);
   }
 
   /** Primena predloga — isključivo razlike koje je čovek potvrdio. */

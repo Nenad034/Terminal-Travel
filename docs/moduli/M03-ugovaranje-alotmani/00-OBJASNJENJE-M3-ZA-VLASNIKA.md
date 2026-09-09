@@ -192,6 +192,28 @@ Isto pravilo postoji i za jednu sitniju stvar: ako se iz dokumenta ne vidi da li
 
 ---
 
+## Izmena cenovnika rečima — dodato 9.9.2026
+
+Tražili ste: _„omogućio bih da AI agent ima sposobnost da mu kažemo šta treba da izmeni kada su manje izmene… da to izmeni, prikaže, sačeka naše odobrenje i primeni izmene.“_ Napravljeno.
+
+U kartici „Izmena rečima“ napišete izmenu onako kako biste je rekli kolegi:
+
+> _cene za sezonu 4 i 5 idu gore 5%, rok za otkazivanje alotmana u sezoni 5 je sada 14 dana umesto 10, uvode doplatu za parking 5 € po sobi po noći koja se plaća na licu mesta, rani buking 2. krug se ukida._
+
+Sistem tu rečenicu razloži i pokazaže vam **šta je razumeo**, deo po deo, pa tek onda šta bi se promenilo: _sada 62,00 → postaje 65,10_. Ništa nije upisano dok ne označite šta prihvatate.
+
+**Najvažnije: AI ne računa.** On samo razume šta ste tražili — „gore 5 posto“ — a same iznose računa sistem. To nije sitnica: jezički model ume da pogreši u računu i da tu grešku napiše samouvereno, a pogrešna nabavna cena ne pravi buku nego tiho menja zaradu na svakoj rezervaciji iz tog ugovora. Zato mu polje za cenu nije ni dato — ne može da pošalje broj koji je sam izračunao.
+
+**Svaku izmenu odobravate posebno.** Postoji „prihvati sve“ zbog brzine, ali nijedna kvačica nije unapred označena. Razlog: ako je od četrnaest izmena jedna pogrešno shvaćena, ne sme da prođe zato što je ostalih trinaest tačno.
+
+**Vaša rečenica se čuva uz nastalu verziju.** Bez nje se kasnije ne može utvrditi da li je AI pogrešno razumeo ili je baš tako i rečeno.
+
+**Ono što ovaj put ne ume, kaže vam otvoreno.** Od one četiri izmene iz primera, dve se primenjuju same (cene i — uz prikaz — nova doplata), a dve ne: rok otkazivanja i ukidanje rane rezervacije. Te dve se ne prećutkuju nego se izlištaju sa uputstvom na kom se ekranu rade. Doplata se takođe prikaže sa svim podacima, ali je dodajete na ekranu doplata — razlog je isti kao ranije: doplata traži još četiri podatka koje predlog cena ne nosi.
+
+**Ako rečenica nije jasna, sistem pita umesto da pogađa.** To je ista ograda kao kod uvoza cenovnika, i postoji iz istog razloga.
+
+---
+
 ## Šta još ne radi (namerno, i zna se zašto)
 
 **AI čitanje cenovnika još nije uključeno.** Sve okolo radi — uvoz se registruje, redovi se mogu pregledati i odobriti, i to je testirano — ali sam deo koji čita PDF čeka odluku o tome koji AI servis koristimo. Do tada uvoz stoji u stanju „u obradi".

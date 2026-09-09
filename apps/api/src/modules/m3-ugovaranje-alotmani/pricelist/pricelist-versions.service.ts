@@ -314,6 +314,53 @@ export class PricelistVersionsService {
     };
   }
 
+  /**
+   * Zatečeni cenovnik u obliku **predloženih redova** — isti oblik koji `predlozi`/`primeni`
+   * primaju na ulazu.
+   *
+   * Postoji zbog §4.8 (izmena rečima): da bi se rečenica pretvorila u izmenu, mora se poći od
+   * onoga što u cenovniku sada piše. Vraća se isti oblik kao ulaz u predlog, pa izmenjeni redovi
+   * idu nazad kroz **isti** tok potvrde razlika — bez drugog puta do baze.
+   */
+  async zateceniRedovi(contractId: string) {
+    await this.assertContract(contractId);
+    const periodi = await this.prisma.contractPeriod.findMany({
+      where: { contractId, status: 'ACTIVE', seasonId: { not: null } },
+      include: {
+        season: true,
+        rateLines: { where: { status: 'ACTIVE' }, orderBy: { createdAt: 'asc' } },
+      },
+    });
+
+    const poKljucu = new Map<string, any>();
+    for (const p of periodi) {
+      for (const r of p.rateLines) {
+        const kljuc = kljucCene({
+          roomType: p.roomType,
+          seasonCode: p.season!.code,
+          boardType: r.boardType,
+          occupancy: r.occupancy,
+          priceBasis: r.priceBasis,
+          validWeekdays: r.validWeekdays,
+        });
+        // Jedna sezona sa više opsega daje više perioda sa istom cenom — u predlogu je to JEDAN
+        // red, isto kao jedna ćelija na ekranu (§2.11).
+        if (poKljucu.has(kljuc)) continue;
+        poKljucu.set(kljuc, {
+          roomType: p.roomType,
+          seasonCode: p.season!.code,
+          boardType: r.boardType,
+          occupancy: r.occupancy,
+          priceBasis: r.priceBasis,
+          validWeekdays: r.validWeekdays ?? [],
+          price: r.price,
+          bookingFrom: r.bookingFrom ? iso(r.bookingFrom) : null,
+          bookingTo: r.bookingTo ? iso(r.bookingTo) : null,
+        });
+      }
+    }
+    return [...poKljucu.values()];
+  }
   // ──────────────────────────────────────────────────────────── snimak živog stanja
 
   /**

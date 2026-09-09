@@ -333,6 +333,62 @@ describe('M3 §2.11l — verzije cenovnika (e2e)', () => {
     expect(v1.body.snapshot[0].vrednost).toBe(10000);
   });
 
+  /**
+   * §4.8 — izmena rečima. Sam poziv modelu se u testu NE pokreće: odgovor jezičkog modela nije
+   * determinističan, a test koji zavisi od njega bi bio ili spor i skup ili lažno zelen. Ovde se
+   * meri ograda koja stoji ISPRED modela i koja je jednaka na svakoj instalaciji.
+   */
+  it('izmena rečima nad praznim cenovnikom se odbija pre nego što se model uopšte pozove', async () => {
+    const token = await vlasnik();
+    const supplier = await request(app.getHttpServer())
+      .post('/api/v1/contracting/suppliers')
+      .set(auth(token))
+      .send({
+        name: `Hotel Prazan ${testRunId}-${Math.random().toString(36).slice(2)}`,
+        type: 'HOTEL',
+        taxId: '111222333',
+        registrationNumber: '444555666',
+        country: 'Srbija',
+        contactName: 'Marko Markovic',
+        contactEmail: `p-${Math.random().toString(36).slice(2)}@test.rs`,
+        contactPhone: '060123456',
+      });
+    createdSupplierIds.push(supplier.body.id);
+
+    const contract = await request(app.getHttpServer())
+      .post('/api/v1/contracting/contracts')
+      .set(auth(token))
+      .send({
+        supplierId: supplier.body.id,
+        contractNumber: `UG-P-${testRunId}-${Math.random().toString(36).slice(2)}`,
+        currency: 'EUR',
+        validFrom: '2027-01-01',
+        validTo: '2027-12-31',
+        cancellationTermsSummary: 'Standardni uslovi',
+        documentUrl: 'https://example.com/ugovor.pdf',
+        defaultTipNastupanja: 'ORGANIZATOR',
+      });
+
+    const r = await request(app.getHttpServer())
+      .post(`/api/v1/contracting/contracts/${contract.body.id}/pricelist-versions/recima`)
+      .set(auth(token))
+      .send({ instructionText: 'cene idu gore 5%', effectiveFrom: '2027-06-01' })
+      .expect(400);
+
+    expect(r.body.message).toContain('Cenovnik je prazan');
+  });
+
+  it('izmena rečima traži rečenicu — prazan zahtev pada na validaciji, ne na modelu', async () => {
+    const token = await vlasnik();
+    const { contractId } = await pripremiCenovnik(token);
+
+    await request(app.getHttpServer())
+      .post(`/api/v1/contracting/contracts/${contractId}/pricelist-versions/recima`)
+      .set(auth(token))
+      .send({ instructionText: '', effectiveFrom: '2027-06-01' })
+      .expect(400);
+  });
+
   it('rečenica kojom je izmena tražena se čuva uz verziju (§4.8)', async () => {
     const token = await vlasnik();
     const { contractId } = await pripremiCenovnik(token);

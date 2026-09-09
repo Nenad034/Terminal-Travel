@@ -1065,6 +1065,83 @@ Tri pravila koja ova ruta sprovodi:
 
 `priceBasis` ima četiri vrednosti (v1.27): `PER_ROOM_PER_NIGHT`, `PER_PERSON_PER_NIGHT`, `PER_ROOM_PER_STAY`, `PER_PERSON_PER_STAY`. Osnove sa `_PER_STAY` znače cenu za **ceo boravak** — M5 ih ne množi brojem noćenja.
 
+## Izmena cenovnika rečima (v1.35, M3 §4.8)
+
+Drugi ulaz u **isti** tok: rečenica postaje predlog razlika, isti oblik koji daje uvoz dokumenta (§2.11l). Primena ide postojećim `POST .../pricelist-versions/primeni`, sa `instructionText` u telu — nema drugog puta do upisa.
+
+### POST /contracts/:contractId/pricelist-versions/recima
+
+Dozvola: `M3/contract-period/**VIEW**` — ovaj poziv je predlog, ne izmena. Upis traži `EDIT`, pa ograda iz §4.4 (agent radi pravima korisnika) važi sama od sebe. **Ništa se ne upisuje.**
+
+```json
+{
+  "instructionText": "cene za sezonu 4 i 5 idu gore 5%, uvode doplatu za parking 5 € po sobi po noći koja se plaća na licu mesta",
+  "effectiveFrom": "2027-06-01"
+}
+```
+
+**Odgovor `201`:**
+
+```json
+{
+  "contractId": "b2c1…",
+  "instructionText": "cene za sezonu 4 i 5 idu gore 5%, uvode doplatu za parking…",
+  "pitanja": [],
+  "namere": [
+    { "vrsta": "CENA_PROCENAT", "obrazlozenje": "cene za sezonu 4 i 5 idu gore 5%" },
+    { "vrsta": "DOPLATA_NOVA", "obrazlozenje": "uvode doplatu za parking 5 € po sobi po noći" }
+  ],
+  "ukupno": 2,
+  "razlike": [
+    {
+      "kljuc": "CENA|STD|4|BB|2ADT|PER_ROOM_PER_NIGHT|svi",
+      "vrsta": "IZMENJENA",
+      "opis": "STD · sezona 4 · BB · 2ADT",
+      "poruka": "STD · sezona 4 · BB · 2ADT: 62,00 → 65,10",
+      "staraVrednost": 6200,
+      "novaVrednost": 6510
+    }
+  ],
+  "sviKljucevi": ["CENA|STD|4|BB|2ADT|PER_ROOM_PER_NIGHT|svi"],
+  "redovi": [ … ],
+  "neprimenjeno": [
+    {
+      "obrazlozenje": "rani buking 2. krug se ukida",
+      "razlog": "Akcije se gase na ekranu ponuda perioda."
+    }
+  ],
+  "noveDoplate": [
+    {
+      "name": "Parking",
+      "kind": "SURCHARGE",
+      "pricingMode": "FLAT_PER_UNIT",
+      "flatAmount": 500,
+      "priceBasis": "PER_ROOM_PER_NIGHT",
+      "payable": "ON_SITE",
+      "isMandatory": false
+    }
+  ],
+  "ugaseneDoplate": []
+}
+```
+
+| Polje          | Čemu služi                                                                                 |
+| :------------- | :----------------------------------------------------------------------------------------- |
+| `namere`       | **Šta je model razumeo**, deo po deo rečenice — čovek proverava razumevanje, ne samo ishod |
+| `razlike`      | Izmene cena, isti oblik kao kod uvoza dokumenta; svaka se odobrava posebno                 |
+| `redovi`       | Predloženi cenovnik — vraća se nepromenjen u `/primeni`                                    |
+| `neprimenjeno` | Izmene van cenovnika (rokovi, akcije, kapacitet) sa uputstvom na kom se ekranu rade        |
+| `noveDoplate`  | Doplate iz rečenice — **prikazuju se, ne upisuju**; dodaju se na ekranu doplata (§2.11k)   |
+| `pitanja`      | Kad rečenica nije jednoznačna. Ako nema nijedne namere, predlog se **ne pravi** (§4.4)     |
+
+**Model ne računa cene.** Šema alata nema polje za izračunatu cenu, pa je model ne može ni poslati; nove iznose računa kod. Namera bez broja (procenat `null`, procenat `0`, decimalan iznos) se odbacuje **posle** modela — ne sme da postane cena nula.
+
+**Greške:** `400` kad je cenovnik prazan (proverava se **pre** modela), kad je rečenica prazna, ili kad AI servis nije podešen na instalaciji — tada poruka upućuje na ručni unos u mreži cena umesto da se tok pretvara da radi.
+
+### Primena
+
+Ide postojećim `POST .../pricelist-versions/primeni`: `redovi` i `effectiveFrom` iz predloga, `prihvaceniKljucevi` samo za ono što je čovek označio, i `instructionText` — koji čini da se potez u auditu vodi kao **AI potez** (`actorType: AI_AGENT`) i čuva se uz nastalu verziju.
+
 ## Kalendar cena i raspoloživosti (v1.34, M3 §2.11o)
 
 **Pregled, ne unos.** Spaja dva izvora koja inače stoje na odvojenim ekranima — cenovnik i mrežu kapaciteta — da bi se greška u datumskom opsegu videla kao rupa ili skok u nizu. Ne uvodi nov zapis u bazi.

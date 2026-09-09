@@ -9,6 +9,7 @@ import Kartice from './Kartice';
 import PricingRulesPanel, { type PravilioRed } from './PricingRulesPanel';
 import VerzijePanel, { type RazlikeOdgovor, type Verzija } from './VerzijePanel';
 import KalendarPanel from './KalendarPanel';
+import IzmenaRecimaPanel from './IzmenaRecimaPanel';
 
 /**
  * M3 spec §2.11, M17 §6d — cenovnik jednog ugovora kao mreža.
@@ -145,6 +146,7 @@ export default async function CenovnikPage(props: { params: Promise<{ id: string
               currency={mreza.currency}
             />
           }
+          recima={<IzmenaRecimaPanel contractId={id} currency={mreza.currency} canEdit={canEdit} />}
         />
       )}
     </div>

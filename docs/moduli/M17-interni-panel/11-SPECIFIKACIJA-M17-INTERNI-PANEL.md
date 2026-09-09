@@ -836,6 +836,8 @@ Vlasnikov nalaz nad postojećim ekranom (`/ugovori/:id/periods/:periodId`): _„
 
 Polje u koje se ukuca rečenica kakva bi se rekla kolegi, pa spisak predloženih izmena (_sada 62,00 → postaje 65,10_) koje se odobravaju **red po red**. Model i ograde: M3 §4.8. Dva pravila su vidljiva na ekranu: **„ništa još nije primenjeno"** stoji iznad spiska, i **rečenica koja je izmenu tražila ostaje uz rezultat**.
 
+**Napravljeno 9.9.2026** kao kartica „Izmena rečima“ na `/ugovori/[id]/cenovnik` (M3 v1.35). Ekran ima četiri dela, tim redom: polje za rečenicu; **šta je zahtev razumeo** (deo po deo rečenice, pre nego što se pogleda ijedna cena — ako je model pogrešno pročitao, to se vidi odmah); spisak razlika sa kvačicom po redu (**nijedna nije unapred označena** — odobravanje je svesna radnja, ne propuštanje); i spisak **„ovo nije primenjeno — uradite ručno“** sa uputstvom na kom se ekranu radi. Upozorenje „ništa još nije primenjeno“ stoji **iznad** spiska, ne u sitnom tekstu ispod.
+
 ### 6d.4 Kalendar
 
 Biraju se hotel, tip sobe i sastav gostiju; kalendar po danu prikazuje cenu za taj sastav i **broj slobodnih jedinica** (vlasnikova odluka: samo slobodno, ne „4 od 6"). Vrednost je u tome što se pogrešno unet datumski opseg vidi kao skok ili rupa u nizu — u mreži se to ne primeti.
