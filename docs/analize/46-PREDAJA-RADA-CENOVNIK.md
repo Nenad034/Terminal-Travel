@@ -172,7 +172,6 @@ Model **još nije dodat**. Treba:
 >
 > **Još nije spojeno:** ekran AI uvoza (§4.2) i dalje upisuje red po red umesto da zove `predlog`/`primeni`. To je posao koraka 7, gde se oba ulaza spajaju na isti tok. Opis ispod ostaje kao zapis šta je traženo.
 
-
 Nov zapis `PricelistVersion` (`contract_id`, `version_no`, `effective_from`, `created_by`, `source_import_id?`, `instruction_text?`). Nova verzija **ne briše staru**. AI poredi novu sa prethodnom i prikazuje **samo razlike**; čovek potvrđuje razlike, ne ceo cenovnik.
 
 Vlasnik je izričito rekao: hotel šalje **ceo nov cenovnik**, ne spisak izmena.

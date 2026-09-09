@@ -112,8 +112,8 @@ export default function VerzijePanel({
         {razlike.ukupno === 0 ? (
           // Prazan spisak ovde nije prazna baza nego dobra vest: nema nepotvrđenih izmena.
           <p className="px-3 py-6 text-center text-[11px] text-ink-faint">
-            Nema nepotvrđenih izmena. Kad promenite cenu u kartici „Cene", razlika se pojavljuje
-            ovde i potvrđujete samo nju — ne ceo cenovnik.
+            Nema nepotvrđenih izmena. Kad promenite cenu u kartici „Cene&ldquo;, razlika se
+            pojavljuje ovde i potvrđujete samo nju — ne ceo cenovnik.
           </p>
         ) : (
           <ul className="divide-y divide-border">
@@ -241,7 +241,7 @@ export default function VerzijePanel({
                     {v.instructionText ? (
                       // §4.8 — rečenica kojom je izmena tražena čuva se uz rezultat. Bez nje se
                       // ne može utvrditi da li je model pogrešno razumeo ili je tako i rečeno.
-                      <span className="italic">„{v.instructionText}"</span>
+                      <span className="italic">„{v.instructionText}&ldquo;</span>
                     ) : (
                       (v.note ?? '—')
                     )}
