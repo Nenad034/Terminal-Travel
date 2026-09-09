@@ -1,5 +1,10 @@
-import { BadRequestException } from '@nestjs/common';
-import { CapacityService, enumerateDays, isoDay } from './capacity.service';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  CAPACITY_HISTORY_ACTIONS,
+  CapacityService,
+  enumerateDays,
+  isoDay,
+} from './capacity.service';
 
 /**
  * M3 spec §2.8 — kapacitet po danu.
@@ -33,6 +38,9 @@ describe('CapacityService', () => {
       bookingItem: { findMany: jest.fn().mockResolvedValue(items) },
       product: { findMany: jest.fn().mockResolvedValue([]) },
       capacityDay: { upsert: jest.fn() },
+      // §2.8g — istorija cita postojece audit zapise i razresava imena aktera iz M1.
+      auditLogEntry: { findMany: jest.fn().mockResolvedValue([]) },
+      user: { findMany: jest.fn().mockResolvedValue([]) },
       capacityBlock: {
         create: jest.fn().mockImplementation(({ data }: any) => ({ id: 'b1', ...data })),
         findMany: jest.fn().mockResolvedValue([]),
@@ -335,6 +343,166 @@ describe('CapacityService', () => {
         expect.objectContaining({ blockId: 'b2', severity: 'WARNING' }),
       );
       expect(rezultat).toEqual({ released: 1, expiring: 1 });
+    });
+  });
+
+  /**
+   * §2.8a (v1.23) — treca vrednost dimenzije „Sta": IZABRANI tipovi soba. Sustina koja se
+   * proverava nije da petlja radi, nego da jedan potez coveka ostane JEDAN audit zapis — inace
+   * istorija iz 2.8g pokazuje tri odvojena poteza tamo gde je covek napravio jedan.
+   */
+  describe('multiselect tipova soba (§2.8a v1.23)', () => {
+    const DVA_PERIODA = [
+      { ...PERIOD, id: 'p1', roomType: 'DBL' },
+      { ...PERIOD, id: 'p2', roomType: 'TRP' },
+    ];
+
+    it('stop-sale nad dva izabrana tipa pise oba, ali ostavlja jedan audit zapis', async () => {
+      const { service, prisma, auditLog } = makeService();
+      prisma.contractPeriod.findMany.mockResolvedValue(DVA_PERIODA);
+
+      const rez = await service.setStopSale(
+        {
+          contractPeriodIds: ['p1', 'p2'],
+          dateFrom: '2027-07-10',
+          dateTo: '2027-07-11',
+          source: 'SUPPLIER_EMAIL',
+        } as any,
+        'u1',
+      );
+
+      expect(rez.periods).toBe(2);
+      expect(rez.days).toBe(4); // dva perioda x dva dana
+      expect(auditLog.write).toHaveBeenCalledTimes(1);
+      expect(auditLog.write.mock.calls[0][0].context.roomTypes).toEqual(['DBL', 'TRP']);
+    });
+
+    it('izmena kapaciteta nad dva tipa upisuje isti broj u oba, uz jedan audit zapis', async () => {
+      const { service, prisma, auditLog } = makeService();
+      prisma.contractPeriod.findMany.mockResolvedValue(DVA_PERIODA);
+
+      const rez = await service.setCapacityOverride(
+        {
+          contractPeriodIds: ['p1', 'p2'],
+          dateFrom: '2027-07-10',
+          dateTo: '2027-07-10',
+          capacity: 8,
+        } as any,
+        'u1',
+      );
+
+      expect(rez).toEqual({ days: 2, periods: 2 });
+      expect(prisma.capacityDay.upsert).toHaveBeenCalledTimes(2);
+      expect(auditLog.write).toHaveBeenCalledTimes(1);
+    });
+
+    it('blokada nad dva tipa pravi po jednu blokadu u svakom, sa PUNIM brojem jedinica', async () => {
+      const { service, prisma, auditLog } = makeService();
+      prisma.contractPeriod.findMany.mockResolvedValue(DVA_PERIODA);
+
+      const rez: any = await service.createBlock(
+        {
+          contractPeriodIds: ['p1', 'p2'],
+          dateFrom: '2027-07-10',
+          dateTo: '2027-07-11',
+          units: 2,
+          reason: 'grupa OS, ceka odluku',
+          holdUntil: '2027-07-01',
+        } as any,
+        'u1',
+      );
+
+      expect(rez.periods).toBe(2);
+      // Jedinice se NE dele medju tipovima — dve u svakom, ne jedna po tipu.
+      expect(prisma.capacityBlock.create.mock.calls[0][0].data.units).toBe(2);
+      expect(prisma.capacityBlock.create.mock.calls[1][0].data.units).toBe(2);
+      expect(auditLog.write).toHaveBeenCalledTimes(1);
+    });
+
+    it('odbija zahtev kad neki od izabranih tipova ne postoji, umesto da tiho odradi manji skup', async () => {
+      const { service, prisma } = makeService();
+      prisma.contractPeriod.findMany.mockResolvedValue([DVA_PERIODA[0]]);
+
+      await expect(
+        service.setCapacityOverride(
+          {
+            contractPeriodIds: ['p1', 'p2'],
+            dateFrom: '2027-07-10',
+            dateTo: '2027-07-10',
+            capacity: 8,
+          } as any,
+          'u1',
+        ),
+      ).rejects.toBeInstanceOf(NotFoundException);
+    });
+  });
+
+  /**
+   * §2.8g — istorija izmena. Dve stvari koje ne smeju da se pokvare: da se cita ZATVORENA lista
+   * akcija (inace bi u istoriju kapaciteta uleteli potezi nad ugovorima i dobavljacima, koji su
+   * isti modul M3), i da se akter prikaze imenom, jer spisak UUID-a ne odgovara na pitanje „ko".
+   */
+  describe('istorija izmena (§2.8g)', () => {
+    it('trazi samo akcije nad kapacitetom, ne sve sto modul M3 belezi', async () => {
+      const { service, prisma } = makeService();
+
+      await service.capacityHistory({});
+
+      const where = prisma.auditLogEntry.findMany.mock.calls[0][0].where;
+      expect(where.module).toBe('M3');
+      expect(where.action.in).toEqual(CAPACITY_HISTORY_ACTIONS);
+      expect(where.action.in).not.toContain('contract.created');
+      // Bez zadatog obima se ne sme suziti na prazan skup identifikatora.
+      expect(where.resourceId).toBeUndefined();
+    });
+
+    it('suzava obim na periode I blokade tog ugovora, jer blokada nosi svoj id', async () => {
+      const { service, prisma } = makeService();
+      prisma.contractPeriod.findMany.mockResolvedValue([{ id: 'p1' }, { id: 'p2' }]);
+      prisma.capacityBlock.findMany.mockResolvedValue([{ id: 'b1' }]);
+
+      await service.capacityHistory({ contractId: 'c1' });
+
+      expect(prisma.auditLogEntry.findMany.mock.calls[0][0].where.resourceId.in).toEqual([
+        'p1',
+        'p2',
+        'b1',
+        'c1',
+      ]);
+    });
+
+    it('razresava akterov ID u ime, a sistemski potez ispisuje kao „sistem"', async () => {
+      const { service, prisma } = makeService();
+      prisma.auditLogEntry.findMany.mockResolvedValue([
+        {
+          id: 'a1',
+          timestamp: new Date('2027-07-01T10:00:00Z'),
+          action: 'capacity.sale_stopped',
+          actorType: 'HUMAN',
+          actorId: 'u1',
+          resourceType: 'ContractPeriod',
+          resourceId: 'p1',
+          afterState: {},
+          context: {},
+        },
+        {
+          id: 'a2',
+          timestamp: new Date('2027-07-01T09:00:00Z'),
+          action: 'capacity_block.auto_released',
+          actorType: 'SYSTEM',
+          actorId: null,
+          resourceType: 'CapacityBlock',
+          resourceId: 'b1',
+          afterState: {},
+          context: {},
+        },
+      ]);
+      prisma.user.findMany.mockResolvedValue([{ id: 'u1', fullName: 'Marko Marković' }]);
+
+      const rez = await service.capacityHistory({});
+
+      expect(rez[0].actorName).toBe('Marko Marković');
+      expect(rez[1].actorName).toBe('sistem');
     });
   });
 

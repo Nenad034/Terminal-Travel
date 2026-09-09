@@ -1179,6 +1179,8 @@ Preuzeto i razrađeno iz tabele u poglavlju 8:
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje
 
+**Verzija:** 2.70 — **tri dopune ekrana „Kapaciteti"** (9.9.2026, vlasnikovi zahtevi nad živim ekranom). **(1)** Red sa datumima dobija strelice ◀ / ▶ koje pomeraju prikaz za **7 dana** zadržavajući dužinu raspona (4b.1) — kapacitet se gleda po nedeljama boravka, pomeranje po danu bi tražilo sedam klikova za isti posao. **(2)** Novo 4b.3a: izmena kapaciteta, zatvaranje prodaje i blokada važe za **izabrane tipove soba** (čipovi, uz „izaberi sve"/„poništi"), ne samo za jedan ili za ceo objekat — slučaj „zatvori dvokrevetne i trokrevetne, jednokrevetne ostavi" se do sada radio u dva poteza ili grubo. Jedan potez = jedan audit zapis (M3 §2.8a). **(3)** Novo 4b.9: **istorija izmena na samom ekranu** — ko, kada i šta je promenio, sužena na filter koji je već postavljen. Čita se novim `GET /contracting/capacity/history` pod `M3/capacity/VIEW`, ne postojećim audit log endpointom koji traži `M1/audit-log/VIEW` i time bi sakrio istoriju od ljudi koji taj posao rade.
+
 **Verzija:** 2.69 — **filteri ekrana „Kapaciteti" dovedeni u red sa Listom rezervacija** (9.9.2026, vlasnikov zahtev nad živim ekranom). Četiri izmene, sve u poglavlju 4b. **(1)** Dodati filteri **Država / Mesto / Hotel** — stajali su u 4b.3 od v2.60, ali ih ekran nikad nije imao (ni backend, vidi M3 v1.22). **(2)** Nov filter **vrsta proizvoda kao traka ikonica**, iz istog kataloga `PRODUCT_ICONS` kao brzi filteri Liste rezervacija; više vrednosti odjednom, izbor živi u adresi jer se filtrira na serveru. **(3)** Zaglavlje mreže dobija **red sa mesecom** iznad reda sa danima — goli broj dana je bez oznake meseca dvosmislen (4b.1). **(4)** Polja za datum prelaze sa golog `<input type="date">` na `ClearableDateRange`/`DateField` — pravilo od 29.8.2026 koje je ovaj ekran propustio jer je nastao kasnije. Isti propust je zatečen i na polju „Drži do" u formi blokade, pa je ispravljen u istom prolazu.
 
 **Verzija:** 2.68 — forma za unos kapaciteta dobija utvrđen redosled polja i izričito pravilo prepisivanja (8.9.2026, novo 4b.0c, izvor M3 v1.20 §2.3e). **„Rezervacije od…do" stoji iznad perioda boravka** — isto kao na uzoru, i isti je redosled kojim se o kontingentu govori u ugovoru. Unos preko datuma koji već imaju kapacitet je **prepisivanje, ne sabiranje**, i to stoji kao vidljiv tekst uz dugme potvrde, ne kao prećutna konvencija. „Primeni na sve ugovore ovog hotela" je **masovni unos**, ne deljeni bazen — svaki ugovor zadržava svoj broj. Mreža dobija filter „Rezervacije od…do" i **uvek ispisuje na koji datum prijave se prikaz odnosi**, jer isti datumi boravka mogu imati različit kapacitet za različite datume prijave. **Čisto specifikaciona dopuna, bez koda u ovom prolazu.**
@@ -1732,6 +1734,7 @@ Prozor prijave stoji **iznad** boravka namerno. Na uzoru je isto (`OperationalRe
 Redovi = ono što se prodaje, kolone = dani (podrazumevano mesec, raspon podesiv):
 
 - prva kolona je zalepljena pri horizontalnom skrolu; vikend kolone su vizuelno odvojene;
+- **red sa datumima nosi strelice ◀ / ▶ koje pomeraju prikaz za 7 dana** (dopuna 9.9.2026, vlasnikov zahtev) — pomera se ceo raspon, a njegova DUŽINA ostaje ista (pogled na 17 dana ostaje pogled na 17 dana, samo počinje nedelju dana ranije/kasnije). Sedam, a ne jedan dan: kapacitet se gleda po nedeljama boravka, a pomeranje za jedan dan bi tražilo sedam klikova za isti posao. Strelice menjaju `from`/`to` u adresi kao i svaki drugi filter — pogled ostaje deljiv vezom;
 - **zaglavlje kolona mora da kaže koji je mesec** (dopuna 9.9.2026, vlasnikov nalaz: _„u prvom redu gde su navedeni dani u mesecu nemamo pojma koji je mesec u pitanju"_) — sam broj dana (1, 2, 3…) je dvosmislen čim raspon pređe granicu meseca, a to je i podrazumevano stanje čim se raspon pomeri. Iznad reda sa danima stoji red koji **grupiše dane po mesecu** (`avgust 2026` | `septembar 2026`, spojene ćelije preko svojih dana); prvi dan svakog meseca dodatno nosi vidljivu levu granicu, da se prelaz vidi i pri horizontalnom skrolu kad je naslov meseca odskrolovan levo;
 - **hotel je zbirni red, klik ga razvija na tipove soba** (jedan `ContractPeriod` po tipu, M3 §2.3); skupljen red pokazuje najnepovoljnije stanje svojih redova (zatvoreno > popunjeno > slobodno), da se problem vidi i kad je red zatvoren;
 - ćelija nosi četiri broja iz M3 §2.8c — kapacitet, prodato, blokirano, slobodno — ali se pri mesečnom rasponu prikazuje samo boja i oznaka, a brojevi na prelaz mišem i u nedeljnom rasponu (isto pravilo kao toplotna mapa: 168 brojeva na ekranu poništava svrhu prikaza);
@@ -1788,6 +1791,16 @@ Prihod i prosečna cena su cenovno osetljivi, pa taj deo trake zahteva `M13/repo
 
 **Izdvojen pogled za `CHARTER` i `FIXED_LEASE`** — tamo neprodato nije propuštena prilika nego trošak agencije (M3 §2.3a), pa ćelija pored broja jedinica prikazuje i novčanu izloženost. Taj pogled zahteva `M13/report:profitability/VIEW` pored `M3/capacity/VIEW`, jer prikazuje cenovno osetljiv podatak.
 
+### 4b.3a Izmena važi za IZABRANE tipove soba, ne samo za jedan (dopuna 9.9.2026)
+
+Vlasnikov zahtev: _„kada se menja bilo šta u vezi kapaciteta jednog hotela omogućiti multiselect za tipove smeštaja."_ Do ove dopune je svaka od tri forme (zatvaranje prodaje, izmena kapaciteta, blokada) radila nad **jednim** tipom sobe, a stop-sale je uz to imao grubo „sve sobe ovog objekta". Slučaj koji nedostaje je najčešći: dobavljač zatvara dvokrevetne i trokrevetne, jednokrevetne ostavlja.
+
+Tipovi soba se biraju **čipovima** — isti oblik koji 4b.0c već propisuje za formu unosa kapaciteta, pa dva mesta na istom ekranu ne izgledaju različito. Uz čipove stoje „izaberi sve" i „poništi", jer je „ceo objekat" i dalje česta radnja i ne sme da traži sedam klikova.
+
+**Ono što se bira su tipovi soba TOG hotela**, ne globalan spisak: čipovi se prave iz redova koji su već na ekranu (svi `ContractPeriod` istog ugovora), pa se ne može izabrati soba koja tom objektu ne pripada.
+
+**Potvrda pre izvršenja nabraja koliko je izabrano** i, kad je izabrano više od jednog, ispisuje ih poimence — masovan potez nad kapacitetom se ne sme desiti „u tišini" (isto pravilo kao pregled pre potvrde u 4b.0c). Backend prima skup (`contractPeriodIds`, M3 §2.8a) i ostavlja **jedan** audit zapis, pa se u istoriji (4b.9) vidi da je to bio jedan potez čoveka, ne tri.
+
 ### 4b.4 Radnje sa ekrana
 
 | Radnja                               | Dozvola (M3 §5)                 | Napomena                                                                                                                   |
@@ -1837,6 +1850,18 @@ Klik na ćeliju **ostaje** (dnevni panel iz 4b.1) — on je za brzu proveru i si
 **Svaka potvrđena izmena po opsegu dobija „poništi"** koje vraća ceo paket u prethodno stanje, dok god se u međuvremenu ništa nije prodalo na tim danima. Jedna radnja menja deset dana odjednom, pa greška nije sitna.
 
 **Rok za vraćanje alotmana stoji na redu** kao odbrojavanje („rok za vraćanje: za 4 dana"), a dan koji ulazi u rok je obeležen. Bez toga se rok propušta, a to je najskuplja greška u ovom poslu — ne izgleda kao greška, samo se na kraju sezone vidi manja zarada (M3 §4.1/§4.5).
+
+### 4b.9 Istorija izmena — ko je, kada i šta promenio (dopuna 9.9.2026)
+
+Vlasnikov zahtev: _„kreirati work flow u /kapaciteti kako bi se videlo koje su promene na kapacitetima rađene, kada i ko ih je radio."_ Potvrđeno da se traži **hronološka istorija**, ne tok odobravanja (izmena i dalje stupa na snagu odmah).
+
+Istorija stoji **na samom ekranu**, ne kao poseban ulaz u meniju — pitanje „ko je ovo zatvorio" postavlja se dok se gleda ćelija koja je zatvorena, i odgovor ne sme da traži odlazak na drugi ekran (isti razlog zbog kog 4b.0b drži i unos i izmenu ovde).
+
+**Sledi filter koji je već postavljen.** Kad je izabran hotel, prikazuje njegove izmene; kad je otvoren panel dana (4b.1), sužava se na taj period. Nesuženo „sve izmene svih objekata" nije radni podatak nego audit log, koji već postoji na svom ekranu.
+
+**Svaki red nosi četiri stvari:** vreme, ime osobe (ne UUID; sistemski potezi pišu „sistem"), rečenicu šta je urađeno, i na šta se odnosi. Podatak dolazi iz `GET /contracting/capacity/history` (M3 §6/§2.8g) pod dozvolom `M3/capacity/VIEW` — namerno NE preko `GET /iam/audit-log`, koji traži `M1/audit-log/VIEW` i time bi sakrio istoriju baš od ljudi koji taj posao rade (vlasnikova odluka 9.9.2026).
+
+**Prazna istorija se ispisuje rečenicom** („Za ovaj izbor nema zabeleženih izmena"), ne praznim prostorom — zamka 7.2.
 
 ### 4b.8 Šta ovaj ekran namerno ne pokriva u prvom prolazu
 
@@ -2421,6 +2446,8 @@ Prefiks: `/api/v1/catalog`
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M3) i poglavlje 8 (Faza 1)
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje
+**Verzija:** 1.23 — **multiselect tipova soba nad kapacitetom + istorija izmena** (9.9.2026, dva vlasnikova zahteva nad ekranom M17 §4b). **(1)** Dimenzija „Šta" iz 2.8a dobija treću vrednost — **izabrani tipovi soba** (`contractPeriodIds`), između dosadašnjeg „jedan tip sobe" i „ceo objekat"; slučaj „zatvori dvokrevetne i trokrevetne, jednokrevetne ostavi" se do sada radio u dva poteza ili grubo, preko celog objekta. Sve tri radnje (stop-sale, `capacity_override`, blokada) primaju skup, a jedan poziv i dalje ostavlja **jedan** audit zapis sa spiskom pogođenih perioda u `context`. **(2)** Novo poglavlje **2.8g** — istorija izmena kapaciteta. Nova tabela se ne uvodi: svaka radnja već upisuje `AuditLogEntry` sa akterom i vremenom, dodaje se samo čitanje, kroz nov `GET /capacity/history` pod **`M3/capacity/VIEW`** (postojeći `GET /iam/audit-log` traži `M1/audit-log/VIEW`, koju Sales Manager i prodajni agent nemaju — bili bi bez uvida u sopstven posao; vlasnikova odluka 9.9.2026). Ekran: M17 v2.70.
+
 **Verzija:** 1.22 — **mreža kapaciteta dobija filtere po destinaciji, hotelu i vrsti proizvoda** (9.9.2026, vlasnikov zahtev nad ekranom M17 §4b). Destinacija i hotel/proizvod su od v1.15 stajali u opisu `/capacity/grid` kao filteri, ali u kodu nisu postojali — `CapacityGridQueryDto` je primao samo `contractId`/`supplierId`/`roomType`/`allotmentMode`; ovaj prolaz zatvara tu razliku između dokumenta i koda. **Vrsta proizvoda (`productType`) je nov filter** — čita se sa `Product.type` objekta vezanog za ugovor (`Product.sourceContractId`), prima više vrednosti odjednom, i vraća se na svakom redu mreže (`productType`) da panel može da prikaže po čemu je red filtriran. Filteri nad proizvodom se rešavaju **pre** upita nad periodima (jedan upit nad `Product` daje skup `contractId` vrednosti), pa period bez vezanog proizvoda ispada iz rezultata čim se bilo koji od tri filtera postavi — što je tačno, jer o njemu ne znamo ni destinaciju ni naziv. **Provera:** vidi M17 v2.69.
 
 **Verzija:** 1.21 — **implementacija poglavlja 2.8c (provera kapaciteta po danu) i 2.3e (prozor prijave)** (8.9.2026). Zatvorena stavka izlaznog kriterijuma „Konkurentnost po danu", koja je od v1.18 stajala kao izričito zabeležen poznat nedostatak: mreža je PRIKAZIVALA stop-sale i blokade, ali ih `reserve()` pri potvrdi rezervacije nije poštovao. Migracija `m3_booking_window_and_day_counter_v120` (`contract_periods.booking_from`/`booking_to`, `capacity_days.units_reserved`). Nov `day-capacity.ts`: provera i brava u jednoj SQL naredbi po noći, sve noći ili nijedna, sa tri razdvojena razloga odbijanja (`SALE_STOPPED` / `CAPACITY_BLOCKED` / `NO_CAPACITY`) i četvrtim pre njih (`BOOKING_WINDOW_CLOSED`). **Odstupanje od specifikacije, zabeleženo a ne prećutano:** 2.8c je predviđao rešenje bez dnevnog brojača, što u stvarnom M5 toku ne radi (između rezervacije i upisa stavke stoji HTTP poziv provajderu, koji se ne sme držati u DB transakciji) — puno obrazloženje i šta od prvobitnog pravila ostaje na snazi: **novo poglavlje 2.8f**. Prikaz i dalje RAČUNA prodato iz rezervacija; brojač je brava, ne izvor istine, a razilaženje hvata provera 2.8e. **Provera:** 7 novih e2e testova nad pravom bazom i 9 novih unit testova; 1182 unit testa, M3 i M5 e2e suite prolaze; `tsc` čist za `apps/api`.
@@ -2834,6 +2861,32 @@ Analiza stvarnih cenovnika (avgust 2026) otkriva veliku raznolikost pomoćnih tr
 | **Kada**  | jedan datum, raspon datuma, ili ceo period                                                                          |
 
 Sve kombinacije se svode na **isti** zapis po danu — "zatvori sve sobe do kraja sezone" je masovni unos, ne poseban tip zapisa. Time postoji tačno jedno mesto koje treba pročitati da bi se znalo stanje za neki datum.
+
+**Dimenzija „Šta" ima TRI vrednosti, ne dve** (dopuna 9.9.2026, vlasnikov zahtev: _„kada se menja bilo šta u vezi kapaciteta jednog hotela omogućiti multiselect za tipove smeštaja"_). Između „jedan tip sobe" i „ceo objekat" nedostajao je slučaj koji je u praksi najčešći: dobavljač javi da zatvara **dvorevne i trokrevetne**, a jednokrevetne ostavlja. Do ove dopune se to radilo u dva poteza (dva odvojena unosa, dva audit zapisa, dve prilike za grešku) ili grubo — zatvaranjem celog objekta. Zato sve tri radnje nad kapacitetom (stop-sale, `capacity_override`, blokada) primaju **skup** `contract_period_id` vrednosti:
+
+| Vrednost                 | Kako se zadaje                                                          |
+| :----------------------- | :---------------------------------------------------------------------- |
+| jedan tip sobe           | `contractPeriodIds` sa jednim elementom                                 |
+| **izabrani tipovi soba** | `contractPeriodIds` sa više elemenata (novo)                            |
+| ceo objekat              | `contractId` — svi aktivni periodi tog ugovora koji pokrivaju te datume |
+
+Jedan poziv i dalje ostavlja **jedan** audit zapis, sa spiskom pogođenih perioda u `context` — inače bi istorija iz 2.8g pokazivala tri odvojena poteza tamo gde je čovek napravio jedan, i ne bi se videlo da su išli zajedno.
+
+#### 2.8g Istorija izmena kapaciteta — ko je, kada i šta promenio (dopuna 9.9.2026)
+
+Vlasnikov zahtev: _„kreirati work flow u /kapaciteti kako bi se videlo koje su promene na kapacitetima rađene, kada i ko ih je radio."_ Potvrđeno istog dana da se traži **hronološka istorija izmena**, ne tok odobravanja — izmena i dalje stupa na snagu odmah, ne čeka ničiju potvrdu.
+
+**Nova tabela se NE uvodi.** Svaka radnja iz 2.8a i 2.8b već upisuje `AuditLogEntry` (M1 §3.8) sa akterom i vremenom — `capacity.sale_stopped`, `capacity.sale_reopened`, `capacity.day_override_set`, `capacity_block.created`, `capacity_block.released`, `capacity_block.converted`, `capacity_block.auto_released`. Isti obrazac je već jednom primenjen za „ceo workflow rezervacije" (M5 §11, `AuditLogService.findByResource`) i ovde se ponavlja umesto da se izmišlja nov mehanizam.
+
+**Šta se dodaje: čitanje, i to pod pravom dozvolom.** Postojeći `GET /iam/audit-log` traži `M1/audit-log/VIEW`, koju imaju samo Vlasnik i Direktor — a kapacitete menjaju Sales Manager i prodajni agent, koji bi tako ostali bez uvida u sopstven posao. Zato nov endpoint `GET /contracting/capacity/history` (§6) stoji pod **`M3/capacity/VIEW`** i vraća isključivo zapise o kapacitetu, sužene na objekat/period i raspon datuma koji su trenutno na ekranu (vlasnikova odluka 9.9.2026).
+
+**Tri pravila prikaza:**
+
+1. **Ime, ne UUID.** Audit zapis čuva `actor_id`; istorija ga razrešava u puno ime iz M1, a sistemske poteze (`auto_released`) ispisuje kao „sistem". Spisak identifikatora ne odgovara na pitanje „ko".
+2. **Rečenica, ne naziv akcije.** `capacity.day_override_set` se ispisuje kao „Promenio kapacitet na 8, za 12–19. jul (8 dana)" — podaci za to već stoje u `after_state`, ne treba nov upis.
+3. **Istorija se ne prazni i ne menja.** `AuditLogEntry` je append-only na nivou baze (M1 §3.8), pa je ovo pogled bez ijedne radnje nad podacima — nema „obriši zapis", nema izmene.
+
+**Ograničenje koje ostaje, zapisano a ne prećutano:** za radnje nad celim objektom (`contractId`) audit zapis nosi `resource_id = contractId`, a za pojedinačan tip sobe `resource_id = contractPeriodId`. Istorija zato pretražuje oba, plus identifikatore blokada tih perioda. Zapisi stariji od ove dopune, napravljeni pre nego što je `context` počeo da nosi spisak perioda, prikazuju se sa manje detalja — to je posledica toga što se stara istorija ne prepisuje, i tako i treba.
 
 #### 2.8b `CapacityBlock` — izuzimanje iz prodaje bez rezervacije
 
@@ -3277,6 +3330,7 @@ Prefiks: `/api/v1/contracting`
 | `/contracts/:id/periods/:periodId/availability`       | GET                | preostali kapacitet — koristi M5 pri pretrazi                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 | `/contracts/:id/periods/:periodId/reserve`            | POST               | interni poziv (samo M5) — atomski umanjuje `units_sold`, vraća grešku ako nema kapaciteta                                                                                                                                                                                                                                                                                                                                                                                            |
 | `/capacity/grid`                                      | GET                | mreža kapaciteta po danima (poglavlje 2.8) — filteri: raspon datuma **boravka**, **datum/raspon prijave** (`bookingDate`, podrazumevano danas — poglavlje 2.3e.4), destinacija (`destinationCountry`/`destinationCity`), hotel/proizvod (`productName`, sadrži-bez-obzira-na-velika-slova), **vrsta proizvoda** (`productType`, više vrednosti — dopuna v1.22), dobavljač, tip sobe, `allotment_mode`, stanje; vraća po danu: kapacitet, prodato, blokirano, slobodno, `sale_status` |
+| `/capacity/history`                                   | GET                | istorija izmena kapaciteta (poglavlje 2.8g) — ko, kada i šta je promenio; filteri: `contractId`, `contractPeriodId`, `from`, `to`, `limit`. Čita postojeće `AuditLogEntry` zapise, ne novu tabelu; zahteva `M3/capacity/VIEW`, NE `M1/audit-log/VIEW` (dopuna v1.23)                                                                                                                                                                                                                 |
 | `/capacity/days`                                      | PUT                | masovna izmena `capacity_override` za opseg (poglavlje 2.8a) — zahteva `M3/contract-period/EDIT`                                                                                                                                                                                                                                                                                                                                                                                     |
 | `/capacity/stop-sale`                                 | POST               | zatvaranje prodaje; telo nosi obim (jedan period ili ceo ugovor) + raspon datuma + `stop_source`/`stop_reason` — zahteva `M3/capacity/CLOSE_SALE`                                                                                                                                                                                                                                                                                                                                    |
 | `/capacity/stop-sale`                                 | DELETE             | ponovno otvaranje prodaje za isti obim — ista dozvola, isti upis u audit log                                                                                                                                                                                                                                                                                                                                                                                                         |

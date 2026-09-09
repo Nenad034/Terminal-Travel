@@ -1,4 +1,13 @@
-import { IsDateString, IsEnum, IsOptional, IsString, IsUUID, ValidateIf } from 'class-validator';
+import {
+  ArrayNotEmpty,
+  IsDateString,
+  IsEnum,
+  IsOptional,
+  IsString,
+  IsUUID,
+  ValidateIf,
+} from 'class-validator';
+import { Transform } from 'class-transformer';
 import { CapacityStopSource } from '@prisma/client';
 
 /**
@@ -13,6 +22,20 @@ export class SetStopSaleDto {
   @IsUUID()
   @IsOptional()
   contractPeriodId?: string;
+
+  /**
+   * §2.8a (v1.23) — IZABRANI tipovi soba, treća vrednost dimenzije „Šta" između jednog tipa i
+   * celog objekta. `contractPeriodId` iznad ostaje radi postojećih poziva; ako stignu oba,
+   * spajaju se u isti skup (servis ih razrešava zajedno).
+   */
+  @IsUUID('4', { each: true })
+  @ArrayNotEmpty()
+  @IsOptional()
+  @Transform(({ value }) => {
+    if (value === undefined || value === null || value === '') return undefined;
+    return Array.isArray(value) ? value : [value];
+  })
+  contractPeriodIds?: string[];
 
   @IsDateString()
   dateFrom!: string;

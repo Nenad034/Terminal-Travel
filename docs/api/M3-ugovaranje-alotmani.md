@@ -687,6 +687,59 @@ Poslednja četiri filtera gađaju vezani `Product` (M2, preko `Product.sourceCon
 
 Dva polja koja se lako pomešaju (spec §2.8c): `razlika` je **prikaz** i SME biti negativna (kapacitet smanjen ispod već prodatog), dok je `zaProdaju` **odluka** i nikad nije manja od nule — i jednaka je nuli kad je `saleStatus` `STOP`. `capacity: null` znači da period ne pokriva taj datum, što nije isto što i `0` (popunjeno).
 
+### Radnje nad kapacitetom — obim je skup tipova soba (v1.23)
+
+Sve tri radnje (`POST`/`DELETE /contracting/capacity/stop-sale`, `PUT /contracting/capacity/days`, `POST /contracting/capacity/blocks`) primaju obim na tri načina (spec §2.8a):
+
+| Polje               | Značenje                                                                          |
+| :------------------ | :-------------------------------------------------------------------------------- |
+| `contractPeriodId`  | jedan tip sobe (stariji put, i dalje radi)                                        |
+| `contractPeriodIds` | **izabrani tipovi soba** — niz UUID-ova (v1.23)                                   |
+| `contractId`        | ceo objekat; samo kod `stop-sale` — izmena kapaciteta i blokada ga namerno NEMAJU |
+
+Zašto izmena kapaciteta nema „ceo objekat": upisala bi **isti broj** u svaki tip sobe, a 10 dvokrevetnih nije isto što i 10 apartmana. Blokada iz istog razloga traži izričit izbor.
+
+Ako je bilo koji od zadatih `contractPeriodIds` nepoznat, ceo zahtev pada na `404` — nikad se ne izvršava nad manjim skupom nego što je zatraženo.
+
+Kod blokade se `units` **ne deli** među tipovima: `units: 2` nad tri tipa soba pravi tri blokade po 2 jedinice, ne jednu podeljenu.
+
+Jedan poziv ostavlja **jedan** audit zapis, sa `context.contractPeriodIds` i `context.roomTypes` — da bi istorija (ispod) pokazala jedan potez čoveka umesto tri nezavisna.
+
+### GET /contracting/capacity/history
+
+Dozvola: **`M3/capacity/VIEW`** (spec §2.8g). Namerno NE `M1/audit-log/VIEW` — kapacitete menjaju Sales Manager i prodajni agent, koji audit log ne vide.
+
+Ne postoji nova tabela: čitaju se postojeći `AuditLogEntry` zapisi, suženi na sedam akcija nad kapacitetom (`capacity.sale_stopped`, `capacity.sale_reopened`, `capacity.day_override_set`, `capacity_block.created`, `capacity_block.released`, `capacity_block.converted`, `capacity_block.auto_released`).
+
+**Parametri upita**
+
+| Parametar          | Obavezan | Napomena                                                      |
+| :----------------- | :------- | :------------------------------------------------------------ |
+| `contractId`       | ne       | ceo objekat — obuhvata i periode i blokade tog ugovora        |
+| `contractPeriodId` | ne       | jedan tip sobe                                                |
+| `from`, `to`       | ne       | ISO `yyyy-mm-dd`; `to` znači **zaključno sa krajem tog dana** |
+| `limit`            | ne       | podrazumevano 50, najviše 200                                 |
+
+**Odgovor `200`** (najnovije prvo):
+
+```json
+[
+  {
+    "id": "535bba67-…",
+    "timestamp": "2026-09-09T05:48:42.441Z",
+    "action": "capacity.day_override_set",
+    "actorType": "HUMAN",
+    "actorName": "Vlasnik agencije",
+    "resourceType": "ContractPeriod",
+    "resourceId": "962ec835-…",
+    "afterState": { "from": "2026-09-22", "to": "2026-09-22", "capacity": 7, "touched": 2 },
+    "context": { "periods": 2, "roomTypes": ["SUP", "PREM"] }
+  }
+]
+```
+
+`actorName` je razrešeno puno ime iz M1; sistemski potezi (istekla blokada) vraćaju `"sistem"`, a nerazrešen identifikator se vraća kakav jeste umesto da se sakrije.
+
 ### GET /contracts/:contractId/periods/:periodId/availability
 
 Dozvola: `M3/contract-period/VIEW`. Koristi ga M5 pri pretrazi.

@@ -35,6 +35,33 @@ export class CapacityController {
     return this.capacity.grid(query);
   }
 
+  /**
+   * §2.8g — istorija izmena kapaciteta. Pod `M3/capacity/VIEW`, NE pod `M1/audit-log/VIEW`:
+   * kapacitete menjaju Sales Manager i prodajni agent, koji audit log ne vide, pa bi ostali bez
+   * uvida u sopstven posao (vlasnikova odluka 9.9.2026).
+   *
+   * Parametri se čitaju POJEDINAČNO, ne kao DTO — globalni `ValidationPipe` radi sa
+   * `forbidNonWhitelisted`, pa `@Query() dto` na endpointu sa slobodnim filterima ume da obori
+   * ceo poziv na 400 (ista greška je već napravljena na listi rezervacija, v. audit-log.controller.ts).
+   */
+  @Get('history')
+  @RequirePermission('M3', 'capacity', 'VIEW')
+  history(
+    @Query('contractId') contractId?: string,
+    @Query('contractPeriodId') contractPeriodId?: string,
+    @Query('from') from?: string,
+    @Query('to') to?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.capacity.capacityHistory({
+      contractId,
+      contractPeriodId,
+      from,
+      to,
+      limit: limit ? Number(limit) : undefined,
+    });
+  }
+
   // Izmena ugovorenog kapaciteta namerno koristi POSTOJEĆU dozvolu (spec §5): to je izmena
   // ugovora, ne nova vrsta odgovornosti.
   @Put('days')

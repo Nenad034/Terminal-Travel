@@ -47,6 +47,22 @@ export interface CapacityGridRow {
 
 const MS_DAY = 24 * 60 * 60 * 1000;
 
+/**
+ * §2.8g — akcije koje ulaze u istoriju izmena kapaciteta. Zatvorena lista, ne prefiks pretraga:
+ * `module: 'M3'` nosi i ugovore, periode i dobavljače, a istorija kapaciteta pokazuje SAMO
+ * poteze nad kapacitetom. Kad se doda nova radnja nad kapacitetom, njena akcija ide i ovde —
+ * inače tiho izostaje iz istorije, a ekran izgleda ispravno.
+ */
+export const CAPACITY_HISTORY_ACTIONS = [
+  'capacity.sale_stopped',
+  'capacity.sale_reopened',
+  'capacity.day_override_set',
+  'capacity_block.created',
+  'capacity_block.released',
+  'capacity_block.converted',
+  'capacity_block.auto_released',
+];
+
 /** Niz kalendarskih dana (UTC ponoć) od `from` do `to`, uključivo. */
 export function enumerateDays(from: Date, to: Date): Date[] {
   const days: Date[] = [];
@@ -254,6 +270,92 @@ export class CapacityService {
     return [...new Set(products.map((p) => p.sourceContractId).filter((id): id is string => !!id))];
   }
 
+  // ── Istorija izmena (§2.8g) ──────────────────────────────────────────────
+
+  /**
+   * §2.8g — ko je, kada i šta promenio nad kapacitetom. NE uvodi novu tabelu: sve radnje ovog
+   * servisa već upisuju `AuditLogEntry`, ovde se samo čitaju, sužavaju na zadat obim i dopunjuju
+   * čitljivim imenom aktera (audit zapis čuva samo `actorId`). Isti obrazac kao „ceo workflow
+   * rezervacije" (M5 §11, `BookingsService.history`).
+   *
+   * Dozvola je `M3/capacity/VIEW`, ne `M1/audit-log/VIEW` — vidi §2.8g za obrazloženje.
+   */
+  async capacityHistory(query: {
+    contractId?: string;
+    contractPeriodId?: string;
+    from?: string;
+    to?: string;
+    limit?: number;
+  }) {
+    // Obim: koji identifikatori uopšte mogu da stoje u `resource_id` za traženi izbor.
+    // Stop-sale nad celim objektom nosi `contractId`, nad jednim tipom sobe `contractPeriodId`,
+    // a blokade nose SVOJ id — zato se traže i identifikatori blokada tih perioda.
+    let resourceIds: string[] | null = null;
+    if (query.contractPeriodId || query.contractId) {
+      const periods = await this.prisma.contractPeriod.findMany({
+        where: query.contractPeriodId
+          ? { id: query.contractPeriodId }
+          : { contractId: query.contractId },
+        select: { id: true },
+      });
+      const periodIds = periods.map((p) => p.id);
+      const blocks = await this.prisma.capacityBlock.findMany({
+        where: { contractPeriodId: { in: periodIds } },
+        select: { id: true },
+      });
+      resourceIds = [
+        ...periodIds,
+        ...blocks.map((b) => b.id),
+        ...(query.contractId ? [query.contractId] : []),
+      ];
+      if (resourceIds.length === 0) return [];
+    }
+
+    const entries = await this.prisma.auditLogEntry.findMany({
+      where: {
+        module: 'M3',
+        action: { in: CAPACITY_HISTORY_ACTIONS },
+        resourceId: resourceIds ? { in: resourceIds } : undefined,
+        timestamp: {
+          gte: query.from ? new Date(query.from) : undefined,
+          // „do datuma" znači zaključno sa krajem tog dana — ista zamka koju je audit log
+          // ekran već jednom platio (`endOfDayIfDateOnly`, M1 audit-log.controller.ts).
+          lte: query.to
+            ? new Date(new Date(query.to).getTime() + 24 * 60 * 60 * 1000 - 1)
+            : undefined,
+        },
+      },
+      orderBy: { timestamp: 'desc' },
+      take: Math.min(query.limit ?? 50, 200),
+    });
+
+    const actorIds = [
+      ...new Set(entries.map((e) => e.actorId).filter((v): v is string => Boolean(v))),
+    ];
+    const actors =
+      actorIds.length > 0
+        ? await this.prisma.user.findMany({
+            where: { id: { in: actorIds } },
+            select: { id: true, fullName: true },
+          })
+        : [];
+    const nameById = new Map(actors.map((a) => [a.id, a.fullName]));
+
+    return entries.map((e) => ({
+      id: e.id,
+      timestamp: e.timestamp,
+      action: e.action,
+      actorType: e.actorType,
+      // Sistemski potezi (istekla blokada) nemaju aktera — „sistem" je tačan odgovor na „ko",
+      // a nerazrešen UUID se ispisuje kakav jeste umesto da se sakrije.
+      actorName: e.actorId ? (nameById.get(e.actorId) ?? e.actorId) : 'sistem',
+      resourceType: e.resourceType,
+      resourceId: e.resourceId,
+      afterState: e.afterState,
+      context: e.context,
+    }));
+  }
+
   // ── Stop-sale ────────────────────────────────────────────────────────────
 
   /**
@@ -262,7 +364,11 @@ export class CapacityService {
    * zapis; "zatvori sve do kraja sezone" je masovni unos, ne poseban tip zapisa.
    */
   async setStopSale(dto: SetStopSaleDto, actorId: string, open = false) {
-    const periods = await this.resolvePeriods(dto.contractId, dto.contractPeriodId);
+    const periods = await this.resolvePeriods(
+      dto.contractId,
+      dto.contractPeriodId,
+      dto.contractPeriodIds,
+    );
     const from = startOfDay(new Date(dto.dateFrom));
     const to = startOfDay(new Date(dto.dateTo));
     if (to < from) throw new BadRequestException('Datum „do" je pre datuma „od"');
@@ -300,9 +406,17 @@ export class CapacityService {
       module: 'M3',
       action: open ? 'capacity.sale_reopened' : 'capacity.sale_stopped',
       resourceType: 'ContractPeriod',
-      resourceId: dto.contractPeriodId ?? dto.contractId ?? 'bulk',
+      resourceId: dto.contractPeriodId ?? dto.contractId ?? periods[0].id,
       afterState: { touched, from: isoDay(from), to: isoDay(to) },
-      context: { reason: dto.reason, source: dto.source, periods: periods.length },
+      // §2.8g — spisak pogođenih perioda i tipova soba ide u `context` da bi istorija mogla da
+      // pokaže ŠTA je tačno zahvaćeno kad je izabrano više tipova odjednom (v1.23).
+      context: {
+        reason: dto.reason,
+        source: dto.source,
+        periods: periods.length,
+        contractPeriodIds: periods.map((p) => p.id),
+        roomTypes: periods.map((p) => p.roomType),
+      },
     });
 
     return { periods: periods.length, days: touched };
@@ -312,24 +426,30 @@ export class CapacityService {
 
   /** §2.8a — `capacity_override` za raspon; `null` vraća dan na kapacitet perioda. */
   async setCapacityOverride(dto: SetCapacityOverrideDto, actorId: string) {
-    const period = await this.prisma.contractPeriod.findUnique({
-      where: { id: dto.contractPeriodId },
-    });
-    if (!period) throw new NotFoundException('Period nije pronađen');
+    // v1.23 — više tipova soba odjednom (§2.8a). `resolvePeriods` bez `contractId` znači da je
+    // ceo objekat ovde i dalje nedostupan: izmena KAPACITETA nad svim sobama objekta bi upisala
+    // isti broj u svaki tip sobe, što je skoro uvek pogrešno (10 dvokrevetnih ≠ 10 apartmana).
+    const periods = await this.resolvePeriods(
+      undefined,
+      dto.contractPeriodId,
+      dto.contractPeriodIds,
+    );
 
     const from = startOfDay(new Date(dto.dateFrom));
     const to = startOfDay(new Date(dto.dateTo));
     if (to < from) throw new BadRequestException('Datum „do" je pre datuma „od"');
 
     let touched = 0;
-    for (const day of enumerateDays(from, to)) {
-      if (day < startOfDay(period.stayFrom) || day >= startOfDay(period.stayTo)) continue;
-      await this.prisma.capacityDay.upsert({
-        where: { contractPeriodId_date: { contractPeriodId: period.id, date: day } },
-        create: { contractPeriodId: period.id, date: day, capacityOverride: dto.capacity },
-        update: { capacityOverride: dto.capacity },
-      });
-      touched += 1;
+    for (const period of periods) {
+      for (const day of enumerateDays(from, to)) {
+        if (day < startOfDay(period.stayFrom) || day >= startOfDay(period.stayTo)) continue;
+        await this.prisma.capacityDay.upsert({
+          where: { contractPeriodId_date: { contractPeriodId: period.id, date: day } },
+          create: { contractPeriodId: period.id, date: day, capacityOverride: dto.capacity },
+          update: { capacityOverride: dto.capacity },
+        });
+        touched += 1;
+      }
     }
 
     await this.auditLog.write({
@@ -338,21 +458,27 @@ export class CapacityService {
       module: 'M3',
       action: 'capacity.day_override_set',
       resourceType: 'ContractPeriod',
-      resourceId: period.id,
+      resourceId: periods[0].id,
       afterState: { capacity: dto.capacity, from: isoDay(from), to: isoDay(to), touched },
+      context: {
+        periods: periods.length,
+        contractPeriodIds: periods.map((p) => p.id),
+        roomTypes: periods.map((p) => p.roomType),
+      },
     });
 
-    return { days: touched };
+    return { days: touched, periods: periods.length };
   }
 
   // ── Blokade ──────────────────────────────────────────────────────────────
 
   /** §2.8b — `reason` i `holdUntil` su obavezni; DTO to sprovodi, ovde se samo upisuje. */
   async createBlock(dto: CreateCapacityBlockDto, actorId: string) {
-    const period = await this.prisma.contractPeriod.findUnique({
-      where: { id: dto.contractPeriodId },
-    });
-    if (!period) throw new NotFoundException('Period nije pronađen');
+    const periods = await this.resolvePeriods(
+      undefined,
+      dto.contractPeriodId,
+      dto.contractPeriodIds,
+    );
 
     const dateFrom = startOfDay(new Date(dto.dateFrom));
     const dateTo = startOfDay(new Date(dto.dateTo));
@@ -363,29 +489,45 @@ export class CapacityService {
       throw new BadRequestException('Rok blokade mora biti u budućnosti (M3 spec §2.8b)');
     }
 
-    const block = await this.prisma.capacityBlock.create({
-      data: {
-        contractPeriodId: period.id,
-        dateFrom,
-        dateTo,
-        units: dto.units,
-        reason: dto.reason,
-        holdUntil,
-        createdBy: actorId,
-      },
-    });
+    // v1.23 — po jedna blokada PO TIPU SOBE. `units` se ne deli među tipovima: "blokiraj 2
+    // jedinice" nad tri tipa znači dve u svakom, jer je to jedini izračun koji ne zavisi od
+    // redosleda i koji čovek može da predvidi (§2.8b, DTO nosi isto obrazloženje).
+    const blocks = [];
+    for (const period of periods) {
+      blocks.push(
+        await this.prisma.capacityBlock.create({
+          data: {
+            contractPeriodId: period.id,
+            dateFrom,
+            dateTo,
+            units: dto.units,
+            reason: dto.reason,
+            holdUntil,
+            createdBy: actorId,
+          },
+        }),
+      );
+    }
 
+    // Jedan potez čoveka = jedan audit zapis (§2.8g). Ostale blokade stoje u `context`, pa se u
+    // istoriji vidi da su nastale zajedno, umesto tri odvojena reda bez veze među sobom.
     await this.auditLog.write({
       actorType: 'HUMAN',
       actorId,
       module: 'M3',
       action: 'capacity_block.created',
       resourceType: 'CapacityBlock',
-      resourceId: block.id,
-      afterState: block,
+      resourceId: blocks[0].id,
+      afterState: blocks[0],
+      context: {
+        periods: periods.length,
+        contractPeriodIds: periods.map((p) => p.id),
+        roomTypes: periods.map((p) => p.roomType),
+        blockIds: blocks.map((b) => b.id),
+      },
     });
 
-    return block;
+    return periods.length === 1 ? blocks[0] : { blocks, periods: periods.length };
   }
 
   listBlocks(contractPeriodId: string) {
@@ -469,15 +611,36 @@ export class CapacityService {
   // ── Zajedničko ───────────────────────────────────────────────────────────
 
   /** §2.8a "šta" dimenzija: jedan period, ili svi periodi jednog ugovora. */
-  private async resolvePeriods(contractId?: string, contractPeriodId?: string) {
-    if (!contractId && !contractPeriodId) {
-      throw new BadRequestException('Zadati contractId (ceo objekat) ili contractPeriodId');
+  /**
+   * §2.8a — tri vrednosti dimenzije „Šta" (v1.23): jedan tip sobe, IZABRANI tipovi soba, ili
+   * ceo objekat. `contractPeriodId` i `contractPeriodIds` se spajaju u isti skup — ako stignu
+   * oba, to je i dalje jedan potez, ne dva.
+   */
+  private async resolvePeriods(
+    contractId?: string,
+    contractPeriodId?: string,
+    contractPeriodIds?: string[],
+  ) {
+    const ids = [
+      ...new Set([...(contractPeriodIds ?? []), ...(contractPeriodId ? [contractPeriodId] : [])]),
+    ];
+    if (!contractId && ids.length === 0) {
+      throw new BadRequestException(
+        'Zadati contractId (ceo objekat) ili contractPeriodId/contractPeriodIds (izabrani tipovi soba)',
+      );
     }
-    const where: Prisma.ContractPeriodWhereInput = contractPeriodId
-      ? { id: contractPeriodId }
-      : { contractId, status: 'ACTIVE' };
+    const where: Prisma.ContractPeriodWhereInput =
+      ids.length > 0 ? { id: { in: ids } } : { contractId, status: 'ACTIVE' };
     const periods = await this.prisma.contractPeriod.findMany({ where });
     if (periods.length === 0) throw new NotFoundException('Nijedan period ne odgovara zahtevu');
+    // Traženi ali nepostojeći period je tiha greška najgore vrste: potez bi „uspeo" nad manjim
+    // skupom nego što je čovek izabrao, a poruka bi rekla da je sve u redu.
+    if (ids.length > 0 && periods.length !== ids.length) {
+      const nadjeni = new Set(periods.map((p) => p.id));
+      throw new NotFoundException(
+        `Nisu pronađeni svi izabrani tipovi soba (nedostaje: ${ids.filter((i) => !nadjeni.has(i)).join(', ')})`,
+      );
+    }
     return periods;
   }
 }

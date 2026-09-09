@@ -20,6 +20,8 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useRouter, useSearchParams } from 'next/navigation';
+import Icon from '@/components/Icon';
 import { mesecGodina } from '@/lib/datum-sr';
 
 export interface CapacityDayState {
@@ -82,6 +84,41 @@ function meseci(dani: string[]): { kljuc: string; naziv: string; brojDana: numbe
 /** Prvi dan meseca nosi vidljivu levu granicu — prelaz se vidi i kad je naslov odskrolovan levo. */
 function prviUMesecu(iso: string): boolean {
   return iso.slice(8, 10) === '01';
+}
+
+/**
+ * §4b.1 (dopuna 9.9.2026, vlasnikov zahtev: „u prvom redu sa datumima dodati i strelice u levo i
+ * u desno koje pomeraju datum za 7 dana") — pomera se ceo raspon, a njegova DUŽINA ostaje ista.
+ * Sedam dana, ne jedan: kapacitet se gleda po nedeljama boravka, pa bi pomeranje po danu tražilo
+ * sedam klikova za isti posao.
+ */
+function pomereno(iso: string, dana: number): string {
+  const d = new Date(`${iso}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + dana);
+  return d.toISOString().slice(0, 10);
+}
+
+function PomeriDugme({ smer, dani }: { smer: -7 | 7; dani: string[] }) {
+  const router = useRouter();
+  const params = useSearchParams();
+  const naslov = smer < 0 ? 'Pomeri prikaz 7 dana unazad' : 'Pomeri prikaz 7 dana unapred';
+
+  return (
+    <button
+      type="button"
+      title={naslov}
+      aria-label={naslov}
+      onClick={() => {
+        const v = new URLSearchParams(params?.toString() ?? '');
+        v.set('from', pomereno(dani[0], smer));
+        v.set('to', pomereno(dani[dani.length - 1], smer));
+        router.push(`/kapaciteti?${v.toString()}`);
+      }}
+      className="flex h-5 w-5 items-center justify-center rounded text-ink-faint hover:bg-panel2 hover:text-ink"
+    >
+      <Icon name={smer < 0 ? 'chevron-left' : 'chevron-right'} />
+    </button>
+  );
 }
 
 /** §4b.2 — jedan jezik boje: koliko je ostalo. Stop i prekoračenje su krajnja stanja. */
@@ -201,14 +238,21 @@ export default function CapacityGrid({
           {/* §4b.1 — red sa mesecom iznad reda sa danima. Bez njega je „1, 2, 3…" dvosmisleno
               čim raspon pređe granicu meseca, a to je i podrazumevano stanje čim se pomeri. */}
           <tr className="bg-sunken">
-            <th className="sticky left-0 z-10 bg-sunken px-3 pt-2 text-left" />
-            {meseci(dani).map((m) => (
+            <th className="sticky left-0 z-10 bg-sunken px-3 pt-2 text-left">
+              <PomeriDugme smer={-7} dani={dani} />
+            </th>
+            {meseci(dani).map((m, i, sve) => (
               <th
                 key={m.kljuc}
                 colSpan={m.brojDana}
                 className="border-l border-border px-1 pt-1 text-left text-[11px] font-semibold capitalize text-ink"
               >
-                {m.naziv}
+                <span className="flex items-center justify-between gap-1">
+                  {m.naziv}
+                  {/* Strelica unapred stoji na kraju POSLEDNJEG meseca — na desnom kraju reda
+                      sa datumima, gde je i pogled kad se stigne do kraja raspona. */}
+                  {i === sve.length - 1 && <PomeriDugme smer={7} dani={dani} />}
+                </span>
               </th>
             ))}
           </tr>

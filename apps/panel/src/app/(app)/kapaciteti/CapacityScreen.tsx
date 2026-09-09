@@ -5,6 +5,8 @@ import { useFormStatus } from 'react-dom';
 import Link from 'next/link';
 import CapacityGrid, { CapacityLegend, type CapacityGridRow } from './CapacityGrid';
 import CapacityFilterBar from './CapacityFilterBar';
+import CapacityHistory from './CapacityHistory';
+import RoomTypeChips, { type RoomTypeOption } from './RoomTypeChips';
 import { stopSale, reopenSale, createBlock, setCapacityOverride } from './actions';
 import type { CapacityFormState } from './actions';
 import { Button } from '@/components/ui/button';
@@ -63,6 +65,11 @@ export default function CapacityScreen({
       {izabran && (
         <DanPanel
           red={izabran.red}
+          // §4b.3a — čipovi se prave iz redova koji su VEĆ na ekranu, svi periodi istog ugovora;
+          // tako se ne može izabrati soba koja tom objektu ne pripada.
+          tipoviSoba={rows
+            .filter((r) => r.contractId === izabran.red.contractId)
+            .map((r) => ({ contractPeriodId: r.contractPeriodId, roomType: r.roomType }))}
           datum={izabran.datum}
           onZatvori={() => setIzabran(null)}
           canCloseSale={canCloseSale}
@@ -82,6 +89,7 @@ export default function CapacityScreen({
  */
 function DanPanel({
   red,
+  tipoviSoba,
   datum,
   onZatvori,
   canCloseSale,
@@ -90,6 +98,7 @@ function DanPanel({
   podrazumevaniRokBlokade,
 }: {
   red: CapacityGridRow;
+  tipoviSoba: RoomTypeOption[];
   datum: string;
   onZatvori: () => void;
   canCloseSale: boolean;
@@ -147,12 +156,30 @@ function DanPanel({
 
       <div className="grid gap-4 md:grid-cols-3">
         {canCloseSale && (
-          <StopSaleForma red={red} datum={datum} zatvoreno={dan.saleStatus === 'STOP'} />
+          <StopSaleForma
+            red={red}
+            tipoviSoba={tipoviSoba}
+            datum={datum}
+            zatvoreno={dan.saleStatus === 'STOP'}
+          />
         )}
         {canBlock && (
-          <BlokadaForma red={red} datum={datum} podrazumevaniRok={podrazumevaniRokBlokade} />
+          <BlokadaForma
+            red={red}
+            tipoviSoba={tipoviSoba}
+            datum={datum}
+            podrazumevaniRok={podrazumevaniRokBlokade}
+          />
         )}
-        {canEditCapacity && <KapacitetForma red={red} datum={datum} trenutni={dan.capacity} />}
+        {canEditCapacity && (
+          <KapacitetForma red={red} tipoviSoba={tipoviSoba} datum={datum} trenutni={dan.capacity} />
+        )}
+      </div>
+
+      {/* §4b.9 — istorija izmena stoji na SAMOM ekranu: pitanje „ko je ovo zatvorio" postavlja
+          se dok se gleda ćelija koja je zatvorena, i odgovor ne sme da traži drugi ekran. */}
+      <div className="mt-4">
+        <CapacityHistory contractId={red.contractId} contractPeriodId={red.contractPeriodId} />
       </div>
     </div>
   );
@@ -179,10 +206,12 @@ function Broj({
 
 function StopSaleForma({
   red,
+  tipoviSoba,
   datum,
   zatvoreno,
 }: {
   red: CapacityGridRow;
+  tipoviSoba: RoomTypeOption[];
   datum: string;
   zatvoreno: boolean;
 }) {
@@ -197,11 +226,15 @@ function StopSaleForma({
       <input type="hidden" name="contractPeriodId" value={red.contractPeriodId} />
       <input type="hidden" name="contractId" value={red.contractId} />
 
+      {/* §4b.3a — izbor tipova soba čipovima; „ceo objekat" ostaje zaseban izbor jer se onda
+          gađaju SVI periodi ugovora, i oni koji trenutno nisu na ekranu zbog filtera. */}
+      <RoomTypeChips opcije={tipoviSoba} podrazumevani={red.contractPeriodId} />
+
       {!zatvoreno && (
         <label className="flex flex-col gap-1 text-[11px] text-ink-faint">
           Obim
           <select name="obim" className="input" defaultValue="period">
-            <option value="period">samo {red.roomType}</option>
+            <option value="period">izabrani tipovi soba</option>
             <option value="objekat">sve sobe ovog objekta</option>
           </select>
         </label>
@@ -244,10 +277,12 @@ function StopSaleForma({
 
 function BlokadaForma({
   red,
+  tipoviSoba,
   datum,
   podrazumevaniRok,
 }: {
   red: CapacityGridRow;
+  tipoviSoba: RoomTypeOption[];
   datum: string;
   /** §2.8b — rok je obavezan i na backend-u; nudimo sedam dana unapred, ne prazno polje. */
   podrazumevaniRok: string;
@@ -258,7 +293,7 @@ function BlokadaForma({
     <form action={formAction} className="flex flex-col gap-2 rounded-lg border border-border p-3">
       <h3 className="text-xs font-semibold text-ink">Blokiraj za grupu</h3>
       <Poruke state={state} />
-      <input type="hidden" name="contractPeriodId" value={red.contractPeriodId} />
+      <RoomTypeChips opcije={tipoviSoba} podrazumevani={red.contractPeriodId} />
 
       <div className="grid grid-cols-2 gap-2">
         <label className="flex flex-col gap-1 text-[11px] text-ink-faint">
@@ -293,10 +328,12 @@ function BlokadaForma({
 
 function KapacitetForma({
   red,
+  tipoviSoba,
   datum,
   trenutni,
 }: {
   red: CapacityGridRow;
+  tipoviSoba: RoomTypeOption[];
   datum: string;
   trenutni: number | null;
 }) {
@@ -306,7 +343,7 @@ function KapacitetForma({
     <form action={formAction} className="flex flex-col gap-2 rounded-lg border border-border p-3">
       <h3 className="text-xs font-semibold text-ink">Izmeni kapacitet za dan/raspon</h3>
       <Poruke state={state} />
-      <input type="hidden" name="contractPeriodId" value={red.contractPeriodId} />
+      <RoomTypeChips opcije={tipoviSoba} podrazumevani={red.contractPeriodId} />
 
       <div className="grid grid-cols-2 gap-2">
         <label className="flex flex-col gap-1 text-[11px] text-ink-faint">
