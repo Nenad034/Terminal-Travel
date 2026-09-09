@@ -9,14 +9,20 @@ import { SYSTEM_ROLES } from '../src/modules/m1-core-identitet/roles/system-role
 import { PrismaExceptionFilter } from '../src/common/filters/prisma-exception.filter';
 
 /**
- * M3 §2.11k + M5 §6.7a — doplata sa dometom „ceo ugovor" / „sezona" MORA da stigne do prodaje.
+ * M3 §2.11i/§2.11k — **domet iz cenovnika mora da važi i u prodaji**, ne samo pri unosu.
  *
- * Do 9.9.2026. je prodaja čitala isključivo `contractPeriod.ancillaryServices`, pa je boravišna
- * taksa uneta na ugovor postojala na ekranu cenovnika a prodavcu se nije prikazivala. Ovaj test
- * je dokaz da se to više ne može desiti neprimećeno: pravi bazu, pravu rezervaciju i traži
- * spisak preko istog HTTP endpointa koji koristi panel.
+ * Dva slučaja, isti uzrok (zamka 7.12): domet je dodat na strani unosa, a strana koja prodaje
+ * ostala je na starom užem upitu, pa je sve bilo zeleno a ništa primenjeno.
+ *
+ *  1. Doplata sa dometom „ceo ugovor"/„sezona" — prodaja je čitala isključivo
+ *     `contractPeriod.ancillaryServices`, pa se boravišna taksa uneta na ugovor prodavcu nije
+ *     prikazivala iako stoji u cenovniku.
+ *  2. Marža upisana na JEDNU cenovnu stavku — `M3_RATE_LINE` je stajao na vrhu kaskade, ali ga
+ *     nijedan pozivalac nije prosleđivao.
+ *
+ * Oba se mere kroz iste HTTP endpointe kojima ide prava prodaja, nad pravom bazom.
  */
-describe('M5 §6.7a — domet doplate u prodaji (e2e)', () => {
+describe('M3 §2.11i/§2.11k — domet cenovnika u prodaji (e2e)', () => {
   let app: INestApplication;
   let prisma: PrismaService;
   let jwt: JwtService;
@@ -27,6 +33,8 @@ describe('M5 §6.7a — domet doplate u prodaji (e2e)', () => {
   const createdSupplierIds: string[] = [];
   const createdUserIds: string[] = [];
   const createdClientAccountIds: string[] = [];
+  const createdMarkupRuleIds: string[] = [];
+  const createdQuoteIds: string[] = [];
 
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
@@ -47,6 +55,11 @@ describe('M5 §6.7a — domet doplate u prodaji (e2e)', () => {
       await prisma.bookingItem.deleteMany({ where: { bookingId: id } });
       await prisma.booking.deleteMany({ where: { id } });
     }
+    for (const id of createdQuoteIds) {
+      await prisma.quoteItem.deleteMany({ where: { quoteId: id } });
+      await prisma.quote.deleteMany({ where: { id } });
+    }
+    await prisma.markupRule.deleteMany({ where: { id: { in: createdMarkupRuleIds } } });
     for (const supplierId of createdSupplierIds) {
       const contracts = await prisma.contract.findMany({ where: { supplierId } });
       const ids = contracts.map((c) => c.id);
@@ -328,5 +341,138 @@ describe('M5 §6.7a — domet doplate u prodaji (e2e)', () => {
     expect(taksa.payable).toBe('ON_SITE');
     // ON_SITE se prikazuje sa iznosom, ali ne ulazi u zbir (§2.11j) — 2 osobe × 7 noći × 1,50.
     expect(taksa.amount).toBe(2100);
+  });
+
+  /**
+   * M3 §2.11i — marža upisana na JEDNU cenovnu stavku mora da promeni cenu koju gost vidi.
+   *
+   * Do 9.9.2026. je `MarkupScopeType` imao `M3_RATE_LINE` i kaskada ga je stavljala na vrh, ali
+   * ga **nijedan pozivalac nije prosleđivao** — izuzetak se upisivao kroz ekran cenovnika i
+   * nikad nije primenjen. Ovaj test meri cenu kroz `POST /sales/quotes`, dakle kroz isti put
+   * kojim ide prava prodaja, sa i bez izuzetka.
+   */
+  it('marža upisana na jednu cenovnu stavku menja cenu u ponudi, a ostale stavke ostaju na ugovornoj', async () => {
+    const { user, accessToken } = await createUser();
+
+    const supplier = await prisma.supplier.create({
+      data: {
+        name: `M5 Marza Dobavljač ${uid}`,
+        type: 'HOTEL',
+        taxId: `TAX-M5MRZ-${uid}`,
+        registrationNumber: `REG-M5MRZ-${uid}`,
+        country: 'RS',
+        contactName: 'Kontakt',
+        contactEmail: `marza-${uid}@tt-test.rs`,
+        contactPhone: '+381600000001',
+      },
+    });
+    createdSupplierIds.push(supplier.id);
+
+    const contract = await prisma.contract.create({
+      data: {
+        supplierId: supplier.id,
+        contractNumber: `C-M5MRZ-${uid}`,
+        currency: 'EUR',
+        validFrom: new Date('2027-01-01'),
+        validTo: new Date('2027-12-31'),
+        cancellationTermsSummary: 'e2e',
+        documentUrl: 'mock://doc.pdf',
+        status: 'ACTIVE',
+        defaultTipNastupanja: 'ORGANIZATOR',
+      },
+    });
+
+    const period = await prisma.contractPeriod.create({
+      data: {
+        contractId: contract.id,
+        stayFrom: new Date('2027-06-01'),
+        stayTo: new Date('2027-06-30'),
+        roomType: `MRZ_${uid}`,
+        allotmentMode: 'ON_REQUEST',
+      },
+    });
+
+    // Dve stavke istog perioda: „obična" i suite koji dobija sopstvenu maržu.
+    const [obicna, suite] = await Promise.all([
+      prisma.rateLine.create({
+        data: {
+          contractPeriodId: period.id,
+          boardType: 'BB',
+          occupancy: '2ADT',
+          priceBasis: 'PER_ROOM_PER_NIGHT',
+          price: 10000,
+        },
+      }),
+      prisma.rateLine.create({
+        data: {
+          contractPeriodId: period.id,
+          boardType: 'HB',
+          occupancy: '2ADT',
+          priceBasis: 'PER_ROOM_PER_NIGHT',
+          price: 10000,
+        },
+      }),
+    ]);
+
+    const ugovornaMarza = await prisma.markupRule.create({
+      data: { scopeType: 'M3_CONTRACT', scopeId: contract.id, percentage: 20 },
+    });
+    const izuzetak = await prisma.markupRule.create({
+      data: { scopeType: 'M3_RATE_LINE', scopeId: suite.id, percentage: 12, fixedAmount: 500 },
+    });
+    createdMarkupRuleIds.push(ugovornaMarza.id, izuzetak.id);
+
+    const product = await prisma.product.create({
+      data: {
+        type: 'ACCOMMODATION',
+        sourceType: 'CONTRACTED',
+        sourceContractId: contract.id,
+        destinationCountry: 'ME',
+        destinationCity: 'Budva',
+        status: 'ACTIVE',
+        attributes: {},
+        translations: {
+          create: [
+            { languageCode: 'sr', name: 'Hotel Marza', description: 'o', slug: `hm-sr-${uid}` },
+            { languageCode: 'en', name: 'Hotel Markup', description: 'd', slug: `hm-en-${uid}` },
+          ],
+        },
+      },
+    });
+    createdProductIds.push(product.id);
+
+    async function ponudaZa(rateLineId: string) {
+      const res = await request(app.getHttpServer())
+        .post('/api/v1/sales/quotes')
+        .set({ Authorization: `Bearer ${accessToken}` })
+        .send({
+          channel: 'INTERNAL_PANEL',
+          items: [
+            {
+              productId: product.id,
+              rateLineId,
+              stayFrom: '2027-06-10',
+              stayTo: '2027-06-11',
+              occupancy: { adults: 2, children: 0 },
+            },
+          ],
+        });
+      expect(res.status).toBe(201);
+      createdQuoteIds.push(res.body.id);
+      return res.body.items[0];
+    }
+
+    // Ista nabavna cena (100,00 za jednu noć) — razliku pravi ISKLJUČIVO domet marže.
+    const stavkaBezIzuzetka = await ponudaZa(obicna.id);
+    expect(stavkaBezIzuzetka.baseCost).toBe(10000);
+    expect(stavkaBezIzuzetka.finalPrice).toBe(12000); // 100,00 + 20 % ugovorne marže
+    expect(stavkaBezIzuzetka.markupRuleId).toBe(ugovornaMarza.id);
+
+    const stavkaSaIzuzetkom = await ponudaZa(suite.id);
+    expect(stavkaSaIzuzetkom.baseCost).toBe(10000);
+    // 12 % I 5,00 se SABIRAJU (§2.11i): 100,00 → 112,00 + 5,00 = 117,00.
+    expect(stavkaSaIzuzetkom.finalPrice).toBe(11700);
+    expect(stavkaSaIzuzetkom.markupRuleId).toBe(izuzetak.id);
+    expect(user.id).toBeDefined();
   });
 });

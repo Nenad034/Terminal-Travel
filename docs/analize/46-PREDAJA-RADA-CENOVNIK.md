@@ -1,7 +1,7 @@
 # Predaja rada — cenovnik kao mreža (stanje 9.9.2026)
 
 **Kome:** sledećem agentu/sesiji koja preuzme repozitorijum sa GitHub-a i nastavlja rad na cenovniku (M3 §2.11).
-**Stanje 9.9.2026, kasnije istog dana:** rupa 4.1 iz ovog dokumenta je **zatvorena** (vidi okvir u tom odeljku). Rupe 4.2, 4.3 i 4.4 i dalje stoje.
+**Stanje 9.9.2026, kasnije istog dana:** rupe **4.1 i 4.2** iz ovog dokumenta su **zatvorene** (vidi okvire u tim odeljcima). Rupe 4.3 i 4.4 i dalje stoje.
 
 **Zašto postoji:** posao je urađen do trećeg od sedam koraka. Tri koraka su u kodu i proverena nad pravom bazom, četiri stoje samo u specifikaciji. Uz to postoje **tri mesta gde kod postoji ali nije povezan sa prodajom** — to se iz commit poruka ne vidi, a bez toga bi se prvo pomislilo da je gotovo.
 
@@ -87,7 +87,16 @@ Posledica je konkretna: boravišna taksa uneta danas na ugovor Hotel Splendid **
 
 **Šta uraditi:** taj upit mora da čita po `contractId` i da filtrira kroz `vazi()` iz `pricelist/surcharge-scope.ts` (funkcija postoji i ima 18 testova, ali je **niko ne poziva**). Kontekst koji joj treba — tip sobe, dan boravka, dan rezervacije, uzrast gosta — M5 već ima na stavci rezervacije.
 
-### 4.2 Marža po pojedinačnoj stavci se upisuje, ali se ne primenjuje
+### 4.2 Marža po pojedinačnoj stavci se upisuje, ali se ne primenjuje — **REŠENO 9.9.2026**
+
+> **Zatvoreno.** Sva tri pozivaoca sada prosleđuju `rateLineId`. U pretrazi paketa je razrešenje
+> pomereno **unutar** petlje po cenovnim stavkama — do sada je pravilo traženo jednom po periodu,
+> pa se razlika između stavki istog perioda gubila i pre nego što je iko prosledio stavku.
+> Dodat je i razrešivač za `M3_ANCILLARY_SERVICE` (`resolveForAncillary`): doplata sa sopstvenim
+> izuzetkom koristi njega, doplata bez njega i dalje nasleđuje maržu matične stavke — namerno bez
+> kaskade. Izmereno kroz `POST /sales/quotes` nad pravom bazom: ista nabavna 100,00 → **120,00**
+> po ugovornoj marži 20 %, **117,00** po izuzetku 12 % + 5,00. Upisano u M3 v1.29 i M5 v2.31.
+> Opis ispod ostaje kao zapis šta je bilo pokvareno.
 
 `MarkupRulesService.resolveForContracted` **prima** `rateLineId` i stavlja `M3_RATE_LINE` na vrh kaskade — ali **nijedan pozivalac ga ne prosleđuje**. Tri mesta koja ga zovu:
 

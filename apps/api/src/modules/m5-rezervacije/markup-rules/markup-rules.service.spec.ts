@@ -60,6 +60,85 @@ describe('MarkupRulesService (M5 spec §2.1/§2.2)', () => {
       expect(rule.id).toBe('product-rule');
     });
 
+    // M3 §2.11i (9.9.2026) — izuzetak po pojedinačnoj cenovnoj stavci. Do ove provere je
+    // `M3_RATE_LINE` stajao u kaskadi, ali ga nijedan pozivalac nije prosleđivao (zamka 7.12).
+    it('izuzetak na cenovnoj stavci pobeđuje pravilo proizvoda', async () => {
+      const { service, prisma } = makeService();
+      prisma.markupRule.findMany.mockImplementation(({ where }: any) => {
+        if (where.scopeType === 'M3_RATE_LINE')
+          return Promise.resolve([
+            {
+              id: 'rate-line-rule',
+              percentage: 12,
+              fixedAmount: 500,
+              activeFrom: null,
+              activeTo: null,
+            },
+          ]);
+        if (where.scopeType === 'M2_PRODUCT')
+          return Promise.resolve([
+            { id: 'product-rule', percentage: 18, activeFrom: null, activeTo: null },
+          ]);
+        return Promise.resolve([]);
+      });
+
+      const rule = await service.resolveForContracted({
+        productId: 'p1',
+        contractPeriodId: 'cp1',
+        contractId: 'c1',
+        supplierId: 's1',
+        rateLineId: 'rl-suite',
+      });
+      expect(rule.id).toBe('rate-line-rule');
+    });
+
+    it('bez rateLineId kaskada ostaje ista kao pre — postojeći pozivaoci se ne menjaju', async () => {
+      const { service, prisma } = makeService();
+      prisma.markupRule.findMany.mockImplementation(({ where }: any) => {
+        if (where.scopeType === 'M3_RATE_LINE')
+          return Promise.resolve([
+            { id: 'rate-line-rule', percentage: 12, activeFrom: null, activeTo: null },
+          ]);
+        if (where.scopeType === 'M2_PRODUCT')
+          return Promise.resolve([
+            { id: 'product-rule', percentage: 18, activeFrom: null, activeTo: null },
+          ]);
+        return Promise.resolve([]);
+      });
+
+      const rule = await service.resolveForContracted({
+        productId: 'p1',
+        contractPeriodId: 'cp1',
+        contractId: 'c1',
+        supplierId: 's1',
+      });
+      expect(rule.id).toBe('product-rule');
+    });
+
+    it('resolveForAncillary vraća null kad izuzetka nema — doplata tada NASLEĐUJE maržu stavke', async () => {
+      const { service, prisma } = makeService();
+      prisma.markupRule.findMany.mockResolvedValue([]);
+      await expect(service.resolveForAncillary('anc-1')).resolves.toBeNull();
+    });
+
+    it('resolveForAncillary NE pada nazad na širi nivo — pita SAMO za tu doplatu', async () => {
+      const { service, prisma } = makeService();
+      prisma.markupRule.findMany.mockImplementation(({ where }: any) =>
+        Promise.resolve(
+          where.scopeType === 'M3_ANCILLARY_SERVICE' && where.scopeId === 'anc-1'
+            ? [{ id: 'anc-rule', percentage: 30, activeFrom: null, activeTo: null }]
+            : [],
+        ),
+      );
+      await expect(service.resolveForAncillary('anc-1')).resolves.toMatchObject({ id: 'anc-rule' });
+      // Jedan jedini upit, i to baš za taj domet: da kaskada postoji, ovde bi bilo pet upita i
+      // doplata bi tiho dobila pravilo ugovora umesto nasleđene marže matične stavke.
+      expect(prisma.markupRule.findMany).toHaveBeenCalledTimes(1);
+      expect(prisma.markupRule.findMany).toHaveBeenCalledWith({
+        where: { scopeType: 'M3_ANCILLARY_SERVICE', scopeId: 'anc-1' },
+      });
+    });
+
     it('pada nazad na M3_SUPPLIER podrazumevano pravilo kad nema specifičnijih', async () => {
       const { service, prisma } = makeService();
       prisma.markupRule.findMany.mockImplementation(({ where }: any) => {

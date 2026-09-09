@@ -580,6 +580,11 @@ export class SearchService {
               contractPeriodId: period.id,
               contractId: product.sourceContractId!,
               supplierId: product.sourceContract!.supplierId,
+              // M3 §2.11i — marža se razrešava PO CENOVNOJ STAVCI, ne po periodu: cena u
+              // pretrazi mora biti ista kao cena u ponudi, a ponuda je od 9.9.2026 gleda po
+              // stavci. Da ovo ostane na periodu, suite sa sopstvenom maržom bi u pretrazi
+              // imao jednu cenu, a u ponudi drugu.
+              rateLineId: rateLine.id,
             }),
         );
         // §3.0b.3 — bez marže nema cene, pa ni ponude; ostatak rezultata se ne dira.
@@ -722,20 +727,25 @@ export class SearchService {
           if (remaining < roomsRequested) continue; // SOLD_OUT za ovaj period, §3.0b.2
           if (period.rateLines.length === 0) continue;
 
-          const markupRule = await this.marzaIliPreskoci(
-            component.id,
-            { contractPeriodId: period.id, uPaketu: true },
-            () =>
-              this.markupRules.resolveForContracted({
-                productId: component.id,
-                contractPeriodId: period.id,
-                contractId: component.sourceContractId!,
-                supplierId: component.sourceContract!.supplierId,
-              }),
-          );
-          // Sastojak bez marže se preskače — paket se sastavlja od ostalih, ili ne nastane.
-          if (!markupRule) continue;
           for (const rateLine of period.rateLines) {
+            // M3 §2.11i — razrešenje je unutar petlje po cenovnim stavkama, ne iznad nje:
+            // izuzetak marže se upisuje na stavku, pa jedna stavka istog perioda sme da nosi
+            // drugu maržu od druge. Ranije je pravilo traženo jednom po periodu i ta razlika
+            // se gubila. Cena je posledica, pa je tačnost preča od jednog upita manje.
+            const markupRule = await this.marzaIliPreskoci(
+              component.id,
+              { contractPeriodId: period.id, rateLineId: rateLine.id, uPaketu: true },
+              () =>
+                this.markupRules.resolveForContracted({
+                  productId: component.id,
+                  contractPeriodId: period.id,
+                  contractId: component.sourceContractId!,
+                  supplierId: component.sourceContract!.supplierId,
+                  rateLineId: rateLine.id,
+                }),
+            );
+            // Sastojak bez marže se preskače — paket se sastavlja od ostalih, ili ne nastane.
+            if (!markupRule) continue;
             let baseCost: number;
             if (isRoomBased && params.occupancy) {
               const roomConfig = assertRoomConfigMatchesTotals(params.occupancy);

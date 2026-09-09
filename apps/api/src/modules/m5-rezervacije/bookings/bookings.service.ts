@@ -59,6 +59,7 @@ import { resolveTranslation } from '../../m2-katalog-proizvoda/products/language
 import { SubagentBridgeService } from '../common/subagent-bridge.service';
 import { resolveApiContext } from '../common/resolve-api-context';
 import { PermissionsService } from '../../m1-core-identitet/permissions/permissions.service';
+import { MarkupRulesService } from '../markup-rules/markup-rules.service';
 import { SYSTEM_ROLES } from '../../m1-core-identitet/roles/system-roles.constants';
 
 // M5 spec §6 dopuna (2.9.2026, na zahtev vlasnika) — vaučer prvi put dobija stvaran sadržaj
@@ -128,6 +129,7 @@ export class BookingsService {
     private readonly supplierManifests: SupplierManifestsService,
     private readonly subagentBridge: SubagentBridgeService,
     private readonly permissions: PermissionsService,
+    private readonly markupRules: MarkupRulesService,
   ) {}
 
   // M5 spec §6.5 (31.8.2026) — Vlasnik/Direktor zaobilaze ownership provere za prenos
@@ -1893,10 +1895,18 @@ export class BookingsService {
     //    umanjila popust koji je gost dobio, a fiksni deo marže bi mu ga još i naplatio.
     //    (Odluka agenta uz §6.7a, zabeležena kao takva — ako agencija sme da zadrži deo
     //    dobavljačevog popusta, menja se ovde, na jednom mestu.)
+    //
+    // TREĆI SLUČAJ (9.9.2026, M3 §2.11i): doplata sme da nosi SOPSTVENI izuzetak marže
+    // (`M3_ANCILLARY_SERVICE`). Kad postoji, on pobeđuje nasleđenu maržu matične stavke — to je
+    // i cela svrha izuzetka. Kad ne postoji, ostaje nasleđivanje kao do sada. Enum vrednost je
+    // postojala od v1.27, ali je nijedan kod nije razrešavao (zamka 7.12).
+    const nemaMarze = svc.payable === 'ON_SITE' || svc.kind === 'DISCOUNT';
+    const izuzetak = nemaMarze ? null : await this.markupRules.resolveForAncillary(svc.id);
     const rule =
-      svc.payable === 'ON_SITE' || svc.kind === 'DISCOUNT' || !parent.markupRuleId
+      nemaMarze || !(izuzetak || parent.markupRuleId)
         ? null
-        : await this.prisma.markupRule.findUnique({ where: { id: parent.markupRuleId } });
+        : (izuzetak ??
+          (await this.prisma.markupRule.findUnique({ where: { id: parent.markupRuleId! } })));
     const finalPrice = rule ? applyMarkup(baseCost, rule) : baseCost;
 
     return this.prisma.bookingItem.create({
@@ -1912,7 +1922,10 @@ export class BookingsService {
         baseCost,
         baseCostCurrency: parent.baseCostCurrency,
         rateLineId: null,
-        markupRuleId: parent.markupRuleId,
+        // Pokazuje na pravilo koje je STVARNO učestvovalo u ovoj ceni — kod izuzetka to je
+        // izuzetak, ne nasleđeno pravilo. Pokazivanje na pravilo koje nije primenjeno lagalo bi
+        // svaki izveštaj o marži (isti razlog kao kod ručne usluge, M5 §6.7b).
+        markupRuleId: rule?.id ?? parent.markupRuleId,
         finalPrice,
         finalPriceCurrency: parent.finalPriceCurrency,
         itemStatus: parent.itemStatus,

@@ -335,6 +335,10 @@ export class QuoteItemBuilderService {
       contractPeriodId: rateLine.contractPeriodId,
       contractId: product.sourceContractId,
       supplierId: product.sourceContract.supplierId,
+      // M3 §2.11i — izuzetak upisan baš na ovu cenovnu stavku pobeđuje sve šire nivoe.
+      // Bez ovog reda je `M3_RATE_LINE` postojao u kaskadi, a nijedan pozivalac ga nije
+      // prosleđivao — marža uneta na jednu sobu se upisivala i nikad se nije primenila.
+      rateLineId: rateLine.id,
     });
     const finalPrice = applyMarkup(baseCost, markupRule);
 

@@ -162,6 +162,21 @@ export class MarkupRulesService {
     );
   }
 
+  /**
+   * M3 §2.11i — izuzetak marže upisan na JEDNU doplatu (`M3_ANCILLARY_SERVICE`).
+   *
+   * Vraća `null` kad izuzetka nema, i to nije greška: doplata bez sopstvenog pravila nasleđuje
+   * maržu matične stavke (M5 §6.7a — doplata je deo iste prodaje, ne zaseban posao). Zato ovo
+   * NIJE `resolveForContracted` sa još jednim nivoom — kaskada bi ovde vratila pravilo ugovora
+   * i tiho zamenila nasleđenu maržu stavke pravilom šireg nivoa.
+   */
+  async resolveForAncillary(
+    ancillaryServiceId: string,
+    at: Date = new Date(),
+  ): Promise<MarkupRule | null> {
+    return this.firstActiveRule('M3_ANCILLARY_SERVICE', ancillaryServiceId, at);
+  }
+
   // M5 spec §2.2 — "Za proizvod iz M4 (API): M2_PRODUCT → M4_PROVIDER (podrazumevano)."
   async resolveForApi(ctx: ApiResolutionContext, at: Date = new Date()): Promise<MarkupRule> {
     const order: [MarkupScopeType, string][] = [

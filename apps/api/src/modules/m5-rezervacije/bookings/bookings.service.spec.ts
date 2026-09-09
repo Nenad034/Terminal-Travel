@@ -91,6 +91,9 @@ describe('BookingsService (M5 spec §4/§6.4)', () => {
     // testovi (pisani pre ovog mehanizma) i dalje vide sve, bez potrebe za dodatnim mock-om
     // po testu; testovi specifični za §6.5/§6.6 ga eksplicitno menjaju gde je bitno.
     const permissions = { hasPermission: jest.fn().mockResolvedValue(true) };
+    // M3 §2.11i — podrazumevano NEMA izuzetka marže po doplati, pa vezana stavka nasleđuje
+    // maržu matične stavke kao i pre; testovi za izuzetak ovo eksplicitno menjaju.
+    const markupRules = { resolveForAncillary: jest.fn().mockResolvedValue(null) };
 
     const service = new BookingsService(
       prisma,
@@ -105,9 +108,11 @@ describe('BookingsService (M5 spec §4/§6.4)', () => {
       supplierManifests as any,
       subagentBridge as any,
       permissions as any,
+      markupRules as any,
     );
     return {
       service,
+      markupRules,
       prisma,
       auditLog,
       eventBus,
@@ -1589,6 +1594,70 @@ describe('BookingsService (M5 spec §4/§6.4)', () => {
       // nasleđuje dobavljača matične stavke — bez toga vaučer i najava po dobavljaču ne rade
       expect(data.supplierReference).toBe('REF');
       expect(data.productId).toBe('p1');
+    });
+
+    // M3 §2.11i (9.9.2026) — doplata sme da nosi SOPSTVENI izuzetak marže. Enum vrednost
+    // `M3_ANCILLARY_SERVICE` je postojala od v1.27, ali je nijedan kod nije razrešavao.
+    it('izuzetak marže na doplati pobeđuje nasleđenu maržu matične stavke', async () => {
+      const { service, prisma, markupRules } = makeService();
+      markupRules.resolveForAncillary.mockResolvedValue({
+        id: 'mr-anc',
+        percentage: 50,
+        fixedAmount: 0,
+      });
+      prisma.markupRule.findUnique.mockResolvedValue({
+        id: 'mr-1',
+        percentage: 20,
+        fixedAmount: 0,
+      });
+      prisma.booking.findUnique.mockResolvedValue({
+        id: 'b1',
+        clientAccountId: 'c1',
+        status: 'CONFIRMED',
+        items: [parentItem()],
+      });
+      prisma.ancillaryService.findUnique.mockResolvedValue(ancillary());
+      prisma.bookingItem.create.mockResolvedValue({ id: 'anc-item' });
+      prisma.booking.update.mockResolvedValue({ id: 'b1', items: [] });
+
+      await service.addAncillaryToItem('b1', 'item-1', { ancillaryServiceId: 'anc-1' } as any, {
+        userId: 'staff-1',
+      });
+
+      const data = prisma.bookingItem.create.mock.calls[0][0].data;
+      expect(data.baseCost).toBe(3500);
+      expect(data.finalPrice).toBe(5250); // 35,00 + 50%, ne + 20% nasleđene marže
+      // Stavka pokazuje na pravilo koje je STVARNO učestvovalo u ceni, inače svaki izveštaj
+      // o marži prikazuje pravilo koje nije primenjeno.
+      expect(data.markupRuleId).toBe('mr-anc');
+      // Nasleđeno pravilo se u ovom slučaju uopšte ne čita.
+      expect(prisma.markupRule.findUnique).not.toHaveBeenCalled();
+    });
+
+    it('bez izuzetka doplata i dalje nasleđuje maržu matične stavke — ponašanje se ne menja', async () => {
+      const { service, prisma } = makeService();
+      prisma.markupRule.findUnique.mockResolvedValue({
+        id: 'mr-1',
+        percentage: 20,
+        fixedAmount: 0,
+      });
+      prisma.booking.findUnique.mockResolvedValue({
+        id: 'b1',
+        clientAccountId: 'c1',
+        status: 'CONFIRMED',
+        items: [parentItem()],
+      });
+      prisma.ancillaryService.findUnique.mockResolvedValue(ancillary());
+      prisma.bookingItem.create.mockResolvedValue({ id: 'anc-item' });
+      prisma.booking.update.mockResolvedValue({ id: 'b1', items: [] });
+
+      await service.addAncillaryToItem('b1', 'item-1', { ancillaryServiceId: 'anc-1' } as any, {
+        userId: 'staff-1',
+      });
+
+      const data = prisma.bookingItem.create.mock.calls[0][0].data;
+      expect(data.finalPrice).toBe(4200); // 35,00 + 20%
+      expect(data.markupRuleId).toBe('mr-1');
     });
 
     it('popust ulazi sa minusom i BEZ marže (prolazi gostu 1:1)', async () => {

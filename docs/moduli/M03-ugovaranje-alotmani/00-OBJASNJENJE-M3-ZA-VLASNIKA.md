@@ -89,6 +89,8 @@ Uz to je istog dana ispravljena greška koju je lako prevideti: prodavac je gled
 
 **Jedna stvar namerno nije automatska.** Boravišna taksa često ima stepene po godinama (odrasli 1,50 / tinejdžeri 1,00 / deca 0,50). Rezervacija za sada čuva ime i prezime putnika, ali ne i datum rođenja — zato sistem **ne bira stepen sam**, jer bi u suprotnom dodao sva tri stepena istom gostu i naplatio trostruko. Umesto toga prodavcu prikaže sva tri sa naznačenim godinama („uzrast 0–11,99") i on izabere. Kad rezervacija jednog dana bude nosila i godine putnika, ovo može da postane automatsko — zapisano je gde treba, nije zaboravljeno.
 
+**Marža na jednu jedinu sobu (dodato 9.9.2026).** Vi ste tražili da svaka stavka cenovnika može da se maržira posebno — u procentu, u iznosu, ili oba zajedno. To je napravljeno ranije istog dana, ali samo do pola: iznos se **upisivao** i lepo se video na ekranu, a **na cenu nije uticao**. Sad utiče. Izmereno na pravom primeru: soba nabavljena za 100,00 sa ugovornom maržom od 20% daje 120,00; ista takva soba kojoj ste upisali izuzetak „12% i još 5,00" daje 117,00. Isto važi i za doplatu — ako joj date sopstvenu maržu, ona pobeđuje; ako joj ne date ništa, ide sa maržom sobe uz koju stoji.
+
 ---
 
 ## Akcije: „rana rezervacija" i „plati 6, ostani 7"
