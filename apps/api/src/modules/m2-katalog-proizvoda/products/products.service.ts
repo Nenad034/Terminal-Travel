@@ -75,7 +75,16 @@ export class ProductsService {
     const [products, total] = await this.prisma.$transaction([
       this.prisma.product.findMany({
         where,
-        include: { translations: true },
+        // `supplierName` na listi (9.9.2026, vlasnikov zahtev za filterom po dobavljaču na
+        // ekranu /katalog, M17 §7a). Dobavljač stoji na DVA mesta i to nije propust: ugovoreni
+        // proizvod ga ima posredno kroz ugovor (M3), a ručno uneta usluga direktno
+        // (`Product.supplierId`, M2 §2.1 dopuna 3.9.2026). Ovde se razrešava jedno ili drugo,
+        // pa ekran ne mora da zna razliku.
+        include: {
+          translations: true,
+          supplier: { select: { name: true } },
+          sourceContract: { select: { supplier: { select: { name: true } } } },
+        },
         orderBy: { createdAt: 'desc' },
         ...(wantsPage ? { skip, take } : {}),
       }),
@@ -84,9 +93,11 @@ export class ProductsService {
 
     const lang = filters.lang ?? DEFAULT_LANGUAGE;
     return paginated(
-      products.map((p) => ({
+      products.map(({ supplier, sourceContract, ...p }) => ({
         ...this.withResolvedAttributes(p),
         translation: resolveTranslation(p.translations, lang),
+        // Ime, ne cela dva ugnježdena objekta — `include` je sredstvo, ne oblik odgovora.
+        supplierName: supplier?.name ?? sourceContract?.supplier?.name ?? null,
       })),
       total,
       wantsPage ? page : 1,

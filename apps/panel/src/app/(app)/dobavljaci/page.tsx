@@ -5,19 +5,26 @@ import RegisterTab from '@/components/RegisterTab';
 import Icon from '@/components/Icon';
 import { Button } from '@/components/ui/button';
 import Pagination from '@/components/Pagination';
+import ProductScopeFilterBar from '@/components/ProductScopeFilterBar';
+import SuppliersList, { type SupplierRow as Supplier } from './SuppliersList';
 
-interface Supplier {
-  id: string;
-  name: string;
-  type: string;
-  country: string;
-  contactName: string;
-  contactEmail: string;
-}
+// Filteri (9.9.2026, vlasnikov zahtev) — ekran do sad nije imao NIJEDAN, ni pretragu po imenu.
+// Destinacija/mesto/hotel gađaju PROIZVODE tog dobavljača, ne njegovo sedište: `Supplier.country`
+// je država firme, pa „Grčka" nad spiskom dobavljača mora da znači „ko nam prodaje u Grčkoj"
+// (vlasnikova odluka 9.9.2026, obrazloženje u `apps/api/.../m3-.../product-scope.ts`).
+const FILTER_PARAMS = [
+  'q',
+  'destinationCountry',
+  'destinationCity',
+  'productName',
+  'productType',
+] as const;
 
 // M17 spec §4/§7 (Faza 1) — "Dobavljači i ugovori", jedna nav stavka koja pokriva oba M3
 // resursa (§6 M3 spec). Ova stranica je lista dobavljača; ugovori žive na /ugovori.
-export default async function SuppliersPage(props: { searchParams: Promise<{ page?: string }> }) {
+export default async function SuppliersPage(props: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const searchParams = await props.searchParams;
   const me = await getMe();
   const canCreate = hasPermission(me, 'M3', 'supplier', 'CREATE');
@@ -32,7 +39,14 @@ export default async function SuppliersPage(props: { searchParams: Promise<{ pag
   let limit = 50;
   let error: string | null = null;
   try {
-    const qs = searchParams?.page ? `?page=${searchParams.page}` : '';
+    const qsParams = new URLSearchParams();
+    if (typeof searchParams?.page === 'string') qsParams.set('page', searchParams.page);
+    for (const kljuc of FILTER_PARAMS) {
+      const v = searchParams?.[kljuc];
+      if (Array.isArray(v)) for (const x of v) qsParams.append(kljuc, x);
+      else if (v) qsParams.set(kljuc, v);
+    }
+    const qs = qsParams.toString() ? `?${qsParams.toString()}` : '';
     const result = await apiFetch<{
       data: Supplier[];
       total: number;
@@ -77,24 +91,27 @@ export default async function SuppliersPage(props: { searchParams: Promise<{ pag
       {error && <p className="rounded bg-danger-bg p-3 text-sm text-danger">{error}</p>}
 
       {!error && (
-        <div className="overflow-hidden rounded-lg border border-border">
-          {suppliers.length === 0 && (
-            <p className="p-4 text-center text-xs text-ink-faint">Nema dobavljača.</p>
-          )}
-          {suppliers.map((s) => (
-            <div
-              key={s.id}
-              className="flex items-center justify-between border-b border-border bg-panel px-4 py-3 text-sm last:border-b-0"
-            >
-              <div>
-                <div className="font-medium text-ink">{s.name}</div>
-                <div className="text-xs text-ink-faint">
-                  {s.type} · {s.country} · {s.contactName} ({s.contactEmail})
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
+        <>
+          <ProductScopeFilterBar
+            action="/dobavljaci"
+            polja={{
+              productType: 'productType',
+              destinationCountry: 'destinationCountry',
+              destinationCity: 'destinationCity',
+              productName: 'productName',
+              supplier: 'q',
+            }}
+            natpisi={{ supplier: 'Dobavljač (naziv)' }}
+            desno={
+              <span className="text-[11px] text-ink-faint">
+                {total} {total === 1 ? 'dobavljač' : 'dobavljača'}
+              </span>
+            }
+          />
+          <div className="overflow-hidden rounded-lg border border-border">
+            <SuppliersList suppliers={suppliers} />
+          </div>
+        </>
       )}
 
       {!error && (
@@ -105,7 +122,7 @@ export default async function SuppliersPage(props: { searchParams: Promise<{ pag
           shown={suppliers.length}
           limit={limit}
           basePath="/dobavljaci"
-          searchParams={searchParams ?? {}}
+          searchParams={(searchParams ?? {}) as Record<string, string>}
           itemLabel="dobavljača"
         />
       )}

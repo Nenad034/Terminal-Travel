@@ -10,6 +10,7 @@ import { RequirePermission } from '../../../common/decorators/require-permission
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import { ContractPeriodsService } from '../contract-periods/contract-periods.service';
 import { parsePagination } from '../../../common/pagination/pagination';
+import { toProductTypes } from '../product-scope';
 
 // M3 spec §6, prefiks /api/v1/contracting
 @ApiTags('contracting-contracts')
@@ -32,11 +33,20 @@ export class ContractsController {
     @Query('q') q?: string,
     @Query('status') status?: string,
     @Query('supplierId') supplierId?: string,
+    // v1.24 — filteri kroz proizvode (destinacija, objekat, vrsta). Vidi `product-scope.ts`.
+    @Query('destinationCountry') destinationCountry?: string,
+    @Query('destinationCity') destinationCity?: string,
+    @Query('productName') productName?: string,
+    @Query('productType') productType?: string | string[],
   ) {
     return this.contracts.findAll(parsePagination(page, limit), {
       q,
       status: status ? (status as ContractStatus) : undefined,
       supplierId,
+      destinationCountry,
+      destinationCity,
+      productName,
+      productType: toProductTypes(productType),
     });
   }
 

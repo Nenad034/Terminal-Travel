@@ -19,6 +19,11 @@ import ProductContactCard from './ProductContactCard';
 import ProcessMapNodeSummaryCard from './ProcessMapNodeSummaryCard';
 import AuditLogEntrySummaryCard from './AuditLogEntrySummaryCard';
 import { punDatum } from '@/lib/datum-sr';
+import {
+  ContractSummaryCard,
+  ProductSummaryCard,
+  SupplierSummaryCard,
+} from './ScopeRowSummaryCards';
 
 // Dizajn dok. §5b — desni panel, "izdvajanje": sažetak reda kad je centar lista i korisnik
 // klikne red bez ulaska u pun zapis, ili "Povezano" traka kad centar prikazuje pun zapis
@@ -62,6 +67,12 @@ const PROCESS_MAP_RE = /^\/nadzor\/procesne-mape\/[^/]+$/;
 // rute: provera po RUTI, "Administracija" grupa (nav.ts) nema poseban `moduleId` za ovaj ekran.
 const AUDIT_LOG_RE = /^\/audit-log$/;
 
+// M17 spec §7a (dopuna 9.9.2026, vlasnikov nalaz: „u sva ova tri linka desni panel nema nikakvu
+// funkciju") — tri liste koje su do sada u desnom panelu pokazivale samo „prevuci ovde nešto".
+// Provera po RUTI, isti razlog kao PRODUCT_PREGLED_RE iznad: sve tri su u grupi „Katalog i
+// nabavka", pa ih `moduleId` ne razdvaja od ostatka te grupe.
+const SCOPE_LIST_RE = /^\/(katalog|dobavljaci|ugovori)$/;
+
 function clampPercent(value: number): number {
   return Math.min(80, Math.max(15, value));
 }
@@ -98,6 +109,7 @@ export default function RightPanel({
   const productPregledMatch = pathname.match(PRODUCT_PREGLED_RE);
   const processMapMatch = pathname.match(PROCESS_MAP_RE);
   const auditLogMatch = pathname.match(AUDIT_LOG_RE);
+  const scopeListMatch = pathname.match(SCOPE_LIST_RE);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // M5 spec §3.0e.3a (dopuna 29.8.2026) — upozorenje o neusklađenim datumima PREVOZ/BORAVAK
@@ -449,10 +461,40 @@ export default function RightPanel({
           </div>
         )}
 
+        {/* §7a — klik na red liste puni RowSummary (isti mehanizam kao sažetak rezervacije);
+          ikonica „Otvori pun zapis" u kartici vodi na konkretan zapis u novom tabu. */}
+        {scopeListMatch && summary?.kind === 'product' && (
+          <ProductSummaryCard
+            summary={summary}
+            onOpen={() => openTab(`/katalog/${summary.id}`, summary.name)}
+          />
+        )}
+        {scopeListMatch && summary?.kind === 'supplier' && (
+          <SupplierSummaryCard
+            summary={summary}
+            // Dobavljač nema sopstven ekran detalja — pun zapis su njegovi ugovori, filtrirani
+            // na njega. Vođenje na ekran koji ne postoji bilo bi gore od odsutnog dugmeta.
+            onOpen={() => openTab(`/ugovori?supplierId=${summary.id}`, summary.name)}
+          />
+        )}
+        {scopeListMatch && summary?.kind === 'contract' && (
+          <ContractSummaryCard
+            summary={summary}
+            onOpen={() => openTab(`/ugovori/${summary.id}`, summary.contractNumber)}
+          />
+        )}
+        {scopeListMatch && !summary && collectedItems.length === 0 && (
+          <div className="flex flex-1 flex-col items-center justify-center gap-2 p-4 text-center text-xs text-ink-faint">
+            <Icon name="inspect" className="text-2xl" />
+            <p>Klikni na red da vidiš brz pregled ovde.</p>
+          </div>
+        )}
+
         {!isProdaja &&
           !productPregledMatch &&
           !processMapMatch &&
           !auditLogMatch &&
+          !scopeListMatch &&
           collectedItems.length === 0 && (
             <div
               className={`flex flex-1 flex-col items-center justify-center gap-2 p-4 text-center text-xs ${
@@ -468,6 +510,7 @@ export default function RightPanel({
           !productPregledMatch &&
           !processMapMatch &&
           !auditLogMatch &&
+          !(scopeListMatch && summary) &&
           collectedItems.length > 0 && (
             <div
               className={`flex flex-1 flex-col overflow-hidden ${dragOver ? 'bg-accent-soft' : ''}`}

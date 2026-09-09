@@ -9,8 +9,9 @@ import {
   paginated,
   paginationArgs,
 } from '../../../common/pagination/pagination';
+import { contractProductScope, type ProductScopeFilters } from '../product-scope';
 
-export interface ContractFilters {
+export interface ContractFilters extends ProductScopeFilters {
   q?: string;
   status?: ContractStatus;
   supplierId?: string;
@@ -40,6 +41,9 @@ export class ContractsService {
     const where: Prisma.ContractWhereInput = {
       status: filters?.status,
       supplierId: filters?.supplierId,
+      // v1.24 — destinacija/objekat/vrsta se traže KROZ proizvode tog ugovora; ugovor sam po
+      // sebi ne zna ni destinaciju ni naziv hotela (`product-scope.ts` nosi obrazloženje).
+      ...contractProductScope(filters),
       ...(q
         ? {
             OR: [

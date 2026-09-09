@@ -1179,6 +1179,8 @@ Preuzeto i razrađeno iz tabele u poglavlju 8:
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje
 
+**Verzija:** 2.71 — **filteri i desni panel na listama Kataloga i nabavke** (9.9.2026, vlasnikov nalaz nad `/katalog`, `/dobavljaci` i `/ugovori`). Novo poglavlje **6a**. **(1)** Ista traka filtera na sva tri ekrana — ikonice za vrstu proizvoda (isti `PRODUCT_ICONS` katalog kao Lista rezervacija) plus država/mesto/hotel/dobavljač; jedna komponenta, prosleđena imena parametara, jer tri ekrana gađaju tri različita endpointa. Filteri levog panela kataloga **ostaju** (vlasnikova odluka 9.9.2026). **(2)** Kod dobavljača i ugovora destinacija/objekat/vrsta gađaju **proizvode** tog reda, ne sam red — dobavljač u bazi ima samo svoje sedište, pa „Grčka" mora značiti „ko nam prodaje u Grčkoj" (M3 v1.24). **(3)** Klik na red otvara brz pregled u desnom panelu, ikonica `link-external` otvara pun zapis; tri nove vrste sažetka u postojećem `RowSummaryContext`, ne nov mehanizam. Zabeležena promena ponašanja: redovi ugovora i kartice kataloga su do sada bili veze koje odmah odvode sa ekrana.
+
 **Verzija:** 2.70 — **tri dopune ekrana „Kapaciteti"** (9.9.2026, vlasnikovi zahtevi nad živim ekranom). **(1)** Red sa datumima dobija strelice ◀ / ▶ koje pomeraju prikaz za **7 dana** zadržavajući dužinu raspona (4b.1) — kapacitet se gleda po nedeljama boravka, pomeranje po danu bi tražilo sedam klikova za isti posao. **(2)** Novo 4b.3a: izmena kapaciteta, zatvaranje prodaje i blokada važe za **izabrane tipove soba** (čipovi, uz „izaberi sve"/„poništi"), ne samo za jedan ili za ceo objekat — slučaj „zatvori dvokrevetne i trokrevetne, jednokrevetne ostavi" se do sada radio u dva poteza ili grubo. Jedan potez = jedan audit zapis (M3 §2.8a). **(3)** Novo 4b.9: **istorija izmena na samom ekranu** — ko, kada i šta je promenio, sužena na filter koji je već postavljen. Čita se novim `GET /contracting/capacity/history` pod `M3/capacity/VIEW`, ne postojećim audit log endpointom koji traži `M1/audit-log/VIEW` i time bi sakrio istoriju od ljudi koji taj posao rade.
 
 **Verzija:** 2.69 — **filteri ekrana „Kapaciteti" dovedeni u red sa Listom rezervacija** (9.9.2026, vlasnikov zahtev nad živim ekranom). Četiri izmene, sve u poglavlju 4b. **(1)** Dodati filteri **Država / Mesto / Hotel** — stajali su u 4b.3 od v2.60, ali ih ekran nikad nije imao (ni backend, vidi M3 v1.22). **(2)** Nov filter **vrsta proizvoda kao traka ikonica**, iz istog kataloga `PRODUCT_ICONS` kao brzi filteri Liste rezervacija; više vrednosti odjednom, izbor živi u adresi jer se filtrira na serveru. **(3)** Zaglavlje mreže dobija **red sa mesecom** iznad reda sa danima — goli broj dana je bez oznake meseca dvosmislen (4b.1). **(4)** Polja za datum prelaze sa golog `<input type="date">` na `ClearableDateRange`/`DateField` — pravilo od 29.8.2026 koje je ovaj ekran propustio jer je nastao kasnije. Isti propust je zatečen i na polju „Drži do" u formi blokade, pa je ispravljen u istom prolazu.
@@ -1907,6 +1909,38 @@ M17 nema sopstveni katalog dozvola u M1 — isto obrazloženje kao M8: svaki poz
 
 ---
 
+## 6a. Filteri i desni panel na listama Kataloga i nabavke (dopuna 9.9.2026, na zahtev vlasnika)
+
+Vlasnikov nalaz nad tri ekrana — `/katalog`, `/dobavljaci`, `/ugovori`: nedostaju filteri koje Lista rezervacija ima, i _„u sva ova tri linka desni panel nema nikakvu funkciju."_
+
+### 6a.1 Ista traka filtera na sva tri ekrana
+
+Traka nosi **traku ikonica za vrstu proizvoda** (isti katalog `PRODUCT_ICONS` kao vođena pretraga, Lista rezervacija i mreža kapaciteta) i **četiri polja slobodnog teksta**: država, mesto, hotel, dobavljač. Jedna komponenta za sva tri ekrana, ne tri slične — tri ekrana za isti posao ne smeju da izgledaju kao tri različita alata.
+
+**Ime parametra u adresi je prosleđeno, ne ukucano.** Tri ekrana gađaju tri različita endpointa, a katalog uz to filtrira klijentski nad već dovučenom listom (odluka od 4.9.2026 ostaje). Zajednički je izgled i ponašanje, ne API.
+
+**Parametri koje traka ne kontroliše prenose se kao skrivena polja.** GET forma pri slanju briše sve što u njoj nije, pa bi klik na filter tiho poništio izbor napravljen u levoj traci ili u traci ugovora. Jedini namerni izuzetak je `page`: promena filtera vraća na prvu stranu, inače se lako završi na praznoj strani 3.
+
+### 6a.2 Šta „država / mesto / hotel" znače kod dobavljača i ugovora
+
+**Gađaju proizvode, ne sam red** (vlasnikova odluka 9.9.2026, na izričito pitanje). Dobavljač u bazi ima **svoju** državu — sedište firme — a nema ni mesto ni hotel; ugovor nema nijedno od to troje. Filter „Grčka" nad spiskom dobavljača zato znači **„ko nam nešto prodaje u Grčkoj"**, jer je to jedino pitanje koje se u prodaji zaista postavlja. Vlasnikova rečenica koja je to i tražila: _„Ako jedan dobavljač ima više hotela treba prikazati za taj filter u rezultatu sve hotele za tog dobavljača."_
+
+Do dobavljačevih proizvoda vode **dva puta i oba se broje**: kroz ugovor i direktno (ručno uneta usluga bez ugovora, M2 §2.1). Da se gledao samo prvi, dobavljač sa isključivo ručnim uslugama bi tiho nestao sa spiska čim se postavi bilo koji filter. Model i obrazloženje: M3 §6 (v1.24).
+
+Sopstvena država dobavljača **ostaje** kao zaseban filter, pod natpisom koji kaže da je reč o sedištu — dva pojma sa istim imenom na istom ekranu se moraju razlikovati natpisom, ne pamćenjem.
+
+### 6a.3 Klik na red otvara desni panel, ikonica otvara pun zapis
+
+Vlasnikov zahtev, doslovno: _„Kada se klikne bilo gde u traku neka se otvori desni panel sa brzim informacijama. Omogućite da klikom na ikonu se iz desnog panela ili iz trake otvori strana za konkretan sadržaj (znate već koju ikonu da koristite, već je imate u desnom panelu za otvaranje konkretne rezervacije)."_
+
+Mehanizam je **postojeći** `RowSummaryContext` (dizajn dok. §5b), koji već tako radi za rezervacije, dane kalendara, čvorove procesnih mapa i redove audit loga — dodaju se tri nove vrste sažetka, ne nov mehanizam. Ikonica je **ista** `link-external` koja to već radi za rezervaciju: isti potez na tri nova mesta ne sme da izgleda kao tri različita poteza.
+
+**Ovo je promena ponašanja, ne samo dopuna,** i to se beleži: redovi ugovora i kartice kataloga su do sada bili veze — klik bilo gde je odmah odvodio sa ekrana, pa se spisak nije mogao pregledati bez stalnog vraćanja. Redovi dobavljača nisu vodili nigde. Sada klik na red otvara pregled, a odlazak na pun zapis traži ikonicu.
+
+**Dobavljač nema sopstven ekran detalja**, pa njegova ikonica vodi na njegove ugovore (`/ugovori?supplierId=…`). Vođenje na ekran koji ne postoji bilo bi gore od odsutnog dugmeta (isto pravilo kao kod sažetka rezervacije bez internog ID-a).
+
+**Prevlačenje u „policu podsetnika" (v2.10) ostaje** na karticama kataloga. Nosio ga je `TabLink`, koji kartica više ne koristi — prelazak na klik-za-sažetak ne sme tiho da ukloni postojeću funkciju.
+
 ## 7. Izlazni kriterijum
 
 Pošto M17 raste sa fazama, izlazni kriterijum je vezan za svaku fazu, ne za jedan trenutak:
@@ -1956,6 +1990,8 @@ Pošto M17 raste sa fazama, izlazni kriterijum je vezan za svaku fazu, ne za jed
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M2) i poglavlje 8 (Faza 1)
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje
+**Verzija:** 1.25 — **interna lista proizvoda vraća i naziv dobavljača** (9.9.2026, uz filter po dobavljaču na ekranu Katalog, M17 §6a). `GET /catalog/products` (interni kanal) dobija polje `supplierName`. Dobavljač stoji na **dva** mesta i to nije propust: ugovoreni proizvod ga ima posredno kroz ugovor (M3), a ručno uneta usluga direktno (`Product.supplier_id`, §2.1 dopuna 3.9.2026) — odgovor razrešava jedno ili drugo, pa ekran ne mora da zna razliku. Vraća se **ime**, ne ugnježdeni objekat: `include` je sredstvo, ne oblik odgovora. Javni kanali (§5.1) se ne menjaju.
+
 **Verzija:** 1.24 — novo poglavlje **2.3e**: razlika u kvalitetu sobe je **nov tip sobe u `room_types[]`**, nikad isti tip po nižoj ceni (8.9.2026, vlasnikova potvrda da jedan dobavljač može imati u zakupu slabije sobe jeftinije u istom objektu). Nije stvar urednog kataloga nego posledice u prodaji: M3 §2.10 (istog dana) uvodi pravilo da se prodaje po najnižoj ceni, unutar istog tipa sobe — pa bi slabije sobe upisane kao isti tip **sistematski** izbijale na prvo mesto i agencija bi prodavala isključivo njih, uz reklamacije koje se u podacima ne vide kao greška. Isto pravilo se prenosi na ekran uparivanja soba sa spoljnog provajdera (M4 §3.3.2): „ovo je nov tip sobe" je ravnopravna opcija, ne izuzetak na dnu liste. **Čisto specifikaciona dopuna, bez koda u ovom prolazu.**
 
 **Verzija:** 1.23 — **Straničenje kataloga, NAMERNO OPCIONO** (5.9.2026, dok. 39 nalaz 2.2). `GET /catalog/products` prima `page`/`limit` i vraća `{ data, total, ... }` umesto golog niza. **Bez `page`/`limit` i dalje vraća SVE redove** — jer filteri kataloga u panelu (vrsta/država/destinacija/konekcija) rade trenutno, nad celom već dovučenom listom, po vlasnikovoj odluci od 4.9.2026; podrazumevano straničenje bi ih tiho svelo na jednu stranu i korisnik bi filtrirao 50 od 217 proizvoda misleći da vidi sve. **Ograničenje koje ostaje otvoreno:** čim se uključi API dobavljač (M4), „sve" postaje desetine hiljada zapisa i ta odluka prestaje da važi — tada filtriranje mora na server, a straničenje postati podrazumevano. Zavedeno u backlogu, nije prećutano.
@@ -2446,6 +2482,8 @@ Prefiks: `/api/v1/catalog`
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M3) i poglavlje 8 (Faza 1)
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje
+**Verzija:** 1.24 — **liste dobavljača i ugovora dobijaju filtere, i to „kroz proizvode"** (9.9.2026, vlasnikov zahtev nad ekranima M17 §6a). `GET /suppliers` do sada nije primao **nijedan** filter — ni pretragu po imenu; dodati su `q`, `type`, `country` (sedište firme) i, zajedno sa `GET /contracts`, četiri filtera koja gađaju **vezane proizvode**: `destinationCountry`, `destinationCity`, `productName`, `productType` (sme da se ponovi). **Zašto kroz proizvode:** dobavljač u bazi ima samo svoju državu, a nema ni mesto ni hotel — filter „Grčka" nad spiskom dobavljača mora da znači „ko nam nešto prodaje u Grčkoj", jer je to jedino pitanje koje se u prodaji postavlja (vlasnikova odluka na izričito pitanje). Do dobavljačevih proizvoda vode **dva puta i oba se broje**: kroz ugovor (`Contract.products`) i direktno (`Supplier.manualProducts`, ručno uneta usluga bez ugovora — M2 §2.1); da se gledao samo prvi, dobavljač sa isključivo ručnim uslugama bi tiho nestao sa spiska čim se postavi bilo koji filter. Zajednički gradilac uslova: `apps/api/src/modules/m3-ugovaranje-alotmani/product-scope.ts`. Nepoznata vrednost `productType` se **ćuti** umesto da obori poziv na 400 — ovo su filteri liste, pa pogrešan parametar u adresi ne sme da ostavi korisnika pred porukom o grešci umesto pred spiskom.
+
 **Verzija:** 1.23 — **multiselect tipova soba nad kapacitetom + istorija izmena** (9.9.2026, dva vlasnikova zahteva nad ekranom M17 §4b). **(1)** Dimenzija „Šta" iz 2.8a dobija treću vrednost — **izabrani tipovi soba** (`contractPeriodIds`), između dosadašnjeg „jedan tip sobe" i „ceo objekat"; slučaj „zatvori dvokrevetne i trokrevetne, jednokrevetne ostavi" se do sada radio u dva poteza ili grubo, preko celog objekta. Sve tri radnje (stop-sale, `capacity_override`, blokada) primaju skup, a jedan poziv i dalje ostavlja **jedan** audit zapis sa spiskom pogođenih perioda u `context`. **(2)** Novo poglavlje **2.8g** — istorija izmena kapaciteta. Nova tabela se ne uvodi: svaka radnja već upisuje `AuditLogEntry` sa akterom i vremenom, dodaje se samo čitanje, kroz nov `GET /capacity/history` pod **`M3/capacity/VIEW`** (postojeći `GET /iam/audit-log` traži `M1/audit-log/VIEW`, koju Sales Manager i prodajni agent nemaju — bili bi bez uvida u sopstven posao; vlasnikova odluka 9.9.2026). Ekran: M17 v2.70.
 
 **Verzija:** 1.22 — **mreža kapaciteta dobija filtere po destinaciji, hotelu i vrsti proizvoda** (9.9.2026, vlasnikov zahtev nad ekranom M17 §4b). Destinacija i hotel/proizvod su od v1.15 stajali u opisu `/capacity/grid` kao filteri, ali u kodu nisu postojali — `CapacityGridQueryDto` je primao samo `contractId`/`supplierId`/`roomType`/`allotmentMode`; ovaj prolaz zatvara tu razliku između dokumenta i koda. **Vrsta proizvoda (`productType`) je nov filter** — čita se sa `Product.type` objekta vezanog za ugovor (`Product.sourceContractId`), prima više vrednosti odjednom, i vraća se na svakom redu mreže (`productType`) da panel može da prikaže po čemu je red filtriran. Filteri nad proizvodom se rešavaju **pre** upita nad periodima (jedan upit nad `Product` daje skup `contractId` vrednosti), pa period bez vezanog proizvoda ispada iz rezultata čim se bilo koji od tri filtera postavi — što je tačno, jer o njemu ne znamo ni destinaciju ni naziv. **Provera:** vidi M17 v2.69.

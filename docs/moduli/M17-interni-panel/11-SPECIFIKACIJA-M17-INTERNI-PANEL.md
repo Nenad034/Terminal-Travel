@@ -4,6 +4,8 @@
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje
 
+**Verzija:** 2.71 — **filteri i desni panel na listama Kataloga i nabavke** (9.9.2026, vlasnikov nalaz nad `/katalog`, `/dobavljaci` i `/ugovori`). Novo poglavlje **6a**. **(1)** Ista traka filtera na sva tri ekrana — ikonice za vrstu proizvoda (isti `PRODUCT_ICONS` katalog kao Lista rezervacija) plus država/mesto/hotel/dobavljač; jedna komponenta, prosleđena imena parametara, jer tri ekrana gađaju tri različita endpointa. Filteri levog panela kataloga **ostaju** (vlasnikova odluka 9.9.2026). **(2)** Kod dobavljača i ugovora destinacija/objekat/vrsta gađaju **proizvode** tog reda, ne sam red — dobavljač u bazi ima samo svoje sedište, pa „Grčka" mora značiti „ko nam prodaje u Grčkoj" (M3 v1.24). **(3)** Klik na red otvara brz pregled u desnom panelu, ikonica `link-external` otvara pun zapis; tri nove vrste sažetka u postojećem `RowSummaryContext`, ne nov mehanizam. Zabeležena promena ponašanja: redovi ugovora i kartice kataloga su do sada bili veze koje odmah odvode sa ekrana.
+
 **Verzija:** 2.70 — **tri dopune ekrana „Kapaciteti"** (9.9.2026, vlasnikovi zahtevi nad živim ekranom). **(1)** Red sa datumima dobija strelice ◀ / ▶ koje pomeraju prikaz za **7 dana** zadržavajući dužinu raspona (4b.1) — kapacitet se gleda po nedeljama boravka, pomeranje po danu bi tražilo sedam klikova za isti posao. **(2)** Novo 4b.3a: izmena kapaciteta, zatvaranje prodaje i blokada važe za **izabrane tipove soba** (čipovi, uz „izaberi sve"/„poništi"), ne samo za jedan ili za ceo objekat — slučaj „zatvori dvokrevetne i trokrevetne, jednokrevetne ostavi" se do sada radio u dva poteza ili grubo. Jedan potez = jedan audit zapis (M3 §2.8a). **(3)** Novo 4b.9: **istorija izmena na samom ekranu** — ko, kada i šta je promenio, sužena na filter koji je već postavljen. Čita se novim `GET /contracting/capacity/history` pod `M3/capacity/VIEW`, ne postojećim audit log endpointom koji traži `M1/audit-log/VIEW` i time bi sakrio istoriju od ljudi koji taj posao rade.
 
 **Verzija:** 2.69 — **filteri ekrana „Kapaciteti" dovedeni u red sa Listom rezervacija** (9.9.2026, vlasnikov zahtev nad živim ekranom). Četiri izmene, sve u poglavlju 4b. **(1)** Dodati filteri **Država / Mesto / Hotel** — stajali su u 4b.3 od v2.60, ali ih ekran nikad nije imao (ni backend, vidi M3 v1.22). **(2)** Nov filter **vrsta proizvoda kao traka ikonica**, iz istog kataloga `PRODUCT_ICONS` kao brzi filteri Liste rezervacija; više vrednosti odjednom, izbor živi u adresi jer se filtrira na serveru. **(3)** Zaglavlje mreže dobija **red sa mesecom** iznad reda sa danima — goli broj dana je bez oznake meseca dvosmislen (4b.1). **(4)** Polja za datum prelaze sa golog `<input type="date">` na `ClearableDateRange`/`DateField` — pravilo od 29.8.2026 koje je ovaj ekran propustio jer je nastao kasnije. Isti propust je zatečen i na polju „Drži do" u formi blokade, pa je ispravljen u istom prolazu.
@@ -731,6 +733,38 @@ Trajno pretraživačko polje u zaglavlju panela (dostupno sa svakog ekrana), kor
 M17 nema sopstveni katalog dozvola u M1 — isto obrazloženje kao M8: svaki pozvani API sam sprovodi prava pristupa. M17 samo mora da **poštuje** ta prava pri iscrtavanju interfejsa (poglavlje 3).
 
 ---
+
+## 6a. Filteri i desni panel na listama Kataloga i nabavke (dopuna 9.9.2026, na zahtev vlasnika)
+
+Vlasnikov nalaz nad tri ekrana — `/katalog`, `/dobavljaci`, `/ugovori`: nedostaju filteri koje Lista rezervacija ima, i _„u sva ova tri linka desni panel nema nikakvu funkciju."_
+
+### 6a.1 Ista traka filtera na sva tri ekrana
+
+Traka nosi **traku ikonica za vrstu proizvoda** (isti katalog `PRODUCT_ICONS` kao vođena pretraga, Lista rezervacija i mreža kapaciteta) i **četiri polja slobodnog teksta**: država, mesto, hotel, dobavljač. Jedna komponenta za sva tri ekrana, ne tri slične — tri ekrana za isti posao ne smeju da izgledaju kao tri različita alata.
+
+**Ime parametra u adresi je prosleđeno, ne ukucano.** Tri ekrana gađaju tri različita endpointa, a katalog uz to filtrira klijentski nad već dovučenom listom (odluka od 4.9.2026 ostaje). Zajednički je izgled i ponašanje, ne API.
+
+**Parametri koje traka ne kontroliše prenose se kao skrivena polja.** GET forma pri slanju briše sve što u njoj nije, pa bi klik na filter tiho poništio izbor napravljen u levoj traci ili u traci ugovora. Jedini namerni izuzetak je `page`: promena filtera vraća na prvu stranu, inače se lako završi na praznoj strani 3.
+
+### 6a.2 Šta „država / mesto / hotel" znače kod dobavljača i ugovora
+
+**Gađaju proizvode, ne sam red** (vlasnikova odluka 9.9.2026, na izričito pitanje). Dobavljač u bazi ima **svoju** državu — sedište firme — a nema ni mesto ni hotel; ugovor nema nijedno od to troje. Filter „Grčka" nad spiskom dobavljača zato znači **„ko nam nešto prodaje u Grčkoj"**, jer je to jedino pitanje koje se u prodaji zaista postavlja. Vlasnikova rečenica koja je to i tražila: _„Ako jedan dobavljač ima više hotela treba prikazati za taj filter u rezultatu sve hotele za tog dobavljača."_
+
+Do dobavljačevih proizvoda vode **dva puta i oba se broje**: kroz ugovor i direktno (ručno uneta usluga bez ugovora, M2 §2.1). Da se gledao samo prvi, dobavljač sa isključivo ručnim uslugama bi tiho nestao sa spiska čim se postavi bilo koji filter. Model i obrazloženje: M3 §6 (v1.24).
+
+Sopstvena država dobavljača **ostaje** kao zaseban filter, pod natpisom koji kaže da je reč o sedištu — dva pojma sa istim imenom na istom ekranu se moraju razlikovati natpisom, ne pamćenjem.
+
+### 6a.3 Klik na red otvara desni panel, ikonica otvara pun zapis
+
+Vlasnikov zahtev, doslovno: _„Kada se klikne bilo gde u traku neka se otvori desni panel sa brzim informacijama. Omogućite da klikom na ikonu se iz desnog panela ili iz trake otvori strana za konkretan sadržaj (znate već koju ikonu da koristite, već je imate u desnom panelu za otvaranje konkretne rezervacije)."_
+
+Mehanizam je **postojeći** `RowSummaryContext` (dizajn dok. §5b), koji već tako radi za rezervacije, dane kalendara, čvorove procesnih mapa i redove audit loga — dodaju se tri nove vrste sažetka, ne nov mehanizam. Ikonica je **ista** `link-external` koja to već radi za rezervaciju: isti potez na tri nova mesta ne sme da izgleda kao tri različita poteza.
+
+**Ovo je promena ponašanja, ne samo dopuna,** i to se beleži: redovi ugovora i kartice kataloga su do sada bili veze — klik bilo gde je odmah odvodio sa ekrana, pa se spisak nije mogao pregledati bez stalnog vraćanja. Redovi dobavljača nisu vodili nigde. Sada klik na red otvara pregled, a odlazak na pun zapis traži ikonicu.
+
+**Dobavljač nema sopstven ekran detalja**, pa njegova ikonica vodi na njegove ugovore (`/ugovori?supplierId=…`). Vođenje na ekran koji ne postoji bilo bi gore od odsutnog dugmeta (isto pravilo kao kod sažetka rezervacije bez internog ID-a).
+
+**Prevlačenje u „policu podsetnika" (v2.10) ostaje** na karticama kataloga. Nosio ga je `TabLink`, koji kartica više ne koristi — prelazak na klik-za-sažetak ne sme tiho da ukloni postojeću funkciju.
 
 ## 7. Izlazni kriterijum
 

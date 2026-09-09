@@ -108,8 +108,53 @@ export interface AuditLogEntrySummary {
   context?: unknown;
 }
 
+// M17 spec §7a (dopuna 9.9.2026, vlasnikov nalaz: „u sva ova tri linka desni panel nema
+// nikakvu funkciju. Kada se klikne bilo gde u traku neka se otvori desni panel sa brzim
+// informacijama") — tri nove vrste, isti obrazac kao četiri postojeće. Svaka nosi `id` jer se
+// iz sažetka otvara pun zapis (ikonica `link-external`, ista koja to već radi za rezervaciju).
+export interface ProductRowSummary {
+  kind: 'product';
+  id: string;
+  name: string;
+  type: string;
+  status: string;
+  destinationCountry: string;
+  destinationCity: string;
+  sourceType: string;
+  sourceProvider?: string | null;
+  supplierName?: string | null;
+}
+
+export interface SupplierRowSummary {
+  kind: 'supplier';
+  id: string;
+  name: string;
+  type: string;
+  /** Država SEDIŠTA dobavljača — ne destinacija (vidi `product-scope.ts` na backendu). */
+  country: string;
+  contactName: string;
+  contactEmail: string;
+}
+
+export interface ContractRowSummary {
+  kind: 'contract';
+  id: string;
+  contractNumber: string;
+  supplierName: string;
+  status: string;
+  currency: string;
+  validFrom: string;
+  validTo: string;
+}
+
 export type RowSummary =
-  BookingRowSummary | CalendarDaySummary | ProcessMapNodeSummary | AuditLogEntrySummary;
+  | BookingRowSummary
+  | CalendarDaySummary
+  | ProcessMapNodeSummary
+  | AuditLogEntrySummary
+  | ProductRowSummary
+  | SupplierRowSummary
+  | ContractRowSummary;
 
 interface RowSummaryContextValue {
   summary: RowSummary | null;

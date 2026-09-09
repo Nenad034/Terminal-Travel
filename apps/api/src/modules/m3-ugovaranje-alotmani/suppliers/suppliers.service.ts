@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { Prisma, SupplierType } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { AuditLogService } from '../../m1-core-identitet/audit-log/audit-log.service';
 import { CreateSupplierDto } from './dto/create-supplier.dto';
@@ -10,6 +11,15 @@ import {
   paginated,
   paginationArgs,
 } from '../../../common/pagination/pagination';
+import { supplierProductScope, type ProductScopeFilters } from '../product-scope';
+
+export interface SupplierFilters extends ProductScopeFilters {
+  /** Naziv dobavljača — sadrži, bez obzira na velika slova. */
+  q?: string;
+  type?: SupplierType;
+  /** Država SEDIŠTA dobavljača, ne destinacija — za destinaciju vidi `product-scope.ts`. */
+  country?: string;
+}
 
 @Injectable()
 export class SuppliersService {
@@ -25,11 +35,27 @@ export class SuppliersService {
   // ugovor, filter liste rezervacija, chat "novi razgovor", API posrednik za autocomplete) —
   // ta mesta traže `?limit=200` (tvrd plafon, ne "sve bez granice") jer bi dobavljač nevidljiv
   // u padajućoj listi bio gori kvar (ne može se izabrati) od browse ekrana bez kraja liste.
-  async findAll(pagination?: PaginationQueryDto) {
+  /**
+   * Filteri (9.9.2026, vlasnikov zahtev — ekran /dobavljaci do sad nije imao NIJEDAN, ni
+   * pretragu po imenu). Filtriranje ide na SERVER, ne nad dovučenom stranom: lista je
+   * straničena, pa bi klijentski filter pretraživao samo trenutnih N redova i tiho krio ostalo
+   * (ista greška je već jednom ispravljena na drugim listama, dok. 27 nalaz 2.2).
+   *
+   * Destinacija/objekat/vrsta gađaju PROIZVODE tog dobavljača — vidi `product-scope.ts` za
+   * obrazloženje zašto `Supplier.country` (sedište firme) nije odgovor na pitanje „Grčka".
+   */
+  async findAll(pagination?: PaginationQueryDto, filters?: SupplierFilters) {
     const { skip, take, page, limit } = paginationArgs(pagination);
+    const q = filters?.q?.trim();
+    const where: Prisma.SupplierWhereInput = {
+      type: filters?.type,
+      country: filters?.country ? { contains: filters.country, mode: 'insensitive' } : undefined,
+      name: q ? { contains: q, mode: 'insensitive' } : undefined,
+      ...supplierProductScope(filters),
+    };
     const [data, total] = await this.prisma.$transaction([
-      this.prisma.supplier.findMany({ orderBy: { name: 'asc' }, skip, take }),
-      this.prisma.supplier.count(),
+      this.prisma.supplier.findMany({ where, orderBy: { name: 'asc' }, skip, take }),
+      this.prisma.supplier.count({ where }),
     ]);
     return paginated(data, total, page, limit);
   }

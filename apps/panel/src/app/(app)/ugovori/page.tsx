@@ -3,9 +3,10 @@ import { apiFetch } from '@/lib/api-client';
 import { getMe, hasPermission } from '@/lib/me';
 import RegisterTab from '@/components/RegisterTab';
 import Icon from '@/components/Icon';
-import { Badge } from '@/components/ui/badge';
 import Pagination from '@/components/Pagination';
 import ContractsFilterBar from './ContractsFilterBar';
+import ContractsList from './ContractsList';
+import ProductScopeFilterBar from '@/components/ProductScopeFilterBar';
 
 interface Contract {
   id: string;
@@ -24,7 +25,17 @@ interface Supplier {
 
 // M17 spec §4/§7 (Faza 1) — "Dobavljači i ugovori", M3 §6 ugovori.
 export default async function ContractsPage(props: {
-  searchParams: Promise<{ page?: string; q?: string; status?: string; supplierId?: string }>;
+  searchParams: Promise<{
+    page?: string;
+    q?: string;
+    status?: string;
+    supplierId?: string;
+    // v1.24 — filteri kroz proizvode tog ugovora (destinacija, objekat, vrsta proizvoda).
+    destinationCountry?: string;
+    destinationCity?: string;
+    productName?: string;
+    productType?: string | string[];
+  }>;
 }) {
   const searchParams = await props.searchParams;
   const me = await getMe();
@@ -49,6 +60,18 @@ export default async function ContractsPage(props: {
     if (searchParams?.q) qsParams.set('q', searchParams.q);
     if (searchParams?.status) qsParams.set('status', searchParams.status);
     if (searchParams?.supplierId) qsParams.set('supplierId', searchParams.supplierId);
+    if (searchParams?.destinationCountry)
+      qsParams.set('destinationCountry', searchParams.destinationCountry);
+    if (searchParams?.destinationCity)
+      qsParams.set('destinationCity', searchParams.destinationCity);
+    if (searchParams?.productName) qsParams.set('productName', searchParams.productName);
+    for (const t of Array.isArray(searchParams?.productType)
+      ? searchParams.productType
+      : searchParams?.productType
+        ? [searchParams.productType]
+        : []) {
+      qsParams.append('productType', t);
+    }
     const qs = qsParams.toString() ? `?${qsParams.toString()}` : '';
     const [contractsRes, suppliersRes] = await Promise.all([
       apiFetch<{
@@ -106,48 +129,42 @@ export default async function ContractsPage(props: {
         </div>
       </div>
 
+      {!error && (
+        <ProductScopeFilterBar
+          action="/ugovori"
+          polja={{
+            productType: 'productType',
+            destinationCountry: 'destinationCountry',
+            destinationCity: 'destinationCity',
+            productName: 'productName',
+          }}
+          desno={
+            <span className="text-[11px] text-ink-faint">
+              {total} {total === 1 ? 'ugovor' : 'ugovora'}
+            </span>
+          }
+        />
+      )}
+
+      {/* Postojeća traka (broj ugovora / status / dobavljač) OSTAJE — nova traka je dopuna za
+          destinaciju i vrstu proizvoda, ne zamena za filtere koji rade nad samim ugovorom. */}
       {!error && <ContractsFilterBar suppliers={suppliers} />}
 
       {error && <p className="rounded bg-danger-bg p-3 text-sm text-danger">{error}</p>}
 
       {!error && (
         <div className="overflow-hidden rounded-lg border border-border">
-          {contracts.length === 0 && (
-            <p className="p-4 text-center text-xs text-ink-faint">
-              Nema ugovora koji odgovaraju filterima.
-            </p>
-          )}
-          {contracts.map((c) => (
-            // `id` (23.8.2026, na zahtev vlasnika: "ovo treba da ima linkove ka stavkama na koje
-            // obavestava") — dashboard upozorenje ("M3 — rokovi povrata alotmana") i dalje može
-            // da skoči na ovaj anchor (`/ugovori#contract-{id}`); klik na red sada dodatno vodi
-            // na pravi detalj-ekran ugovora (dopunjeno 29.8.2026, vidi [id]/page.tsx).
-            <Link
-              key={c.id}
-              id={`contract-${c.id}`}
-              href={`/ugovori/${c.id}`}
-              className="flex items-center justify-between border-b border-border bg-panel px-4 py-3 text-sm last:border-b-0 hover:bg-panel2"
-            >
-              <div>
-                <div className="font-medium text-ink">
-                  {c.contractNumber}{' '}
-                  <span className="text-ink-faint">
-                    — {suppliersById.get(c.supplierId) ?? c.supplierId}
-                  </span>
-                </div>
-                <div className="text-xs text-ink-faint">
-                  {c.currency} · {new Date(c.validFrom).toLocaleDateString('sr-RS')} –{' '}
-                  {new Date(c.validTo).toLocaleDateString('sr-RS')}
-                </div>
-              </div>
-              <span className="flex items-center gap-2">
-                <StatusBadge status={c.status} />
-                {/* 8.9.2026 — red JESTE bio klikabilan, ali ništa to nije pokazivalo; a period
-                    sa kapacitetom se unosi tek unutra. */}
-                <span className="text-[11px] text-accent-strong">otvori →</span>
-              </span>
-            </Link>
-          ))}
+          <ContractsList
+            contracts={contracts.map((c) => ({
+              id: c.id,
+              contractNumber: c.contractNumber,
+              supplierName: suppliersById.get(c.supplierId) ?? c.supplierId,
+              status: c.status,
+              currency: c.currency,
+              validFrom: c.validFrom,
+              validTo: c.validTo,
+            }))}
+          />
         </div>
       )}
 
@@ -164,21 +181,5 @@ export default async function ContractsPage(props: {
         />
       )}
     </div>
-  );
-}
-
-function StatusBadge({ status }: { status: string }) {
-  return (
-    <Badge
-      variant={
-        status === 'ACTIVE'
-          ? 'ok'
-          : status === 'EXPIRED' || status === 'TERMINATED'
-            ? 'danger'
-            : 'secondary'
-      }
-    >
-      {status}
-    </Badge>
   );
 }
