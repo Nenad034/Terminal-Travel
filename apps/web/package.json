@@ -4,9 +4,9 @@
   "version": "0.1.0",
   "description": "M8 — Sajt agencije (B2C prikaz). Next.js, bez sopstvene baze/API-ja; server-side poziva apps/api (docs/moduli/M08-sajt-b2c/10-SPECIFIKACIJA-M8-SAJT-B2C.md).",
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev -p 3001",
     "build": "next build",
-    "start": "next start",
+    "start": "next start -p 3001",
     "lint": "eslint .",
     "test": "jest"
   },
