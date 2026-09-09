@@ -833,7 +833,7 @@ Vlasnikov nalaz nad postojećim ekranom (`/ugovori/:id/periods/:periodId`): _„
 
 ### 6d.3 Ekran „Izmena cenovnika rečima"
 
-Polje u koje se ukuca rečenica kakva bi se rekla kolegi, pa spisak predloženih izmena (*sada 62,00 → postaje 65,10*) koje se odobravaju **red po red**. Model i ograde: M3 §4.8. Dva pravila su vidljiva na ekranu: **„ništa još nije primenjeno"** stoji iznad spiska, i **rečenica koja je izmenu tražila ostaje uz rezultat**.
+Polje u koje se ukuca rečenica kakva bi se rekla kolegi, pa spisak predloženih izmena (_sada 62,00 → postaje 65,10_) koje se odobravaju **red po red**. Model i ograde: M3 §4.8. Dva pravila su vidljiva na ekranu: **„ništa još nije primenjeno"** stoji iznad spiska, i **rečenica koja je izmenu tražila ostaje uz rezultat**.
 
 ### 6d.4 Kalendar
 

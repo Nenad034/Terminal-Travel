@@ -26,7 +26,7 @@ Nijedno od ovih polja ne prima slobodan tekst; nepoznata vrednost vraća `400`.
 | `Contract.defaultTipNastupanja`        | `ORGANIZATOR`, `POSREDNIK`                                                                                                        |
 | `Contract.commissionModel`             | `NET`, `COMMISSIONABLE`                                                                                                           |
 | `ContractPeriod.allotmentMode`         | `FIXED`, `ON_REQUEST`, `CHARTER`, `FIXED_LEASE`                                                                                   |
-| `RateLine.priceBasis`                  | `PER_ROOM_PER_NIGHT`, `PER_PERSON_PER_NIGHT`                                                                                      |
+| `RateLine.priceBasis`                  | `PER_ROOM_PER_NIGHT`, `PER_PERSON_PER_NIGHT`, `PER_ROOM_PER_STAY`, `PER_PERSON_PER_STAY` (poslednje dve od v1.27)                 |
 | `agePricing[].ageCategory`             | `ADULT`, `CHILD`, `TEEN`, `INFANT`                                                                                                |
 | `agePricing[].pricingMode`             | `PERCENTAGE_OF_BASE_PRICE`, `FLAT_PRICE_PER_NIGHT`                                                                                |
 | `CancellationRule.ruleType`            | `PRE_ARRIVAL`, `EARLY_DEPARTURE`                                                                                                  |
@@ -911,8 +911,16 @@ Sezone su **kolone** cenovnika i imaju **više** datumskih opsega. Sve rute tra�
     "label": "Predsezona",
     "rank": 1,
     "ranges": [
-      { "id": "1f22740b-…", "dateFrom": "2027-04-01T00:00:00.000Z", "dateTo": "2027-05-31T00:00:00.000Z" },
-      { "id": "9c31a0e2-…", "dateFrom": "2027-10-01T00:00:00.000Z", "dateTo": "2027-10-31T00:00:00.000Z" }
+      {
+        "id": "1f22740b-…",
+        "dateFrom": "2027-04-01T00:00:00.000Z",
+        "dateTo": "2027-05-31T00:00:00.000Z"
+      },
+      {
+        "id": "9c31a0e2-…",
+        "dateFrom": "2027-10-01T00:00:00.000Z",
+        "dateTo": "2027-10-31T00:00:00.000Z"
+      }
     ]
   }
 ]
@@ -954,9 +962,16 @@ Odgovara `201` sa sezonom (oblik kao gore). **Preklapanje se odbija sa `400`** �
   "commissionModel": "NET",
   "commissionPercentage": null,
   "seasons": [
-    { "id": "bd2d50be-…", "code": "1", "label": "Predsezona", "rank": 1,
-      "ranges": [{ "dateFrom": "2027-04-01", "dateTo": "2027-05-31" },
-                 { "dateFrom": "2027-10-01", "dateTo": "2027-10-31" }] }
+    {
+      "id": "bd2d50be-…",
+      "code": "1",
+      "label": "Predsezona",
+      "rank": 1,
+      "ranges": [
+        { "dateFrom": "2027-04-01", "dateTo": "2027-05-31" },
+        { "dateFrom": "2027-10-01", "dateTo": "2027-10-31" }
+      ]
+    }
   ],
   "roomTypes": [
     {
@@ -985,7 +1000,12 @@ Odgovara `201` sa sezonom (oblik kao gore). **Preklapanje se odbija sa `400`** �
       "roomType": "DBL",
       "rows": [],
       "bezSezone": [
-        { "periodId": "2ee47f2b-…", "stayFrom": "2027-06-01", "stayTo": "2027-06-30", "cenovnihRedova": 1 }
+        {
+          "periodId": "2ee47f2b-…",
+          "stayFrom": "2027-06-01",
+          "stayTo": "2027-06-30",
+          "cenovnihRedova": 1
+        }
       ]
     }
   ]

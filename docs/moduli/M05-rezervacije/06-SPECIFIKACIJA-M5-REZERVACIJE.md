@@ -301,14 +301,14 @@ Ako `percentage` nije postavljen, tretira se kao 0. Ako `fixed_amount` nije post
 
 Formula iznad kaže **kako** se marža računa, ali ne i **na šta**. Do 9.9.2026 to je bilo otvoreno pitanje (M3 §8, stavka „Interakcija `commission_model` sa `MarkupRule`"). Vlasnikova odluka:
 
-| #   | Korak                                                                  | Primer |
-| --- | ---------------------------------------------------------------------- | ------ |
-| 1   | Ulazna (nabavna) cena iz M3 `RateLine`                                  | 55,00  |
-| 2   | **Popust / akcija** — `PricelistOffer`, rani buking, SPO                 | 46,75  |
-| 3   | **Provizija koju dobavljač odobrava agenciji** (M3 §2.11f, po periodu)  | 42,08  |
-| 4   | **`MarkupRule`** po formuli iz 2.1                                      | 49,65 ← prodajna cena |
-| 5   | **Provizija subagenta** (M7) — od prodajne cene                         | 3,97 (njegova zarada, ne dodatak na cenu) |
-| 6   | Popust nivoa lojalnosti (M6), ako `Quote.client_account_id` postoji     | vidi 2.1 napomenu ispod |
+| #   | Korak                                                                  | Primer                                    |
+| --- | ---------------------------------------------------------------------- | ----------------------------------------- |
+| 1   | Ulazna (nabavna) cena iz M3 `RateLine`                                 | 55,00                                     |
+| 2   | **Popust / akcija** — `PricelistOffer`, rani buking, SPO               | 46,75                                     |
+| 3   | **Provizija koju dobavljač odobrava agenciji** (M3 §2.11f, po periodu) | 42,08                                     |
+| 4   | **`MarkupRule`** po formuli iz 2.1                                     | 49,65 ← prodajna cena                     |
+| 5   | **Provizija subagenta** (M7) — od prodajne cene                        | 3,97 (njegova zarada, ne dodatak na cenu) |
+| 6   | Popust nivoa lojalnosti (M6), ako `Quote.client_account_id` postoji    | vidi 2.1 napomenu ispod                   |
 
 Ključno: **marža se računa na cenu već umanjenu i za popust i za dobavljačevu proviziju**, ne na punu nabavnu. Da se dobavljačeva provizija skidala sa pune cene, agencija bi obračunala veći odbitak nego što joj dobavljač stvarno daje, i razlika bi se pojavila tek pri plaćanju dobavljaču.
 

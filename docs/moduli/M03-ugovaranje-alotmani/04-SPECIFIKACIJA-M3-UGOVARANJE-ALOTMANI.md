@@ -716,27 +716,27 @@ Mockup ekrana: `04-MOCKUP-UNOS-CENOVNIKA-MREZA.html` (isti folder). Ekrani u pan
 
 #### 2.11a Šta su stvarni cenovnici pokazali (dokaz, ne pretpostavka)
 
-| Nalaz                                                          | Gde je viđen                                                                                 |
-| -------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| Sezona ima **više datumskih opsega**, ne jedan                  | Aycon: sezona 1 = 01.04–31.05 **i** 01.10–31.10; Olympic/PRI: sezona A = 12.12–19.12 **i** 14.03–21.03 |
-| Osnova cene se **razlikuje od reda do reda** u istom cenovniku | Aycon: sve sobe „per person per day", Deluxe suite „per room per day"                        |
-| Red je **kombinacija popunjenosti**, ne samo tip sobe          | Solvex: „1 Adult + 1 Chd (07-11,99)", „2 Adult + 1 Chd (02-6,99)"                            |
-| Cena **po boravku**, ne po noći                                 | Plava Laguna: kolona `Rate Base` = `STAY`                                                     |
-| **Dani u nedelji** za dolazak/odlazak                           | Plava Laguna: kolone `S M T W T F S`                                                          |
-| Rok za rezervisanje **≠** period boravka                        | Aycon: „bookings made till 31.12.2025 for period of stay 01.04–30.10.2026"                   |
+| Nalaz                                                          | Gde je viđen                                                                                           |
+| -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| Sezona ima **više datumskih opsega**, ne jedan                 | Aycon: sezona 1 = 01.04–31.05 **i** 01.10–31.10; Olympic/PRI: sezona A = 12.12–19.12 **i** 14.03–21.03 |
+| Osnova cene se **razlikuje od reda do reda** u istom cenovniku | Aycon: sve sobe „per person per day", Deluxe suite „per room per day"                                  |
+| Red je **kombinacija popunjenosti**, ne samo tip sobe          | Solvex: „1 Adult + 1 Chd (07-11,99)", „2 Adult + 1 Chd (02-6,99)"                                      |
+| Cena **po boravku**, ne po noći                                | Plava Laguna: kolona `Rate Base` = `STAY`                                                              |
+| **Dani u nedelji** za dolazak/odlazak                          | Plava Laguna: kolone `S M T W T F S`                                                                   |
+| Rok za rezervisanje **≠** period boravka                       | Aycon: „bookings made till 31.12.2025 for period of stay 01.04–30.10.2026"                             |
 
 #### 2.11b `Season` — imenovana sezona sa više opsega
 
 Nov zapis između `Contract` i `ContractPeriod`. Ne zamenjuje `ContractPeriod` — grupiše ga.
 
-| Polje         | Tip                | Napomena                                                        |
-| ------------- | ------------------ | --------------------------------------------------------------- |
-| `id`          | uuid               |                                                                 |
-| `contract_id` | uuid               |                                                                 |
-| `code`        | string             | kratka oznaka iz cenovnika: `1`, `A`, `Špic`                     |
-| `label`       | string?            | opisno ime, opciono                                             |
-| `rank`        | int                | redosled kolona na ekranu                                       |
-| `ranges`      | `SeasonRange[]`    | **najmanje jedan** opseg (`date_from`, `date_to`)                |
+| Polje         | Tip             | Napomena                                          |
+| ------------- | --------------- | ------------------------------------------------- |
+| `id`          | uuid            |                                                   |
+| `contract_id` | uuid            |                                                   |
+| `code`        | string          | kratka oznaka iz cenovnika: `1`, `A`, `Špic`      |
+| `label`       | string?         | opisno ime, opciono                               |
+| `rank`        | int             | redosled kolona na ekranu                         |
+| `ranges`      | `SeasonRange[]` | **najmanje jedan** opseg (`date_from`, `date_to`) |
 
 Pravila:
 
@@ -788,13 +788,13 @@ Prazno = bez ograničenja. Kad je popunjeno, stavka učestvuje u obračunu **sam
 
 Rešava se **istim obrascem kao `MarkupRule`** — zaseban zapis sa dometom, ne polje u tabeli:
 
-| Polje         | Tip                          | Napomena                                                  |
-| ------------- | ---------------------------- | --------------------------------------------------------- |
-| `scope_type`  | `SupplierCommissionScopeType` | `M3_CONTRACT` \| `M3_SEASON` \| `M3_CONTRACT_PERIOD`      |
-| `scope_id`    | uuid                         |                                                            |
-| `percentage`  | decimal?                     |                                                            |
-| `fixed_amount`| int?                         | najmanja jedinica valute                                  |
-| `active_from` / `active_to` | date?          |                                                            |
+| Polje                       | Tip                           | Napomena                                             |
+| --------------------------- | ----------------------------- | ---------------------------------------------------- |
+| `scope_type`                | `SupplierCommissionScopeType` | `M3_CONTRACT` \| `M3_SEASON` \| `M3_CONTRACT_PERIOD` |
+| `scope_id`                  | uuid                          |                                                      |
+| `percentage`                | decimal?                      |                                                      |
+| `fixed_amount`              | int?                          | najmanja jedinica valute                             |
+| `active_from` / `active_to` | date?                         |                                                      |
 
 Uže pravilo nadjačava šire. **Zašto obrazac a ne polje:** vlasnik je na pitanje da li se provizija razlikuje i po tipu sobe odgovorio _„za sada samo po periodu, ali ko zna da li će nekada neki hotel i po tipu sobe to da primeni"_. Sa obrascem, taj dan je dodavanje jedne vrednosti u enum; sa poljem, bila bi prepravka svega što ga čita. Cena obrasca danas je nula.
 
@@ -804,13 +804,13 @@ Uže pravilo nadjačava šire. **Zašto obrazac a ne polje:** vlasnik je na pita
 
 **Vlasnikova odluka 9.9.2026.** Ovim se zatvara talas-2 stavka „Interakcija `commission_model` sa M5 `MarkupRule` — da li se markup računa na bruto ili neto cenu".
 
-| # | Korak                                            | Primer |
-| - | ------------------------------------------------ | ------ |
-| 1 | Ulazna hotelska cena                             | 55,00  |
-| 2 | **Popust / akcija** (rani buking, SPO…) −15 %    | 46,75  |
-| 3 | **Provizija koju hotel odobrava nama** −10 %     | 42,08  |
-| 4 | **Naša marža** +18 %                             | 49,65 ← prodajna cena |
-| 5 | **Provizija subagenta** 8 % od prodajne          | 3,97 (njegova zarada, ne dodatak na cenu) |
+| #   | Korak                                         | Primer                                    |
+| --- | --------------------------------------------- | ----------------------------------------- |
+| 1   | Ulazna hotelska cena                          | 55,00                                     |
+| 2   | **Popust / akcija** (rani buking, SPO…) −15 % | 46,75                                     |
+| 3   | **Provizija koju hotel odobrava nama** −10 %  | 42,08                                     |
+| 4   | **Naša marža** +18 %                          | 49,65 ← prodajna cena                     |
+| 5   | **Provizija subagenta** 8 % od prodajne       | 3,97 (njegova zarada, ne dodatak na cenu) |
 
 Redosled nije proizvoljan: hotelska provizija se skida sa **već umanjene** cene. Da se skida sa pune, agencija bi obračunala veći odbitak nego što joj hotel stvarno daje, i to bi se pojavilo kao razlika tek pri plaćanju dobavljaču.
 
@@ -1093,10 +1093,10 @@ Vlasnik: _„omogućio bih da AI agent ima sposobnost da mu kažemo šta treba d
 
 Ovo je **drugi ulaz u isti tok**, ne zamena za 4.2. Podela:
 
-| Situacija                              | Put                                                                 |
-| -------------------------------------- | ------------------------------------------------------------------- |
-| Dobavljač pošalje **ceo nov cenovnik** | 4.2 — AI čita dokument, poredi sa prethodnom verzijom (2.11l)      |
-| **Sitna izmena** javljena mejlom/telefonom | 4.8 — AI sluša rečenicu                                          |
+| Situacija                                  | Put                                                           |
+| ------------------------------------------ | ------------------------------------------------------------- |
+| Dobavljač pošalje **ceo nov cenovnik**     | 4.2 — AI čita dokument, poredi sa prethodnom verzijom (2.11l) |
+| **Sitna izmena** javljena mejlom/telefonom | 4.8 — AI sluša rečenicu                                       |
 
 Oba završavaju na istom mestu: **spisak razlika koji čovek odobrava red po red**.
 
@@ -1107,7 +1107,7 @@ Nivo: **`PROPOSE_THEN_APPROVE`** (M15 §4), nikad `AUTONOMOUS`. Nova akcija `pri
 1. Čovek ukuca rečenicu: _„cene za sezonu 4 i 5 idu gore 5%, rok za otkazivanje alotmana u sezoni 5 je sada 14 dana umesto 10, uvode doplatu za parking 5 € po sobi po noći koja se plaća na licu mesta, rani buking 2. krug se ukida."_
 2. Model prevodi rečenicu u **spisak predloženih izmena** kroz alat sa zadatom šemom — isti obrazac kao 4.2.6 i 4.4. Model ne piše u bazu; vraća strukturu.
 3. Deterministički kod razrešava na koje tačno zapise se izmena odnosi i **računa nove vrednosti** (procenat se primenjuje kodom, ne modelom — M15 princip: kod radi najviše posla).
-4. Ekran prikazuje razlike: *sada 62,00 → postaje 65,10*, nova stavka, ugašena stavka.
+4. Ekran prikazuje razlike: _sada 62,00 → postaje 65,10_, nova stavka, ugašena stavka.
 5. Čovek odobrava **red po red** (uz „prihvati sve" radi brzine).
 6. Primena pravi **novu verziju cenovnika** (2.11l) u jednoj transakciji.
 
