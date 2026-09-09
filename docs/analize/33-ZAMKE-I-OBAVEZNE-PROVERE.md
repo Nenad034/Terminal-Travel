@@ -47,6 +47,7 @@ Ako nijedan red ne odgovara poslu, pročitaj odeljak koji tematski najbliže sto
 | **Tražim uzrok poruke „servis nedostupan"**                                                     | 14.3, 14.1, 12.6                                                                        | se ne razdvoji „API je odbio" od „API nije odgovorio" — poruka opisuje poslednji sloj koji je otkazao, ne uzrok (14.3)                                            |
 | **Objavljujem proizvod u katalogu / tražim zašto ga nema u pretrazi**                           | 3.15, 7.2                                                                               | se ne prođe `publish-readiness` lista — lanac do pretrage ima pet karika i otkazuje bilo koja, a marža koja fali obara CELU pretragu, ne samo taj proizvod (3.15) |
 | **Proveravam rok/istek u bazi** (zaključan nalog, važenje tokena, istek ponude, podsetnik)      | 14.5                                                                                    | se ne pogledaju **sirove cifre** (`SELECT kolona::text` + `now()::text`) — `pg` drajver pomera svaki `timestamp` bez zone za pomak zone i izmisli kvar (14.5)     |
+| **Menjam uslov/dozvolu/validaciju neke radnje**                                                 | 7.7                                                                                     | se e2e ne pokrene nad ZASEBNOM bazom pre push-a — mokovani unit testovi pooštreno pravilo ne mogu da uhvate (7.7)                                                 |
 | **Proglašavam bilo šta gotovim**                                                                | 7.0, 7.1, 7.2, 7.3, 8.3, **11.3** (otvori stanje CI pokretanja posle push-a)            | rezultat provere nije **viđen** u zasebnom potezu pre commit-a — nikad `test && commit` u jednoj komandi (7.0)                                                    |
 | **Pokrećem `prettier --write` (prvi put ili posle izmene `.prettierrc`)**                       | 14.4                                                                                    | se ne uporedi broj ESLint GREŠAKA pre/posle — Prettier ume da pomeri kod ispod `eslint-disable-next-line` van dometa (14.4)                                       |
 | **Ispisujem datum sa nazivom meseca/dana**                                                      | 1.12                                                                                    | se koristi `toLocaleDateString('sr-RS', { month: 'long' })` — daje ćirilicu u latiničnom panelu; ide `punDatum()`/`mesecGodina()` iz `lib/datum-sr.ts` (1.12)     |
@@ -549,6 +550,25 @@ Brojevi 5.6, 5.7, 5.11–5.14, 9.4 i 12.2 i dalje postoje — nose **drugi** od 
 - _Provera:_ kad se doda nova stavka u `NAV_ITEMS`, u ISTOM prolazu proveriti da joj je `id` upisan u `itemIds` TAČNO JEDNE grupe u `NAV_GROUPS` — `grep -n "id: '<novi-id>'" apps/panel/src/lib/nav.ts` mora dati pogodak i u `NAV_ITEMS` i u `NAV_GROUPS`. Kad korisnik kaže "ne mogu da nađem X u aplikaciji" a direktan URL radi, ovo je prva stvar koju treba proveriti — pre pretpostavke da je ekran nedovršen ili da su dozvole pogrešne.
 
 ---
+
+**7.7 Unit testovi zeleni, e2e crveni — pooštreno pravilo se vidi tek nad pravom bazom**
+
+- _Simptom:_ 9.9.2026, `npm test` (1212 unit testova) prolazi lokalno, CI pada na 4 e2e testa u M2 i M12. Uzrok nije bio kvar u kodu nego **pooštreno poslovno pravilo**: objava proizvoda je počela da traži ceo lanac do pretrage (ugovor, period, cena, marža), a e2e testovi objavljuju proizvod koji ima samo prevode — jer to spec i traži (M2 §2.2). Unit testovi to nisu mogli da uhvate: njihov Prisma je mokovan, pa je „stanje baze" bilo ono koje test sam postavi.
+- _Uzrok:_ pravilo koje menja USLOV neke radnje ne dokazuje se nad mokovima nego nad stvarnim tokom. E2E paket postoji upravo za to (`npm run test:e2e`, 22 paketa, 253 testa), ali se lokalno ne pokreće sam — a razlog zašto se preskače je stvaran: gađa `DATABASE_URL` iz `apps/api/.env`, dakle **razvojnu bazu sa svim mock podacima**.
+- _Provera:_ pre push-a koji menja uslov, dozvolu ili validaciju neke radnje, pokrenuti e2e nad **zasebnom, potrošnom bazom**, ne nad razvojnom:
+
+  ```bash
+  docker exec terminaltravel-postgres-1 psql -U terminal -d postgres \
+    -c "DROP DATABASE IF EXISTS terminal_e2e;" -c "CREATE DATABASE terminal_e2e OWNER terminal;"
+  cd apps/api
+  export DATABASE_URL="postgresql://terminal:terminal_dev_only@localhost:5435/terminal_e2e?schema=public"
+  npx prisma migrate deploy
+  npx prisma db execute --file prisma/sql/audit_log_append_only.sql --schema prisma/schema.prisma
+  npx prisma db seed
+  npx jest --config ./test/jest-e2e.json --runInBand
+  ```
+
+  Tri koraka posle migracija nisu ukras — append-only trigger i seed su preduslovi, isti redosled koji CI koristi (`.github/workflows/ci.yml`). **`--runInBand` je obavezan lokalno:** bez njega paketi dele jednu bazu i na sporijoj mašini se međusobno obaraju (izmereno istog dana: 5 lažnih padova paralelno, 0 serijski). Baza `terminal_e2e` se posle sme obrisati — namerno je odvojena od razvojne.
 
 ## 8. Poverenje u tvrdnje o potpunosti (dokumenta, registri, sažeci)
 

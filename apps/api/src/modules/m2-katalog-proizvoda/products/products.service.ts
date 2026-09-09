@@ -303,11 +303,13 @@ export class ProductsService {
     productId: string;
     status: string;
     canPublish: boolean;
+    willAppearInSearch: boolean;
     checks: {
       key: string;
       label: string;
       ok: boolean;
       blocking: boolean;
+      impact: 'PUBLISH' | 'SEARCH' | 'QUALITY';
       detail: string | null;
     }[];
   }> {
@@ -369,12 +371,36 @@ export class ProductsService {
       (rt) => !roomTypeCodes.has(rt),
     );
 
-    const checks = [
+    // ISPRAVKA 9.9.2026, ISTOG DANA: prva verzija je sve karike lanca vodila kao prepreku za
+    // objavu, i time oborila e2e testove M2/M12 — s pravom. Objava znači „proizvod je vidljiv",
+    // ne „proizvod je prodajan": M2 §2.2 kao uslov objave navodi ISKLJUČIVO prevode, a
+    // `product.published` je ulaz i za M12 (marketinški nacrt), gde ugovor nema šta da traži.
+    //
+    // Zato tri stepena, ne dva:
+    //   PUBLISH — zaustavlja objavu;
+    //   SEARCH  — objava prolazi, ali se proizvod NEĆE pojaviti u pretrazi dok se ne reši;
+    //   QUALITY — pojaviće se, ali lošije nego što može.
+    //
+    // Marža je jedini slučaj koji prelazi iz SEARCH u PUBLISH, i to uslovno: dok proizvod nema
+    // ugovor/period/cenu, `buildContractedOffers` izlazi pre nego što uopšte pita za maržu, pa
+    // odsustvo pravila nikome ne smeta. Čim lanac postane potpun, ista ta praznina obara CELU
+    // pretragu za tu destinaciju (izmereno 9.9.2026, zamka 3.15) — tada i samo tada je prepreka.
+    const lanacKompletan = Boolean(product.sourceContractId) && periodiSaCenom.length > 0;
+
+    const checks: {
+      key: string;
+      label: string;
+      ok: boolean;
+      blocking: boolean;
+      impact: 'PUBLISH' | 'SEARCH' | 'QUALITY';
+      detail: string | null;
+    }[] = [
       {
         key: 'translations',
         label: 'Srpski i engleski prevod',
         ok: hasRequiredTranslationsForPublish(translations),
         blocking: true,
+        impact: 'PUBLISH',
         detail: hasRequiredTranslationsForPublish(translations)
           ? null
           : 'Nedostaje prevod — bez oba jezika objava se odbija (§2.2).',
@@ -383,16 +409,18 @@ export class ProductsService {
         key: 'contract',
         label: 'Vezan za ugovor',
         ok: Boolean(product.sourceContractId),
-        blocking: true,
+        blocking: false,
+        impact: 'SEARCH',
         detail: product.sourceContractId
           ? null
-          : 'Proizvod nije vezan ni za jedan ugovor — pretraga nema odakle da uzme cenu.',
+          : 'Proizvod nije vezan ni za jedan ugovor — pretraga nema odakle da uzme cenu, pa ga neće prikazati.',
       },
       {
         key: 'periods',
         label: 'Ugovor ima period',
         ok: periods.length > 0,
-        blocking: true,
+        blocking: false,
+        impact: 'SEARCH',
         detail:
           periods.length > 0
             ? `${periods.length} perioda`
@@ -402,17 +430,32 @@ export class ProductsService {
         key: 'rates',
         label: 'Period ima cenu',
         ok: periodiSaCenom.length > 0,
-        blocking: true,
+        blocking: false,
+        impact: 'SEARCH',
         detail:
           periodiSaCenom.length > 0
             ? `${periodiSaCenom.length} od ${periods.length} perioda ima cenovnu liniju`
             : 'Nijedan period nema cenovnu liniju — period bez cene ne proizvodi ponudu.',
       },
       {
+        key: 'markup',
+        label: 'Marža postavljena',
+        ok: markupCount > 0,
+        blocking: lanacKompletan,
+        impact: lanacKompletan ? 'PUBLISH' : 'SEARCH',
+        detail:
+          markupCount > 0
+            ? null
+            : lanacKompletan
+              ? 'Nema pravila marže ni na jednom nivou (proizvod → period → ugovor → dobavljač). Objava bi oborila CELU pretragu za tu destinaciju, ne samo ovaj proizvod (zamka 3.15).'
+              : 'Nema pravila marže — biće potrebno čim proizvod dobije ugovor i cenu.',
+      },
+      {
         key: 'roomTypes',
         label: 'Tipovi soba se poklapaju',
         ok: nepoznatiTipovi.length === 0,
         blocking: false,
+        impact: 'QUALITY',
         detail:
           nepoznatiTipovi.length === 0
             ? null
@@ -423,24 +466,11 @@ export class ProductsService {
         label: 'Koordinate popunjene',
         ok: product.geoLat !== null && product.geoLng !== null,
         blocking: false,
+        impact: 'QUALITY',
         detail:
           product.geoLat !== null && product.geoLng !== null
             ? null
             : 'Proizvod se neće pojaviti na mapi pretrage.',
-      },
-      {
-        key: 'markup',
-        label: 'Marža postavljena',
-        ok: markupCount > 0,
-        // PREPREKA, ne upozorenje. `MarkupRuleService.resolveForContracted` (M5 §2.2) BACA kad
-        // ne nađe pravilo ni na jednom od četiri nivoa, a `SearchService` taj izuzetak ne hvata
-        // — objavljen proizvod bez marže ne prodaje se po nabavnoj ceni nego obara CELU pretragu,
-        // i to i za sve ostale proizvode u istom upitu.
-        blocking: true,
-        detail:
-          markupCount > 0
-            ? null
-            : 'Nema pravila marže ni na jednom nivou (proizvod → period → ugovor → dobavljač). Bez njega pretraga puca, ne samo za ovaj proizvod.',
       },
     ];
 
@@ -448,6 +478,8 @@ export class ProductsService {
       productId: product.id,
       status: product.status,
       canPublish: checks.every((c) => c.ok || !c.blocking),
+      /** `true` kad je sve za pretragu na mestu — objava je moguća i bez toga. */
+      willAppearInSearch: checks.every((c) => c.ok || c.impact !== 'SEARCH') && markupCount > 0,
       checks,
     };
   }

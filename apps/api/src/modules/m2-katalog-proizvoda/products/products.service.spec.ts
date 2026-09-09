@@ -95,6 +95,7 @@ describe('ProductsService', () => {
       const rez = await service.publishReadiness('p1');
 
       expect(rez.canPublish).toBe(true);
+      expect(rez.willAppearInSearch).toBe(true);
       expect(rez.checks.filter((c) => !c.ok)).toEqual([]);
     });
 
@@ -110,10 +111,13 @@ describe('ProductsService', () => {
 
       const rez = await service.publishReadiness('p1');
 
-      expect(rez.canPublish).toBe(false);
+      // Objava znači „vidljiv", ne „prodajan" (M2 §2.2) — ugovor je uslov za PRETRAGU, ne za objavu.
+      expect(rez.canPublish).toBe(true);
+      expect(rez.willAppearInSearch).toBe(false);
       const ugovor = rez.checks.find((c) => c.key === 'contract')!;
       expect(ugovor.ok).toBe(false);
-      expect(ugovor.blocking).toBe(true);
+      expect(ugovor.blocking).toBe(false);
+      expect(ugovor.impact).toBe('SEARCH');
       // Bez ugovora nema ni perioda ni cena — sve tri karike padaju zajedno.
       expect(rez.checks.find((c) => c.key === 'periods')!.ok).toBe(false);
       expect(rez.checks.find((c) => c.key === 'rates')!.ok).toBe(false);
@@ -134,10 +138,11 @@ describe('ProductsService', () => {
 
       expect(rez.checks.find((c) => c.key === 'periods')!.ok).toBe(true);
       expect(rez.checks.find((c) => c.key === 'rates')!.ok).toBe(false);
-      expect(rez.canPublish).toBe(false);
+      expect(rez.canPublish).toBe(true);
+      expect(rez.willAppearInSearch).toBe(false);
     });
 
-    it('marža je PREPREKA — bez nje pretraga puca, ne prodaje po nabavnoj ceni', async () => {
+    it('marža je prepreka SAMO kad je lanac kompletan — tada bi objava oborila celu pretragu', async () => {
       const { service, prisma } = makeService();
       prisma.product.findUniqueOrThrow.mockResolvedValue(spremanProizvod());
       prisma.productTranslation.findMany.mockResolvedValue([
@@ -151,7 +156,29 @@ describe('ProductsService', () => {
       const marza = rez.checks.find((c) => c.key === 'markup')!;
       expect(marza.ok).toBe(false);
       expect(marza.blocking).toBe(true);
+      expect(marza.impact).toBe('PUBLISH');
       expect(rez.canPublish).toBe(false);
+    });
+
+    it('bez ugovora marža NIJE prepreka — pretraga do nje uopšte ne stigne', async () => {
+      const { service, prisma } = makeService();
+      prisma.product.findUniqueOrThrow.mockResolvedValue(
+        spremanProizvod({ sourceContractId: null }),
+      );
+      prisma.productTranslation.findMany.mockResolvedValue([
+        { languageCode: 'sr' },
+        { languageCode: 'en' },
+      ]);
+      prisma.markupRule.count.mockResolvedValue(0);
+
+      const rez = await service.publishReadiness('p1');
+
+      const marza = rez.checks.find((c) => c.key === 'markup')!;
+      expect(marza.blocking).toBe(false);
+      expect(marza.impact).toBe('SEARCH');
+      // Objava prolazi — proizvod je vidljiv, samo se u pretrazi još ne pojavljuje.
+      expect(rez.canPublish).toBe(true);
+      expect(rez.willAppearInSearch).toBe(false);
     });
 
     it('marža se traži po CELOM lancu iz M5 §2.2, ne samo na proizvodu', async () => {

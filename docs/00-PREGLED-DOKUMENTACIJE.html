@@ -2006,7 +2006,7 @@ Pošto M17 raste sa fazama, izlazni kriterijum je vezan za svaku fazu, ne za jed
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M2) i poglavlje 8 (Faza 1)
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje
-**Verzija:** 1.26 — **objava i vezivanje za ugovor dobijaju ekran; nova provera spremnosti** (9.9.2026, posle vlasnikovog zahteva da se pređe ceo redosled od unosa stavke kataloga do izbora u pretrazi). Nađena su **dva prekida lanca**, oba na strani ekrana a ne logike: proizvod se u panelu nije mogao **vezati za ugovor** (`PATCH` telo to polje nije imalo), niti **objaviti** (`publish` endpoint postoji od v1.8, ali ga nijedan ekran nije pozivao — proizvod unet kroz panel ostajao je `DRAFT` zauvek, a pretraga uzima samo `ACTIVE`). Mera: jedina mesta koja su postavljala `source_contract_id` bile su **seed skripte**. Novo poglavlje **5.2** i nov `GET /products/:id/publish-readiness` — prebrojana lista šta nedostaje, sa razdvojenim **preprekama** (prevodi, ugovor, period, cena) i **upozorenjima** (tipovi soba, koordinate, marža); prepreka zaustavlja objavu, upozorenje ne. `publish()` iste provere sprovodi i sam i nabraja **sve** prepreke odjednom, ne prvu na koju naiđe. `PATCH /products/:id` dobija `source_contract_id`, uz ogradu da ugovor mora postojati i da se veza menja samo na `CONTRACTED` proizvodu.
+**Verzija:** 1.26 — **objava i vezivanje za ugovor dobijaju ekran; nova provera spremnosti** (9.9.2026, posle vlasnikovog zahteva da se pređe ceo redosled od unosa stavke kataloga do izbora u pretrazi). Nađena su **dva prekida lanca**, oba na strani ekrana a ne logike: proizvod se u panelu nije mogao **vezati za ugovor** (`PATCH` telo to polje nije imalo), niti **objaviti** (`publish` endpoint postoji od v1.8, ali ga nijedan ekran nije pozivao — proizvod unet kroz panel ostajao je `DRAFT` zauvek, a pretraga uzima samo `ACTIVE`). Mera: jedina mesta koja su postavljala `source_contract_id` bile su **seed skripte**. Novo poglavlje **5.2** i nov `GET /products/:id/publish-readiness` — prebrojana lista šta nedostaje, u **tri stepena**: `PUBLISH` (zaustavlja objavu — samo prevodi), `SEARCH` (objava prolazi, ali proizvoda nema u pretrazi — ugovor, period, cena) i `QUALITY` (tipovi soba, koordinate). Marža je uslovna: `SEARCH` dok je lanac nepotpun, `PUBLISH` čim proizvod ima ugovor i cenu, jer bi tada njeno odsustvo oborilo celu pretragu (zamka 3.15). **Prva verzija je sve karike vodila kao prepreku i oborila e2e testove M2/M12 — ispravljeno istog dana, greška zabeležena u 5.2 a ne prećutana.** `publish()` iste provere sprovodi i sam i nabraja **sve** prepreke odjednom, ne prvu na koju naiđe. `PATCH /products/:id` dobija `source_contract_id`, uz ogradu da ugovor mora postojati i da se veza menja samo na `CONTRACTED` proizvodu.
 
 **Verzija:** 1.25 — **interna lista proizvoda vraća i naziv dobavljača** (9.9.2026, uz filter po dobavljaču na ekranu Katalog, M17 §6a). `GET /catalog/products` (interni kanal) dobija polje `supplierName`. Dobavljač stoji na **dva** mesta i to nije propust: ugovoreni proizvod ga ima posredno kroz ugovor (M3), a ručno uneta usluga direktno (`Product.supplier_id`, §2.1 dopuna 3.9.2026) — odgovor razrešava jedno ili drugo, pa ekran ne mora da zna razliku. Vraća se **ime**, ne ugnježdeni objekat: `include` je sredstvo, ne oblik odgovora. Javni kanali (§5.1) se ne menjaju.
 
@@ -2429,17 +2429,26 @@ Mera koliko je to bilo neupotrebljivo: **jedina** mesta u repozitorijumu koja su
 
 **Zato objava ne sme da bude golo dugme.** Uslovi da se proizvod pojavi u pretrazi su lanac od pet karika (M5 §3.0b), a otkazuje bilo koja; poruka „nešto nedostaje" tu ne pomaže. `GET /products/:id/publish-readiness` vraća **prebrojanu listu**, sa razdvojenim preprekama i upozorenjima:
 
-| Provera                                         | Vrsta      | Zašto                                                                               |
-| :---------------------------------------------- | :--------- | :---------------------------------------------------------------------------------- |
-| srpski i engleski prevod                        | prepreka   | već sprovedeno u `publish()` od v1.8 (poglavlje 2.2)                                |
-| proizvod vezan za ugovor (`source_contract_id`) | prepreka   | bez njega pretraga nema odakle da uzme cenu                                         |
-| ugovor ima bar jedan period                     | prepreka   | period nosi datume boravka, tip sobe i kapacitet (M3 §2.3)                          |
-| bar jedan period ima cenovnu liniju             | prepreka   | period bez cene ne proizvodi ponudu                                                 |
-| tipovi soba iz perioda postoje u `room_types[]` | upozorenje | pretraga radi i bez toga, ali po rezervnom kapacitetu i bez naziva sobe u rezultatu |
-| koordinate popunjene                            | upozorenje | proizvod se ne vidi na mapi pretrage (M5 §3.0h.8)                                   |
-| marža postavljena                               | upozorenje | bez pravila marža je 0% — prodaje se po nabavnoj ceni (M5 §2.1)                     |
+| Provera                                                                      | Stepen      | Zašto                                                                                        |
+| :--------------------------------------------------------------------------- | :---------- | :------------------------------------------------------------------------------------------- |
+| srpski i engleski prevod                                                     | PUBLISH     | jedini uslov objave koji spec navodi od v1.8 (poglavlje 2.2)                                 |
+| proizvod vezan za ugovor (`source_contract_id`)                              | SEARCH      | bez njega pretraga nema odakle da uzme cenu                                                  |
+| ugovor ima bar jedan period                                                  | SEARCH      | period nosi datume boravka, tip sobe i kapacitet (M3 §2.3)                                   |
+| bar jedan period ima cenovnu liniju                                          | SEARCH      | period bez cene ne proizvodi ponudu                                                          |
+| marža postavljena                                                            | **uslovno** | SEARCH dok lanac nije potpun; **PUBLISH** čim proizvod ima ugovor i cenu — vidi ogradu ispod |
+| tipovi soba iz perioda postoje u `room_types[]`                              | QUALITY     | pretraga radi, ali po rezervnom kapacitetu i bez naziva sobe u rezultatu                     |
+| koordinate popunjene                                                         | QUALITY     | proizvod se ne vidi na mapi pretrage (M5 §3.0h.8)                                            |
+| **Tri stepena, ne dva** (ispravljeno 9.9.2026, istog dana kad je i uvedeno): |
 
-**Prepreka zaustavlja objavu, upozorenje ne.** Razlika je namerna: „nema cene" znači da proizvod ne može da se proda, a „nema koordinata" znači da se neće videti na mapi — spajanje to dvoje u jednu poruku navodi čoveka da odustane od objave zbog sitnice, ili da preskoči ono što je stvarno bitno.
+- **PUBLISH** — zaustavlja objavu;
+- **SEARCH** — objava prolazi, ali se proizvod **neće pojaviti u pretrazi** dok se ne reši;
+- **QUALITY** — pojaviće se, ali lošije nego što može.
+
+**Prva verzija ovog poglavlja je sve karike lanca vodila kao prepreku za objavu, i to je bilo pogrešno** — oborila je e2e testove M2 i M12, s pravom. Objava znači „proizvod je vidljiv", ne „proizvod je prodajan": poglavlje 2.2 kao uslov objave navodi isključivo prevode, a `product.published` je ulaz i za M12 (marketinški nacrt), gde ugovor nema šta da traži. Greška je zabeležena ovde, a ne prećutana, jer je ista zamena pojmova („vidljiv" naspram „prodajan") lako ponovljiva.
+
+**Marža je jedini uslovan slučaj, i to je namerno.** Dok proizvod nema ugovor, period i cenu, `buildContractedOffers` izlazi pre nego što uopšte pita za maržu — odsustvo pravila tada nikome ne smeta. Čim lanac postane potpun, ista praznina **obara celu pretragu** za tu destinaciju, ne samo taj proizvod (izmereno 9.9.2026; zamka 3.15). Tada, i samo tada, marža postaje prepreka za objavu.
+
+Odgovor pored liste nosi i dva zbirna podatka: `can_publish` (nema nijedne PUBLISH prepreke) i `will_appear_in_search` (ceo lanac do pretrage je na mestu). Ta dva se **ne smeju spojiti** — „ne može da se objavi" i „objavljen je ali ga pretraga ne prikazuje" su različita stanja sa različitim nastavkom rada.
 
 **`publish()` ponavlja iste provere na svojoj strani** i, kad padne, nabraja **sve** prepreke odjednom, ne prvu na koju naiđe. Ekran koji prikazuje listu je pogodnost; endpoint koji je sprovodi je pravilo, i mora da važi i za poziv koji ne dolazi sa tog ekrana.
 

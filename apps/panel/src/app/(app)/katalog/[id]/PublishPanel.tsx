@@ -11,8 +11,11 @@ import { linkContract, publishProduct, type ProductFormState } from '../actions'
 // objaviti; ostajao je DRAFT, a pretraga uzima samo ACTIVE.
 //
 // Zašto lista provera, a ne golo dugme: uslovi da se proizvod pojavi u pretrazi su lanac od pet
-// karika i otkazuje bilo koja. Poruka „nešto nedostaje" tu ne pomaže — stoji stavka po stavka,
-// sa razdvojenim preprekama (zaustavljaju objavu) i upozorenjima (ne zaustavljaju).
+// karika i otkazuje bilo koja. Poruka „nešto nedostaje" tu ne pomaže — stoji stavka po stavka.
+//
+// TRI stepena, ne dva (M2 §5.2, ispravljeno 9.9.2026): objava znači „proizvod je vidljiv", ne
+// „proizvod je prodajan". Zato ugovor i cena NE zaustavljaju objavu — oni odlučuju da li će se
+// proizvod pojaviti u PRETRAZI, što je zasebno pitanje i ovde se zasebno i prikazuje.
 
 const pocetno: ProductFormState = { error: null, ok: null };
 
@@ -21,6 +24,9 @@ export interface ReadinessCheck {
   label: string;
   ok: boolean;
   blocking: boolean;
+  /** PUBLISH = zaustavlja objavu; SEARCH = objava prolazi ali proizvoda nema u pretrazi;
+   *  QUALITY = pojaviće se, ali lošije nego što može (M2 §5.2). */
+  impact: 'PUBLISH' | 'SEARCH' | 'QUALITY';
   detail: string | null;
 }
 
@@ -28,6 +34,7 @@ export interface Readiness {
   productId: string;
   status: string;
   canPublish: boolean;
+  willAppearInSearch: boolean;
   checks: ReadinessCheck[];
 }
 
@@ -147,12 +154,12 @@ function VezaSaUgovorom({
 
 function Provere({ readiness }: { readiness: Readiness }) {
   const prepreke = readiness.checks.filter((c) => c.blocking && !c.ok);
-  const upozorenja = readiness.checks.filter((c) => !c.blocking && !c.ok);
+  const kvalitet = readiness.checks.filter((c) => !c.ok && c.impact === 'QUALITY');
 
   return (
     <div className="mt-3">
       <div className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-ink-faint">
-        Da bi se proizvod pojavio u pretrazi
+        Stanje proizvoda
       </div>
       <ul className="flex flex-col gap-1">
         {readiness.checks.map((c) => (
@@ -166,21 +173,47 @@ function Provere({ readiness }: { readiness: Readiness }) {
             </span>
             <span className="min-w-0">
               <span className={c.ok ? 'text-ink-dim' : 'text-ink'}>{c.label}</span>
-              {!c.ok && !c.blocking && <span className="text-ink-faint"> (ne blokira objavu)</span>}
+              {!c.ok && <span className="text-ink-faint"> — {OZNAKA[c.impact]}</span>}
               {c.detail && <span className="block text-ink-faint">{c.detail}</span>}
             </span>
           </li>
         ))}
       </ul>
-      {prepreke.length === 0 && upozorenja.length > 0 && (
+
+      {/* Dve rečenice koje se ne smeju spojiti: „ne može da se objavi" i „objavljen je ali ga
+          pretraga ne prikazuje" su različita stanja sa različitim nastavkom rada. */}
+      {prepreke.length > 0 && (
+        <p className="mt-2 rounded bg-danger-bg p-2 text-[11px] text-danger">
+          Objava nije moguća dok se ne reši {prepreke.length === 1 ? 'stavka' : 'stavke'} označena
+          crvenom.
+        </p>
+      )}
+      {prepreke.length === 0 && !readiness.willAppearInSearch && (
         <p className="mt-2 rounded bg-warn-bg p-2 text-[11px] text-warn">
-          Objava je moguća, ali {upozorenja.length === 1 ? 'jedna stvar' : 'neke stvari'} neće
-          raditi najbolje — vidi upozorenja iznad.
+          Proizvod može da se objavi, ali se <strong>neće pojaviti u pretrazi</strong> dok ne dobije
+          ugovor, cenu i maržu.
+        </p>
+      )}
+      {prepreke.length === 0 && readiness.willAppearInSearch && kvalitet.length > 0 && (
+        <p className="mt-2 rounded bg-warn-bg p-2 text-[11px] text-warn">
+          Pojaviće se u pretrazi, ali {kvalitet.length === 1 ? 'jedna stvar' : 'neke stvari'} neće
+          raditi najbolje — vidi žute stavke.
+        </p>
+      )}
+      {prepreke.length === 0 && readiness.willAppearInSearch && kvalitet.length === 0 && (
+        <p className="mt-2 rounded bg-ok-bg p-2 text-[11px] text-ok">
+          Sve je na mestu — proizvod se prikazuje u pretrazi sa cenom.
         </p>
       )}
     </div>
   );
 }
+
+const OZNAKA: Record<ReadinessCheck['impact'], string> = {
+  PUBLISH: 'zaustavlja objavu',
+  SEARCH: 'proizvod se neće pojaviti u pretrazi',
+  QUALITY: 'ne blokira ništa, ali radi lošije',
+};
 
 function Objava({
   productId,
@@ -219,11 +252,6 @@ function Objava({
         Interni tim vidi svaki objavljen proizvod u pretrazi panela bez obzira na ovaj izbor; ova
         polja kontrolišu samo sajt, B2B portal i mobilnu aplikaciju.
       </p>
-      {!canPublish && status !== 'ACTIVE' && (
-        <p className="rounded bg-danger-bg p-2 text-[11px] text-danger">
-          Objava nije moguća dok se ne reše prepreke iznad.
-        </p>
-      )}
       <Posalji
         label={status === 'ACTIVE' ? 'Sačuvaj kanale' : 'Objavi proizvod'}
         disabled={status !== 'ACTIVE' && !canPublish}
