@@ -91,6 +91,8 @@ Uz to je istog dana ispravljena greška koju je lako prevideti: prodavac je gled
 
 **Marža na jednu jedinu sobu (dodato 9.9.2026).** Vi ste tražili da svaka stavka cenovnika može da se maržira posebno — u procentu, u iznosu, ili oba zajedno. To je napravljeno ranije istog dana, ali samo do pola: iznos se **upisivao** i lepo se video na ekranu, a **na cenu nije uticao**. Sad utiče. Izmereno na pravom primeru: soba nabavljena za 100,00 sa ugovornom maržom od 20% daje 120,00; ista takva soba kojoj ste upisali izuzetak „12% i još 5,00" daje 117,00. Isto važi i za doplatu — ako joj date sopstvenu maržu, ona pobeđuje; ako joj ne date ništa, ide sa maržom sobe uz koju stoji.
 
+**Provizija subagentu, isto po stavci (dodato 9.9.2026).** Do sada je subagent dobijao jedan isti procenat na **sve** iz jedne ponude. To je značilo da mu je provizija išla i na boravišnu taksu — na kojoj mi ne zarađujemo ništa, pa nemamo ni šta da delimo. Sada svaka stavka može da nosi svoje: procenat, iznos, ili oznaku **„bez provizije"**. Ta oznaka namerno nije isto što i „0%": nula izgleda kao polje koje je neko zaboravio da popuni, a „bez provizije" je odluka koja se tako i vidi. Izmereno na pravoj ponudi: soba od 100,00 subagentu se zaračunava 90,00 (njegovih 10%), a taksa od 100,00 ostaje 100,00.
+
 ---
 
 ## Akcije: „rana rezervacija" i „plati 6, ostani 7"

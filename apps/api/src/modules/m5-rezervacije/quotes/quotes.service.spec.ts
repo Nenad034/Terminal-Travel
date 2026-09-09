@@ -6,13 +6,14 @@ describe('QuotesService', () => {
   function makeService() {
     const prisma: any = {
       quote: { create: jest.fn(), findUnique: jest.fn() },
+      subagentCommissionOverride: { findMany: jest.fn().mockResolvedValue([]) },
       user: { findUnique: jest.fn().mockResolvedValue(null) },
     };
     const builder = { build: jest.fn() };
     const loyalty = { getDiscountPercentage: jest.fn().mockResolvedValue(0) };
     const subagentBridge = {
       resolveClientAccountIdForSubagentContact: jest.fn().mockResolvedValue(null),
-      getEffectiveCommissionPercentageForClientAccount: jest.fn().mockResolvedValue(null),
+      getSubagentCommissionContext: jest.fn().mockResolvedValue(null),
     };
     const auditLog = { write: jest.fn() };
     const service = new QuotesService(
@@ -92,6 +93,140 @@ describe('QuotesService', () => {
           data: expect.objectContaining({ clientAccountId: 'acc-bilo-koji' }),
         }),
       );
+    });
+  });
+
+  // M3 §2.11i (9.9.2026) — provizija subagenta po stavci. Do ove dopune je postojao jedan
+  // procenat nad celom ponudom, a `SubagentCommissionOverride` je imao 18 testova i nula
+  // pozivalaca (zamka 7.12).
+  describe('create — provizija subagenta po stavci (M3 §2.11i)', () => {
+    function stavka(over: Record<string, unknown> = {}) {
+      return {
+        productId: 'p1',
+        type: 'ACCOMMODATION',
+        sourceType: 'CONTRACTED',
+        stayFrom: new Date('2027-06-10'),
+        stayTo: new Date('2027-06-11'),
+        occupancy: {},
+        baseCost: 10000,
+        baseCostCurrency: 'EUR',
+        rateLineId: 'rl1',
+        contractId: 'c1',
+        seasonId: 's1',
+        contractPeriodId: 'cp1',
+        markupRuleId: 'mr1',
+        finalPrice: 10000,
+        finalPriceCurrency: 'EUR',
+        providerQuoteReference: null,
+        unitCount: 1,
+        cancellationPolicySnapshot: null,
+        quoteExpiresAt: null,
+        ...over,
+      };
+    }
+
+    it('bez izuzetka se primenjuje podrazumevana stopa subagenta', async () => {
+      const { service, prisma, builder, subagentBridge } = makeService();
+      subagentBridge.getSubagentCommissionContext.mockResolvedValue({
+        subagentId: 'sub-1',
+        percentage: 10,
+      });
+      builder.build.mockResolvedValue(stavka());
+      prisma.quote.create.mockResolvedValue({ id: 'q1' });
+
+      await service.create(
+        { channel: 'B2B_PORTAL', clientAccountId: 'acc-sub', items: [{}] } as any,
+        { userId: 'staff-1' },
+      );
+
+      const stavke = prisma.quote.create.mock.calls[0][0].data.items.create;
+      expect(stavke[0].finalPrice).toBe(9000); // 100,00 − 10 %
+    });
+
+    it('„bez provizije" na stavci znači PUNA cena za subagenta, ne 0 % tiho', async () => {
+      const { service, prisma, builder, subagentBridge } = makeService();
+      subagentBridge.getSubagentCommissionContext.mockResolvedValue({
+        subagentId: 'sub-1',
+        percentage: 10,
+      });
+      prisma.subagentCommissionOverride.findMany.mockResolvedValue([
+        {
+          subagentId: null,
+          scopeType: 'M3_RATE_LINE',
+          scopeId: 'rl1',
+          noCommission: true,
+          percentage: null,
+          fixedAmount: null,
+          activeFrom: null,
+          activeTo: null,
+        },
+      ]);
+      builder.build.mockResolvedValue(stavka());
+      prisma.quote.create.mockResolvedValue({ id: 'q1' });
+
+      await service.create(
+        { channel: 'B2B_PORTAL', clientAccountId: 'acc-sub', items: [{}] } as any,
+        { userId: 'staff-1' },
+      );
+
+      const stavke = prisma.quote.create.mock.calls[0][0].data.items.create;
+      expect(stavke[0].finalPrice).toBe(10000); // boravišna taksa — nema šta da se deli
+    });
+
+    it('izuzetak vezan za KONKRETNOG subagenta pobeđuje opšte pravilo istog dometa', async () => {
+      const { service, prisma, builder, subagentBridge } = makeService();
+      subagentBridge.getSubagentCommissionContext.mockResolvedValue({
+        subagentId: 'sub-1',
+        percentage: 10,
+      });
+      prisma.subagentCommissionOverride.findMany.mockResolvedValue([
+        {
+          subagentId: null,
+          scopeType: 'M3_CONTRACT',
+          scopeId: 'c1',
+          noCommission: false,
+          percentage: 5,
+          fixedAmount: null,
+          activeFrom: null,
+          activeTo: null,
+        },
+        {
+          subagentId: 'sub-1',
+          scopeType: 'M3_CONTRACT',
+          scopeId: 'c1',
+          noCommission: false,
+          percentage: 15,
+          fixedAmount: null,
+          activeFrom: null,
+          activeTo: null,
+        },
+      ]);
+      builder.build.mockResolvedValue(stavka());
+      prisma.quote.create.mockResolvedValue({ id: 'q1' });
+
+      await service.create(
+        { channel: 'B2B_PORTAL', clientAccountId: 'acc-sub', items: [{}] } as any,
+        { userId: 'staff-1' },
+      );
+
+      const stavke = prisma.quote.create.mock.calls[0][0].data.items.create;
+      expect(stavke[0].finalPrice).toBe(8500); // 15 %, ne 5 % i ne 10 %
+    });
+
+    it('kupac koji NIJE subagent i dalje dobija M6 loyalty popust, ne proviziju', async () => {
+      const { service, prisma, builder, loyalty } = makeService();
+      loyalty.getDiscountPercentage.mockResolvedValue(5);
+      builder.build.mockResolvedValue(stavka());
+      prisma.quote.create.mockResolvedValue({ id: 'q1' });
+
+      await service.create(
+        { channel: 'B2C_SITE', clientAccountId: 'acc-gost', items: [{}] } as any,
+        { userId: 'staff-1' },
+      );
+
+      const stavke = prisma.quote.create.mock.calls[0][0].data.items.create;
+      expect(stavke[0].finalPrice).toBe(9500);
+      expect(prisma.subagentCommissionOverride.findMany).not.toHaveBeenCalled();
     });
   });
 

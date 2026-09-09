@@ -313,7 +313,7 @@ _(§11, `docs/moduli/M06-crm/09-SPECIFIKACIJA-M6-CRM.md`)_
 _(§13, `docs/moduli/M07-b2b-subagenti/12-SPECIFIKACIJA-M7-B2B-SUBAGENTI.md`)_
 
 - **Ugovor za subagenta u dve varijante** (9.9.2026, uz M3 v1.27) — sa prikazanom provizijom (za subagenta) i bez nje (za njegovog kupca). Vlasnik potvrdio: razlika je **samo u izostavljenoj proviziji**, dakle jedan šablon sa dva ispisa.
-- **Da li subagent vidi da na nekoj stavci provizije nema** (9.9.2026, M3 §2.11i) — `SubagentCommissionOverride` dozvoljava „bez provizije" po stavci; otvoreno da li se to njemu prikazuje ili vidi samo krajnji iznos.
+- **Da li subagent vidi da na nekoj stavci provizije nema** (9.9.2026, M3 §2.11i) — **obračun je od 9.9.2026. povezan** (M5 `QuotesService.create` primenjuje izuzetak po stavci, M3 v1.31 / M5 v2.33), pa subagent dobija tačan iznos; ostaje otvoreno **prikazivanje obrazloženja** — `Provizija.izvor` (koji domet je odlučio) postoji u obračunu, ali se nigde ne prikazuje, pa subagent vidi samo krajnji iznos. Čeka portal frontend.
 - Da li agencija treba mogućnost direktne intervencije u proviziji sub-subagenta u sporovima.
 - Prilagođavanja M10 za automatsko fakturisanje provizije nazad ka subagentima.
 - Konkretan LLM/tehnički mehanizam AI razgovora sa subagentom (UI/prompt dizajn).

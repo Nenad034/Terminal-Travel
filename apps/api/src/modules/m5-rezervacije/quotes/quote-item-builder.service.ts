@@ -39,6 +39,13 @@ export interface BuiltQuoteItemData {
   baseCost: number;
   baseCostCurrency: string;
   rateLineId: string | null;
+  /**
+   * M3 §2.11i — domet ugovorne stavke, potreban da se izuzetak subagentske provizije nađe bez
+   * ponovnog čitanja cenovnika iz baze. `null` za API stavku, koja nema ugovorni cenovnik.
+   */
+  contractId: string | null;
+  seasonId: string | null;
+  contractPeriodId: string | null;
   markupRuleId: string;
   finalPrice: number;
   finalPriceCurrency: string;
@@ -382,6 +389,9 @@ export class QuoteItemBuilderService {
       baseCost,
       baseCostCurrency: product.sourceContract.currency,
       rateLineId: rateLine.id,
+      contractId: product.sourceContractId,
+      seasonId: rateLine.contractPeriod.seasonId ?? null,
+      contractPeriodId: rateLine.contractPeriodId,
       markupRuleId: markupRule.id,
       finalPrice,
       finalPriceCurrency: product.sourceContract.currency,
@@ -452,6 +462,9 @@ export class QuoteItemBuilderService {
       baseCost: quote.priceAmount,
       baseCostCurrency: quote.currency,
       rateLineId: null,
+      contractId: null,
+      seasonId: null,
+      contractPeriodId: null,
       markupRuleId: markupRule.id,
       finalPrice,
       finalPriceCurrency: quote.currency,

@@ -23,15 +23,25 @@ export class SubagentBridgeService {
     return subagent?.clientAccountId ?? null;
   }
 
-  // M7 spec §5 — vraća effective_commission_percentage AKO postoji Subagent zapis za taj
-  // client_account_id, inače null (M5 tada pada na M6 loyalty-status, §5 — "ne po
-  // account_type, po POSTOJANJU Subagent zapisa").
-  async getEffectiveCommissionPercentageForClientAccount(
+  /**
+   * M7 spec §5 — vraća `effective_commission_percentage` AKO postoji Subagent zapis za taj
+   * `client_account_id`, inače `null` (M5 tada pada na M6 loyalty-status, §5 — „ne po
+   * `account_type`, po POSTOJANJU Subagent zapisa").
+   *
+   * Vraća i **id subagenta** (dopuna 9.9.2026, M3 §2.11i): izuzetak provizije sme da bude vezan
+   * za konkretnog subagenta (`SubagentCommissionOverride.subagent_id`), ne samo za sve njih, pa
+   * sam procenat više nije dovoljan. Raniji oblik koji je vraćao samo procenat je uklonjen —
+   * ostao bi bez ijednog pozivaoca.
+   */
+  async getSubagentCommissionContext(
     clientAccountId: string,
-  ): Promise<number | null> {
+  ): Promise<{ subagentId: string; percentage: number | null } | null> {
     const subagent = await this.subagents.findByClientAccountId(clientAccountId);
     if (!subagent) return null;
-    return this.volumeStatus.getEffectiveCommissionPercentage(subagent.id);
+    return {
+      subagentId: subagent.id,
+      percentage: await this.volumeStatus.getEffectiveCommissionPercentage(subagent.id),
+    };
   }
 
   // M7 spec §4 — "current_outstanding_balance + Quote.total_price <= Subagent.credit_limit",

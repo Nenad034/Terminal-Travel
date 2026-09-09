@@ -36,6 +36,8 @@ describe('M3 §2.11e/§2.11i/§2.11k — domet cenovnika u prodaji (e2e)', () =>
   const createdUserIds: string[] = [];
   const createdClientAccountIds: string[] = [];
   const createdMarkupRuleIds: string[] = [];
+  const createdSubagentIds: string[] = [];
+  const createdOverrideIds: string[] = [];
   const createdQuoteIds: string[] = [];
 
   beforeAll(async () => {
@@ -62,6 +64,12 @@ describe('M3 §2.11e/§2.11i/§2.11k — domet cenovnika u prodaji (e2e)', () =>
       await prisma.quote.deleteMany({ where: { id } });
     }
     await prisma.markupRule.deleteMany({ where: { id: { in: createdMarkupRuleIds } } });
+    // Briše se SAMO ono što je ovaj test napravio — `subagentId: null` znači „važi za sve
+    // subagente", pa bi brisanje po tom uslovu odnelo i tuđa pravila.
+    await prisma.subagentCommissionOverride.deleteMany({
+      where: { id: { in: createdOverrideIds } },
+    });
+    await prisma.subagent.deleteMany({ where: { id: { in: createdSubagentIds } } });
     for (const supplierId of createdSupplierIds) {
       const contracts = await prisma.contract.findMany({ where: { supplierId } });
       const ids = contracts.map((c) => c.id);
@@ -508,5 +516,168 @@ describe('M3 §2.11e/§2.11i/§2.11k — domet cenovnika u prodaji (e2e)', () =>
     expect(odbijena.status).toBe(400);
     expect(odbijena.body.reason).toBe('BOOKING_WINDOW_CLOSED');
     expect(user.id).toBeDefined();
+  });
+
+  /**
+   * M3 §2.11i — subagentska provizija PO STAVCI, uključujući „bez provizije".
+   *
+   * Do 9.9.2026. je M5 primenjivao **jedan** procenat nad celom ponudom, a
+   * `SubagentCommissionOverride` je imao 18 jediničnih testova i **nijednog pozivaoca**. Ovaj
+   * test meri obe stavke iste ponude kroz `POST /sales/quotes`: sobu, na kojoj provizija ide, i
+   * stavku označenu „bez provizije", na kojoj ne ide.
+   */
+  it('subagent dobija proviziju po stavci; stavka „bez provizije" mu se naplaćuje u punom iznosu', async () => {
+    const { accessToken } = await createUser();
+
+    const supplier = await prisma.supplier.create({
+      data: {
+        name: `M5 Provizija Dobavljač ${uid}`,
+        type: 'HOTEL',
+        taxId: `TAX-M5PRV-${uid}`,
+        registrationNumber: `REG-M5PRV-${uid}`,
+        country: 'RS',
+        contactName: 'Kontakt',
+        contactEmail: `prov-${uid}@tt-test.rs`,
+        contactPhone: '+381600000002',
+      },
+    });
+    createdSupplierIds.push(supplier.id);
+
+    const contract = await prisma.contract.create({
+      data: {
+        supplierId: supplier.id,
+        contractNumber: `C-M5PRV-${uid}`,
+        currency: 'EUR',
+        validFrom: new Date('2027-01-01'),
+        validTo: new Date('2027-12-31'),
+        cancellationTermsSummary: 'e2e',
+        documentUrl: 'mock://doc.pdf',
+        status: 'ACTIVE',
+        defaultTipNastupanja: 'ORGANIZATOR',
+      },
+    });
+
+    const period = await prisma.contractPeriod.create({
+      data: {
+        contractId: contract.id,
+        stayFrom: new Date('2027-06-01'),
+        stayTo: new Date('2027-06-30'),
+        roomType: `PRV_${uid}`,
+        allotmentMode: 'ON_REQUEST',
+      },
+    });
+
+    const [soba, taksa] = await Promise.all([
+      prisma.rateLine.create({
+        data: {
+          contractPeriodId: period.id,
+          boardType: 'BB',
+          occupancy: '2ADT',
+          priceBasis: 'PER_ROOM_PER_NIGHT',
+          price: 10000,
+        },
+      }),
+      prisma.rateLine.create({
+        data: {
+          contractPeriodId: period.id,
+          boardType: 'RO',
+          occupancy: '2ADT',
+          priceBasis: 'PER_ROOM_PER_NIGHT',
+          price: 10000,
+        },
+      }),
+    ]);
+
+    const marza = await prisma.markupRule.create({
+      data: { scopeType: 'M3_CONTRACT', scopeId: contract.id, percentage: 0 },
+    });
+    createdMarkupRuleIds.push(marza.id);
+
+    // „Bez provizije" je namerno različito od 0 % — izričita odluka, ne prazno polje.
+    const bezProvizije = await prisma.subagentCommissionOverride.create({
+      data: { scopeType: 'M3_RATE_LINE', scopeId: taksa.id, noCommission: true },
+    });
+    createdOverrideIds.push(bezProvizije.id);
+
+    const product = await prisma.product.create({
+      data: {
+        type: 'ACCOMMODATION',
+        sourceType: 'CONTRACTED',
+        sourceContractId: contract.id,
+        destinationCountry: 'ME',
+        destinationCity: 'Budva',
+        status: 'ACTIVE',
+        attributes: {},
+        translations: {
+          create: [
+            { languageCode: 'sr', name: 'Hotel Provizija', description: 'o', slug: `hp-sr-${uid}` },
+            {
+              languageCode: 'en',
+              name: 'Hotel Commission',
+              description: 'd',
+              slug: `hp-en-${uid}`,
+            },
+          ],
+        },
+      },
+    });
+    createdProductIds.push(product.id);
+
+    const account = await prisma.clientAccount.create({
+      data: {
+        accountType: 'LEGAL_ENTITY',
+        companyName: `M5 Subagent ${uid}`,
+        email: `subagent-${uid}@tt-test.rs`,
+        taxId: `TAX-SUB-${uid}`,
+      },
+    });
+    createdClientAccountIds.push(account.id);
+
+    const subagent = await prisma.subagent.create({
+      data: {
+        clientAccountId: account.id,
+        status: 'ACTIVE',
+        commissionPercentage: 10,
+        creditLimit: 1000000,
+        creditLimitCurrency: 'EUR',
+      },
+    });
+    createdSubagentIds.push(subagent.id);
+
+    const res = await request(app.getHttpServer())
+      .post('/api/v1/sales/quotes')
+      .set({ Authorization: `Bearer ${accessToken}` })
+      .send({
+        channel: 'B2B_PORTAL',
+        clientAccountId: account.id,
+        items: [
+          {
+            productId: product.id,
+            rateLineId: soba.id,
+            stayFrom: '2027-06-10',
+            stayTo: '2027-06-11',
+            occupancy: { adults: 2, children: 0 },
+          },
+          {
+            productId: product.id,
+            rateLineId: taksa.id,
+            stayFrom: '2027-06-10',
+            stayTo: '2027-06-11',
+            occupancy: { adults: 2, children: 0 },
+          },
+        ],
+      });
+    expect(res.status).toBe(201);
+    createdQuoteIds.push(res.body.id);
+
+    const poStavci = new Map<string, number>(
+      res.body.items.map((i: { rateLineId: string; finalPrice: number }) => [
+        i.rateLineId,
+        i.finalPrice,
+      ]),
+    );
+    // Ista nabavna cena i ista (nulta) marža — razliku pravi ISKLJUČIVO domet provizije.
+    expect(poStavci.get(soba.id)).toBe(9000); // 100,00 − 10 % provizije subagenta
+    expect(poStavci.get(taksa.id)).toBe(10000); // „bez provizije" — pun iznos
   });
 });

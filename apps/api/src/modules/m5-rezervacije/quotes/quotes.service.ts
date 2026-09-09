@@ -9,6 +9,11 @@ import { resolveApiContext, type M5CallerContext } from '../common/resolve-api-c
 import { serializeQuote, type RawQuote } from './quote-visibility';
 import { findDateMismatches } from '../common/date-mismatch';
 import { AuditLogService } from '../../m1-core-identitet/audit-log/audit-log.service';
+import {
+  nadjiIzuzetak,
+  obracunajProviziju,
+  type Izuzetak,
+} from '../../m3-ugovaranje-alotmani/pricelist/subagent-commission';
 
 // M5 spec §3.1 — "expires_at = najkraći quote_expires_at među stavkama (M4) ili
 // podrazumevanih 30 min za čisto ugovorene stavke."
@@ -105,17 +110,42 @@ export class QuotesService {
     // LEGAL_ENTITY nalog bez Subagent zapisa je i dalje običan M6/M5 kupac), primenjuje se
     // effective_commission_percentage UMESTO M6 loyalty-status, kao poslednji korak posle marže
     // (isti obrazac/mesto u toku cene kao M6 spec §3.3).
-    let discountPercentage = 0;
-    if (clientAccountId) {
-      const commissionPercentage =
-        await this.subagentBridge.getEffectiveCommissionPercentageForClientAccount(clientAccountId);
-      discountPercentage =
-        commissionPercentage != null
-          ? commissionPercentage
-          : await this.loyalty.getDiscountPercentage(clientAccountId);
-    }
-    const applyDiscount = (price: number) =>
-      discountPercentage > 0 ? Math.round(price * (1 - discountPercentage / 100)) : price;
+    //
+    // DOPUNA 9.9.2026 (M3 §2.11i): provizija se od sada računa PO STAVCI, ne jednim procentom
+    // nad celom ponudom. Razlog je stvaran: boravišna taksa i sve što se plaća u hotelu nose
+    // oznaku „bez provizije" — agencija na njima ne zarađuje ništa, pa nema ni šta da deli.
+    // Do ove dopune je `SubagentCommissionOverride` postojao u bazi i imao 18 jediničnih
+    // testova, ali **nijednog pozivaoca** (zamka 7.12).
+    const subagent = clientAccountId
+      ? await this.subagentBridge.getSubagentCommissionContext(clientAccountId)
+      : null;
+    const loyaltyPercentage =
+      clientAccountId && !subagent ? await this.loyalty.getDiscountPercentage(clientAccountId) : 0;
+
+    // Izuzeci se čitaju JEDNOM za sve ugovore koje ponuda dodiruje — po stavci bi značilo
+    // onoliko upita koliko ima stavki, nad istim malim skupom pravila.
+    const izuzeci = subagent ? await this.ucitajIzuzetkeProvizije(built, subagent.subagentId) : [];
+
+    const primeniPopust = (b: (typeof built)[number]): number => {
+      if (!subagent) {
+        return loyaltyPercentage > 0
+          ? Math.round(b.finalPrice * (1 - loyaltyPercentage / 100))
+          : b.finalPrice;
+      }
+      // API stavka nema ugovorni cenovnik, pa ni izuzetak — ide podrazumevana stopa subagenta.
+      const izuzetak = b.contractId
+        ? nadjiIzuzetak(izuzeci, {
+            subagentId: subagent.subagentId,
+            rateLineId: b.rateLineId,
+            contractPeriodId: b.contractPeriodId,
+            seasonId: b.seasonId,
+            contractId: b.contractId,
+            naDan: new Date(),
+          })
+        : null;
+      const provizija = obracunajProviziju(b.finalPrice, subagent.percentage, izuzetak);
+      return b.finalPrice - provizija.iznos;
+    };
 
     const quote = await this.prisma.quote.create({
       data: {
@@ -138,7 +168,7 @@ export class QuotesService {
             baseCostCurrency: b.baseCostCurrency,
             rateLineId: b.rateLineId,
             markupRuleId: b.markupRuleId,
-            finalPrice: applyDiscount(b.finalPrice),
+            finalPrice: primeniPopust(b),
             finalPriceCurrency: b.finalPriceCurrency,
             providerQuoteReference: b.providerQuoteReference,
             unitCount: b.unitCount,
@@ -197,5 +227,43 @@ export class QuotesService {
       ...serialized,
       isExpired: quote.status === 'DRAFT' && quote.expiresAt.getTime() < Date.now(),
     };
+  }
+
+  /**
+   * Izuzeci provizije za sve ugovore koje ova ponuda dodiruje (M3 §2.11i).
+   *
+   * Čita se i ono što važi za SVE subagente (`subagent_id = null`) i ono što je vezano baš za
+   * ovog — koji od ta dva pobeđuje odlučuje `nadjiIzuzetak`, ne upit, da pravilo prvenstva
+   * stoji na jednom mestu.
+   */
+  private async ucitajIzuzetkeProvizije(
+    built: {
+      contractId: string | null;
+      seasonId: string | null;
+      contractPeriodId: string | null;
+      rateLineId: string | null;
+    }[],
+    subagentId: string,
+  ): Promise<Izuzetak[]> {
+    const dometi = [
+      ...new Set(
+        built.flatMap((b) => [b.contractId, b.seasonId, b.contractPeriodId, b.rateLineId]),
+      ),
+    ].filter((v): v is string => v != null);
+    if (dometi.length === 0) return [];
+
+    const redovi = await this.prisma.subagentCommissionOverride.findMany({
+      where: { scopeId: { in: dometi }, OR: [{ subagentId: null }, { subagentId }] },
+    });
+    return redovi.map((r) => ({
+      subagentId: r.subagentId,
+      scopeType: r.scopeType as Izuzetak['scopeType'],
+      scopeId: r.scopeId,
+      noCommission: r.noCommission,
+      percentage: r.percentage == null ? null : Number(r.percentage),
+      fixedAmount: r.fixedAmount,
+      activeFrom: r.activeFrom,
+      activeTo: r.activeTo,
+    }));
   }
 }

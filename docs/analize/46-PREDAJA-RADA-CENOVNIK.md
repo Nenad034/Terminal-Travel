@@ -1,7 +1,7 @@
 # Predaja rada — cenovnik kao mreža (stanje 9.9.2026)
 
 **Kome:** sledećem agentu/sesiji koja preuzme repozitorijum sa GitHub-a i nastavlja rad na cenovniku (M3 §2.11).
-**Stanje 9.9.2026, kasnije istog dana:** rupe **4.1, 4.2 i 4.4** iz ovog dokumenta su **zatvorene** (vidi okvire u tim odeljcima). Ostaje samo **4.3** — subagentska provizija, koja pre povezivanja traži odgovor gde se provizija danas uopšte obračunava.
+**Stanje 9.9.2026, kasnije istog dana:** **sve četiri rupe iz odeljka 4 su zatvorene** (vidi okvire u svakom pododeljku). Koraci 4–7 iz odeljka 5 i dalje stoje kao sledeći posao.
 
 **Zašto postoji:** posao je urađen do trećeg od sedam koraka. Tri koraka su u kodu i proverena nad pravom bazom, četiri stoje samo u specifikaciji. Uz to postoje **tri mesta gde kod postoji ali nije povezan sa prodajom** — to se iz commit poruka ne vidi, a bez toga bi se prvo pomislilo da je gotovo.
 
@@ -106,7 +106,18 @@ Posledica je konkretna: boravišna taksa uneta danas na ugovor Hotel Splendid **
 
 Sva tri imaju `rateLine` pri ruci. **Dodavanje je jedan red po pozivaocu**, ali svaki menja cenu koja se prikazuje gostu — pa ide uz testove i uz merenje pre/posle, ne „usput".
 
-### 4.3 Subagentska provizija po stavci nigde se ne obračunava
+### 4.3 Subagentska provizija po stavci nigde se ne obračunava — **REŠENO 9.9.2026**
+
+> **Zatvoreno.** Odgovor na pitanje iz ovog odeljka: provizija se obračunava u **M5**, u
+> `QuotesService.create`, kao popust na prodajnu cenu — jedan procenat iz M7 nad celom ponudom.
+> Sada se za svaku ugovorenu stavku traži izuzetak po dometu (stavka → doplata → period →
+> sezona → ugovor), izuzetak za konkretnog subagenta pobeđuje opšti istog dometa, a „bez
+> provizije" daje punu cenu. Izuzeci se čitaju jednim upitom za sve domete koje ponuda dodiruje.
+> Izmereno kroz `POST /sales/quotes` nad pravom bazom: soba 100,00 → 90,00, stavka „bez
+> provizije" ostaje 100,00. Upisano u M3 v1.31 §2.11i i M5 v2.33.
+>
+> **Ostaje otvoreno (ne prećutano):** subagent u M7 portalu još ne vidi **obrazloženje** zašto na
+> nekoj stavci nema provizije — `Provizija.izvor` postoji u obračunu, ali se ne prikazuje.
 
 `pricelist/subagent-commission.ts` je čista logika sa 18 testova i **nula pozivalaca**. Nema veze ni sa M7 ni sa M5.
 
