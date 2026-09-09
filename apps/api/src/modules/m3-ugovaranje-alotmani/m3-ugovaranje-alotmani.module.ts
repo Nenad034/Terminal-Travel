@@ -4,6 +4,7 @@ import { ContractsModule } from './contracts/contracts.module';
 import { ContractPeriodsModule } from './contract-periods/contract-periods.module';
 import { PricelistImportsModule } from './pricelist-imports/pricelist-imports.module';
 import { CapacityModule } from './capacity/capacity.module';
+import { PricelistModule } from './pricelist/pricelist.module';
 
 // docs/moduli/M03-ugovaranje-alotmani/04-SPECIFIKACIJA-M3-UGOVARANJE-ALOTMANI.md
 @Module({
@@ -14,6 +15,8 @@ import { CapacityModule } from './capacity/capacity.module';
     PricelistImportsModule,
     // §2.8 (8.9.2026) — kapacitet po danu, stop-sale, blokade.
     CapacityModule,
+    // §2.11 (9.9.2026) — cenovnik kao mreža: sezone kao kolone, tipovi soba kao redovi.
+    PricelistModule,
   ],
 })
 export class M3UgovaranjeAlotmaniModule {}

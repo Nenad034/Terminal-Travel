@@ -3843,10 +3843,10 @@ Prefiks: `/api/v1/contracting`
 
 **Dopuna v1.27 (poglavlja 2.11 i 4.8):**
 
-- [ ] **Sezona sa više opsega (2.11b):** sezona sa dva odvojena opsega (01.04–31.05 i 01.10–31.10) je sačuvana kao **jedna** kolona, a pokušaj da se opsezi dve sezone istog ugovora preklope je odbijen.
-- [ ] **Cena po boravku (2.11c):** cenovni red sa `PER_ROOM_PER_STAY` je sačuvan i M5 ga u ponudi računa jednom za ceo boravak, ne po noći.
+- [x] **Sezona sa više opsega (2.11b):** sezona sa dva odvojena opsega (01.04–31.05 i 01.10–31.10) je sačuvana kao **jedna** kolona, a pokušaj da se opsezi dve sezone istog ugovora preklope je odbijen. _(izmereno 9.9.2026 nad pravom bazom: sezona „1" sa 01.04–31.05 i 01.10–31.10 sačuvana kao jedna kolona; opseg 15.05–30.06 odbijen sa 400 i porukom koja imenuje sezonu sa kojom se sudara)_
+- [x] **Cena po boravku (2.11c):** cenovni red sa `PER_ROOM_PER_STAY` je sačuvan i M5 ga u ponudi računa jednom za ceo boravak, ne po noći. _(9.9.2026: `PER_ROOM_PER_STAY` 950,00 upisan i pročitan iz baze; 8 jediničnih testova nad `computeRoomBaseCost` dokazuje da se 7 noći i 14 noći cene isto, dok krevetac ostaje po noći)_
 - [ ] **Dani u nedelji (2.11d):** dva reda iste kombinacije, jedan sa ned–čet i jedan sa pet–sub, prolaze; red koji ostavlja nepokriven dan **ili** pokriva isti dan dvaput je odbijen sa jasnim razlogom.
-- [ ] **Prozor rezervisanja na stavci (2.11e):** cenovna stavka sa `booking_to = 31.12.2025` ne učestvuje u ponudi napravljenoj 5.1.2026, a učestvuje u onoj od 20.12.2025.
+- [~] **Prozor rezervisanja na stavci (2.11e):** cenovna stavka sa `booking_to = 31.12.2025` ne učestvuje u ponudi napravljenoj 5.1.2026, a učestvuje u onoj od 20.12.2025. _(9.9.2026: polje postoji i upisuje se — `booking_to = 2026-12-31` potvrđeno u bazi. **Primena u ponudi još ne postoji** — M5 ga pri sastavljanju ponude ne čita; zabeleženo kao poznat nedostatak, ne prećutano.)_
 - [ ] **Provizija hotela po periodu (2.11f):** ugovor sa 10 % u sezoni 1 i 7 % u sezoni 3 daje različit obračun za iste datume boravka u te dve sezone; kad užeg pravila nema, koristi se `Contract.commission_percentage`.
 - [ ] **Redosled obračuna (2.11g):** ulazna 55,00 sa popustom 15 %, hotelskom provizijom 10 % i maržom 18 % daje prodajnu **49,65** — izmereno, ne procenjeno; drugi redosled daje drugi broj i test to hvata.
 - [ ] **Osnovica popusta (2.11h):** popust za treću osobu se računa od ulazne hotelske osnovne cene, ne od cene sobe u kojoj gost leži.

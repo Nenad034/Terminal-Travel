@@ -1,3 +1,5 @@
+import { PriceBasis } from '@prisma/client';
+
 // M5 spec §3.0b — oblik odgovora GET /search.
 
 export type SearchAvailabilityStatus = 'AVAILABLE' | 'ON_REQUEST' | 'SOLD_OUT';
@@ -6,7 +8,7 @@ export interface SearchResultOffer {
   roomTypeCode: string | null;
   roomTypeName: string | null;
   boardType: string | null;
-  priceBasis: 'PER_ROOM_PER_NIGHT' | 'PER_PERSON_PER_NIGHT' | null;
+  priceBasis: PriceBasis | null; // M3 §2.11c — cetiri osnove, ne dve
   finalPrice: number;
   finalPriceCurrency: string;
   availabilityStatus: SearchAvailabilityStatus;

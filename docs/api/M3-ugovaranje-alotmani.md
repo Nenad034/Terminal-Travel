@@ -896,6 +896,145 @@ Dozvola: `M3/pricelist-import/APPROVE_ROW`. Bez tela zahteva. Odbacuje red bez i
 
 ---
 
+## Cenovnik kao mreža (v1.27, M3 §2.11)
+
+Sezone su **kolone** cenovnika i imaju **više** datumskih opsega. Sve rute traže `M3/contract-period/VIEW` za čitanje i `M3/contract-period/EDIT` za upis — namerno bez nove dozvole: ko sme da menja cene, sme i sezone.
+
+### GET /contracts/:contractId/seasons
+
+```json
+[
+  {
+    "id": "bd2d50be-436a-4f81-a1cc-076e22c7e473",
+    "contractId": "3204e3f0-c489-4379-8696-1c00ce8322ff",
+    "code": "1",
+    "label": "Predsezona",
+    "rank": 1,
+    "ranges": [
+      { "id": "1f22740b-…", "dateFrom": "2027-04-01T00:00:00.000Z", "dateTo": "2027-05-31T00:00:00.000Z" },
+      { "id": "9c31a0e2-…", "dateFrom": "2027-10-01T00:00:00.000Z", "dateTo": "2027-10-31T00:00:00.000Z" }
+    ]
+  }
+]
+```
+
+### POST /contracts/:contractId/seasons
+
+```json
+{
+  "code": "1",
+  "label": "Predsezona",
+  "ranges": [
+    { "dateFrom": "2027-04-01", "dateTo": "2027-05-31" },
+    { "dateFrom": "2027-10-01", "dateTo": "2027-10-31" }
+  ]
+}
+```
+
+Odgovara `201` sa sezonom (oblik kao gore). **Preklapanje se odbija sa `400`** — jedan datum sme pripadati samo jednoj koloni:
+
+```json
+{
+  "statusCode": 400,
+  "message": "Opseg 2027-05-15 – 2027-06-30 se preklapa sa sezonom „1\" (2027-04-01 – 2027-05-31). Jedan datum sme pripadati samo jednoj sezoni."
+}
+```
+
+`PATCH /contracts/:contractId/seasons/:seasonId` prima isto telo i **zamenjuje opsege u celini**.
+
+`DELETE /contracts/:contractId/seasons/:seasonId` vraća `{ "deleted": true, "periodaOstalo": 4 }` — periodi se **ne brišu** sa sezonom (nose kapacitet i prodato), samo ispadaju iz kolone.
+
+### GET /contracts/:contractId/pricelist-grid
+
+```json
+{
+  "contractId": "3204e3f0-…",
+  "contractNumber": "TT-MOCK-CAP-02",
+  "currency": "EUR",
+  "commissionModel": "NET",
+  "commissionPercentage": null,
+  "seasons": [
+    { "id": "bd2d50be-…", "code": "1", "label": "Predsezona", "rank": 1,
+      "ranges": [{ "dateFrom": "2027-04-01", "dateTo": "2027-05-31" },
+                 { "dateFrom": "2027-10-01", "dateTo": "2027-10-31" }] }
+  ],
+  "roomTypes": [
+    {
+      "roomType": "Budget double room",
+      "rows": [
+        {
+          "key": "Noćenje sa doručkom|2 odrasle osobe|PER_PERSON_PER_NIGHT",
+          "boardType": "Noćenje sa doručkom",
+          "occupancy": "2 odrasle osobe",
+          "priceBasis": "PER_PERSON_PER_NIGHT",
+          "cells": {
+            "bd2d50be-…": {
+              "price": 3900,
+              "rateLineIds": ["…", "…"],
+              "periodIds": ["…", "…"],
+              "bookingFrom": null,
+              "bookingTo": "2026-12-31",
+              "neslozno": false
+            }
+          }
+        }
+      ],
+      "bezSezone": []
+    },
+    {
+      "roomType": "DBL",
+      "rows": [],
+      "bezSezone": [
+        { "periodId": "2ee47f2b-…", "stayFrom": "2027-06-01", "stayTo": "2027-06-30", "cenovnihRedova": 1 }
+      ]
+    }
+  ]
+}
+```
+
+Dva polja traže objašnjenje:
+
+- **`periodIds` ima više od jednog elementa** kad sezona ima više opsega. Jedna ćelija na ekranu = više `ContractPeriod` zapisa u bazi, po jedan za svaki opseg.
+- **`neslozno: true`** znači da opsezi iste sezone **nemaju istu cenu**. Prikazuje se umesto da se tiho uzme prva — razlika je skoro uvek greška u unosu.
+
+`bezSezone` su periodi koji ne pripadaju nijednoj sezoni (tip sobe sa sopstvenim rasporedom datuma, ili zapisi stariji od v1.27). Ne gube se — prikazuju se kao izuzeci.
+
+### PUT /contracts/:contractId/pricelist-grid/cell
+
+Upisuje **jednu ćeliju**: istu cenu u svaki period te sezone i tog tipa sobe.
+
+```json
+{
+  "seasonId": "bd2d50be-…",
+  "roomType": "Budget double room",
+  "boardType": "Noćenje sa doručkom",
+  "occupancy": "2 odrasle osobe",
+  "priceBasis": "PER_PERSON_PER_NIGHT",
+  "price": 3900,
+  "bookingTo": "2026-12-31"
+}
+```
+
+```json
+{
+  "seasonId": "bd2d50be-…",
+  "roomType": "Budget double room",
+  "periodIds": ["…", "…"],
+  "rateLineIds": ["…", "…"],
+  "deactivated": 2
+}
+```
+
+Tri pravila koja ova ruta sprovodi:
+
+1. **Period koji ne postoji se pravi**, sa `allotmentMode = ON_REQUEST` i **bez kapaciteta** — kapacitet ide po sopstvenim datumima, kroz `/capacity/*` (§2.11n).
+2. **Ispravka je gašenje pa nova stavka** (§2.4c): `deactivated` kaže koliko je starih cena ugašeno, a nova nosi `replaces_id`. Cena se nikad ne prepisuje.
+3. **Nepromenjena vrednost ne piše ništa** — `deactivated: 0` i isti `rateLineIds`, bez lažnog traga u auditu.
+
+`price` je u **najmanjoj jedinici valute** ugovora (3900 = 39,00 EUR). Panel prima „39,00" i pretvara ga — spoljni integrator šalje ceo broj.
+
+`priceBasis` ima četiri vrednosti (v1.27): `PER_ROOM_PER_NIGHT`, `PER_PERSON_PER_NIGHT`, `PER_ROOM_PER_STAY`, `PER_PERSON_PER_STAY`. Osnove sa `_PER_STAY` znače cenu za **ceo boravak** — M5 ih ne množi brojem noćenja.
+
 ## Greške — zajednički oblik
 
 Sve greške imaju isti oblik (NestJS standard):

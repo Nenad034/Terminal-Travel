@@ -207,9 +207,22 @@ export function resolveBaseAdultsCovered(occupancyText: string, adultsInRoom: nu
 
 export interface RateLineForCalc {
   price: number;
-  priceBasis: 'PER_ROOM_PER_NIGHT' | 'PER_PERSON_PER_NIGHT';
+  // M3 §2.11c (v1.27) — četiri osnove, ne dve. `*_PER_STAY` znači da je cena za CEO boravak,
+  // pa se NE množi brojem noćenja (Plava Laguna cenovnik: `Rate Base = STAY`).
+  priceBasis:
+    'PER_ROOM_PER_NIGHT' | 'PER_PERSON_PER_NIGHT' | 'PER_ROOM_PER_STAY' | 'PER_PERSON_PER_STAY';
   occupancy: string;
   cribFeePerNight: number | null;
+}
+
+/** Cena važi za ceo boravak, ne po noći (M3 §2.11c). */
+export function jePoBoravku(basis: RateLineForCalc['priceBasis']): boolean {
+  return basis === 'PER_ROOM_PER_STAY' || basis === 'PER_PERSON_PER_STAY';
+}
+
+/** Cena se odnosi na celu sobu, ne na osobu (M3 §2.4). */
+export function jePoSobi(basis: RateLineForCalc['priceBasis']): boolean {
+  return basis === 'PER_ROOM_PER_NIGHT' || basis === 'PER_ROOM_PER_STAY';
 }
 
 // M5 spec §3.2b — računanje base_cost jedne sobe za ceo boravak (korak 1-6), determinističko.
@@ -243,12 +256,13 @@ export function computeRoomBaseCost(params: {
 
   // korak 2/3 — osnovna popunjenost i osnovna cena.
   const baseAdultsCovered = resolveBaseAdultsCovered(rateLine.occupancy, room.adults);
-  const basePricePerNight =
-    rateLine.priceBasis === 'PER_ROOM_PER_NIGHT'
-      ? rateLine.price
-      : rateLine.price * baseAdultsCovered;
+  const basePrice = jePoSobi(rateLine.priceBasis)
+    ? rateLine.price
+    : rateLine.price * baseAdultsCovered;
 
   // korak 4 — svaki gost iznad osnovne popunjenosti (dodatni ADULT, i svaki CHILD/TEEN/INFANT).
+  // Doplata za gosta prati osnovu: procenat se računa od `rateLine.price`, pa kad je cena za
+  // ceo boravak i doplata je za ceo boravak. Množenje noćenjima bi je udvostručilo.
   let extraPerNight = 0;
   let adultsCounted = 0;
   for (const guest of guests) {
@@ -278,6 +292,10 @@ export function computeRoomBaseCost(params: {
   const cribFeePerNight =
     rateLine.cribFeePerNight != null ? rateLine.cribFeePerNight * cribGuests : 0;
 
-  const perNight = basePricePerNight + extraPerNight + cribFeePerNight;
-  return perNight * nights;
+  // korak 6 — sabiranje. Krevetac je uvek po noći (i polje se tako zove), pa se množi noćenjima
+  // bez obzira na osnovu; cena i doplata za gosta prate osnovu.
+  const smestaj = jePoBoravku(rateLine.priceBasis)
+    ? basePrice + extraPerNight
+    : (basePrice + extraPerNight) * nights;
+  return smestaj + cribFeePerNight * nights;
 }

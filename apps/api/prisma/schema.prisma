@@ -686,6 +686,7 @@ model Contract {
 
   supplier Supplier         @relation(fields: [supplierId], references: [id])
   periods  ContractPeriod[]
+  seasons  Season[] // M3 spec §2.11b (v1.27) — kolone cenovnika
   products Product[] // M2 Product.sourceContractId — proizvod referencira ugovor, ne duplira cenu (M3 spec §3)
 
   // Indeksi na stranim ključevima (5.9.2026, dok. 39 nalaz 2.1). Postgres ih NE pravi sam:
@@ -720,9 +721,52 @@ enum CommissionModel {
 }
 
 // §2.3 `ContractPeriod` — sezona/period unutar ugovora
+/// M3 spec §2.11b (v1.27) — sezona je KOLONA cenovnika, i ima VISE datumskih opsega.
+///
+/// Zasto poseban zapis a ne polje na periodu: u stvarnim cenovnicima jedna sezona pokriva
+/// dva odvojena dela godine (Aycon 2026: sezona 1 = 01.04–31.05 I 01.10–31.10; Olympic/PRI:
+/// sezona A = 12.12–19.12 I 14.03–21.03). Sa jednim opsegom to bi bile dve kolone sa istom
+/// cenom, pa bi svaka izmena cene morala rucno na dva mesta.
+model Season {
+  id         String   @id @default(uuid())
+  contractId String   @map("contract_id")
+  code       String // kratka oznaka iz cenovnika: "1", "A", "Spic"
+  label      String? // opisno ime, opciono
+  rank       Int // redosled kolona na ekranu
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  contract Contract         @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  ranges   SeasonRange[]
+  periods  ContractPeriod[]
+
+  // Oznaka sezone je jedinstvena unutar ugovora -- dve kolone "1" bi bile nerazlucive na ekranu.
+  @@unique([contractId, code])
+  @@index([contractId])
+  @@map("seasons")
+}
+
+/// Jedan datumski opseg jedne sezone. Sezona ih ima najmanje jedan (provera je aplikativna,
+/// M3 §2.11b -- baza ne ume da izrazi "najmanje jedan red u vezi").
+model SeasonRange {
+  id       String   @id @default(uuid())
+  seasonId String   @map("season_id")
+  dateFrom DateTime @map("date_from") @db.Date
+  dateTo   DateTime @map("date_to") @db.Date
+
+  season Season @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+
+  @@index([seasonId])
+  @@map("season_ranges")
+}
+
 model ContractPeriod {
   id                      String               @id @default(uuid())
   contractId              String               @map("contract_id")
+  // M3 spec §2.11b (v1.27) -- sezona grupise periode u kolonu na ekranu cenovnika.
+  // Nullable namerno: period bez sezone i dalje radi (postojeci podaci ostaju ispravni),
+  // a tip sobe sa sopstvenim rasporedom datuma se namerno drzi VAN zajednickih sezona (izuzetak).
+  seasonId                String?              @map("season_id")
   stayFrom                DateTime             @map("stay_from")
   stayTo                  DateTime             @map("stay_to")
   // M3 spec 2.3e (v1.20) -- prozor prijave: rezervacija sme da nastane samo u ovom opsegu.
@@ -752,6 +796,8 @@ model ContractPeriod {
   updatedAt               DateTime             @updatedAt @map("updated_at")
 
   contract          Contract           @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  // Gasenje sezone ne sme da obrise periode -- oni nose kapacitet i prodato (SetNull, ne Cascade).
+  season            Season?            @relation(fields: [seasonId], references: [id], onDelete: SetNull)
   rateLines         RateLine[]
   cancellationRules CancellationRule[]
   // §2.4b/§2.6/§2.7 dopuna v1.12
@@ -768,6 +814,7 @@ model ContractPeriod {
   // pravi ih samo na strani na koju se pokazuje (PK), ne i na koloni koja pokazuje. Bez njih
   // svaki JOIN i svaka provera pri brisanju roditelja čita celu tabelu.
   @@index([contractId])
+  @@index([seasonId])
   @@map("contract_periods")
 }
 
@@ -886,6 +933,12 @@ model RateLine {
   priceBasis       PriceBasis @map("price_basis")
   price            Int // najmanja jedinica valute ugovora
   cribFeePerNight  Int?       @map("crib_fee_per_night")
+  // M3 spec §2.11e (v1.27) — stavka ucestvuje u obracunu samo ako datum NASTANKA rezervacije
+  // pada u ovaj prozor. null = bez ogranicenja. Razlicito od ContractPeriod.bookingFrom/To (2.3e),
+  // koje govori kad kapacitet sme da se trosi; ovo govori dokle vazi CENA.
+  // Dokaz iz prakse: Aycon 2026 — "bookings made till 31.12.2025 for period of stay 01.04–30.10.2026".
+  bookingFrom      DateTime?  @map("booking_from") @db.Date
+  bookingTo        DateTime?  @map("booking_to") @db.Date
   createdAt        DateTime   @default(now()) @map("created_at")
   updatedAt        DateTime   @updatedAt @map("updated_at")
 
@@ -915,6 +968,11 @@ model RateLine {
 enum PriceBasis {
   PER_ROOM_PER_NIGHT
   PER_PERSON_PER_NIGHT
+  // M3 spec §2.11c (v1.27) -- cena za CEO boravak, ne po noci. Plava Laguna cenovnik
+  // (Primeri cenovnika/PUY_Hotel Park Plava Laguna_70134.pdf) doslovno nosi `Rate Base = STAY`.
+  // AncillaryPriceBasis ta cetiri para ima od v1.13; razlika je bila nenamerna.
+  PER_PERSON_PER_STAY
+  PER_ROOM_PER_STAY
 }
 
 // §2.4a `age_pricing[]` — cena po uzrasnoj kategoriji gosta
@@ -962,6 +1020,12 @@ model CancellationRule {
   earlyDepartureBasis      EarlyDepartureBasis? @map("early_departure_basis") // samo EARLY_DEPARTURE
   earlyDeparturePercentage Int?                 @map("early_departure_percentage") // samo PERCENTAGE_OF_REMAINING_STAY, 0-100
   earlyDepartureFlatAmount Int?                 @map("early_departure_flat_amount") // samo FLAT_AMOUNT, najmanja jedinica valute
+
+  // M3 spec §2.11e (v1.27) — stavka učestvuje u obračunu samo ako datum NASTANKA rezervacije
+  // pada u ovaj prozor. null = bez ograničenja. Različito od ContractPeriod.bookingFrom/To (2.3e),
+  // koje govori kad kapacitet sme da se troši; ovo govori dokle važi sama stavka.
+  bookingFrom DateTime? @map("booking_from") @db.Date
+  bookingTo   DateTime? @map("booking_to") @db.Date
 
   contractPeriod ContractPeriod @relation(fields: [contractPeriodId], references: [id], onDelete: Cascade)
 
@@ -1072,6 +1136,12 @@ model AncillaryService {
   isRefundable            Boolean              @default(false) @map("is_refundable")
   maxQuantity             Int?                 @map("max_quantity")
   notes                   String?
+  // M3 spec §2.11e (v1.27) — stavka ucestvuje u obracunu samo ako datum NASTANKA rezervacije
+  // pada u ovaj prozor. null = bez ogranicenja. Razlicito od ContractPeriod.bookingFrom/To (2.3e),
+  // koje govori kad kapacitet sme da se trosi; ovo govori dokle vazi CENA.
+  // Dokaz iz prakse: Aycon 2026 — "bookings made till 31.12.2025 for period of stay 01.04–30.10.2026".
+  bookingFrom             DateTime?            @map("booking_from") @db.Date
+  bookingTo               DateTime?            @map("booking_to") @db.Date
   createdAt               DateTime             @default(now()) @map("created_at")
   updatedAt               DateTime             @updatedAt @map("updated_at")
 

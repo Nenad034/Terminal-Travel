@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { apiFetch } from '@/lib/api-client';
 import { getMe, hasPermission } from '@/lib/me';
 import RegisterTab from '@/components/RegisterTab';
@@ -56,7 +57,17 @@ export default async function ContractDetailPage(props: { params: Promise<{ id: 
             {new Date(contract.validTo).toLocaleDateString('sr-RS')}
           </p>
         </div>
-        <StatusBadge status={contract.status} />
+        <div className="flex items-center gap-3">
+          {/* M17 §6d — cenovnik cele sezone na jednom ekranu; put kroz pojedinačan period
+              ostaje ispod, za kapacitet i stavke koje mreža (još) ne pokriva. */}
+          <Link
+            href={`/ugovori/${contract.id}/cenovnik`}
+            className="rounded-md border border-border px-2.5 py-1 text-[11px] text-accent-strong hover:border-accent"
+          >
+            Cenovnik (mreža)
+          </Link>
+          <StatusBadge status={contract.status} />
+        </div>
       </div>
 
       <div className="mb-4 rounded-lg border border-border bg-panel p-5 text-xs">
