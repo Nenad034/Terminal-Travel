@@ -271,7 +271,11 @@
       <thead>
         <tr>
           <th class="lbl">Tip sobe / cenovni red</th>
-          <th>Sez. 1</th><th>Sez. 2</th><th>Sez. 3</th><th>Sez. 4</th><th>Sez. 5</th>
+          <th>1<br><span class="sub" style="font-weight:400">01.04–31.05<br>01.10–31.10</span></th>
+          <th>2<br><span class="sub" style="font-weight:400">01.06–10.06<br>17.09–30.09</span></th>
+          <th>3<br><span class="sub" style="font-weight:400">11.06–10.07<br>01.09–16.09</span></th>
+          <th>4<br><span class="sub" style="font-weight:400">11.07–18.07<br>25.08–31.08</span></th>
+          <th>5<br><span class="sub" style="font-weight:400">19.07–24.08</span></th>
           <th>Osnova</th><th>Popunjenost</th><th>Jedinica</th>
         </tr>
       </thead>
@@ -337,20 +341,39 @@
         </tr>
 
         <tr class="group">
-          <td class="lbl">Studio <span class="chip warn">cena po danu u nedelji</span></td>
+          <td class="lbl">Studio <span class="chip warn">cena po danima u nedelji</span></td>
           <td colspan="5" style="text-align:left;color:var(--text-faint);font-weight:400;font-size:11.5px">min 2 · max 2+1 · 6 jedinica</td>
           <td colspan="3"></td>
         </tr>
         <tr>
-          <td class="lbl">&nbsp;&nbsp;&nbsp;└ NsD · po sobi <span class="sub">ned–čet / pet–sub</span></td>
-          <td><span class="cell split"><span>70,00</span><span class="we">88,00</span></span></td>
-          <td><span class="cell split"><span>82,00</span><span class="we">99,00</span></span></td>
-          <td><span class="cell split"><span>95,00</span><span class="we">115,00</span></span></td>
-          <td><span class="cell split"><span>104,00</span><span class="we">126,00</span></span></td>
-          <td><span class="cell split"><span>118,00</span><span class="we">140,00</span></span></td>
+          <td class="lbl">&nbsp;&nbsp;&nbsp;└ NsD · po sobi &nbsp;
+            <span class="chip ok">ned</span><span class="chip ok">pon</span><span class="chip ok">uto</span><span class="chip ok">sre</span><span class="chip ok">čet</span><span class="chip gray">pet</span><span class="chip gray">sub</span>
+          </td>
+          <td><span class="cell">70,00</span></td><td><span class="cell">82,00</span></td>
+          <td><span class="cell">95,00</span></td><td><span class="cell">104,00</span></td><td><span class="cell">118,00</span></td>
           <td><span class="chip info">po sobi / noć</span></td><td>2+1</td><td>€</td>
         </tr>
+        <tr>
+          <td class="lbl">&nbsp;&nbsp;&nbsp;└ NsD · po sobi &nbsp;
+            <span class="chip gray">ned</span><span class="chip gray">pon</span><span class="chip gray">uto</span><span class="chip gray">sre</span><span class="chip gray">čet</span><span class="chip warn">pet</span><span class="chip warn">sub</span>
+          </td>
+          <td><span class="cell">88,00</span></td><td><span class="cell">99,00</span></td>
+          <td><span class="cell">115,00</span></td><td><span class="cell">126,00</span></td><td><span class="cell">140,00</span></td>
+          <td><span class="chip info">po sobi / noć</span></td><td>2+1</td><td>€</td>
+        </tr>
+        <tr class="meta-row">
+          <td class="lbl" colspan="9" style="text-align:left">
+            Dani se biraju klikom na tag. Uključen dan je obojen. <b>Svi dani moraju biti pokriveni</b> —
+            ako neki ostane bez cene, ekran to javlja pre čuvanja, jer bi inače taj datum tiho nestao iz pretrage.
+          </td>
+        </tr>
 
+        <tr class="meta-row">
+          <td class="lbl">Provizija koju hotel odobrava nama <span class="chip warn">po sezoni</span></td>
+          <td><span class="cell pct">10 %</span></td><td><span class="cell pct">10 %</span></td>
+          <td><span class="cell pct">7 %</span></td><td><span class="cell pct">7 %</span></td><td><span class="cell pct">7 %</span></td>
+          <td colspan="3" style="text-align:left" class="sub">skida se posle popusta, pre marže (korak 3)</td>
+        </tr>
         <tr class="meta-row">
           <td class="lbl">Rok za otkazivanje alotmana (dana)</td>
           <td><span class="cell num">3</span></td><td><span class="cell num">7</span></td>
@@ -378,7 +401,7 @@
   <li><b>Sezone se definišu jednom, gore.</b> Svaka sezona ima ime/broj i <i>listu</i> datumskih opsega. Kolone su sezone.</li>
   <li><b>Tip sobe je zaglavlje grupe, ne red.</b> Ispod njega ide jedan ili više cenovnih redova — po usluzi i po kombinaciji popunjenosti.</li>
   <li><b>Osnova cene je osobina reda.</b> U istom hotelu jedna soba može biti po osobi, druga po sobi — što Aycon cenovnik doslovno i radi.</li>
-  <li><b>Vikend cena je podeljena ćelija</b>, ne nova sezona. Sezona ostaje 5, ne postaje 10.</li>
+  <li><b>Vikend cena je drugi red sa drugim danima</b>, ne nova sezona. Dani se biraju tagovima (ned–čet u jednom redu, pet–sub u drugom). Sezona ostaje 5, ne postaje 10. <span class="sub">Odluka vlasnika 9.9.2026: tagovi, ne fiksna podela — jer „vikend" nije isti u svakom hotelu.</span></li>
   <li><b>Kapaciteta nema na ovom ekranu</b> — po vašoj odluci: kapacitet ide po sopstvenim datumima, ne po sezonama.</li>
   <li><b>Izuzetak po tipu sobe:</b> ako jedna soba ima drugačije sezone, ona se „odvaja" i dobija sopstveni red sezona iznad svoje grupe. Ostale ostaju na zajedničkim.</li>
   <li><b>Prazna ćelija ≠ nula.</b> Prazno znači „ne prodaje se u toj sezoni" i tako ide u pretragu.</li>
@@ -618,7 +641,17 @@
 <h3>Tri pravila obračuna koja moraju biti pisana, ne podrazumevana</h3>
 <ol>
   <li><b>Procenat i iznos se sabiraju, ne biraju.</b> „12 % + 5,00" na 295,00 daje 295 + 35,40 + 5,00 = <b>335,40</b>. Ako se popuni samo jedno polje, drugo je nula.</li>
-  <li><b>Redosled: popust → marža → provizija.</b> Popust umanjuje nabavnu cenu, marža se računa na umanjenu, provizija subagenta na prodajnu. Drugi redosled daje drugi broj, pa mora biti odlučeno i zapisano — <b>ovo je pitanje za vas, ne tehnička odluka</b>.</li>
+  <li><b>Redosled obračuna — pet koraka, ovim redom.</b> <span class="chip ok">potvrdio vlasnik 9.9.2026</span>
+    <table class="plain" style="margin-top:6px">
+      <tr><th>#</th><th>Korak</th><th>Primer</th></tr>
+      <tr><td>1</td><td>Ulazna hotelska cena</td><td>55,00</td></tr>
+      <tr><td>2</td><td><b>Popust / akcija</b> (rani buking, SPO…) &nbsp;−15 %</td><td>46,75</td></tr>
+      <tr><td>3</td><td><b>Provizija koju hotel odobrava nama</b> &nbsp;−10 %<br><span class="sub">razlikuje se po periodu — 10 % u jednom, 7 % u drugom</span></td><td>42,08</td></tr>
+      <tr><td>4</td><td><b>Naša marža</b> &nbsp;+18 %</td><td>49,65 &nbsp;<span class="sub">prodajna cena</span></td></tr>
+      <tr><td>5</td><td><b>Provizija subagenta</b> &nbsp;8 % od prodajne</td><td>3,97 <span class="sub">njegova zarada, ne dodatak na cenu</span></td></tr>
+    </table>
+    <div class="sub" style="margin-top:4px">Redosled nije proizvoljan: hotelska provizija se skida sa <b>već umanjene</b> cene, ne sa pune. Da se skida sa pune, agencija bi obračunala veći odbitak nego što joj hotel stvarno daje.</div></li>
+  <li><b>Svaki popust po osobi računa se od ulazne hotelske osnovne cene</b>, ne od cene sobe u kojoj gost leži i ne od cene posle drugih popusta. <span class="chip ok">potvrdio vlasnik 9.9.2026</span> Važi za popust 3. i 4. osobe i za sve ostale osobe.</li>
   <li><b>Izuzetak nadjačava podrazumevano, i vidi se da je izuzetak.</b> Stavka bez unosa nasleđuje maržu ugovora. Kad se unese, red dobija oznaku <span class="chip warn">izuzetak</span> — inače se posle ne zna zašto jedna stavka odstupa.</li>
 </ol>
 
@@ -723,10 +756,13 @@
   <tr><td><b>Marža na pojedinačnu stavku</b></td><td><span class="chip warn">nedostaje</span></td><td><code>MarkupScopeType</code> ide do dobavljača, ugovora, perioda i proizvoda — <b>ne do cenovne stavke ni doplate</b></td></tr>
   <tr><td><b>Subagentska provizija po stavci</b></td><td><span class="chip warn">nedostaje</span></td><td>danas postoji samo <code>Subagent.commissionPercentage</code> (jedan procenat po subagentu) i stepenice po prometu — nema „na ovoj doplati nema provizije"</td></tr>
   <tr><td><b>Boravišna taksa u obračunu, sa uzrasnim stepenima</b></td><td><span class="chip warn">nedostaje</span></td><td><code>TouristTaxInfo</code> je <i>jedan</i> zapis po periodu sa <i>jednim</i> iznosom i samo opisan — ne može da opiše 1,50 / 1,00 / 0,50 po uzrastu, niti da uđe u zbir</td></tr>
+  <tr><td><b>Provizija hotela po periodu</b></td><td><span class="chip warn">nedostaje</span></td><td><code>Contract.commissionPercentage</code> postoji, ali <b>jedan po celom ugovoru</b> — a vlasnik potvrđuje 10 % u jednom periodu, 7 % u drugom</td></tr>
+  <tr><td><b>Verzije cenovnika i razlika među njima</b></td><td><span class="chip warn">nedostaje</span></td><td>stavke danas imaju <code>status</code> i <code>replacesId</code> (gašenje i zamena pojedinačne stavke), ali nema pojma „verzija cenovnika" ni poređenja dve verzije</td></tr>
+  <tr><td><b>Ugovor za subagenta u dve varijante</b></td><td><span class="chip warn">nedostaje</span></td><td>sa prikazanom provizijom i bez nje — dotiče M7, ne samo M3</td></tr>
 </table>
 
 <div class="note warn">
-  <p><b>Zaključak.</b> Jedanaest stavki nedostaje, ali <b>samo jedna je prepravka</b> — boravišna taksa, koja iz zasebne opisne tabele prelazi u običnu doplatu. Sve ostalo je dodavanje. Najveća stavka je „sezona", jer uvodi nov pojam između ugovora i perioda; druga po veličini je domet marže, jer dodaje dva nova stepena u već postojeći <code>MarkupScopeType</code>.</p>
+  <p><b>Zaključak.</b> Petnaest stavki nedostaje, ali <b>samo jedna je prepravka</b> — boravišna taksa, koja iz zasebne opisne tabele prelazi u običnu doplatu. Sve ostalo je dodavanje. Tri su veće od ostalih: <b>sezona</b> (uvodi nov pojam između ugovora i perioda), <b>verzije cenovnika</b> (traži poređenje dve verzije, ne samo zamenu stavke) i <b>domet marže</b> (dva nova stepena u <code>MarkupScopeType</code>). Poslednja, dva ugovora za subagenta, uopšte nije M3 — to je M7.</p>
 </div>
 
 <h2>Redosled rada — predlog</h2>
@@ -739,16 +775,73 @@
   <li><b>Kalendar</b> cena i raspoloživosti.</li>
 </ol>
 
+<h2>Odluke vlasnika (9.9.2026)</h2>
+<p class="lead">Odgovori na pitanja iz prve verzije ovog mockupa. Ovo su sada obavezujuća pravila, ne predlozi.</p>
+
+<table class="plain">
+  <tr><th>Pitanje</th><th>Odluka</th><th>Posledica</th></tr>
+  <tr>
+    <td>Sezone — ime ili broj?</td>
+    <td><b>Vide se datumi.</b></td>
+    <td>Zaglavlje kolone nosi datumske opsege, ne samo broj. Broj ostaje kao kratka oznaka.</td>
+  </tr>
+  <tr>
+    <td>Vikend — koji dani?</td>
+    <td><b>Dani u nedelji kao tagovi</b>, biraju se klikom. (Kod njih je to petak i subota — nedelja se ne računa, jer gost te noći više ne spava.)</td>
+    <td>Nema pojma „vikend" u sistemu — postoji samo skup dana po redu. Ekran proverava da su svi dani pokriveni.</td>
+  </tr>
+  <tr>
+    <td>Redosled obračuna</td>
+    <td><b>Popust → provizija hotela → marža → provizija subagenta.</b></td>
+    <td>Provizija koju hotel daje agenciji skida se sa <i>već umanjene</i> cene. Vidi tabelu u pravilu 3 iznad.</td>
+  </tr>
+  <tr>
+    <td>Provizija hotela</td>
+    <td><b>Razlikuje se po periodu</b> — npr. 10 % u jednom, 7 % u drugom.</td>
+    <td>Novi red u mreži, jedna vrednost po sezoni. Danas model ima <b>jednu</b> proviziju po celom ugovoru.</td>
+  </tr>
+  <tr>
+    <td>Ono što se plaća u hotelu</td>
+    <td><b>Ne ulazi u fakturisanje.</b> Samo obaveštavamo kupca šta plaća na licu mesta.</td>
+    <td>Iznos se unosi i prikazuje, ali nikad ne ulazi u zbir ni na fakturu. Isto za boravišnu taksu kad je naplaćuje hotel.</td>
+  </tr>
+  <tr>
+    <td>Subagentska provizija</td>
+    <td><b>Subagent vidi koliko mu je dodeljeno.</b> Potrebna su <b>dva dokumenta</b>: ugovor <i>sa</i> prikazanom provizijom (za subagenta) i ugovor <i>bez</i> nje (za njegovog kupca).</td>
+    <td>Nije samo prikaz — dva odvojena ispisa istog posla. Dotiče M7 (B2B subagenti) i M10 (dokumenti).</td>
+  </tr>
+  <tr>
+    <td>Popust za 3. i 4. osobu</td>
+    <td><b>Od ulazne hotelske osnovne cene.</b> Važi i za sve ostale osobe.</td>
+    <td>Ne od cene sobe u kojoj gost leži, ne od cene posle drugih popusta.</td>
+  </tr>
+  <tr>
+    <td>Kalendar</td>
+    <td><b>Samo koliko je slobodno.</b></td>
+    <td>Bez „4 od 6".</td>
+  </tr>
+  <tr>
+    <td>Izmena cenovnika usred sezone</td>
+    <td><b>Ceo cenovnik ponovo</b>, ali menja se samo ono što je dobavljač promenio. <b>AI upoređuje sa prethodnom verzijom</b> i koriguje samo razliku.</td>
+    <td>Uvoz mora da zna prethodnu verziju i da pokaže <i>razliku</i>, ne novi spisak od nule. Vidi ispod.</td>
+  </tr>
+</table>
+
+<h3>Izmena cenovnika — šta ta odluka traži</h3>
+<p>Ovo je jedina odluka koja otvara nov ekran, pa je vredi razdvojiti:</p>
+<ul>
+  <li><b>Cenovnik dobija verzije.</b> Nova verzija ne briše staru — stara ostaje, jer rezervacije napravljene po njoj moraju i dalje da se objasne.</li>
+  <li><b>AI poredi novu verziju sa prethodnom</b> i pokazuje <b>samo razlike</b>: „Standard double, sezona 3: <s>61,00</s> → <b>64,00</b>", „nova stavka: doplata za parking", „nestalo: SPO 10 %".</li>
+  <li><b>Čovek potvrđuje razlike, ne ceo cenovnik.</b> Deset izmena u cenovniku od dvesta redova znači deset odluka, ne dvesta.</li>
+  <li><b>Postojeće rezervacije ostaju na staroj ceni.</b> Nova verzija važi od dana potvrde nadalje.</li>
+</ul>
+
 <div class="q">
-  <p><b>Pitanja koja su ostala otvorena</b></p>
+  <p><b>Šta je ostalo otvoreno</b></p>
   <ol>
-    <li><b>Sezone:</b> da li ih imenujete („Predsezona", „Špic") ili su samo brojevi 1–5? Aycon koristi brojeve, Olympic slova A–C, Plava Laguna slova A–N.</li>
-    <li><b>Vikend:</b> da li je podela uvek pet–sub, ili se razlikuje po hotelu? Ako se razlikuje, u ćeliji treba birati dane.</li>
-    <li><b>Redosled obračuna</b> — popust, pa marža, pa provizija? Ovo je najvažnije pitanje na strani, jer svaki drugi redosled daje drugi iznos na fakturi.</li>
-    <li><b>Ono što se plaća u hotelu</b> — da li se na sajtu i u ponudi prikazuje kao „ukupno 640 € <i>+ 21 € u hotelu</i>", ili se pominje samo u sitnom tekstu? Utiče na M8 (sajt) i M10 (fakturisanje).</li>
-    <li><b>Subagentska provizija:</b> kad je stavka označena „bez provizije", da li subagent to <b>vidi</b> na svojoj ponudi, ili vidi samo krajnji iznos?</li>
-    <li><b>Popust „3. i 4. osoba"</b> — da li se to obračunava od cene one sobe u kojoj gost leži, ili od najniže cene u hotelu? U cenovniku piše samo procenat.</li>
-    <li><b>Kalendar:</b> želite li da se u njemu vidi i <b>koliko je prodato</b> (npr. „4 od 6"), ili samo koliko je slobodno?</li>
+    <li><b>Dva ugovora za subagenta</b> — da li je razlika samo u tome što se kolona provizije izostavi, ili je to zaista drugačiji dokument (drugi tekst, drugi potpisnik)? Od toga zavisi da li je posao za M7 ili za M10.</li>
+    <li><b>Provizija hotela</b> — da li se razlikuje samo po periodu, ili i po tipu sobe? U cenovnicima koje sam čitao stoji jedan procenat za ceo hotel, ali vi ste rekli „u nekom periodu 10, u nekom 7".</li>
+    <li><b>Kad hotel promeni cenovnik</b>, da li vam pošalje ceo nov dokument, ili samo mejl sa izmenama? Ovo određuje da li AI poredi dva cenovnika ili čita spisak izmena.</li>
   </ol>
 </div>
 
