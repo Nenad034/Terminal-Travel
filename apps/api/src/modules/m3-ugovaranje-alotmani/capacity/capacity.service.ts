@@ -38,6 +38,8 @@ export interface CapacityGridRow {
   productName: string | null;
   destinationCountry: string | null;
   destinationCity: string | null;
+  /** §6 (v1.22) — `Product.type` vezanog objekta; `null` kad ugovor nema proizvod u M2. */
+  productType: string | null;
   roomType: string;
   allotmentMode: string;
   days: CapacityDayState[];
@@ -82,12 +84,21 @@ export class CapacityService {
       throw new BadRequestException('Raspon je ograničen na 92 dana (jedan kvartal)');
     }
 
+    // §6 (v1.22) — filteri nad proizvodom (destinacija/naziv/vrsta) se rešavaju PRE upita nad
+    // periodima: jedan upit nad `Product` daje skup ugovora koji ih zadovoljavaju, pa se dalje
+    // radi isti upit kao i bez filtera. Period čiji ugovor nema proizvod u M2 tada ispada — što
+    // je tačno, jer o njemu ne znamo ni destinaciju ni naziv, pa ne može ni da zadovolji uslov.
+    const contractIdsByProduct = await this.contractIdsMatchingProductFilters(query);
+    if (contractIdsByProduct !== null && contractIdsByProduct.length === 0) {
+      return { from: isoDay(from), to: isoDay(to), rows: [] };
+    }
+
     const periods = await this.prisma.contractPeriod.findMany({
       where: {
         status: 'ACTIVE',
         stayFrom: { lte: to },
         stayTo: { gte: from },
-        contractId: query.contractId,
+        contractId: contractIdsByProduct === null ? query.contractId : { in: contractIdsByProduct },
         roomType: query.roomType,
         allotmentMode: query.allotmentMode,
         contract: {
@@ -139,6 +150,7 @@ export class CapacityService {
       where: { sourceContractId: { in: periods.map((p) => p.contractId) } },
       select: {
         sourceContractId: true,
+        type: true,
         destinationCountry: true,
         destinationCity: true,
         translations: { where: { languageCode: 'sr' }, select: { name: true }, take: 1 },
@@ -192,6 +204,7 @@ export class CapacityService {
         productName: product?.translations[0]?.name ?? null,
         destinationCountry: product?.destinationCountry ?? null,
         destinationCity: product?.destinationCity ?? null,
+        productType: product?.type ?? null,
         roomType: period.roomType,
         allotmentMode: period.allotmentMode,
         days,
@@ -199,6 +212,46 @@ export class CapacityService {
     });
 
     return { from: isoDay(from), to: isoDay(to), rows };
+  }
+
+  /**
+   * §6 (v1.22) — ugovori čiji vezani `Product` (M2) zadovoljava filtere destinacije, naziva i
+   * vrste proizvoda. Vraća `null` kad nijedan od tih filtera nije postavljen — to je razlika
+   * između „nema filtera, ne sužavaj" i „filter postoji, ali ništa ne odgovara" (prazan niz),
+   * koju bi prazan niz sam po sebi izgubio.
+   *
+   * `contractId` iz upita ulazi u ISTI uslov, umesto da ostane zaseban — inače bi postavljanje
+   * bilo kog filtera nad proizvodom tiho poništilo filter po ugovoru.
+   */
+  private async contractIdsMatchingProductFilters(
+    query: CapacityGridQueryDto,
+  ): Promise<string[] | null> {
+    const hasProductFilter = Boolean(
+      query.destinationCountry ||
+      query.destinationCity ||
+      query.productName ||
+      (query.productType && query.productType.length > 0),
+    );
+    if (!hasProductFilter) return null;
+
+    const products = await this.prisma.product.findMany({
+      where: {
+        sourceContractId: query.contractId ? query.contractId : { not: null },
+        type: query.productType?.length ? { in: query.productType } : undefined,
+        destinationCountry: query.destinationCountry
+          ? { contains: query.destinationCountry, mode: 'insensitive' }
+          : undefined,
+        destinationCity: query.destinationCity
+          ? { contains: query.destinationCity, mode: 'insensitive' }
+          : undefined,
+        translations: query.productName
+          ? { some: { name: { contains: query.productName, mode: 'insensitive' } } }
+          : undefined,
+      },
+      select: { sourceContractId: true },
+    });
+
+    return [...new Set(products.map((p) => p.sourceContractId).filter((id): id is string => !!id))];
   }
 
   // ── Stop-sale ────────────────────────────────────────────────────────────

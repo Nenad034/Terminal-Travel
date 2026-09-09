@@ -157,6 +157,82 @@ describe('CapacityService', () => {
     });
   });
 
+  /**
+   * §6 (v1.22) — filteri nad vezanim proizvodom. Ono što se ovde stvarno proverava nije da
+   * Prisma ume da filtrira, nego DA LI SE UOPŠTE PITA: bez filtera se `product.findMany` ne sme
+   * koristiti za sužavanje (inače bi svaki period bez proizvoda u M2 tiho nestao sa mreže), a sa
+   * filterom mora, i mora da uđe u uslov nad periodima.
+   */
+  describe('grid — filteri nad proizvodom (§6 v1.22)', () => {
+    it('bez filtera nad proizvodom ne sužava po ugovoru — period bez proizvoda ostaje na mreži', async () => {
+      const { service, prisma } = makeService();
+
+      const { rows } = await service.grid(upit as any);
+
+      expect(rows).toHaveLength(1);
+      expect(rows[0].productName).toBeNull();
+      expect(rows[0].productType).toBeNull();
+      // Jedini poziv je onaj koji dopunjava naziv/destinaciju POSLE upita nad periodima.
+      expect(prisma.product.findMany).toHaveBeenCalledTimes(1);
+      expect(prisma.contractPeriod.findMany.mock.calls[0][0].where.contractId).toBeUndefined();
+    });
+
+    it('filter po vrsti proizvoda i destinaciji sužava periode na ugovore koje proizvod nalazi', async () => {
+      const { service, prisma } = makeService();
+      prisma.product.findMany.mockResolvedValueOnce([{ sourceContractId: 'c1' }]);
+
+      await service.grid({
+        ...upit,
+        productType: ['ACCOMMODATION'],
+        destinationCity: 'budva',
+      } as any);
+
+      const productWhere = prisma.product.findMany.mock.calls[0][0].where;
+      expect(productWhere.type).toEqual({ in: ['ACCOMMODATION'] });
+      expect(productWhere.destinationCity).toEqual({ contains: 'budva', mode: 'insensitive' });
+      expect(prisma.contractPeriod.findMany.mock.calls[0][0].where.contractId).toEqual({
+        in: ['c1'],
+      });
+    });
+
+    it('kad nijedan proizvod ne odgovara filteru, mreža je prazna i ne pita za periode', async () => {
+      const { service, prisma } = makeService();
+      prisma.product.findMany.mockResolvedValueOnce([]);
+
+      const { rows } = await service.grid({ ...upit, productName: 'nepostojeći' } as any);
+
+      expect(rows).toEqual([]);
+      expect(prisma.contractPeriod.findMany).not.toHaveBeenCalled();
+    });
+
+    it('filter po ugovoru ostaje na snazi i kad se doda filter nad proizvodom', async () => {
+      const { service, prisma } = makeService();
+      prisma.product.findMany.mockResolvedValueOnce([{ sourceContractId: 'c1' }]);
+
+      await service.grid({ ...upit, contractId: 'c1', productName: 'Splendid' } as any);
+
+      expect(prisma.product.findMany.mock.calls[0][0].where.sourceContractId).toBe('c1');
+    });
+
+    it('vraća productType na redu kad ugovor ima proizvod u M2', async () => {
+      const { service, prisma } = makeService();
+      prisma.product.findMany.mockResolvedValue([
+        {
+          sourceContractId: 'c1',
+          type: 'ACCOMMODATION',
+          destinationCountry: 'Crna Gora',
+          destinationCity: 'Budva',
+          translations: [{ name: 'Hotel Splendid' }],
+        },
+      ]);
+
+      const { rows } = await service.grid(upit as any);
+
+      expect(rows[0].productType).toBe('ACCOMMODATION');
+      expect(rows[0].productName).toBe('Hotel Splendid');
+    });
+  });
+
   describe('stop-sale — §2.8a dve dimenzije obima', () => {
     it('po ugovoru zatvara SVE periode koji pokrivaju te datume', async () => {
       const { service, prisma } = makeService();

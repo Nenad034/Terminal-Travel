@@ -38,6 +38,12 @@ function zaNedeljuDana(): string {
   return d.toISOString().slice(0, 10);
 }
 
+/** Next daje ponovljen query parametar kao `string[]`, jedan kao `string` — oba u niz. */
+function toArray(v: string | string[] | undefined): string[] {
+  if (!v) return [];
+  return Array.isArray(v) ? v : [v];
+}
+
 function poslednjiDanMeseca(): string {
   const d = new Date();
   return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0)).toISOString().slice(0, 10);
@@ -49,6 +55,13 @@ export default async function KapacitetiPage(props: {
     to?: string;
     supplierId?: string;
     allotmentMode?: string;
+    // §4b.3 (dopuna 9.9.2026) — filteri nad proizvodom, prosleđuju se M3 §6 nepromenjeni.
+    // `productType` je jedini koji sme da se ponovi u adresi (traka ikonica, više vrsta
+    // odjednom), pa Next daje `string[]` kad ih je više i `string` kad je jedna.
+    destinationCountry?: string;
+    destinationCity?: string;
+    productName?: string;
+    productType?: string | string[];
   }>;
 }) {
   const searchParams = await props.searchParams;
@@ -75,6 +88,11 @@ export default async function KapacitetiPage(props: {
   const qs = new URLSearchParams({ from, to });
   if (searchParams?.supplierId) qs.set('supplierId', searchParams.supplierId);
   if (searchParams?.allotmentMode) qs.set('allotmentMode', searchParams.allotmentMode);
+  if (searchParams?.destinationCountry)
+    qs.set('destinationCountry', searchParams.destinationCountry);
+  if (searchParams?.destinationCity) qs.set('destinationCity', searchParams.destinationCity);
+  if (searchParams?.productName) qs.set('productName', searchParams.productName);
+  for (const t of toArray(searchParams?.productType)) qs.append('productType', t);
 
   let grid: GridResponse = { from, to, rows: [] };
   let error: string | null = null;

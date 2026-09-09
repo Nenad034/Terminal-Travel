@@ -620,6 +620,73 @@ Dozvola: `M3/contract-period/EDIT`. **Ovaj `PUT` je jedini u M3 koji se stvarno 
 
 ## Kapacitet
 
+### GET /contracting/capacity/grid
+
+Dozvola: `M3/capacity/VIEW`. Mreža kapaciteta po danima (spec §2.8) — ono što crta ekran „Kapaciteti" u panelu (M17 §4b).
+
+**Parametri upita**
+
+| Parametar               | Obavezan | Napomena                                                                                                                      |
+| :---------------------- | :------- | :---------------------------------------------------------------------------------------------------------------------------- |
+| `from`, `to`            | da       | raspon datuma **boravka**, ISO `yyyy-mm-dd`, uključivo na oba kraja; razlika najviše **92 dana** (jedan kvartal), inače `400` |
+| `contractId`            | ne       | UUID jednog ugovora                                                                                                           |
+| `supplierId`            | ne       | UUID dobavljača                                                                                                               |
+| `roomType`              | ne       | tačan naziv tipa sobe (poređenje je tačno, ne „sadrži")                                                                       |
+| `allotmentMode`         | ne       | `FIXED` / `ON_REQUEST` / `CHARTER` / `FIXED_LEASE`                                                                            |
+| `destinationCountry`    | ne       | sadrži, bez obzira na velika slova (v1.22)                                                                                    |
+| `destinationCity`       | ne       | sadrži, bez obzira na velika slova (v1.22)                                                                                    |
+| `productName`           | ne       | naziv objekta iz M2, srpski prevod; sadrži, bez obzira na velika slova (v1.22)                                                |
+| `productType`           | ne       | `ProductType`; **sme da se ponovi** za više vrsta odjednom: `?productType=ACCOMMODATION&productType=FLIGHT` (v1.22)           |
+| `includeDraftContracts` | ne       | `true` uključuje i ugovore u nacrtu; podrazumevano samo `ACTIVE`                                                              |
+
+Poslednja četiri filtera gađaju vezani `Product` (M2, preko `Product.sourceContractId`). Zato period čiji ugovor **nema** proizvod u M2 ispada iz rezultata čim se bilo koji od njih postavi — o takvom periodu ne znamo ni destinaciju ni naziv, pa ne može da zadovolji uslov. Bez tih filtera ostaje na mreži, sa `productName`/`productType`/destinacijom `null`.
+
+**Odgovor `200`:**
+
+```json
+{
+  "from": "2027-07-10",
+  "to": "2027-07-11",
+  "rows": [
+    {
+      "contractId": "9f1c…",
+      "contractPeriodId": "3ab7…",
+      "supplierName": "Hotel Splendid d.o.o.",
+      "productName": "Hotel Splendid",
+      "destinationCountry": "Crna Gora",
+      "destinationCity": "Bečići",
+      "productType": "ACCOMMODATION",
+      "roomType": "DBL",
+      "allotmentMode": "FIXED",
+      "days": [
+        {
+          "date": "2027-07-10",
+          "capacity": 10,
+          "sold": 2,
+          "blocked": 0,
+          "razlika": 8,
+          "zaProdaju": 8,
+          "saleStatus": "OPEN",
+          "stopReason": null
+        },
+        {
+          "date": "2027-07-11",
+          "capacity": 10,
+          "sold": 12,
+          "blocked": 0,
+          "razlika": -2,
+          "zaProdaju": 0,
+          "saleStatus": "OPEN",
+          "stopReason": null
+        }
+      ]
+    }
+  ]
+}
+```
+
+Dva polja koja se lako pomešaju (spec §2.8c): `razlika` je **prikaz** i SME biti negativna (kapacitet smanjen ispod već prodatog), dok je `zaProdaju` **odluka** i nikad nije manja od nule — i jednaka je nuli kad je `saleStatus` `STOP`. `capacity: null` znači da period ne pokriva taj datum, što nije isto što i `0` (popunjeno).
+
 ### GET /contracts/:contractId/periods/:periodId/availability
 
 Dozvola: `M3/contract-period/VIEW`. Koristi ga M5 pri pretrazi.

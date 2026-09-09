@@ -18,6 +18,7 @@ import ProductPreviewCard from './ProductPreviewCard';
 import ProductContactCard from './ProductContactCard';
 import ProcessMapNodeSummaryCard from './ProcessMapNodeSummaryCard';
 import AuditLogEntrySummaryCard from './AuditLogEntrySummaryCard';
+import { punDatum } from '@/lib/datum-sr';
 
 // Dizajn dok. §5b — desni panel, "izdvajanje": sažetak reda kad je centar lista i korisnik
 // klikne red bez ulaska u pun zapis, ili "Povezano" traka kad centar prikazuje pun zapis
@@ -759,12 +760,9 @@ function CalendarDaySummaryCard({
 }: {
   summary: import('./RowSummaryContext').CalendarDaySummary;
 }) {
-  const dateLabel = new Date(`${s.date}T00:00:00`).toLocaleDateString('sr-RS', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  });
+  // 9.9.2026 — bilo `toLocaleDateString('sr-RS', { month: 'long' })`, što daje ĆIRILICU u
+  // latiničnom panelu (vidi `lib/datum-sr.ts` za razlog i zašto `sr-Latn-RS` nije rešenje).
+  const dateLabel = punDatum(s.date);
   const hasAlerts = s.supplierPendingCount > 0 || s.unpaidCount > 0;
   return (
     <div className="flex-1 overflow-y-auto p-3 text-xs">

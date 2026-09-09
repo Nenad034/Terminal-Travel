@@ -1,28 +1,21 @@
 'use client';
 
-import { useRouter, useSearchParams } from 'next/navigation';
 import { useActionState, useState } from 'react';
 import { useFormStatus } from 'react-dom';
 import Link from 'next/link';
 import CapacityGrid, { CapacityLegend, type CapacityGridRow } from './CapacityGrid';
+import CapacityFilterBar from './CapacityFilterBar';
 import { stopSale, reopenSale, createBlock, setCapacityOverride } from './actions';
 import type { CapacityFormState } from './actions';
 import { Button } from '@/components/ui/button';
 import DateField from '@/components/DateField';
+import { punDatum } from '@/lib/datum-sr';
 
-// M17 spec §4b — klijentski deo ekrana: filteri (menjaju URL, isti obrazac kao Izveštaji) i
-// panel dana koji se otvara klikom na ćeliju (§4b.1). Sve radnje idu kroz server akcije, koje
-// zovu prave M3 endpoint-e — nema lokalnog stanja koje bi se razišlo sa bazom.
+// M17 spec §4b — klijentski deo ekrana: filteri (`CapacityFilterBar.tsx`, §4b.3) i panel dana
+// koji se otvara klikom na ćeliju (§4b.1). Sve radnje idu kroz server akcije, koje zovu prave
+// M3 endpoint-e — nema lokalnog stanja koje bi se razišlo sa bazom.
 
 const pocetno: CapacityFormState = { error: null, ok: null };
-
-const MODE_OPTIONS = [
-  { value: '', label: 'sve vrste' },
-  { value: 'FIXED', label: 'Alotman' },
-  { value: 'ON_REQUEST', label: 'Na upit' },
-  { value: 'CHARTER', label: 'Čarter' },
-  { value: 'FIXED_LEASE', label: 'Fiksni zakup' },
-];
 
 const STOP_SOURCE_OPTIONS = [
   { value: 'SUPPLIER_EMAIL', label: 'mejl dobavljača' },
@@ -53,57 +46,11 @@ export default function CapacityScreen({
    * funkcija — ESLint to s pravom odbija, jer bi dva rendera dala dva različita datuma. */
   podrazumevaniRokBlokade: string;
 }) {
-  const router = useRouter();
-  const params = useSearchParams();
   const [izabran, setIzabran] = useState<{ red: CapacityGridRow; datum: string } | null>(null);
-
-  function postavi(kljuc: string, vrednost: string) {
-    const v = new URLSearchParams(params?.toString() ?? '');
-    if (vrednost) v.set(kljuc, vrednost);
-    else v.delete(kljuc);
-    router.push(`/kapaciteti?${v.toString()}`);
-  }
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex flex-wrap items-end gap-3 rounded-lg border border-border bg-panel p-3">
-        <label className="flex flex-col gap-1 text-[11px] uppercase tracking-wide text-ink-faint">
-          Period od
-          <input
-            type="date"
-            defaultValue={from}
-            onChange={(e) => postavi('from', e.target.value)}
-            className="input"
-          />
-        </label>
-        <label className="flex flex-col gap-1 text-[11px] uppercase tracking-wide text-ink-faint">
-          do
-          <input
-            type="date"
-            defaultValue={to}
-            onChange={(e) => postavi('to', e.target.value)}
-            className="input"
-          />
-        </label>
-        <label className="flex flex-col gap-1 text-[11px] uppercase tracking-wide text-ink-faint">
-          Vrsta ugovora
-          <select
-            defaultValue={params?.get('allotmentMode') ?? ''}
-            onChange={(e) => postavi('allotmentMode', e.target.value)}
-            className="input"
-          >
-            {MODE_OPTIONS.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <span className="ml-auto text-[11px] text-ink-faint">
-          {rows.length} {rows.length === 1 ? 'tip smeštaja' : 'tipova smeštaja'} · {dani.length}{' '}
-          dana
-        </span>
-      </div>
+      <CapacityFilterBar from={from} to={to} brojRedova={rows.length} brojDana={dani.length} />
 
       <CapacityGrid
         rows={rows}
@@ -161,15 +108,7 @@ function DanPanel({
           <h2 className="text-sm font-semibold text-ink">
             {red.productName ?? red.supplierName} · {red.roomType}
           </h2>
-          <p className="text-xs text-ink-faint">
-            {new Date(`${datum}T00:00:00Z`).toLocaleDateString('sr-RS', {
-              weekday: 'long',
-              day: 'numeric',
-              month: 'long',
-              year: 'numeric',
-              timeZone: 'UTC',
-            })}
-          </p>
+          <p className="text-xs text-ink-faint">{punDatum(datum)}</p>
         </div>
         <button
           type="button"
@@ -342,13 +281,9 @@ function BlokadaForma({
       </label>
       <label className="flex flex-col gap-1 text-[11px] text-ink-faint">
         Drži do (obavezno — posle ovog datuma se sam oslobađa)
-        <input
-          name="holdUntil"
-          type="date"
-          defaultValue={podrazumevaniRok}
-          className="input"
-          required
-        />
+        {/* 9.9.2026 — bio je goli `<input type="date">`, jedini preostali na ovom ekranu posle
+            prelaska filtera na `DateField` (M17 §4b.3 dopuna, pravilo od 29.8.2026). */}
+        <DateField name="holdUntil" defaultValue={podrazumevaniRok} required />
       </label>
 
       <Posalji label="Blokiraj" />

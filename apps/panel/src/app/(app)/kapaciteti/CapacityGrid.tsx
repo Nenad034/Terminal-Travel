@@ -20,6 +20,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { mesecGodina } from '@/lib/datum-sr';
 
 export interface CapacityDayState {
   date: string;
@@ -39,6 +40,8 @@ export interface CapacityGridRow {
   productName: string | null;
   destinationCountry: string | null;
   destinationCity: string | null;
+  /** M3 §6 v1.22 — `Product.type` vezanog objekta; `null` kad ugovor nema proizvod u M2. */
+  productType: string | null;
   roomType: string;
   allotmentMode: string;
   days: CapacityDayState[];
@@ -55,6 +58,30 @@ const DAN_KRATKO = ['ned', 'pon', 'uto', 'sre', 'čet', 'pet', 'sub'];
 
 function danNedelje(iso: string): number {
   return new Date(`${iso}T00:00:00Z`).getUTCDay();
+}
+
+/**
+ * §4b.1 (dopuna 9.9.2026, vlasnikov nalaz: „u prvom redu gde su navedeni dani u mesecu nemamo
+ * pojma koji je mesec u pitanju") — dani grupisani po mesecu, za red zaglavlja iznad brojeva.
+ * Vraća redom pojavljivanja, jer raspon uvek ide hronološki.
+ */
+function meseci(dani: string[]): { kljuc: string; naziv: string; brojDana: number }[] {
+  const out: { kljuc: string; naziv: string; brojDana: number }[] = [];
+  for (const d of dani) {
+    const kljuc = d.slice(0, 7);
+    const poslednji = out[out.length - 1];
+    if (poslednji && poslednji.kljuc === kljuc) {
+      poslednji.brojDana += 1;
+      continue;
+    }
+    out.push({ kljuc, naziv: mesecGodina(d), brojDana: 1 });
+  }
+  return out;
+}
+
+/** Prvi dan meseca nosi vidljivu levu granicu — prelaz se vidi i kad je naslov odskrolovan levo. */
+function prviUMesecu(iso: string): boolean {
+  return iso.slice(8, 10) === '01';
 }
 
 /** §4b.2 — jedan jezik boje: koliko je ostalo. Stop i prekoračenje su krajnja stanja. */
@@ -171,8 +198,22 @@ export default function CapacityGrid({
     <div className="overflow-x-auto rounded-lg border border-border bg-panel">
       <table className="min-w-full border-collapse text-xs">
         <thead>
+          {/* §4b.1 — red sa mesecom iznad reda sa danima. Bez njega je „1, 2, 3…" dvosmisleno
+              čim raspon pređe granicu meseca, a to je i podrazumevano stanje čim se pomeri. */}
           <tr className="bg-sunken">
-            <th className="sticky left-0 z-10 bg-sunken px-3 py-2 text-left text-[11px] font-medium uppercase tracking-wide text-ink-faint">
+            <th className="sticky left-0 z-10 bg-sunken px-3 pt-2 text-left" />
+            {meseci(dani).map((m) => (
+              <th
+                key={m.kljuc}
+                colSpan={m.brojDana}
+                className="border-l border-border px-1 pt-1 text-left text-[11px] font-semibold capitalize text-ink"
+              >
+                {m.naziv}
+              </th>
+            ))}
+          </tr>
+          <tr className="bg-sunken">
+            <th className="sticky left-0 z-10 bg-sunken px-3 pb-2 text-left text-[11px] font-medium uppercase tracking-wide text-ink-faint">
               Tip smeštaja
             </th>
             {dani.map((d) => {
@@ -181,7 +222,9 @@ export default function CapacityGrid({
               return (
                 <th
                   key={d}
-                  className={`px-1 py-1 text-center font-normal ${vikend ? 'bg-panel2' : ''}`}
+                  className={`px-1 py-1 text-center font-normal ${vikend ? 'bg-panel2' : ''} ${
+                    prviUMesecu(d) ? 'border-l border-border' : ''
+                  }`}
                 >
                   <div className="text-[10px] uppercase text-ink-faint">{DAN_KRATKO[dow]}</div>
                   <div className="text-[11px] font-semibold text-ink">{Number(d.slice(8, 10))}</div>
@@ -277,13 +320,17 @@ function Celija({ stanje, onClick }: { stanje: CapacityDayState; onClick: () => 
   const p = pilula(stanje);
   const dow = danNedelje(stanje.date);
   const vikend = dow === 0 || dow === 6;
+  // Granica meseca se povlači i kroz telo tabele, da linija iz zaglavlja ne prestane na prvom redu.
+  const granica = prviUMesecu(stanje.date) ? 'border-l border-border' : '';
 
   if (stanje.capacity === null) {
-    return <td className={`px-1 py-1 ${vikend ? 'bg-panel2/40' : ''}`} title={p.naslov} />;
+    return (
+      <td className={`px-1 py-1 ${vikend ? 'bg-panel2/40' : ''} ${granica}`} title={p.naslov} />
+    );
   }
 
   return (
-    <td className={`px-1 py-1 text-center ${vikend ? 'bg-panel2/40' : ''}`}>
+    <td className={`px-1 py-1 text-center ${vikend ? 'bg-panel2/40' : ''} ${granica}`}>
       <button
         type="button"
         onClick={onClick}
