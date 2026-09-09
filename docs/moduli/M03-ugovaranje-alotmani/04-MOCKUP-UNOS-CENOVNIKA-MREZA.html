@@ -758,11 +758,12 @@
   <tr><td><b>Boravišna taksa u obračunu, sa uzrasnim stepenima</b></td><td><span class="chip warn">nedostaje</span></td><td><code>TouristTaxInfo</code> je <i>jedan</i> zapis po periodu sa <i>jednim</i> iznosom i samo opisan — ne može da opiše 1,50 / 1,00 / 0,50 po uzrastu, niti da uđe u zbir</td></tr>
   <tr><td><b>Provizija hotela po periodu</b></td><td><span class="chip warn">nedostaje</span></td><td><code>Contract.commissionPercentage</code> postoji, ali <b>jedan po celom ugovoru</b> — a vlasnik potvrđuje 10 % u jednom periodu, 7 % u drugom</td></tr>
   <tr><td><b>Verzije cenovnika i razlika među njima</b></td><td><span class="chip warn">nedostaje</span></td><td>stavke danas imaju <code>status</code> i <code>replacesId</code> (gašenje i zamena pojedinačne stavke), ali nema pojma „verzija cenovnika" ni poređenja dve verzije</td></tr>
-  <tr><td><b>Ugovor za subagenta u dve varijante</b></td><td><span class="chip warn">nedostaje</span></td><td>sa prikazanom provizijom i bez nje — dotiče M7, ne samo M3</td></tr>
+  <tr><td><b>Ugovor za subagenta u dve varijante</b></td><td><span class="chip warn">nedostaje</span></td><td>sa prikazanom provizijom i bez nje — razlika je samo u izostavljenoj koloni, ali dotiče M7, ne M3</td></tr>
+  <tr><td><b>Izmena cenovnika rečima</b></td><td><span class="chip warn">nedostaje</span></td><td>nov ekran i nov AI zadatak; oslanja se na verzije cenovnika, pa ide posle njih</td></tr>
 </table>
 
 <div class="note warn">
-  <p><b>Zaključak.</b> Petnaest stavki nedostaje, ali <b>samo jedna je prepravka</b> — boravišna taksa, koja iz zasebne opisne tabele prelazi u običnu doplatu. Sve ostalo je dodavanje. Tri su veće od ostalih: <b>sezona</b> (uvodi nov pojam između ugovora i perioda), <b>verzije cenovnika</b> (traži poređenje dve verzije, ne samo zamenu stavke) i <b>domet marže</b> (dva nova stepena u <code>MarkupScopeType</code>). Poslednja, dva ugovora za subagenta, uopšte nije M3 — to je M7.</p>
+  <p><b>Zaključak.</b> Šesnaest stavki nedostaje, ali <b>samo jedna je prepravka</b> — boravišna taksa, koja iz zasebne opisne tabele prelazi u običnu doplatu. Sve ostalo je dodavanje. Tri su veće od ostalih: <b>sezona</b> (uvodi nov pojam između ugovora i perioda), <b>verzije cenovnika</b> (traži poređenje dve verzije, ne samo zamenu stavke) i <b>domet marže</b> (dva nova stepena u <code>MarkupScopeType</code>). Poslednja, dva ugovora za subagenta, uopšte nije M3 — to je M7.</p>
 </div>
 
 <h2>Redosled rada — predlog</h2>
@@ -771,9 +772,12 @@
   <li><b>Cene:</b> sezone + mreža + četiri osnove + „za rezervacije od–do". Ovo je jezgro i samo za sebe ima smisla.</li>
   <li><b>Doplate i popusti</b> po ovoj drugoj kartici — uključujući boravišnu taksu koja prelazi iz opisne u obračunsku.</li>
   <li><b>Marža i provizija po stavci</b> (ekran 2b).</li>
-  <li><b>Vikend cene i turnusi.</b></li>
+  <li><b>Dani u nedelji i turnusi</b> (tagovi po redu).</li>
+  <li><b>Verzije cenovnika</b> — nova verzija, poređenje sa prethodnom, potvrda samo razlika.</li>
   <li><b>Kalendar</b> cena i raspoloživosti.</li>
+  <li><b>Izmena rečima</b> (ekran 4) — poslednja, jer se oslanja na sve prethodno: bez verzija nema šta da se uporedi, bez mreže nema šta da se izmeni.</li>
 </ol>
+<p class="sub">Koraci 2–5 su upotrebljivi svaki za sebe. Ako se stane posle koraka 3, cenovnik se već unosi brže nego danas.</p>
 
 <h2>Odluke vlasnika (9.9.2026)</h2>
 <p class="lead">Odgovori na pitanja iz prve verzije ovog mockupa. Ovo su sada obavezujuća pravila, ne predlozi.</p>
@@ -836,13 +840,121 @@
   <li><b>Postojeće rezervacije ostaju na staroj ceni.</b> Nova verzija važi od dana potvrde nadalje.</li>
 </ul>
 
-<div class="q">
-  <p><b>Šta je ostalo otvoreno</b></p>
-  <ol>
-    <li><b>Dva ugovora za subagenta</b> — da li je razlika samo u tome što se kolona provizije izostavi, ili je to zaista drugačiji dokument (drugi tekst, drugi potpisnik)? Od toga zavisi da li je posao za M7 ili za M10.</li>
-    <li><b>Provizija hotela</b> — da li se razlikuje samo po periodu, ili i po tipu sobe? U cenovnicima koje sam čitao stoji jedan procenat za ceo hotel, ali vi ste rekli „u nekom periodu 10, u nekom 7".</li>
-    <li><b>Kad hotel promeni cenovnik</b>, da li vam pošalje ceo nov dokument, ili samo mejl sa izmenama? Ovo određuje da li AI poredi dva cenovnika ili čita spisak izmena.</li>
-  </ol>
+<h3>Dopunske odluke (isti dan, posle drugog kruga pitanja)</h3>
+<table class="plain">
+  <tr><th>Pitanje</th><th>Odluka</th><th>Posledica</th></tr>
+  <tr>
+    <td>Dva ugovora za subagenta</td>
+    <td><b>Razlika je samo u izostavljenoj proviziji.</b></td>
+    <td>Jedan šablon, dva ispisa — nije nov dokument. Posao je mali i pripada M7.</td>
+  </tr>
+  <tr>
+    <td>Provizija hotela</td>
+    <td><b>Za sada samo po periodu</b>, ali se ne isključuje da neki hotel jednom uvede i po tipu sobe.</td>
+    <td>Gradi se po periodu, ali istim obrascem kao marža — tako da se kasnije doda uži nivo bez prepravke. Vidi napomenu ispod.</td>
+  </tr>
+  <tr>
+    <td>Izmena cenovnika</td>
+    <td><b>Hotel šalje ceo nov cenovnik.</b> Uz to: <b>AI agent kome se kaže rečima šta da izmeni</b> kad su izmene male — i za cene i za sve ostale stavke.</td>
+    <td>Dve odvojene sposobnosti, ne jedna. Vidi ekran 4.</td>
+  </tr>
+</table>
+
+<div class="note info">
+  <p><b>Zašto provizija hotela ide „po periodu, ali spremno za uže".</b> Isti obrazac već postoji u sistemu: <code>MarkupRule</code> ne pripada nijednoj tabeli nego nosi <code>scopeType</code> + <code>scopeId</code> — pa se isto pravilo veže na dobavljača, ugovor ili proizvod, bez ijedne izmene u modelu kad se doda nov nivo. Provizija hotela se pravi tako, čak i dok postoji samo jedan nivo. Cena toga danas je nula; cena naknadnog prelaska sa fiksnog polja na obrazac je prepravka svega što je u međuvremenu čita.</p>
+</div>
+
+<!-- ══════════════════ EKRAN 4 ══════════════════ -->
+<h2>Ekran 4 — Izmena cenovnika rečima (AI agent)</h2>
+<p class="lead">„Kad su manje izmene, da mu kažemo šta treba da izmeni, on to izmeni, prikaže, sačeka odobrenje i primeni." — odluka vlasnika, 9.9.2026</p>
+
+<div class="screen">
+  <div class="screen-bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span> localhost:3100/ugovori/…/cenovnik#izmena</div>
+  <div class="screen-body">
+
+    <div class="hdr">
+      <h4>Izmena cenovnika — Lusso Mare by Aycon 2026</h4>
+      <span class="chip info">verzija 3 · na snazi od 12.05.2026</span>
+    </div>
+
+    <p class="sub" style="margin-top:0">Recite šta treba izmeniti. Isto kao da kažete kolegi — ne morate znati nazive polja.</p>
+    <div style="border:1px solid var(--rule-strong);border-radius:8px;background:var(--paper-2);padding:10px 12px;font-family:var(--mono);font-size:12.5px;margin-bottom:10px">
+      Hotel je javio: cene za sezonu 4 i 5 idu gore 5%, rok za otkazivanje alotmana u sezoni 5 je sada 14 dana umesto 10,
+      i uvode doplatu za parking 5 € po sobi po noći koja se plaća na licu mesta. Rani buking 2. krug se ukida.
+      <span style="color:var(--accent)">▌</span>
+    </div>
+    <div class="toolbar" style="margin-bottom:16px">
+      <span class="btn primary">Pripremi izmene</span>
+      <span class="btn ghost">Priloži mejl dobavljača</span>
+    </div>
+
+    <h3 style="margin-top:0">Predlog izmena <span class="chip warn" style="text-transform:none;letter-spacing:0">ništa još nije primenjeno</span></h3>
+
+    <table class="grid" style="min-width:760px">
+      <thead>
+        <tr>
+          <th class="lbl">Šta se menja</th><th>Sada</th><th>Postaje</th><th>Odluka</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="lbl">Budget double · NsD · sezona 4</td>
+          <td><span class="cell">62,00</span></td><td><span class="cell focus">65,10</span></td>
+          <td><span class="chip ok">✓ prihvati</span><span class="chip gray">✕</span></td>
+        </tr>
+        <tr>
+          <td class="lbl">Budget double · NsD · sezona 5</td>
+          <td><span class="cell">65,00</span></td><td><span class="cell focus">68,25</span></td>
+          <td><span class="chip ok">✓ prihvati</span><span class="chip gray">✕</span></td>
+        </tr>
+        <tr>
+          <td class="lbl">Standard double · NsD · sezona 4</td>
+          <td><span class="cell">67,00</span></td><td><span class="cell focus">70,35</span></td>
+          <td><span class="chip ok">✓ prihvati</span><span class="chip gray">✕</span></td>
+        </tr>
+        <tr class="meta-row">
+          <td class="lbl" colspan="4" style="text-align:left">… još 9 cenovnih redova sa istim podizanjem od 5 % &nbsp;<span class="chip">prikaži sve</span></td>
+        </tr>
+        <tr>
+          <td class="lbl">Rok otkazivanja alotmana · sezona 5</td>
+          <td><span class="cell num">10 dana</span></td><td><span class="cell num focus">14 dana</span></td>
+          <td><span class="chip ok">✓ prihvati</span><span class="chip gray">✕</span></td>
+        </tr>
+        <tr>
+          <td class="lbl">Parking <span class="chip ok">nova stavka</span></td>
+          <td class="sub">—</td>
+          <td style="text-align:left"><span class="cell">5,00</span> <span class="chip">po sobi / noć</span> <span class="chip warn">u hotelu</span> <span class="chip gray">opciono</span></td>
+          <td><span class="chip ok">✓ prihvati</span><span class="chip gray">✕</span></td>
+        </tr>
+        <tr>
+          <td class="lbl">Rana rezervacija 2. krug <span class="chip" style="border-color:var(--danger);color:var(--danger);background:var(--danger-bg)">gasi se</span></td>
+          <td><span class="cell pct">−10 %</span></td>
+          <td class="sub">gasi se od 12.05.2026 — postojeće rezervacije ostaju</td>
+          <td><span class="chip ok">✓ prihvati</span><span class="chip gray">✕</span></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="toolbar" style="margin-top:12px">
+      <span class="btn primary">Primeni 15 prihvaćenih izmena</span>
+      <span class="btn">Prihvati sve</span>
+      <span class="btn ghost">Odustani</span>
+    </div>
+
+    <p class="sub" style="margin-top:10px">Posle primene nastaje <b>verzija 4</b>. Verzija 3 ostaje zapisana, zajedno sa rečenicom koja je izmenu tražila i imenom onoga ko je odobrio.</p>
+  </div>
+</div>
+
+<h3>Četiri pravila koja ovaj ekran mora da poštuje</h3>
+<ol>
+  <li><b>AI ne upisuje ništa.</b> On priprema predlog; upis se dešava tek klikom čoveka. Isto pravilo koje već važi za AI uvoz cenovnika (§4.2.4).</li>
+  <li><b>Svaka izmena se odobrava posebno.</b> „Prihvati sve" postoji zbog brzine, ali pojedinačno odbijanje mora biti moguće — inače jedna pogrešno shvaćena rečenica prolazi zajedno sa četrnaest ispravnih.</li>
+  <li><b>Rečenica koja je tražila izmenu se čuva</b> uz rezultat. Bez nje se posle ne može utvrditi da li je AI pogrešno razumeo ili je tako i rečeno — isto kao što se kod uvoza čuva izvorni tekst cenovnika.</li>
+  <li><b>Gašenje, ne brisanje.</b> Ukinuta stavka se gasi sa datumom; rezervacije napravljene dok je važila ostaju objašnjive. Ovo model već ume — <code>status</code> + <code>deactivatedAt</code> + <code>replacesId</code>.</li>
+</ol>
+
+<div class="note info">
+  <p><b>Odnos prema uvozu iz PDF-a.</b> Ovo su dve različite stvari i obe su potrebne: <b>ceo nov cenovnik</b> ide kroz uvoz i poređenje verzija (AI čita dokument), a <b>sitna izmena</b> ide kroz ovaj ekran (AI sluša rečenicu). Zajedničko im je da obe završavaju na istom mestu — spisak razlika koji čovek odobrava red po red.</p>
 </div>
 
 <hr>
