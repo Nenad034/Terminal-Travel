@@ -3,6 +3,8 @@
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M3) i poglavlje 8 (Faza 1)
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje
+**Verzija:** 1.27 — **cenovnik postaje mreža: sezona, dani u nedelji i redosled obračuna** (9.9.2026, vlasnikov nalaz nad ekranom za unos cena: _„Previše zbrkano, nedostaju polja… na osnovu toka treba osmisliti logičan i brz ručni unos"_). Uzrok nije bio model nego **jedinica unosa**: `ContractPeriod` je jedan datumski opseg za jedan tip sobe, pa hotel sa 5 soba i 6 sezona traži 30 zapisa i 30 poseta ekranu. Provera nad **58 stvarnih cenovnika** iz `Primeri cenovnika/` (Aycon PDF mreža, Plava Laguna PDF spisak, Solvex Excel) pokazuje da nijedan dobavljač tako ne piše cenovnik — svuda su **tipovi soba redovi, sezone kolone**. Novo poglavlje **2.11**: nov zapis `Season` (imenovana sezona sa **više** datumskih opsega — Aycon sezona 1 je 01.04–31.05 _i_ 01.10–31.10); `price_basis` dobija `PER_PERSON_PER_STAY`/`PER_ROOM_PER_STAY` (Plava Laguna doslovno nosi `Rate Base = STAY`, a doplate te četiri osnove imaju od v1.13 — razlika je bila nenamerna); **dani u nedelji kao tagovi** na cenovnom redu i dani dolaska/odlaska na periodu (turnusi), uz proveru da je svaki dan pokriven tačno jednom; **`booking_from`/`booking_to` na svakoj cenovnoj stavci** (vlasnikov zahtev — do sada samo na `PricelistOffer`); **provizija hotela po periodu** kroz scope obrazac kao `MarkupRule`, jer je `Contract.commission_percentage` jedan po ugovoru a vlasnik potvrđuje 10 % u jednom periodu i 7 % u drugom; **redosled obračuna u pet koraka** — popust → provizija hotela → marža → provizija subagenta (vlasnikova odluka, zatvara talas-2 stavku o interakciji `commission_model` sa `MarkupRule`); popust po osobi se računa **od ulazne hotelske cene**; marža i subagentska provizija dobijaju domet do **pojedinačne stavke** (marža već ume procenat _i_ iznos istovremeno, nedostajao je samo domet); **boravišna taksa prelazi iz opisnog `TouristTaxInfo` u `AncillaryService`** — jedina prepravka u celoj dopuni, jer opisni zapis ne može da opiše ni jedan pročitan cenovnik (Aycon ima tri uzrasna stepena), a ono što se plaća u hotelu se prikazuje ali **ne ulazi u fakturisanje**; doplata dobija domet i `applies_from`/`applies_to`; **`PricelistVersion`** — nova verzija ne briše staru, AI poredi sa prethodnom i čovek potvrđuje **samo razlike**; tip sobe se bira iz M2 liste umesto da se kuca. Novo poglavlje **4.8** — **izmena cenovnika rečima**: drugi ulaz u isti tok (ceo nov cenovnik ide kroz 4.2, sitna izmena kroz 4.8), `PROPOSE_THEN_APPROVE`, četiri ograde od kojih je najvažnija da se **rečenica koja je izmenu tražila čuva uz rezultat**. Kapacitet se namerno **ne prikazuje u cenovniku** (vlasnikova odluka — ide po sopstvenim datumima); cena i kapacitet se sreću samo u kalendaru iz **2.11o**. Mockup: `04-MOCKUP-UNOS-CENOVNIKA-MREZA.html`. Ekrani: M17 §6d. **Čisto specifikaciona dopuna, bez koda u ovom prolazu.**
+
 **Verzija:** 1.26 — **AI uvoz cenovnika dobija kod i ekran** (9.9.2026, na zahtev vlasnika: _„ne vidim gde se cene unose ručno odnosno uz pomoć AI agenta"_). Poglavlje 4.2 je od v1.7 stajalo kao specifikacija bez implementacije — uvoz je nastajao u statusu `PROCESSING` i tu ostajao. Novo poglavlje **4.2.6**: prepreka „nema odluke o AI provajderu" više ne postoji (M15 ima radni Anthropic klijent), ali skladište fajlova i dalje ne postoji, pa prvi prolaz uvozi **nalepljen tekst** umesto fajla — dobavljači cenovnike najčešće šalju mejlom. `PricelistImport` dobija `source_text` (tačno jedno od njega i `source_file_url`), nov format `PASTED_TEXT`, i nov status **`FAILED`** sa `failure_reason` — postojeći `REJECTED` znači „čovek je odbio", a neuspela ekstrakcija je nešto treće. Model radi **samo čitanje tabele iz teksta**, i to kroz alat sa zadatom šemom; poklapanje hotela (4.2.3), upis u `ContractPeriod`/`RateLine` (4.2.4) i profil dobavljača (4.2.5) ostaju **deterministički kod**. Namerno nepokriveno i zabeleženo: PDF/Excel učitavanje i OCR (čekaju odluku o skladištu) i `structure_signature`. Nov agent `PRICELIST_IMPORT_AGENT` (M15 §4). Ekran: M17 §6c.
 
 **Verzija:** 1.25 — **cenovna stavka se konačno može ispraviti i ugasiti** (9.9.2026, posle vlasnikovog pitanja gde se cene unose ručno). Sve četiri cenovne stavke (`RateLine`, `CancellationRule`, `PricelistOffer`, `AncillaryService`) pisale su se endpoint-om koji **uvek kreira nov red** — bez `PATCH` i bez `DELETE`. Pogrešno ukucana cena se nije mogla povući, a pretraga od **svake** cenovne linije pravi zasebnu ponudu, pa je pogrešna cena ostajala prodajna uporedo sa ispravnom. Novo poglavlje **2.4c**: ispravka je **gašenje stare i upis nove**, nikad prepisivanje vrednosti (vlasnikova odluka — cena je finansijski podatak i posle izmene mora ostati odgovor na pitanje po kojoj je ceni nešto prodato). Isti obrazac koji `ContractPeriod` koristi od v1.18: `status` + `deactivated_by`/`deactivated_at`, plus `replaces_id` koji novu stavku veže za staru. **Pretraga i prodaja od sada gledaju isključivo `ACTIVE`** — to je jedina izmena koja stvarno zaustavlja pogrešnu cenu. Gašenje ne traži proveru „da li je nešto prodato": stavka rezervacije nosi svoju cenovnu liniju kao snimak (M5 §6), pa se prošlost ne dira. Ispravka je jedan poziv u jednoj transakciji, da prekid između dva ne ostavi period bez ijedne važeće cene.
@@ -704,6 +706,194 @@ M3 **čuva pravilo**; sam redosled se primenjuje pri sastavljanju ponude u M5, j
 
 ---
 
+### 2.11 Cenovnik kao mreža — sezona, dani u nedelji i redosled obračuna (dopuna v1.27, 9.9.2026, na zahtev vlasnika)
+
+Vlasnikov nalaz nad postojećim ekranom za unos cena: _„Previše zbrkano, nedostaju polja… na osnovu toka treba osmisliti logičan i brz ručni unos."_
+
+Uzrok nije bio u modelu nego u **jedinici unosa**. `ContractPeriod` je jedan datumski opseg za jedan tip sobe, pa hotel sa 5 tipova soba i 6 sezona traži 30 zapisa i 30 poseta ekranu. Provera nad **58 stvarnih cenovnika** iz `Primeri cenovnika/` pokazuje da nijedan dobavljač tako ne piše cenovnik — sva tri pročitana oblika (Aycon PDF mreža, Plava Laguna PDF spisak, Solvex Excel) imaju **tipove soba kao redove i sezone kao kolone**.
+
+Mockup ekrana: `04-MOCKUP-UNOS-CENOVNIKA-MREZA.html` (isti folder). Ekrani u panelu: M17 §6d.
+
+#### 2.11a Šta su stvarni cenovnici pokazali (dokaz, ne pretpostavka)
+
+| Nalaz                                                          | Gde je viđen                                                                                 |
+| -------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| Sezona ima **više datumskih opsega**, ne jedan                  | Aycon: sezona 1 = 01.04–31.05 **i** 01.10–31.10; Olympic/PRI: sezona A = 12.12–19.12 **i** 14.03–21.03 |
+| Osnova cene se **razlikuje od reda do reda** u istom cenovniku | Aycon: sve sobe „per person per day", Deluxe suite „per room per day"                        |
+| Red je **kombinacija popunjenosti**, ne samo tip sobe          | Solvex: „1 Adult + 1 Chd (07-11,99)", „2 Adult + 1 Chd (02-6,99)"                            |
+| Cena **po boravku**, ne po noći                                 | Plava Laguna: kolona `Rate Base` = `STAY`                                                     |
+| **Dani u nedelji** za dolazak/odlazak                           | Plava Laguna: kolone `S M T W T F S`                                                          |
+| Rok za rezervisanje **≠** period boravka                        | Aycon: „bookings made till 31.12.2025 for period of stay 01.04–30.10.2026"                   |
+
+#### 2.11b `Season` — imenovana sezona sa više opsega
+
+Nov zapis između `Contract` i `ContractPeriod`. Ne zamenjuje `ContractPeriod` — grupiše ga.
+
+| Polje         | Tip                | Napomena                                                        |
+| ------------- | ------------------ | --------------------------------------------------------------- |
+| `id`          | uuid               |                                                                 |
+| `contract_id` | uuid               |                                                                 |
+| `code`        | string             | kratka oznaka iz cenovnika: `1`, `A`, `Špic`                     |
+| `label`       | string?            | opisno ime, opciono                                             |
+| `rank`        | int                | redosled kolona na ekranu                                       |
+| `ranges`      | `SeasonRange[]`    | **najmanje jedan** opseg (`date_from`, `date_to`)                |
+
+Pravila:
+
+- Opsezi **jedne** sezone se međusobno ne smeju preklapati; opsezi **različitih** sezona istog ugovora takođe ne smeju — inače jedan datum pripada dvema kolonama i cena postaje dvosmislena.
+- `ContractPeriod` dobija `season_id` (nullable). Period bez sezone i dalje radi — postojeći podaci ostaju ispravni, ovo je dodavanje.
+- **Izuzetak po tipu sobe:** ako jedan tip sobe ima drugačiji raspored datuma, njegovi periodi ostaju bez `season_id` i prikazuju se u zasebnom redu sezona iznad svoje grupe. Vlasnikova odluka 9.9.2026: sezone su kolone, ali izuzetak mora biti moguć.
+- Na ekranu se u zaglavlju kolone **prikazuju datumi**, ne samo oznaka (vlasnikova odluka).
+
+#### 2.11c `price_basis` dobija četiri vrednosti umesto dve
+
+`PriceBasis` danas ima `PER_ROOM_PER_NIGHT` i `PER_PERSON_PER_NIGHT`. Dodaju se:
+
+- `PER_PERSON_PER_STAY`
+- `PER_ROOM_PER_STAY`
+
+Time se izjednačava sa `AncillaryPriceBasis`, koji ta četiri para ima od v1.13. Razlika je bila nenamerna: doplata je od v1.13 mogla biti „po sobi i periodu", a sama cena nije — iako Plava Laguna cenovnik doslovno nosi `Rate Base = STAY`.
+
+Osnova ostaje **osobina reda**, ne ugovora ni perioda — jer Aycon cenovnik u istom dokumentu ima obe.
+
+#### 2.11d Dani u nedelji na cenovnom redu
+
+`RateLine` dobija `valid_weekdays: int[]` (1–7, prazan niz = svi dani).
+
+Vlasnikova odluka 9.9.2026: **dani se biraju kao tagovi, ne kao fiksna podela „radni dani / vikend"** — jer „vikend" nije isti u svakom hotelu (kod njih je to petak i subota; nedelja se ne računa, gost te noći više ne spava).
+
+Posledice:
+
+- Vikend cena je **drugi cenovni red sa drugim danima**, ne nova sezona. Sezona ostaje 5, ne postaje 10.
+- Provera pri čuvanju: unutar iste kombinacije (period × tip sobe × usluga × popunjenost) **svi dani moraju biti pokriveni tačno jednom**. Nepokriven dan bi tiho nestao iz pretrage; dvaput pokriven dan daje dve cene za isti datum.
+- Time se zatvara i deo talas-2 stavke „rok povrata ograničen na određene dane u nedelji" — isti mehanizam, drugo polje (2.11e).
+
+`ContractPeriod` dobija `arrival_weekdays: int[]` i `departure_weekdays: int[]` (turnusi — subota–subota), plus `allowed_stay_nights: int[]` (7 / 10 / 14). Prazno = bez ograničenja. Provera je M5 posao pri sastavljanju ponude, M3 samo čuva pravilo.
+
+#### 2.11e „Za rezervacije od…do" na svakoj cenovnoj stavci
+
+Vlasnikov zahtev: _„sve stavke cenovnika treba da imaju i ograničenje za rezervacije od…do"_.
+
+Danas to postoji samo na `PricelistOffer` (`booking_from`/`booking_to`) i na `ContractPeriod` (2.3e, ali tamo znači kada kapacitet sme da se troši). Dodaje se `booking_from`/`booking_to` (oba nullable) na:
+
+- `RateLine`
+- `AncillaryService`
+- `CancellationRule`
+
+Prazno = bez ograničenja. Kad je popunjeno, stavka učestvuje u obračunu **samo ako datum nastanka rezervacije pada u prozor** — isto pravilo koje 2.3e već primenjuje na kapacitet.
+
+#### 2.11f Provizija koju hotel odobrava agenciji — po periodu, ne po ugovoru
+
+`Contract.commission_percentage` (v1.12) je **jedna vrednost za ceo ugovor**. Vlasnik 9.9.2026: _„hotel nam odobrava proviziju 10% u nekom periodu ili 7 u nekom drugom periodu"_.
+
+Rešava se **istim obrascem kao `MarkupRule`** — zaseban zapis sa dometom, ne polje u tabeli:
+
+| Polje         | Tip                          | Napomena                                                  |
+| ------------- | ---------------------------- | --------------------------------------------------------- |
+| `scope_type`  | `SupplierCommissionScopeType` | `M3_CONTRACT` \| `M3_SEASON` \| `M3_CONTRACT_PERIOD`      |
+| `scope_id`    | uuid                         |                                                            |
+| `percentage`  | decimal?                     |                                                            |
+| `fixed_amount`| int?                         | najmanja jedinica valute                                  |
+| `active_from` / `active_to` | date?          |                                                            |
+
+Uže pravilo nadjačava šire. **Zašto obrazac a ne polje:** vlasnik je na pitanje da li se provizija razlikuje i po tipu sobe odgovorio _„za sada samo po periodu, ali ko zna da li će nekada neki hotel i po tipu sobe to da primeni"_. Sa obrascem, taj dan je dodavanje jedne vrednosti u enum; sa poljem, bila bi prepravka svega što ga čita. Cena obrasca danas je nula.
+
+`Contract.commission_percentage` ostaje kao podrazumevana vrednost kad nema nijednog užeg pravila — postojeći podaci se ne diraju.
+
+#### 2.11g Redosled obračuna — pet koraka, ovim redom
+
+**Vlasnikova odluka 9.9.2026.** Ovim se zatvara talas-2 stavka „Interakcija `commission_model` sa M5 `MarkupRule` — da li se markup računa na bruto ili neto cenu".
+
+| # | Korak                                            | Primer |
+| - | ------------------------------------------------ | ------ |
+| 1 | Ulazna hotelska cena                             | 55,00  |
+| 2 | **Popust / akcija** (rani buking, SPO…) −15 %    | 46,75  |
+| 3 | **Provizija koju hotel odobrava nama** −10 %     | 42,08  |
+| 4 | **Naša marža** +18 %                             | 49,65 ← prodajna cena |
+| 5 | **Provizija subagenta** 8 % od prodajne          | 3,97 (njegova zarada, ne dodatak na cenu) |
+
+Redosled nije proizvoljan: hotelska provizija se skida sa **već umanjene** cene. Da se skida sa pune, agencija bi obračunala veći odbitak nego što joj hotel stvarno daje, i to bi se pojavilo kao razlika tek pri plaćanju dobavljaču.
+
+Izvršenje ostaje u M5 (2.10g) — M3 čuva pravilo, M5 ga primenjuje. M5 spec §2.1 se dopunjuje u istom prolazu.
+
+#### 2.11h Osnovica popusta po osobi
+
+**Vlasnikova odluka 9.9.2026:** popust za 3. i 4. osobu — i svaki drugi popust po osobi — računa se **od ulazne hotelske osnovne cene**.
+
+Ne od cene sobe u kojoj gost leži i ne od cene posle drugih popusta. U cenovnicima stoji samo procenat (Aycon: 0–11,99 → −100 %, 12+ → −50 %), pa bi bez ovog pravila isti cenovnik davao različite iznose zavisno od implementacije.
+
+#### 2.11i Marža i subagentska provizija po pojedinačnoj stavci
+
+Vlasnikov zahtev: _„treba i mogućnost da se svaka stavka maržira u % ili iznosu ili oba u isto vreme"_ i _„ovu doplatu/popust — odobri subagentsku proviziju u % ili iznosu"_.
+
+**Marža:** `MarkupRule` već nosi i `percentage` i `fixed_amount` i oni se **sabiraju** (12 % + 5,00 na 295,00 = 335,40); popunjeno samo jedno znači da je drugo nula. Nedostaje **domet** — `MarkupScopeType` ide do `M3_CONTRACT_PERIOD`, ne do stavke. Dodaju se `M3_RATE_LINE` i `M3_ANCILLARY_SERVICE`.
+
+**Subagentska provizija:** danas postoji samo `Subagent.commission_percentage` i stepenice po prometu (M7). Dodaje se `SubagentCommissionOverride` sa istim scope obrascem, i posebnom vrednošću **„bez provizije"** — potrebna za stavke poput boravišne takse ili doplate koja se plaća u hotelu.
+
+Pravilo prikaza: stavka bez unosa nasleđuje podrazumevano za ugovor; kad se unese, red se **označava kao izuzetak** — inače se kasnije ne zna zašto jedna stavka odstupa.
+
+#### 2.11j Boravišna taksa prelazi iz opisnog podatka u doplatu
+
+**Ovo je jedina prepravka u celoj dopuni.** Sve ostalo je dodavanje.
+
+`TouristTaxInfo` (v1.12, poglavlje 2.7) je **jedan zapis po periodu, jedan iznos, isključivo informativan**. Ne može da opiše ni jedan jedini pročitan cenovnik: Aycon ima **tri uzrasna stepena** (odrasli 1,50 / 12–17,99 → 1,00 / 0–11,99 → 0,50).
+
+Vlasnik 9.9.2026: _„Boravišna taksa je takođe vrsta doplate i ne treba je samo opisno prikazati već treba da uđe u obračun ako je naplaćujemo u agenciji ili na licu mesta (tada se navede i iznos ali ne ulazi u obračun)."_
+
+Taksa se od ove verzije vodi kao `AncillaryService` — struktura koja sve traženo već ima (`is_mandatory`, `payable`, četiri osnove, uzrasni opseg). Ponašanje:
+
+- `payable = AGENCY` → **ulazi u obračun**, u ukupnu cenu i na fakturu.
+- `payable = ON_SITE` → **ne ulazi u obračun i ne utiče na fakturisanje**, ali se iznos unosi i **obavezno prikazuje** gostu na ponudi, u ugovoru (M20) i na vaučeru (M5 §6) — vlasnikova formulacija: _„samo obaveštavamo kupca šta treba da plati na licu mesta"_.
+
+Isto pravilo važi za **svaku** doplatu, ne samo za taksu: kolona „plaća se" nije napomena nego prekidač koji odlučuje ulazi li stavka u zbir.
+
+`TouristTaxInfo` se **ne briše** — ostaje za postojeće zapise i za slučaj kad je poznata samo napomena bez iznosa. Nov unos ide kroz `AncillaryService`. Migracija postojećih zapisa je jednokratna i opisana u izlaznom kriterijumu.
+
+#### 2.11k Doplata koja važi za više tipova soba
+
+`AncillaryService` je vezan za **jedan** `contract_period_id`, pa se doplata koja važi za ceo hotel danas unosi onoliko puta koliko ima perioda. Vlasnik traži **obe mogućnosti**: _„popusti i doplate mogu da budu različiti po tipovima smeštaja, a opet mogu da budu i jednaki"_.
+
+Dodaje se isti scope obrazac: `scope_type` = `M3_CONTRACT` \| `M3_SEASON` \| `M3_CONTRACT_PERIOD`, uz opcionu listu `applies_to_room_types: string[]` (prazno = svi). Postojeće veze na period ostaju važeće kao najuži domet.
+
+U istom prolazu se zatvara talas-2 stavka **„obavezni datumski vezani doplati"** (npr. Novogodišnja večera): `AncillaryService` dobija `applies_from`/`applies_to` — datumski opseg te doplate, različit od `stay_from`/`stay_to` celog perioda.
+
+#### 2.11l Verzije cenovnika
+
+Vlasnik na pitanje šta se radi kad dobavljač pošalje izmenu: _„Moramo sve iz početka, menjamo ono što su oni promenili. AI agent može da vidi šta je promenjeno pa samo to da koriguje."_
+
+Danas postoji gašenje i zamena **pojedinačne** stavke (2.4c: `status` + `replaces_id`), ali ne i pojam verzije cenovnika ni poređenje dve verzije.
+
+Nov zapis `PricelistVersion` (`contract_id`, `version_no`, `effective_from`, `created_by`, `source_import_id?`, `note?`). Pravila:
+
+- Nova verzija **ne briše staru** — stara ostaje, jer rezervacije napravljene po njoj moraju i dalje da se objasne.
+- Pri uvozu novog cenovnika sistem **poredi sa prethodnom verzijom** i prikazuje **samo razlike**: izmenjena vrednost (stara → nova), nova stavka, ugašena stavka.
+- **Čovek potvrđuje razlike, ne ceo cenovnik.** Deset izmena u cenovniku od dvesta redova znači deset odluka, ne dvesta.
+- Postojeće rezervacije ostaju na staroj ceni; nova verzija važi od `effective_from` nadalje. Stavka rezervacije ionako nosi svoju cenovnu liniju kao snimak (M5 §6).
+
+#### 2.11m Tip sobe kao šifarnik
+
+`ContractPeriod.room_type` je slobodan tekst; u šemi stoji „konvencija ka M2 `attributes.room_types[].code`, **ne strogi FK**". Posledica: „DBL" se kuca ručno pri svakom unosu, multiselect nije moguć bez šifarnika, a AI poklapanje je teže nego što mora biti.
+
+Ekran za unos od ove verzije **bira tip sobe iz M2 liste** za taj objekat, uz mogućnost unosa nove vrednosti (dobavljač sme imati tip koji katalog još nema). Polje ostaje string radi kompatibilnosti — menja se način unosa, ne tip podatka. Strogi FK ostaje otvoren dok se ne vidi koliko dobavljača stvarno uvodi tipove van kataloga.
+
+#### 2.11n Šta ova dopuna NE menja
+
+- `ContractPeriod` ostaje nosilac kapaciteta. Vlasnikova odluka: **kapacitet se ne prikazuje u cenovniku** jer nije vezan za sezone — može biti definisan na potpuno druge datume. Cena i kapacitet se sreću samo u pregledu iz 2.11o.
+- Pravilo iz 2.4c ostaje: ispravka cene je **gašenje pa nova stavka**, nikad prepisivanje.
+- Pravilo iz 4.2.4 ostaje: nijedan red se ne upisuje automatski, bez obzira na pouzdanost.
+
+#### 2.11o Kalendar cena i raspoloživosti (pregled, ne unos)
+
+Vlasnikova ideja 9.9.2026: _„jedan kalendar sa mesecima za neki hotel za neki tip smeštaja za neki period pa mi vidimo cenu u kalendaru"_.
+
+Biraju se hotel, tip sobe i **sastav gostiju** (npr. 2 odrasle + 1 dete od 8 godina). Kalendar za svaki dan prikazuje cenu za taj sastav i **koliko je jedinica slobodno** (vlasnikova odluka: samo slobodno, ne „4 od 6").
+
+Vrednost nije u prikazu nego u tome što se **greška vidi golim okom**: pogrešno unet datumski opseg proizvodi skok ili rupu u nizu, što se u mreži ne primeti. Ujedno je to jedino mesto gde se cena i kapacitet sreću, a da se kapacitet ne meša u sam cenovnik.
+
+Ekran: M17 §6d.4. Čita postojeće endpoint-e (`/capacity/grid` + cenovnik), ne uvodi nov zapis.
+
+---
+
 ## 3. Veza sa M2 (Katalog)
 
 Kad se ugovori nova sezona/tip sobe, kreira se (ili se ažurira) odgovarajući `Product` u M2 sa `source_type = CONTRACTED` i `source_contract_id` koji pokazuje na ovaj `Contract`. M2 ne duplira cenu ni kapacitet — to uvek čita iz M3 preko API-ja M3, u trenutku kad je to potrebno (pretraga, rezervacija).
@@ -897,6 +1087,45 @@ Jedan kratak dnevni pregled, po hotelu: koje su se kapacitete promenile, ko ih j
 
 ---
 
+### 4.8 Izmena cenovnika rečima (dopuna v1.27, 9.9.2026, na zahtev vlasnika)
+
+Vlasnik: _„omogućio bih da AI agent ima sposobnost da mu kažemo šta treba da izmeni kada su manje izmene (ne govorim samo o cenama već i o drugim stavkama cenovnika), da to izmeni, prikaže, sačeka naše odobrenje i primeni izmene."_
+
+Ovo je **drugi ulaz u isti tok**, ne zamena za 4.2. Podela:
+
+| Situacija                              | Put                                                                 |
+| -------------------------------------- | ------------------------------------------------------------------- |
+| Dobavljač pošalje **ceo nov cenovnik** | 4.2 — AI čita dokument, poredi sa prethodnom verzijom (2.11l)      |
+| **Sitna izmena** javljena mejlom/telefonom | 4.8 — AI sluša rečenicu                                          |
+
+Oba završavaju na istom mestu: **spisak razlika koji čovek odobrava red po red**.
+
+Nivo: **`PROPOSE_THEN_APPROVE`** (M15 §4), nikad `AUTONOMOUS`. Nova akcija `pricelist.edit_from_instruction`.
+
+#### 4.8.1 Tok
+
+1. Čovek ukuca rečenicu: _„cene za sezonu 4 i 5 idu gore 5%, rok za otkazivanje alotmana u sezoni 5 je sada 14 dana umesto 10, uvode doplatu za parking 5 € po sobi po noći koja se plaća na licu mesta, rani buking 2. krug se ukida."_
+2. Model prevodi rečenicu u **spisak predloženih izmena** kroz alat sa zadatom šemom — isti obrazac kao 4.2.6 i 4.4. Model ne piše u bazu; vraća strukturu.
+3. Deterministički kod razrešava na koje tačno zapise se izmena odnosi i **računa nove vrednosti** (procenat se primenjuje kodom, ne modelom — M15 princip: kod radi najviše posla).
+4. Ekran prikazuje razlike: *sada 62,00 → postaje 65,10*, nova stavka, ugašena stavka.
+5. Čovek odobrava **red po red** (uz „prihvati sve" radi brzine).
+6. Primena pravi **novu verziju cenovnika** (2.11l) u jednoj transakciji.
+
+#### 4.8.2 Četiri obavezne ograde
+
+1. **AI ne upisuje ništa.** Upis se dešava isključivo klikom čoveka — isto pravilo koje 4.2.4 već propisuje za uvoz.
+2. **Svaka izmena se odobrava posebno.** „Prihvati sve" postoji zbog brzine, ali pojedinačno odbijanje mora biti moguće — inače jedna pogrešno shvaćena rečenica prolazi zajedno sa četrnaest ispravnih.
+3. **Rečenica koja je izmenu tražila se čuva uz rezultat** (`instruction_text` na `PricelistVersion`). Bez nje se ne može utvrditi da li je model pogrešno razumeo ili je tako i rečeno — isti razlog zbog kog 4.2.6 čuva `source_text`.
+4. **Gašenje, ne brisanje.** Ukinuta stavka se gasi sa datumom (2.4c); rezervacije napravljene dok je važila ostaju objašnjive.
+
+Uz to važe ograde iz 4.4 koje nisu specifične za kapacitet: agent **nema sopstvene dozvole** nego radi pravima korisnika (ko ne sme da menja cene ne može ni preko agenta), pregled pre izvršenja je **prebrojan** a ne opisan, nejasan zahtev se **pita**, nikad ne pogađa, i trag nosi i agenta i čoveka.
+
+#### 4.8.3 Šta je van obima prvog prolaza
+
+Automatsko čitanje mejla dobavljača — blokirano dok M22 ne dovuče poštu, isto kao 4.6. Do tada se sadržaj mejla **nalepi** u polje, kao i kod 4.2.6. Sadržaj mejla je i tada **podatak, nikad instrukcija**.
+
+---
+
 ## 5. Dozvole (registruju se u M1 katalog dozvola)
 
 | Dozvola                                                                                         | Podrazumevana dodela po ulozi                                                                                                                                                                             |
@@ -1021,10 +1250,32 @@ Prefiks: `/api/v1/contracting`
 - [x] API dokumentacija (`docs/api/M3-ugovaranje-alotmani.md`) postoji sa stvarnim primerima zahteva/odgovora za svaki endpoint iz poglavlja 6 — obavezna stavka po CLAUDE.md. _(napisana 3.9.2026; odgovori uhvaćeni stvarnim pozivima nad lokalnom bazom, osim `offers` i `ancillary-services` gde u bazi nema redova pa su primeri sastavljeni iz modela i tako i označeni u dokumentu)_
 - [x] Objašnjenje za vlasnika (`00-OBJASNJENJE-M3-ZA-VLASNIKA.md`) postoji — obavezna stavka po CLAUDE.md. _(napisano 3.9.2026)_
 
+**Dopuna v1.27 (poglavlja 2.11 i 4.8):**
+
+- [ ] **Sezona sa više opsega (2.11b):** sezona sa dva odvojena opsega (01.04–31.05 i 01.10–31.10) je sačuvana kao **jedna** kolona, a pokušaj da se opsezi dve sezone istog ugovora preklope je odbijen.
+- [ ] **Cena po boravku (2.11c):** cenovni red sa `PER_ROOM_PER_STAY` je sačuvan i M5 ga u ponudi računa jednom za ceo boravak, ne po noći.
+- [ ] **Dani u nedelji (2.11d):** dva reda iste kombinacije, jedan sa ned–čet i jedan sa pet–sub, prolaze; red koji ostavlja nepokriven dan **ili** pokriva isti dan dvaput je odbijen sa jasnim razlogom.
+- [ ] **Prozor rezervisanja na stavci (2.11e):** cenovna stavka sa `booking_to = 31.12.2025` ne učestvuje u ponudi napravljenoj 5.1.2026, a učestvuje u onoj od 20.12.2025.
+- [ ] **Provizija hotela po periodu (2.11f):** ugovor sa 10 % u sezoni 1 i 7 % u sezoni 3 daje različit obračun za iste datume boravka u te dve sezone; kad užeg pravila nema, koristi se `Contract.commission_percentage`.
+- [ ] **Redosled obračuna (2.11g):** ulazna 55,00 sa popustom 15 %, hotelskom provizijom 10 % i maržom 18 % daje prodajnu **49,65** — izmereno, ne procenjeno; drugi redosled daje drugi broj i test to hvata.
+- [ ] **Osnovica popusta (2.11h):** popust za treću osobu se računa od ulazne hotelske osnovne cene, ne od cene sobe u kojoj gost leži.
+- [ ] **Marža po stavci (2.11i):** pravilo sa `percentage = 12` **i** `fixed_amount = 500` na 295,00 daje 335,40 (sabiraju se); stavka bez sopstvenog pravila nasleđuje ugovorno.
+- [ ] **Bez provizije subagentu (2.11i):** stavka označena „bez provizije" ne ulazi u obračun subagentove zarade, a i dalje ulazi u cenu za gosta.
+- [ ] **Taksa u obračunu (2.11j):** taksa sa `payable = AGENCY` ulazi u ukupnu cenu i na fakturu; ista sa `ON_SITE` **ne ulazi u zbir** ali je odštampana na ponudi i vaučeru sa iznosom.
+- [ ] **Doplata za više soba (2.11k):** jedna doplata sa `scope_type = M3_CONTRACT` važi za sve tipove soba bez ijednog dupliranog zapisa.
+- [ ] **Verzija cenovnika (2.11l):** posle uvoza izmenjenog cenovnika ekran prikazuje **samo razlike**; prethodna verzija ostaje čitljiva, a rezervacija napravljena pre izmene i dalje prikazuje staru cenu.
+- [ ] **Izmena rečima (4.8):** rečenica koja traži tri različite izmene proizvodi tri odvojene stavke za odobrenje; odbijanje jedne ne sprečava primenu ostale dve; `instruction_text` je sačuvan uz nastalu verziju.
+- [ ] **Mreža na ekranu (M17 §6d):** ceo cenovnik jednog hotela sa 5 tipova soba i 5 sezona se unosi **sa jednog ekrana**, a cena se kuca kao `89,50` — ne kao `8950`.
+- [ ] **Kalendar (2.11o):** za izabran hotel, tip sobe i sastav gostiju kalendar prikazuje cenu po danu i broj slobodnih jedinica; prelaz sezone se vidi kao promena cene.
+
 ---
 
 ## 8. Otvoreno za dalje
 
+- **Provizija hotela po tipu sobe** (poglavlje 2.11f) — vlasnik 9.9.2026: _„za sada samo po periodu, ali ko zna da li će nekada neki hotel i po tipu sobe to da primeni"_. Zapis je zato napravljen po scope obrascu, pa je dodavanje tog nivoa jedna vrednost u enumu. Ne gradi se dok se stvarno ne pojavi.
+- **Ugovor za subagenta u dve varijante** (sa prikazanom provizijom, za subagenta; bez nje, za njegovog kupca) — vlasnik 9.9.2026 potvrdio da je **razlika samo u izostavljenoj proviziji**, dakle jedan šablon sa dva ispisa. Posao pripada **M7**, ne M3 — upisati tamo pri sledećoj dopuni M7.
+- **Strogi FK za `room_type`** (poglavlje 2.11m) — ostaje string dok se ne vidi koliko dobavljača stvarno uvodi tipove soba kojih u katalogu nema.
+- **Migracija postojećih `TouristTaxInfo` zapisa** u `AncillaryService` (poglavlje 2.11j) — jednokratna, radi se pri implementaciji tog poglavlja; do tada oba oblika koegzistiraju.
 - **Prag jednakosti cena** (poglavlje 2.10a, podrazumevano 2%) — da li ostaje globalna konstanta ili se podešava po hotelu/tržištu, otvoreno dok se ne vidi iz prakse. Prevelik prag bi tiho pretvorio „najniža cena" u „prioritet dobavljača", što je suprotno vlasnikovoj odluci — vredi meriti koliko puta prioritet stvarno odluči.
 - **Fizički broj jedinica objekta** (poglavlje 2.9e, potreban za upozorenje kad ugovoreni zbir pređe ono što hotel ima) — M2 katalog to danas ne vodi kao pouzdan podatak. Dok ne postoji, upozorenje se prosto ne prikazuje; ne pretpostavlja se broj iz drugih izvora.
 - **Rok najave stop-sale-a iz ugovora** (npr. 48h za već predate rezervacije) i dalje nije modelovan — stop-sale se unosi kao činjenica, bez provere da li je dobavljač ispoštovao ugovoreni rok. Sa poglavljem 2.9 ovo postaje vidljivije: kad isti hotel imamo iz dva izvora, poštovanje roka je argument u odluci kome dati prioritet (2.10c).
@@ -1038,13 +1289,13 @@ Prefiks: `/api/v1/contracting`
 - **Nalazi iz analize stvarnih cenovnika više dobavljača** (avgust 2026, prvi krug — vlasnik dostavio 18 primera iz prakse, CG/HR/CY hoteli i tour-operator ugovori) — cena po uzrasnoj kategoriji (poglavlje 2.4a) je rešena tom verzijom.
 - **Drugi krug analize** (31.8.2026, 55 novih primera, `Primeri cenovnika/` — Olympic Travel, Aycon portfolio, Plava Laguna, Solvex, Ananti, Heritage Grand Perast, Dionysos i drugi) — svih 6 tačaka iz prethodne verzije ovog poglavlja potvrđeno je konkretnim primerima i rešeno u v1.12 kao "talas 1" (poglavlja 2.2b, 2.3, 2.4b, 2.5, 2.6, 2.7). Ista analiza otvara dodatne nalaze, namerno odloženi kao "talas 2" dok talas 1 ne uđe u implementaciju:
   - ~~**Dobavljač jednostrano suspenduje kapacitet ("STOP SALE")**~~ **REŠENO 8.9.2026 (v1.15, poglavlje 2.8a).** Vlasnik je potvrdio da je ovo svakodnevica, ne izuzetak, i da stiže i kod `FIXED_LEASE`. Rešeno kao `CapacityDay.sale_status` — zaseban status po danu, ne status na `ContractPeriod` (kako je ova stavka pretpostavljala) i nikad kao kapacitet spušten na nulu. **Ostaje otvoreno iz iste stavke:** rok najave koji ugovori navode (npr. 48h za već predate rezervacije) nije modelovan — danas se stop-sale unosi kao činjenica, bez provere da li je dobavljač ispoštovao ugovoreni rok.
-  - **Obavezni datumski vezani doplati** (npr. doplata za Novogodišnju večeru, vezana za kalendarski datum, ne za sezonu/`board_type`) — možda pokriva delimično novi `AncillaryService` (poglavlje 2.6) uz `is_mandatory = true`, ali nedostaje datumski opseg specifičan za tu doplatu (razlikuje se od `stay_from/stay_to` celog perioda); proveriti pri implementaciji da li `AncillaryService` treba sopstveni `applies_from/applies_to`.
-  - **Rok povrata kao fiksan kalendarski datum ili ograničen na određene dane u nedelji**, ne samo "N dana pre dolaska" (`release_days_before` je uvek relativan broj dana) — nekoliko dobavljača navodi fiksan datum ili "samo petkom".
+  - ~~**Obavezni datumski vezani doplati**~~ **REŠENO 9.9.2026 (v1.27, poglavlje 2.11k).** `AncillaryService` dobija `applies_from`/`applies_to` — datumski opseg te doplate, različit od `stay_from`/`stay_to` celog perioda. Potvrđeno tačno kako je stavka pretpostavljala.
+  - ~~**Rok povrata ograničen na određene dane u nedelji**~~ **DELIMIČNO REŠENO 9.9.2026 (v1.27, poglavlje 2.11d).** Mehanizam dana u nedelji uveden je kao `int[]` na cenovnom redu i na periodu (dolazak/odlazak). **Ostaje otvoreno:** rok povrata kao **fiksan kalendarski datum** (npr. „vraća se do 15.5.") — `release_days_before` je i dalje isključivo relativan broj dana.
   - **Ograničenje distributivnog kanala** (zabrana objave na B2C/meta-search sajtovima ili zahtev da neto cena ostane skrivena) — odvojeno od ograničenja tržišta porekla gosta (već otvoreno ispod); dotiče i M8 (šta sme da se objavi na sajtu).
   - **Obavezan minimalni markup koji nameće dobavljač** (npr. "min. 20-30% iznad ove cene") — potvrđeno više puta u drugom krugu (Ananti, Heritage Grand Perast); danas je `MarkupRule` (M5 poglavlje 2.1) isključivo interna odluka agencije, trebalo bi proveravati protiv donje granice koju ugovor nameće. Nije rešeno u talasu 1 jer zahteva izmenu M5, ne samo M3.
   - **Ograničenje tržišta porekla gosta** (npr. "važi samo za Kosovo, Češku, Poljsku...") i **ograničenje po segmentu gosta** (FIT vs. grupa 8+ soba vs. MICE) — oba potvrđena u oba kruga analize, i dalje bez mesta u `Contract`/`ContractPeriod`; nisu uključena u talas 1 jer zahtevaju odluku kako se ograničenje proverava u M5 toku prodaje (gost/subagent iz kog tržišta, kako se to zna u trenutku ponude), ne samo gde se podatak čuva.
   - **Solvex format** (`014_Solvex_Offer_Summer_2025.xlsx`) je strukturno veliki wholesaler feed (stotine hotela u jednom fajlu, ne pojedinačan ugovor) — vredi razmotriti da li ovakav izvor pripada M4 (API/feed integracija) umesto ručnog/AI unosa kroz M3 `PricelistImport`, kad (ako) taj dobavljač uđe u razmatranje kao stvaran partner.
-  - **Interakcija `commission_model` (poglavlje 2.2b) sa M5 `MarkupRule`** — da li se markup računa na bruto ili neto cenu kad je `COMMISSIONABLE` — otvoreno dok M5 ne dobije ovu dopunu.
+  - ~~**Interakcija `commission_model` sa M5 `MarkupRule`**~~ **REŠENO 9.9.2026 (v1.27, poglavlje 2.11g), vlasnikova odluka.** Redosled je: popust → provizija koju hotel odobrava agenciji → naša marža → provizija subagenta. Marža se dakle računa na cenu **već umanjenu** i za popust i za hotelsku proviziju. Uz to je otkriveno da provizija ne sme biti jedna po ugovoru nego po periodu (2.11f).
   - **Provera `min_stay_nights`/`max_stay_nights` (poglavlje 2.3) i uzrasnog/dan-u-nedelji ograničenja `PricelistOffer` (poglavlje 2.4b) pri sastavljanju ponude** — M3 samo čuva podatke, sama provera/odbijanje ponude koja krši ova pravila je M5 posao, van obima ove specifikacije.
 
 - **Poređenje sa industrijskom praksom (31.8.2026, istraživanje na zahtev vlasnika)** — pre poređenja, bitna razlika: postoje dva različita problema koji se oba zovu "unos cene hotela". _Sell-side distribucija_ (hotel/PMS → OTA) ima usvojen standard (OTA ARI, `OTA_HotelRateAmountNotifRQ`) jer hotel ima razlog da se standardizuje — isti feed ide na desetine OTA kanala. _Buy-side ugovaranje_ (agencija ← dobavljač, ono što M3 rešava) **nema** široko usvojen standard — svaki dobavljač-agencija ugovor je pojedinačan pregovor, bez mrežnog efekta koji bi gurnuo format. To objašnjava zašto je AI-ekstrakcija iz neurednih PDF/Excel dokumenata norma u ovoj niši, ne izuzetak — M3 nije odstupio od prakse, ušao je u prostor gde standarda nema.

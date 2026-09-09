@@ -297,9 +297,30 @@ Potvrđeno: potreban je fleksibilan sistem koji podržava procenat, fiksan iznos
 `finalna_cena = round(nabavna_cena * (1 + percentage / 100)) + fixed_amount`
 Ako `percentage` nije postavljen, tretira se kao 0. Ako `fixed_amount` nije postavljen, tretira se kao 0. Bar jedno od dva mora biti postavljeno da bi pravilo bilo validno. Pošto su `nabavna_cena`/`fixed_amount`/`finalna_cena` celi brojevi (poglavlje 2, konvencija), `round()` ovde zaokružuje na najbližu celu jedinicu najmanje valute (cent/para) — izbegava se float aritmetika kroz ceo lanac izračuna.
 
+### 2.1a Redosled celog obračuna — gde marža stoji u nizu (dopuna 9.9.2026, vlasnikova odluka)
+
+Formula iznad kaže **kako** se marža računa, ali ne i **na šta**. Do 9.9.2026 to je bilo otvoreno pitanje (M3 §8, stavka „Interakcija `commission_model` sa `MarkupRule`"). Vlasnikova odluka:
+
+| #   | Korak                                                                  | Primer |
+| --- | ---------------------------------------------------------------------- | ------ |
+| 1   | Ulazna (nabavna) cena iz M3 `RateLine`                                  | 55,00  |
+| 2   | **Popust / akcija** — `PricelistOffer`, rani buking, SPO                 | 46,75  |
+| 3   | **Provizija koju dobavljač odobrava agenciji** (M3 §2.11f, po periodu)  | 42,08  |
+| 4   | **`MarkupRule`** po formuli iz 2.1                                      | 49,65 ← prodajna cena |
+| 5   | **Provizija subagenta** (M7) — od prodajne cene                         | 3,97 (njegova zarada, ne dodatak na cenu) |
+| 6   | Popust nivoa lojalnosti (M6), ako `Quote.client_account_id` postoji     | vidi 2.1 napomenu ispod |
+
+Ključno: **marža se računa na cenu već umanjenu i za popust i za dobavljačevu proviziju**, ne na punu nabavnu. Da se dobavljačeva provizija skidala sa pune cene, agencija bi obračunala veći odbitak nego što joj dobavljač stvarno daje, i razlika bi se pojavila tek pri plaćanju dobavljaču.
+
+Popust po osobi (npr. za 3. i 4. osobu) računa se **od ulazne hotelske osnovne cene** (M3 §2.11h), ne od cene sobe u kojoj gost leži.
+
+M3 čuva sva pravila; ovaj redosled se izvršava ovde, jer M5 jedini vidi ceo lanac (M3 §2.10g).
+
 ### 2.2 Razrešavanje pravila (najspecifičnije pobeđuje)
 
 Za proizvod iz M3 (ugovoren): `M2_PRODUCT` → `M3_CONTRACT_PERIOD` → `M3_CONTRACT` → `M3_SUPPLIER` (podrazumevano).
+
+**Dopuna 9.9.2026 (M3 §2.11i):** kaskada se proširuje na dva uža nivoa — `M3_RATE_LINE` i `M3_ANCILLARY_SERVICE` stoje **ispred** `M2_PRODUCT`, jer vlasnik traži da se svaka pojedinačna stavka cenovnika može maržirati posebno. Pun redosled za ugovoren proizvod: `M3_RATE_LINE` / `M3_ANCILLARY_SERVICE` → `M2_PRODUCT` → `M3_CONTRACT_PERIOD` → `M3_CONTRACT` → `M3_SUPPLIER`.
 Za proizvod iz M4 (API): `M2_PRODUCT` → `M4_PROVIDER` (podrazumevano).
 
 **Ograda:** sistem ne dozvoljava da `Contract` (M3) ili `ProviderConfig` (M4) pređe u status `ACTIVE` dok njegov dobavljač/provajder nema bar jedno podrazumevano `MarkupRule` — sprečava slučajnu prodaju bez marže.

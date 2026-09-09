@@ -4,6 +4,8 @@
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje
 
+**Verzija:** 2.74 — **ekran „Cenovnik hotela" — mreža umesto trideset ekrana** (9.9.2026, vlasnikov nalaz nad postojećim ekranom za unos cena: _„Previše zbrkano, nedostaju polja"_). Novo poglavlje **6d**. Uzrok nije bio model nego **jedinica ekrana**: postojeći `/ugovori/:id/periods/:periodId` prikazuje jedan period — jedan tip sobe i jedan datumski opseg (naslov mu je bukvalno `DBL — period`), pa hotel sa 5 soba i 6 sezona traži 30 poseta. Provera nad **58 stvarnih cenovnika** iz `Primeri cenovnika/` pokazuje da nijedan dobavljač tako ne piše cenovnik — svuda su tipovi soba redovi, sezone kolone. Četiri ekrana na jednoj strani: mreža cena, doplate i popusti, marža i provizija po stavci, kalendar. Sedam pravila, od kojih tri najvažnija: **osnova cene je osobina reda** (u istom hotelu jedna soba po osobi, druga po sobi — Aycon to doslovno radi), **vikend je skup dana biranih tagovima** a ne fiksna podela, uz proveru da je svaki dan pokriven tačno jednom, i **cena se kuca kao `89,50`, ne kao `8950`** (postojeća forma nosi natpis „u najmanjoj jedinici valute ugovora" — unutrašnji format baze koji je procureo na ekran). Kapaciteta na ovom ekranu nema (vlasnikova odluka — ide po sopstvenim datumima). Peti ekran: **izmena cenovnika rečima** (M3 §4.8), gde „ništa još nije primenjeno" stoji iznad spiska, a rečenica koja je izmenu tražila ostaje uz rezultat. Model i odluke: M3 §2.11. Mockup: `04-MOCKUP-UNOS-CENOVNIKA-MREZA.html`.
+
 **Verzija:** 2.73 — **ekran „Uvoz cenovnika (AI)"** (9.9.2026, na vlasnikovo pitanje gde se cene unose uz pomoć AI agenta). Novo poglavlje **6c**. Backend tok je postojao, ali ekrana nije bilo nigde — pretraga po „pricelist" kroz ceo panel davala je nula pogodaka, a stavke nije bilo ni u navigaciji. Dva ekrana: spisak uvoza sa statusom i **razlogom neuspeha odmah u redu**, i pregled redova sa iznosom, periodom i **ocenom poklapanja hotela u procentima**. Tri pravila koja ekran sprovodi: „ništa još nije upisano" stoji pre redova; red bez poklopljenog hotela ili bez prepoznate osnove cene se ne može potvrditi (dugme onemogućeno, uz razlog); izvorni tekst stoji uz rezultat, jer je bez njega nemoguće utvrditi da li je AI pogrešio ili je tako pisalo. Uvoz i ekstrakcija su namerno **dva poziva**, pa neuspeh modela ostavlja zapis sa razlogom i mogućnost ponovnog pokušaja nad istim tekstom.
 
 **Verzija:** 2.72 — **ekran proizvoda dobija „Izvor cene i objava"** (9.9.2026, posle vlasnikovog zahteva da se pređe ceo redosled od unosa stavke kataloga do izbora u pretrazi). Novo poglavlje **6b**. Dva koraka tog redosleda su postojala na backendu a nisu imala ekran: proizvod se u panelu nije mogao ni **vezati za ugovor** ni **objaviti**, pa je ostajao `DRAFT` zauvek dok pretraga uzima samo `ACTIVE` — sve što se u pretrazi videlo došlo je iz seed skripti. Blok nosi izbor ugovora, **listu provera** sa razdvojenim preprekama i upozorenjima (M2 §5.2), i kanale vidljivosti sa dugmetom za objavu koje stoji onemogućeno dok prepreke traju. Usput ispravljen zatečen kvar: detalj ekran `PACKAGE` proizvoda je padao jer je `GET /catalog/products` od 5.9.2026 vraćao `{ data, … }`, a poziv je ostao na starom obliku (golom nizu).
@@ -805,6 +807,37 @@ Vlasnikovo pitanje: _„ne vidim gde se cene unose ručno odnosno uz pomoć AI a
 Forma prima **nalepljen tekst** (M3 §4.2.6), a ispod polja stoji rečenica da učitavanje PDF/Excel fajla još nije podržano i zašto. Prećutati to znači pustiti korisnika da traži dugme koje ne postoji.
 
 **Uvoz i ekstrakcija su dva poziva, ne jedan.** Da su spojeni, neuspeh modela bi značio da uvoz uopšte ne nastane — pa se ne bi videlo ni šta je pokušano ni zašto nije uspelo. Ovako neuspeh ostavlja zapis sa razlogom i dugme „Pokušaj ponovo" nad **istim** tekstom.
+
+## 6d. Ekran „Cenovnik hotela" — mreža umesto trideset ekrana (dopuna 9.9.2026, na zahtev vlasnika)
+
+Vlasnikov nalaz nad postojećim ekranom (`/ugovori/:id/periods/:periodId`): _„Previše zbrkano, nedostaju polja."_ Model i odluke: M3 §2.11. Mockup: `docs/moduli/M03-ugovaranje-alotmani/04-MOCKUP-UNOS-CENOVNIKA-MREZA.html`.
+
+**Uzrok nije bio model nego jedinica ekrana.** Postojeći ekran prikazuje **jedan period** — jedan tip sobe i jedan datumski opseg; naslov mu je bukvalno `DBL — period`. Hotel sa 5 tipova soba i 6 sezona traži 30 poseta tom ekranu. Provera nad 58 stvarnih cenovnika pokazuje da nijedan dobavljač tako ne piše cenovnik.
+
+### 6d.1 Četiri ekrana, jedna strana
+
+1. **Mreža cena** — sezone kao kolone (sa **prikazanim datumima**, ne samo oznakom), tipovi soba kao grupe redova, ispod svake grupe cenovni redovi po usluzi i sastavu gostiju.
+2. **Doplate i popusti** — iste kolone, uz „obavezno / opciono", „plaća se u agenciji / u hotelu", „važi za sobe: sve ili izbor" i „za rezervacije od–do".
+3. **Marža i provizija po stavci** — popunjava se **samo ono što odstupa** od podrazumevanog za ugovor; red koji odstupa se označava kao izuzetak.
+4. **Kalendar cena i raspoloživosti** (M3 §2.11o) — pregled, ne unos.
+
+### 6d.2 Sedam pravila koja ekran sprovodi
+
+1. **Sezone se definišu jednom, na vrhu**, i važe za sve redove ispod. Kolona nosi datumske opsege.
+2. **Tip sobe je zaglavlje grupe, ne red** — ispod njega ide više cenovnih redova.
+3. **Osnova cene je osobina reda**, ne ekrana: u istom hotelu jedna soba može biti po osobi, druga po sobi (Aycon cenovnik to doslovno radi).
+4. **Vikend cena je drugi red sa drugim danima**, biranim kao tagovi. Pojam „vikend" ne postoji u sistemu — postoji samo skup dana (M3 §2.11d). Ekran odbija čuvanje ako neki dan ostane nepokriven ili bude pokriven dvaput.
+5. **Kapaciteta nema na ovom ekranu** — vlasnikova odluka, jer kapacitet ide po sopstvenim datumima, nezavisno od sezona.
+6. **Prazna ćelija ≠ nula.** Prazno znači „ne prodaje se u toj sezoni" i tako ide u pretragu.
+7. **Cena se kuca kao `89,50`, ne kao `8950`.** Postojeća forma nosi natpis „Cena (u najmanjoj jedinici valute ugovora)" — to je unutrašnji format baze koji je procureo na ekran.
+
+### 6d.3 Ekran „Izmena cenovnika rečima"
+
+Polje u koje se ukuca rečenica kakva bi se rekla kolegi, pa spisak predloženih izmena (*sada 62,00 → postaje 65,10*) koje se odobravaju **red po red**. Model i ograde: M3 §4.8. Dva pravila su vidljiva na ekranu: **„ništa još nije primenjeno"** stoji iznad spiska, i **rečenica koja je izmenu tražila ostaje uz rezultat**.
+
+### 6d.4 Kalendar
+
+Biraju se hotel, tip sobe i sastav gostiju; kalendar po danu prikazuje cenu za taj sastav i **broj slobodnih jedinica** (vlasnikova odluka: samo slobodno, ne „4 od 6"). Vrednost je u tome što se pogrešno unet datumski opseg vidi kao skok ili rupa u nizu — u mreži se to ne primeti.
 
 ## 7. Izlazni kriterijum
 

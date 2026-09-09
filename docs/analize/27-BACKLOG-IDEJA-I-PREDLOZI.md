@@ -185,7 +185,12 @@ _(§8, `docs/moduli/M03-ugovaranje-alotmani/04-SPECIFIKACIJA-M3-UGOVARANJE-ALOTM
 - Izbor OCR provajdera za `SCANNED_PDF`.
 - Da li prag od 85% (fuzzy-match pouzdanost) treba biti podesiv po dobavljaču/formatu.
 - ~~Ograničenje tržišta porekla gosta, ograničenje po segmentu, minimalni markup, kazna za otkazivanje sa različitom osnovicom, pomoćni troškovi, boravišna taksa~~ — **potvrđeno drugim krugom analize (55 primera, 31.8.2026) i delimično rešeno u M3 v1.12 ("talas 1")**: `commission_model` (§2.2b), `min_stay_nights`/`max_stay_nights` (§2.3), `PricelistOffer` (§2.4b), `CancellationRule.rule_type` (§2.5), `AncillaryService` (§2.6), `TouristTaxInfo` (§2.7, informativno, M10/M11 obim nepromenjen).
-- **Talas 2** (M3 §8, ostaje otvoreno): dobavljač jednostrano suspenduje kapacitet ("STOP SALE"); obavezni datumski vezani doplati (Nova godina i sl.); rok povrata kao fiksan datum/dan u nedelji; ograničenje distributivnog kanala; **ograničenje tržišta porekla gosta** i **ograničenje po segmentu gosta** (i dalje bez mesta — zahtevaju M5 odluku kako se proverava u toku prodaje, ne samo gde se čuva); **obavezan minimalni markup koji nameće dobavljač** (zahteva izmenu M5 `MarkupRule`); interakcija `commission_model` sa `MarkupRule` (bruto/neto osnovica); Solvex format kao mogući M4 (feed) kandidat umesto M3 ručnog unosa.
+- **Talas 2** (M3 §8, ostaje otvoreno): ograničenje distributivnog kanala; **ograničenje tržišta porekla gosta** i **ograničenje po segmentu gosta** (i dalje bez mesta — zahtevaju M5 odluku kako se proverava u toku prodaje, ne samo gde se čuva); **obavezan minimalni markup koji nameće dobavljač** (zahteva izmenu M5 `MarkupRule`); **rok povrata kao fiksan kalendarski datum** (`release_days_before` je i dalje isključivo relativan); Solvex format kao mogući M4 (feed) kandidat umesto M3 ručnog unosa. _Rešeno iz ove liste 9.9.2026 (M3 v1.27): obavezni datumski vezani doplati (§2.11k), rok povrata po danima u nedelji (§2.11d), interakcija `commission_model` sa `MarkupRule` (§2.11g). Ranije rešeno: STOP SALE (v1.15)._
+- **Cenovnik kao mreža** (M3 §2.11, v1.27, 9.9.2026) — specifikovano, čeka kod: `Season` sa više datumskih opsega; `price_basis` po boravku; dani u nedelji kao tagovi i turnusi; „za rezervacije od…do" na svakoj stavci; provizija hotela **po periodu** (danas jedna po ugovoru); redosled obračuna u pet koraka; marža i subagentska provizija do nivoa **pojedinačne stavke**; boravišna taksa iz opisnog `TouristTaxInfo` u `AncillaryService`; `PricelistVersion` sa poređenjem verzija; tip sobe iz M2 šifarnika. Ekrani: M17 §6d. Mockup: `docs/moduli/M03-ugovaranje-alotmani/04-MOCKUP-UNOS-CENOVNIKA-MREZA.html`.
+- **Izmena cenovnika rečima** (M3 §4.8, v1.27) — AI agent kome se kaže šta da promeni, pripremi razlike i čeka odobrenje red po red. `PROPOSE_THEN_APPROVE`, nova akcija `pricelist.edit_from_instruction` (M15 §4). Oslanja se na `PricelistVersion`, pa ide posle njega.
+- **Provizija hotela po tipu sobe** (M3 §2.11f) — vlasnik: _„za sada samo po periodu, ali ko zna da li će nekada neki hotel i po tipu sobe to da primeni"_. Zapis je napravljen po scope obrascu, pa je to dodavanje jedne vrednosti u enum kad zatreba.
+- **Migracija postojećih `TouristTaxInfo` zapisa** u `AncillaryService` (M3 §2.11j) — jednokratna, pri implementaciji tog poglavlja.
+- **Strogi FK za `room_type`** (M3 §2.11m) — ostaje string dok se ne vidi koliko dobavljača uvodi tipove soba kojih u katalogu nema.
 
 ## M4 — Integracije spoljnih API konekcija
 
@@ -301,6 +306,8 @@ _(§11, `docs/moduli/M06-crm/09-SPECIFIKACIJA-M6-CRM.md`)_
 
 _(§13, `docs/moduli/M07-b2b-subagenti/12-SPECIFIKACIJA-M7-B2B-SUBAGENTI.md`)_
 
+- **Ugovor za subagenta u dve varijante** (9.9.2026, uz M3 v1.27) — sa prikazanom provizijom (za subagenta) i bez nje (za njegovog kupca). Vlasnik potvrdio: razlika je **samo u izostavljenoj proviziji**, dakle jedan šablon sa dva ispisa.
+- **Da li subagent vidi da na nekoj stavci provizije nema** (9.9.2026, M3 §2.11i) — `SubagentCommissionOverride` dozvoljava „bez provizije" po stavci; otvoreno da li se to njemu prikazuje ili vidi samo krajnji iznos.
 - Da li agencija treba mogućnost direktne intervencije u proviziji sub-subagenta u sporovima.
 - Prilagođavanja M10 za automatsko fakturisanje provizije nazad ka subagentima.
 - Konkretan LLM/tehnički mehanizam AI razgovora sa subagentom (UI/prompt dizajn).
