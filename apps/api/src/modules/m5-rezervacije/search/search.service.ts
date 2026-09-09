@@ -7,9 +7,11 @@ import { IntegrationsService } from '../../m4-integracije-api/integrations.servi
 import { resolveTranslation } from '../../m2-katalog-proizvoda/products/language-fallback';
 import { applyMarkup } from '../common/markup-formula';
 import { bookingWindowOpen } from '../../m3-ugovaranje-alotmani/contract-periods/day-capacity';
+import { proveriTurnus, vaziZaDan } from '../../m3-ugovaranje-alotmani/pricelist/weekday-coverage';
 import {
   assertRoomConfigMatchesTotals,
   computeRoomBaseCost,
+  computeRoomBaseCostPoNocima,
   OccupancyInput,
   RoomTypeDefinition,
 } from '../common/occupancy';
@@ -520,6 +522,16 @@ export class SearchService {
     const offers: SearchResultOffer[] = [];
 
     for (const period of periods) {
+      // §2.11d — turnus (subota–subota, 7/10/14 noći). Period koji ne prima traženi boravak ne
+      // daje ponudu; razlog se ovde ne prikazuje jer pretraga vraća ponude, ne odbijanja —
+      // objašnjenje stiže pri sastavljanju ponude, gde je gost već izabrao.
+      if (
+        params.stayFrom &&
+        params.stayTo &&
+        proveriTurnus(period, { od: new Date(params.stayFrom), do: new Date(params.stayTo) })
+      )
+        continue;
+
       let availabilityStatus: 'AVAILABLE' | 'ON_REQUEST' | 'SOLD_OUT' = 'AVAILABLE';
       if (period.allotmentMode === 'ON_REQUEST') {
         availabilityStatus = 'ON_REQUEST';
@@ -537,11 +549,26 @@ export class SearchService {
           : null;
       const isRefundable = isRefundableFromCancellationRules(period.cancellationRules);
 
-      for (const rateLine of period.rateLines) {
+      // §2.11d — ponuda je po KOMBINACIJI (pansion × popunjenost), ne po pojedinačnom cenovnom
+      // redu: vikend cena je poseban red iste kombinacije, pa bi po redu nastale dve ponude za
+      // isti smeštaj — jedna po radnoj, jedna po vikend ceni, obe za ceo boravak. Cena boravka
+      // je zbir po noćima nad svim redovima kombinacije.
+      const kombinacije = new Map<string, typeof period.rateLines>();
+      for (const rl of period.rateLines) {
         // M3 §2.11e — cena čiji je prozor rezervisanja prošao ne ulazi u ponudu. Gleda se datum
         // NASTANKA rezervacije (danas), ne datum boravka; prozor perioda (§2.3e) je druga
         // provera i radi na drugom nivou — ovde je reč o tome dokle važi CENA.
-        if (!bookingWindowOpen(rateLine, new Date())) continue;
+        if (!bookingWindowOpen(rl, new Date())) continue;
+        const k = `${rl.boardType}|${rl.occupancy}`;
+        kombinacije.set(k, [...(kombinacije.get(k) ?? []), rl]);
+      }
+
+      for (const redovi of kombinacije.values()) {
+        const rateLine = redovi.find((rl) =>
+          params.stayFrom ? vaziZaDan(rl, new Date(params.stayFrom)) : true,
+        );
+        if (!rateLine) continue; // nijedan red kombinacije ne pokriva prvu noć
+
         let baseCost: number;
         const needsRoomCalc = ROOM_BASED_TYPES.includes(product.type) && params.occupancy;
         if (needsRoomCalc) {
@@ -551,27 +578,35 @@ export class SearchService {
             capacityAdults: 99,
             capacityChildren: 99,
           };
-          const nights = Math.round(
-            (new Date(params.stayTo!).getTime() - new Date(params.stayFrom!).getTime()) /
-              86_400_000,
-          );
-          baseCost = roomConfig.reduce(
-            (sum, room) =>
-              sum +
-              computeRoomBaseCost({
-                room,
-                roomType,
-                rateLine: {
-                  price: rateLine.price,
-                  priceBasis: rateLine.priceBasis,
-                  occupancy: rateLine.occupancy,
-                  cribFeePerNight: rateLine.cribFeePerNight,
-                },
-                agePricingCandidates: rateLine.agePricing,
-                nights: nights || 1,
-              }),
-            0,
-          );
+          const od = new Date(params.stayFrom!);
+          const doDatum = new Date(params.stayTo!);
+          try {
+            baseCost = roomConfig.reduce(
+              (sum, room) =>
+                sum +
+                computeRoomBaseCostPoNocima({
+                  room,
+                  roomType,
+                  lines: redovi.map((rl) => ({
+                    id: rl.id,
+                    price: rl.price,
+                    priceBasis: rl.priceBasis,
+                    occupancy: rl.occupancy,
+                    cribFeePerNight: rl.cribFeePerNight,
+                    validWeekdays: rl.validWeekdays,
+                    agePricing: rl.agePricing,
+                  })),
+                  stayFrom: od,
+                  stayTo: doDatum,
+                }).baseCost,
+              0,
+            );
+          } catch {
+            // Noć koju nijedan red ne pokriva znači da za taj boravak nema cene — kombinacija
+            // ispada iz rezultata, isto kao SOLD_OUT. Pretraga vraća ponude, ne objašnjenja;
+            // razlog stiže pri sastavljanju ponude, gde je gost već izabrao.
+            continue;
+          }
         } else {
           baseCost = rateLine.price;
         }

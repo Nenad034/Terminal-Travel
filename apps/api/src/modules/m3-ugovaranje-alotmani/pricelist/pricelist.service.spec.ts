@@ -46,9 +46,22 @@ describe('PricelistService (M3 §2.11)', () => {
     const napravljeneCene: any[] = [];
     const ugasene: string[] = [];
 
+    // §2.11d — od v1.32 se zatečene cene traže preko `findMany` (jedna kombinacija sme da ima
+    // više redova sa različitim danima), pa testovi zadaju POSTOJEĆE redove, ne jedan zapis.
+    const postojeceCene: any[] = over.rateLineExisting
+      ? [
+          {
+            boardType: CELIJA.boardType,
+            occupancy: CELIJA.occupancy,
+            validWeekdays: [],
+            ...over.rateLineExisting,
+          },
+        ]
+      : [];
+
     const tx = {
       rateLine: {
-        findFirst: over.rateLineFindFirst ?? jest.fn().mockResolvedValue(null),
+        findMany: jest.fn().mockResolvedValue(postojeceCene),
         update: jest.fn().mockImplementation(({ where }: any) => {
           ugasene.push(where.id);
           return { id: where.id };
@@ -74,6 +87,11 @@ describe('PricelistService (M3 §2.11)', () => {
           .mockImplementation(({ data }: any) => ({ id: 's9', ...data, ranges: [] })),
         delete: jest.fn(),
         aggregate: jest.fn().mockResolvedValue({ _max: { rank: 2 } }),
+      },
+      // §2.11d — provera preklapanja dana ide PRE transakcije (da poruka stigne kao 400), pa
+      // čita preko `this.prisma`, ne preko `tx`. Podrazumevano nema zatečenih redova.
+      rateLine: {
+        findMany: jest.fn().mockResolvedValue(postojeceCene),
       },
       contractPeriod: {
         findMany: jest.fn().mockResolvedValue(over.periods ?? []),
@@ -134,13 +152,13 @@ describe('PricelistService (M3 §2.11)', () => {
   describe('writeCell — ispravka je gašenje pa nova (§2.4c)', () => {
     it('postojeća cena se GASI, nova nosi replacesId', async () => {
       const { service, napravljeneCene, ugasene } = makeService({
-        rateLineFindFirst: jest.fn().mockResolvedValue({
+        rateLineExisting: {
           id: 'stara',
           price: 3400,
           priceBasis: 'PER_PERSON_PER_NIGHT',
           bookingFrom: null,
           bookingTo: null,
-        }),
+        },
       });
       const r = await service.writeCell('c1', CELIJA, 'u1');
 
@@ -151,13 +169,13 @@ describe('PricelistService (M3 §2.11)', () => {
 
     it('ista cena se NE prepisuje — nema lažnog traga u auditu', async () => {
       const { service, napravljeneCene, ugasene } = makeService({
-        rateLineFindFirst: jest.fn().mockResolvedValue({
+        rateLineExisting: {
           id: 'ista',
           price: 3600,
           priceBasis: 'PER_PERSON_PER_NIGHT',
           bookingFrom: null,
           bookingTo: null,
-        }),
+        },
       });
       const r = await service.writeCell('c1', CELIJA, 'u1');
       expect(ugasene).toHaveLength(0);
@@ -167,13 +185,13 @@ describe('PricelistService (M3 §2.11)', () => {
 
     it('promena samo prozora rezervisanja je i dalje izmena (§2.11e)', async () => {
       const { service, ugasene } = makeService({
-        rateLineFindFirst: jest.fn().mockResolvedValue({
+        rateLineExisting: {
           id: 'stara',
           price: 3600,
           priceBasis: 'PER_PERSON_PER_NIGHT',
           bookingFrom: null,
           bookingTo: null,
-        }),
+        },
       });
       await service.writeCell('c1', { ...CELIJA, bookingTo: '2025-12-31' }, 'u1');
       expect(ugasene).toHaveLength(2);

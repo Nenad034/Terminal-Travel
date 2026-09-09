@@ -788,6 +788,12 @@ model ContractPeriod {
   // §2.3 dopuna v1.12 — minimalan/maksimalan broj noćenja za ovu cenu/period; null = bez ograničenja.
   minStayNights           Int?                 @map("min_stay_nights")
   maxStayNights           Int?                 @map("max_stay_nights")
+  /// M3 spec §2.11d (v1.32) -- turnusi. Dani u nedelji kada gost sme da se prijavi/odjavi
+  /// (1 = ponedeljak ... 7 = nedelja) i dozvoljene duzine boravka u nocima (7 / 10 / 14).
+  /// Prazan niz = bez ogranicenja. M3 samo cuva pravilo; proveru radi M5 pri sastavljanju ponude.
+  arrivalWeekdays         Int[]                @map("arrival_weekdays")
+  departureWeekdays       Int[]                @map("departure_weekdays")
+  allowedStayNights       Int[]                @map("allowed_stay_nights")
   // §2.3d (v1.16) — period sa rezervacijama se GASI, ne briše: brisanje bi prekinulo vezu
   // prodatog sa cenom i kapacitetom po kojima je prodato. INACTIVE ne ulazi u pretragu i ne
   // prima nove rezervacije, ali ostaje osnov postojećih.
@@ -933,6 +939,16 @@ model RateLine {
   boardType        String     @map("board_type")
   occupancy        String
   priceBasis       PriceBasis @map("price_basis")
+
+  /// M3 spec §2.11d (v1.32) -- dani u nedelji za koje ova cena vazi (1 = ponedeljak ... 7 = nedelja).
+  /// PRAZAN niz = svi dani, i to je jedina interpretacija koja ne menja postojece zapise.
+  ///
+  /// Vlasnikova odluka 9.9.2026: dani se biraju kao TAGOVI, ne kao fiksna podela
+  /// "radni dani / vikend" -- "vikend" nije isti u svakom hotelu (kod njih je to petak i
+  /// subota; nedelja se ne racuna jer gost te noci vise ne spava). Vikend cena je zato DRUGI
+  /// cenovni red sa drugim danima, ne nova sezona.
+  validWeekdays Int[] @map("valid_weekdays")
+
   price            Int // najmanja jedinica valute ugovora
   cribFeePerNight  Int?       @map("crib_fee_per_night")
   // M3 spec §2.11e (v1.27) — stavka ucestvuje u obracunu samo ako datum NASTANKA rezervacije

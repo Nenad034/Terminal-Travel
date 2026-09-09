@@ -1,4 +1,14 @@
-import { IsDateString, IsEnum, IsInt, IsOptional, IsString, Min } from 'class-validator';
+import {
+  ArrayMaxSize,
+  IsArray,
+  IsDateString,
+  IsEnum,
+  IsInt,
+  IsOptional,
+  IsString,
+  Max,
+  Min,
+} from 'class-validator';
 import { AllotmentMode } from '@prisma/client';
 
 /**
@@ -67,6 +77,33 @@ export class UpdateContractPeriodDto {
   @Min(1)
   @IsOptional()
   maxStayNights?: number | null;
+
+  /**
+   * M3 spec §2.11d (v1.32) — turnusi. Dani prijave/odjave (1 = ponedeljak … 7 = nedelja) i
+   * dozvoljene dužine boravka u noćima (7 / 10 / 14). Prazno = bez ograničenja.
+   */
+  @IsArray()
+  @ArrayMaxSize(7)
+  @IsInt({ each: true })
+  @Min(1, { each: true })
+  @Max(7, { each: true })
+  @IsOptional()
+  arrivalWeekdays?: number[];
+
+  @IsArray()
+  @ArrayMaxSize(7)
+  @IsInt({ each: true })
+  @Min(1, { each: true })
+  @Max(7, { each: true })
+  @IsOptional()
+  departureWeekdays?: number[];
+
+  @IsArray()
+  @ArrayMaxSize(12)
+  @IsInt({ each: true })
+  @Min(1, { each: true })
+  @IsOptional()
+  allowedStayNights?: number[];
 
   /**
    * §2.3d — smanjenje kapaciteta ispod već prodatog je DOZVOLJENO (vlasnikova odluka

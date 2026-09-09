@@ -6,12 +6,14 @@ import { applyMarkup } from '../common/markup-formula';
 import {
   assertRoomConfigMatchesTotals,
   computeRoomBaseCost,
+  computeRoomBaseCostPoNocima,
   OccupancyInput,
   RoomTypeDefinition,
   AgePolicyEntry,
 } from '../common/occupancy';
 import { TOLERANCE_MS } from '../common/date-mismatch';
 import { bookingWindowOpen } from '../../m3-ugovaranje-alotmani/contract-periods/day-capacity';
+import { proveriTurnus, vaziZaDan } from '../../m3-ugovaranje-alotmani/pricelist/weekday-coverage';
 
 const ROOM_BASED_TYPES = ['ACCOMMODATION', 'PACKAGE'];
 
@@ -283,12 +285,24 @@ export class QuoteItemBuilderService {
     // svom prozoru („bookings made till 31.12.2025 for period of stay 01.04–30.10.2026").
     const danasnjiDan = new Date();
 
+    // Kad cenu bira sistem, svi redovi perioda su već pročitani — čuvaju se da se ista tabela
+    // ne bi čitala dvaput samo da bi se sastavila kombinacija (§2.11d).
+    let redoviPerioda: { id: string }[] | null = null;
+
     let rateLine = explicitRateLineId
       ? await this.prisma.rateLine.findUnique({
           where: { id: explicitRateLineId },
           include: { agePricing: true, contractPeriod: true },
         })
       : null;
+
+    // §2.11d — turnus (dani prijave/odjave i dozvoljene dužine boravka). Provera ide PRE cene:
+    // „subotom se ne dolazi" i „nema cene" su dve različite činjenice sa dva različita nastavka.
+    if (rateLine?.contractPeriod) {
+      const razlog = proveriTurnus(rateLine.contractPeriod, { od: stayFrom, do: stayTo });
+      if (razlog)
+        throw new BadRequestException({ statusCode: 400, reason: 'STAY_PATTERN', message: razlog });
+    }
 
     // Izričito izabrana cena čiji je prozor prošao se ODBIJA, ne zamenjuje tiho drugom:
     // agent je izabrao tačno tu cenu iz pretrage, pa mu se mora reći da više ne važi.
@@ -321,7 +335,16 @@ export class QuoteItemBuilderService {
       }
       // §2.11e — cene čiji je prozor rezervisanja prošao ispadaju iz izbora. Razlika prema
       // gornjem slučaju je namerna: ovde cenu bira sistem, pa uzima prvu koja važi.
-      const uProzoru = period.rateLines.filter((rl) => bookingWindowOpen(rl, danasnjiDan));
+      const turnus = proveriTurnus(period, { od: stayFrom, do: stayTo });
+      if (turnus)
+        throw new BadRequestException({ statusCode: 400, reason: 'STAY_PATTERN', message: turnus });
+
+      // §2.11d — cena više ne mora SAMA da pokrije ceo boravak: kombinacija sme da ima
+      // „ned–čet" i „pet–sub" red, pa se boravak sastavlja od oba (vidi niže). Ovde se bira
+      // red koji pokriva PRVU noć, a ostatak kombinacije se dovlači uz njega.
+      const uProzoru = period.rateLines
+        .filter((rl) => bookingWindowOpen(rl, danasnjiDan))
+        .filter((rl) => vaziZaDan(rl, stayFrom));
       if (uProzoru.length === 0) {
         throw new BadRequestException({
           statusCode: 400,
@@ -332,6 +355,7 @@ export class QuoteItemBuilderService {
         });
       }
       const chosen = uProzoru[0];
+      redoviPerioda = period.rateLines;
       rateLine = { ...chosen, contractPeriod: period };
     }
 
@@ -345,27 +369,65 @@ export class QuoteItemBuilderService {
       capacityChildren: 99,
     };
 
-    const baseCost = ROOM_BASED_TYPES.includes(product.type)
-      ? roomConfig.reduce(
-          (sum, room) =>
-            sum +
-            computeRoomBaseCost({
-              room,
-              roomType,
-              rateLine: {
-                price: rateLine!.price,
-                priceBasis: rateLine!.priceBasis,
-                occupancy: rateLine!.occupancy,
-                cribFeePerNight: rateLine!.cribFeePerNight,
-              },
-              agePricingCandidates: rateLine!.agePricing,
-              agePolicyOverride:
-                (rateLine!.contractPeriod.agePolicyOverride as AgePolicyEntry[] | null) ?? null,
-              nights: nights || 1,
-            }),
-          0,
-        )
-      : rateLine.price * (nights || 1);
+    // §2.11d — cena boravka je ZBIR PO NOĆIMA nad svim redovima iste kombinacije (isti pansion i
+    // popunjenost), jer vikend cena stoji kao poseban red. Kad kombinacija ima samo jedan red,
+    // rezultat je isti kao pre — jedan red pokriva svih sedam dana.
+    const kombinacija = (
+      redoviPerioda ??
+      (await this.prisma.rateLine.findMany({
+        where: {
+          contractPeriodId: rateLine.contractPeriodId,
+          boardType: rateLine.boardType,
+          occupancy: rateLine.occupancy,
+          status: 'ACTIVE',
+        },
+        include: { agePricing: true },
+      }))
+    ).filter(
+      (rl: any) => rl.boardType === rateLine!.boardType && rl.occupancy === rateLine!.occupancy,
+    ) as (typeof rateLine & { agePricing: any[] })[];
+    // Kombinacija uvek mora da sadrži bar izabrani red. Prazan rezultat znači da je red došao
+    // putem koji ostale redove nije čitao (paket) — tada je kombinacija taj jedan red, i cena
+    // ispada ista kao pre §2.11d.
+    const uPrimeni = kombinacija.filter((rl) => bookingWindowOpen(rl, danasnjiDan));
+    const zaObracun = uPrimeni.length > 0 ? uPrimeni : [rateLine];
+
+    let baseCost: number;
+    if (ROOM_BASED_TYPES.includes(product.type)) {
+      let zbir = 0;
+      let prviRed = rateLine.id;
+      for (const room of roomConfig) {
+        const r = computeRoomBaseCostPoNocima({
+          room,
+          roomType,
+          lines: zaObracun.map((rl) => ({
+            id: rl.id,
+            price: rl.price,
+            priceBasis: rl.priceBasis,
+            occupancy: rl.occupancy,
+            cribFeePerNight: rl.cribFeePerNight,
+            validWeekdays: rl.validWeekdays,
+            agePricing: rl.agePricing ?? [],
+          })),
+          stayFrom,
+          stayTo,
+          agePolicyOverride:
+            (rateLine.contractPeriod.agePolicyOverride as AgePolicyEntry[] | null) ?? null,
+        });
+        zbir += r.baseCost;
+        prviRed = r.rateLineId;
+      }
+      baseCost = zbir;
+      // Stavka nosi red koji pokriva PRVU noć — jedan `rate_line_id` po stavci je model koji
+      // `QuoteItem`/`BookingItem` imaju. Ostali redovi učestvuju u ceni; njihovo pojedinačno
+      // prikazivanje po noćima je zabeleženo kao otvoreno (M3 §2.11d).
+      const izabrani = zaObracun.find((rl) => rl.id === prviRed);
+      rateLine = izabrani
+        ? { ...(izabrani as typeof rateLine), contractPeriod: rateLine.contractPeriod }
+        : rateLine;
+    } else {
+      baseCost = rateLine.price * (nights || 1);
+    }
 
     const markupRule = await this.markupRules.resolveForContracted({
       productId: product.id,

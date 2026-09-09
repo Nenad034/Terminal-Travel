@@ -1,7 +1,7 @@
 # Predaja rada — cenovnik kao mreža (stanje 9.9.2026)
 
 **Kome:** sledećem agentu/sesiji koja preuzme repozitorijum sa GitHub-a i nastavlja rad na cenovniku (M3 §2.11).
-**Stanje 9.9.2026, kasnije istog dana:** **sve četiri rupe iz odeljka 4 su zatvorene** (vidi okvire u svakom pododeljku). Koraci 4–7 iz odeljka 5 i dalje stoje kao sledeći posao.
+**Stanje 9.9.2026, kasnije istog dana:** **sve četiri rupe iz odeljka 4 su zatvorene**, i **korak 4 (dani u nedelji i turnusi) je napravljen** — model, provere, obračun po noćima i ekrani. Ostaju koraci **5, 6 i 7** (verzije cenovnika, kalendar, izmena rečima).
 
 **Zašto postoji:** posao je urađen do trećeg od sedam koraka. Tri koraka su u kodu i proverena nad pravom bazom, četiri stoje samo u specifikaciji. Uz to postoje **tri mesta gde kod postoji ali nije povezan sa prodajom** — to se iz commit poruka ne vidi, a bez toga bi se prvo pomislilo da je gotovo.
 
@@ -141,7 +141,14 @@ Polje postoji na `RateLine` i potvrđeno je u bazi (`booking_to = 2026-12-31`), 
 
 Redosled je vlasnikov i svaki korak je upotrebljiv sam za sebe.
 
-### Korak 4 — Dani u nedelji i turnusi (M3 §2.11d)
+### Korak 4 — Dani u nedelji i turnusi (M3 §2.11d) — **URAĐENO 9.9.2026**
+
+> **Zatvoreno.** Model dodat (migracija `20260909185617`), preklapanje dana se odbija pri upisu,
+> nepokriven dan se prijavljuje kao upozorenje (strogo odbijanje bi onemogućilo unos drugog reda —
+> obrazloženo u M3 v1.32), cena boravka se sastavlja **po noćima** preko više redova, pretraga
+> vraća jednu ponudu po kombinaciji, turnus odbija boravak sa razlogom `STAY_PATTERN`. Ekrani:
+> tagovi dana u mreži cenovnika i kvačice za turnus na periodu. Izmereno: 780,00 za subota→subota
+> po cenama 100,00/140,00. Opis ispod ostaje kao zapis šta je trebalo uraditi.
 
 Model **još nije dodat**. Treba:
 

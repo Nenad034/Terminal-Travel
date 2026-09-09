@@ -37,6 +37,78 @@ export interface ContractPeriod {
   releaseDaysBefore: number | null;
   minStayNights: number | null;
   maxStayNights: number | null;
+  // §2.11d — turnusi; prazan niz = bez ograničenja.
+  arrivalWeekdays?: number[];
+  departureWeekdays?: number[];
+  allowedStayNights?: number[];
+}
+
+// §2.11d — dani se biraju kao tagovi (vlasnikova odluka): „vikend" nije isti u svakom hotelu.
+const DANI: { broj: number; kratko: string; pun: string }[] = [
+  { broj: 1, kratko: 'pon', pun: 'ponedeljak' },
+  { broj: 2, kratko: 'uto', pun: 'utorak' },
+  { broj: 3, kratko: 'sre', pun: 'sreda' },
+  { broj: 4, kratko: 'čet', pun: 'četvrtak' },
+  { broj: 5, kratko: 'pet', pun: 'petak' },
+  { broj: 6, kratko: 'sub', pun: 'subota' },
+  { broj: 7, kratko: 'ned', pun: 'nedelja' },
+];
+
+/**
+ * Turnusi — dani prijave/odjave i dozvoljene dužine boravka (M3 §2.11d).
+ *
+ * Kvačice, ne padajuća lista: turnus je „subota i sreda", ne jedna vrednost. Ništa označeno
+ * znači BEZ ograničenja — što je i jedino stanje koje ne menja zatečene periode.
+ */
+function TurnusPolja({
+  imeDolazak,
+  imeOdlazak,
+  dolasci = [],
+  odlasci = [],
+  noci = [],
+}: {
+  imeDolazak: string;
+  imeOdlazak: string;
+  dolasci?: number[];
+  odlasci?: number[];
+  noci?: number[];
+}) {
+  return (
+    <div className="flex flex-col gap-2 rounded border border-border bg-panel2 p-3">
+      <span className="text-[11px] font-medium text-ink-dim">
+        Turnusi (opciono, M3 spec §2.11d)
+      </span>
+      {[
+        { ime: imeDolazak, naslov: 'Dani prijave', izabrani: dolasci },
+        { ime: imeOdlazak, naslov: 'Dani odjave', izabrani: odlasci },
+      ].map((red) => (
+        <div key={red.ime} className="flex flex-wrap items-center gap-2">
+          <span className="w-24 text-[11px] text-ink-faint">{red.naslov}</span>
+          {DANI.map((d) => (
+            <label key={d.broj} className="flex items-center gap-1 text-[11px] text-ink-dim">
+              <input
+                type="checkbox"
+                name={red.ime}
+                value={d.broj}
+                defaultChecked={red.izabrani.includes(d.broj)}
+              />
+              <span title={d.pun}>{d.kratko}</span>
+            </label>
+          ))}
+        </div>
+      ))}
+      <label className="flex items-center gap-2 text-[11px] text-ink-faint">
+        <span className="w-24">Dužine boravka</span>
+        <input
+          name="allowedStayNights"
+          className="input w-40 text-xs"
+          placeholder="7, 10, 14"
+          defaultValue={noci.join(', ')}
+        />
+        <span className="text-[10px]">noći, odvojeno zarezom; prazno = bez ograničenja</span>
+      </label>
+    </div>
+  );
 }
 
 const MODE_LABELS: Record<AllotmentMode, string> = {
@@ -221,6 +293,14 @@ function EditPeriodForm({
         </Field>
       </div>
 
+      <TurnusPolja
+        imeDolazak="arrivalWeekdays"
+        imeOdlazak="departureWeekdays"
+        dolasci={period.arrivalWeekdays}
+        odlasci={period.departureWeekdays}
+        noci={period.allowedStayNights}
+      />
+
       {trebaPotvrda && <input type="hidden" name="confirmOversold" value="da" />}
 
       <div className="flex items-center gap-2">
@@ -352,6 +432,8 @@ function NewPeriodForm({ contractId }: { contractId: string }) {
           <input name="maxStayNights" type="number" min={1} className="input w-32" />
         </Field>
       </div>
+
+      <TurnusPolja imeDolazak="arrivalWeekdays" imeOdlazak="departureWeekdays" />
 
       {(mode === 'CHARTER' || mode === 'FIXED_LEASE') && (
         <div className="grid grid-cols-2 gap-3">

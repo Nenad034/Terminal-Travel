@@ -1,4 +1,9 @@
 import { BadRequestException } from '@nestjs/common';
+import {
+  danUNedelji,
+  imenaDana,
+  vaziZaDan,
+} from '../../m3-ugovaranje-alotmani/pricelist/weekday-coverage';
 import { AgeCategory } from '@prisma/client';
 import {
   resolveAgePricing,
@@ -298,4 +303,87 @@ export function computeRoomBaseCost(params: {
     ? basePrice + extraPerNight
     : (basePrice + extraPerNight) * nights;
   return smestaj + cribFeePerNight * nights;
+}
+
+/**
+ * M3 §2.11d — cena boravka kad kombinacija ima VIŠE cenovnih redova sa različitim danima.
+ *
+ * Vikend cena je po vlasnikovoj odluci drugi cenovni red (npr. „ned–čet 39,00" i „pet–sub
+ * 52,00"), ne nova sezona. Boravak od subote do subote onda prelazi preko oba reda, pa cena
+ * nije „jedan red × broj noći" nego **zbir po noćima**: svaka noć se naplaćuje po redu koji
+ * pokriva njen dan u nedelji.
+ *
+ * Dve odluke koje se lako previde:
+ *
+ *  - **Noć se broji po danu PRIJAVE te noći.** Boravak 12.6–19.6. ima sedam noći: 12, 13, …, 18.
+ *    Dan odjave nije noć.
+ *  - **Cena „za ceo boravak" (`*_PER_STAY`) se naplaćuje JEDNOM**, po redu koji pokriva prvu noć.
+ *    Da se naplaćuje po svakoj grupi dana, boravak preko vikenda bi platio ceo boravak dvaput.
+ *    Krevetac i doplate za goste prate osnovu svog reda, isto kao u `computeRoomBaseCost`.
+ */
+export function computeRoomBaseCostPoNocima(params: {
+  room: RoomConfigEntry;
+  roomType: RoomTypeDefinition;
+  /** ACTIVE redovi iste kombinacije (isti pansion i popunjenost), sa svojim danima. */
+  lines: (RateLineForCalc & {
+    id: string;
+    validWeekdays?: number[] | null;
+    agePricing: AgePricingCandidate[];
+  })[];
+  stayFrom: Date;
+  stayTo: Date;
+  agePolicyOverride?: AgePolicyEntry[] | null;
+}): { baseCost: number; rateLineId: string } {
+  const { room, roomType, lines, stayFrom, stayTo, agePolicyOverride } = params;
+  const noci = Math.round((stayTo.getTime() - stayFrom.getTime()) / 86_400_000);
+  if (noci <= 0) {
+    throw new BadRequestException('Broj noćenja mora biti pozitivan (stay_to > stay_from).');
+  }
+  if (lines.length === 0) {
+    throw new BadRequestException(
+      'Nema nijedne cenovne stavke za tražene datume (M3 spec §2.11d).',
+    );
+  }
+
+  // Koliko noći pripada kom redu — redosled se čuva, da se prvi red (onaj koji pokriva prvu noć)
+  // može prijaviti kao `rate_line_id` stavke.
+  const poRedu = new Map<string, number>();
+  const redosled: string[] = [];
+  const nepokriveni: number[] = [];
+
+  for (let i = 0; i < noci; i++) {
+    const noc = new Date(stayFrom.getTime() + i * 86_400_000);
+    const red = lines.find((l) => vaziZaDan({ validWeekdays: l.validWeekdays }, noc));
+    if (!red) {
+      nepokriveni.push(danUNedelji(noc));
+      continue;
+    }
+    if (!poRedu.has(red.id)) redosled.push(red.id);
+    poRedu.set(red.id, (poRedu.get(red.id) ?? 0) + 1);
+  }
+
+  if (nepokriveni.length > 0) {
+    throw new BadRequestException(
+      `Za ${imenaDana([...new Set(nepokriveni)].sort())} ovaj cenovnik nema cenu — ` +
+        `boravak se ne može ponuditi (M3 spec §2.11d).`,
+    );
+  }
+
+  let ukupno = 0;
+  let prviPoBoravku = true;
+  for (const id of redosled) {
+    const red = lines.find((l) => l.id === id)!;
+    if (jePoBoravku(red.priceBasis) && !prviPoBoravku) continue; // ceo boravak se plaća jednom
+    if (jePoBoravku(red.priceBasis)) prviPoBoravku = false;
+    ukupno += computeRoomBaseCost({
+      room,
+      roomType,
+      rateLine: red,
+      agePricingCandidates: red.agePricing,
+      nights: poRedu.get(id)!,
+      agePolicyOverride,
+    });
+  }
+
+  return { baseCost: ukupno, rateLineId: redosled[0] };
 }

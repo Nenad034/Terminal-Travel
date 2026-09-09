@@ -268,9 +268,14 @@ Dozvola: `M3/contract-period/EDIT`. Koja su polja obavezna **zavisi od `allotmen
   "allotmentMode": "FIXED",
   "totalCapacity": 40,
   "releaseDaysBefore": 14,
-  "minStayNights": 3
+  "minStayNights": 3,
+  "arrivalWeekdays": [6],
+  "departureWeekdays": [6],
+  "allowedStayNights": [7, 14]
 }
 ```
+
+**Turnusi (§2.11d, dodato 9.9.2026).** `arrivalWeekdays`/`departureWeekdays` su dani u nedelji (1 = ponedeljak … 7 = nedelja) kada gost sme da se prijavi/odjavi, `allowedStayNights` dozvoljene dužine u noćima. **Prazan niz = bez ograničenja** — i to je jedina vrednost koja ne menja zatečene periode. M3 samo čuva pravilo; boravak koji ga ne poštuje odbija M5 pri sastavljanju ponude, sa razlogom `STAY_PATTERN` i porukom koja kaže **kada se sme doći** („Prijava je moguća samo: subota").
 
 **Zahtev (`FIXED_LEASE` sa planom plaćanja):**
 
@@ -1031,6 +1036,7 @@ Upisuje **jednu ćeliju**: istu cenu u svaki period te sezone i tog tipa sobe.
   "occupancy": "2 odrasle osobe",
   "priceBasis": "PER_PERSON_PER_NIGHT",
   "price": 3900,
+  "validWeekdays": [7, 1, 2, 3, 4],
   "bookingTo": "2026-12-31"
 }
 ```
@@ -1041,7 +1047,10 @@ Upisuje **jednu ćeliju**: istu cenu u svaki period te sezone i tog tipa sobe.
   "roomType": "Budget double room",
   "periodIds": ["…", "…"],
   "rateLineIds": ["…", "…"],
-  "deactivated": 2
+  "deactivated": 2,
+  "validWeekdays": [7, 1, 2, 3, 4],
+  "daniBezCene": [5, 6],
+  "upozorenje": "Za petak i subota ova kombinacija nema cenu — ti datumi se neće pojaviti u pretrazi."
 }
 ```
 
@@ -1050,6 +1059,7 @@ Tri pravila koja ova ruta sprovodi:
 1. **Period koji ne postoji se pravi**, sa `allotmentMode = ON_REQUEST` i **bez kapaciteta** — kapacitet ide po sopstvenim datumima, kroz `/capacity/*` (§2.11n).
 2. **Ispravka je gašenje pa nova stavka** (§2.4c): `deactivated` kaže koliko je starih cena ugašeno, a nova nosi `replaces_id`. Cena se nikad ne prepisuje.
 3. **Nepromenjena vrednost ne piše ništa** — `deactivated: 0` i isti `rateLineIds`, bez lažnog traga u auditu.
+4. **Dani u nedelji (§2.11d, dodato 9.9.2026):** `validWeekdays` (1 = ponedeljak … 7 = nedelja) određuje za koje noći cena važi; izostavljeno ili prazno = **svi dani**. Ista kombinacija (pansion × popunjenost) sme da ima više redova sa različitim danima — vikend cena je drugi red, ne nova sezona. **Preklapanje se odbija** sa `400` i porukom koja imenuje dan („Za ovu kombinaciju već postoji cena za petak…"). **Nepokriven dan se ne odbija** nego vraća u `daniBezCene` uz rečenicu u `upozorenje` — cenovnik se unosi red po red, pa bi strogo pravilo onemogućilo unos drugog reda.
 
 `price` je u **najmanjoj jedinici valute** ugovora (3900 = 39,00 EUR). Panel prima „39,00" i pretvara ga — spoljni integrator šalje ceo broj.
 

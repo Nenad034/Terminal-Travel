@@ -105,6 +105,23 @@ Dve vrste akcija koje se pojavljuju u skoro svakom cenovniku. Kod njih postoji j
 
 ---
 
+## Vikend cena i turnusi — dodato 9.9.2026
+
+Tražili ste da se dani biraju **kao oznake**, ne kao gotova podela „radni dani / vikend". Razlog je vaš i tačan: vikend nije isti u svakom hotelu — kod vas su to petak i subota, jer se nedelja ne računa (gost te noći više ne spava kod nas).
+
+Zato vikend cena **nije nova sezona** nego **drugi red u istom cenovniku**, sa svojim danima. Sezona ostaje pet, ne postaje deset.
+
+**Šta sistem sam pazi:**
+
+- Dva reda ne smeju pokrivati isti dan. Ako pokušate, upis se odbije i poruka kaže koji je dan sporan („petak") — inače bi za taj datum postojale dve cene, a sistem ne bi imao način da izabere.
+- Ako neki dan ostane bez cene, **ne odbija** unos (inače prvi red nikad ne biste mogli da sačuvate, jer drugi još ne postoji), nego vam to piše kao upozorenje. Posledica je stvarna: za te datume nema ponude dok se cena ne doda.
+
+**Kako se računa boravak koji prelazi preko oba reda.** Gost dolazi u subotu i ostaje sedam noći. Pet noći padaju u radne dane, dve u vikend. Sistem sabira po noćima: 5 × 100,00 + 2 × 140,00 = **780,00**. Ne uzima jednu cenu i množi sa sedam — to bi dalo ili 700,00 ili 980,00, i oba su pogrešna.
+
+**Turnusi.** Na periodu možete reći: dolazak samo subotom, odlazak samo subotom, boravak 7 ili 14 noći. Ko traži nešto drugo, dobija jasnu poruku šta jeste dozvoljeno („Prijava je moguća samo: subota"), a ne prazan ekran.
+
+---
+
 ## Kapacitet: dve prodaje u istoj sekundi ne mogu obe proći
 
 Ako dva prodajna agenta u istom trenutku prodaju **poslednju** slobodnu sobu, šta se dešava?

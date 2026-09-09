@@ -1,10 +1,13 @@
 import { PriceBasis } from '@prisma/client';
 import {
+  ArrayMaxSize,
+  IsArray,
   IsDateString,
   IsEnum,
   IsInt,
   IsOptional,
   IsString,
+  Max,
   MaxLength,
   Min,
   MinLength,
@@ -40,6 +43,19 @@ export class WriteCellDto {
   @IsInt()
   @Min(1)
   price!: number;
+
+  /**
+   * §2.11d — dani u nedelji za koje ova cena važi (1 = ponedeljak … 7 = nedelja).
+   * Izostavljeno ili prazno = **svi dani**. Vikend cena je drugi red sa drugim danima, ne
+   * nova sezona (vlasnikova odluka 9.9.2026).
+   */
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(7)
+  @IsInt({ each: true })
+  @Min(1, { each: true })
+  @Max(7, { each: true })
+  validWeekdays?: number[];
 
   // §2.11e — „za rezervacije od…do" na samoj stavci; prazno = bez ograničenja.
   @IsOptional()

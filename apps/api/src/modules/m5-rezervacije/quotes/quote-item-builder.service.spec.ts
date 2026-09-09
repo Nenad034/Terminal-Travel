@@ -5,7 +5,15 @@ describe('QuoteItemBuilderService (M5 spec §3.0b.3/§3.2)', () => {
   function makeService() {
     const prisma = {
       product: { findUnique: jest.fn(), findMany: jest.fn() },
-      rateLine: { findUnique: jest.fn() },
+      rateLine: {
+        findUnique: jest.fn(),
+        // §2.11d — cena boravka je zbir po noćima nad svim redovima iste kombinacije. Kad test
+        // ne zada kombinaciju, vraća se sam izabrani red (ponašanje kao pre v1.32).
+        findMany: jest.fn().mockImplementation(async () => {
+          const izabran = await prisma.rateLine.findUnique.mock.results[0]?.value;
+          return izabran ? [{ ...izabran, agePricing: izabran.agePricing ?? [] }] : [];
+        }),
+      },
       contractPeriod: { findFirst: jest.fn(), findMany: jest.fn() },
       packageDeparture: { findFirst: jest.fn() },
     };

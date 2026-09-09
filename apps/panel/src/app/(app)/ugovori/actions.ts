@@ -50,6 +50,9 @@ export async function createPeriod(
         maxStayNights: formData.get('maxStayNights')
           ? Number(formData.get('maxStayNights'))
           : undefined,
+        arrivalWeekdays: daniIzForme(formData, 'arrivalWeekdays'),
+        departureWeekdays: daniIzForme(formData, 'departureWeekdays'),
+        allowedStayNights: nociIzForme(formData),
       },
     });
     revalidatePath(`/ugovori/${contractId}`);
@@ -64,6 +67,26 @@ export async function createPeriod(
 // M3 spec §2.3d (v1.16, 8.9.2026) — izmena postojećeg perioda. Backend odbija smanjenje
 // kapaciteta ispod već prodatog dok se ne pošalje `confirmOversold` — ekran tu grešku prikazuje
 // kao pitanje sa drugim dugmetom, ne kao kvar (vlasnikova odluka: dozvoliti, ali nikad slučajno).
+
+// §2.11d — turnusi iz forme. Kvačice stižu kao više vrednosti istog imena, dužine boravka kao
+// „7, 10, 14". Prazno se šalje kao prazan niz, jer prazno ZNAČI „bez ograničenja" — izostavljanje
+// polja bi na izmeni ostavilo staru vrednost, pa se ograničenje ne bi moglo skinuti.
+function daniIzForme(formData: FormData, ime: string): number[] {
+  return formData
+    .getAll(ime)
+    .map((v) => Number(v))
+    .filter((n) => Number.isInteger(n) && n >= 1 && n <= 7);
+}
+
+function nociIzForme(formData: FormData): number[] {
+  const raw = formData.get('allowedStayNights');
+  if (raw === null) return [];
+  return String(raw)
+    .split(',')
+    .map((d) => Number(d.trim()))
+    .filter((n) => Number.isInteger(n) && n > 0);
+}
+
 export async function updatePeriod(
   contractId: string,
   periodId: string,
@@ -88,6 +111,9 @@ export async function updatePeriod(
         releaseDaysBefore: num('releaseDaysBefore'),
         minStayNights: num('minStayNights'),
         maxStayNights: num('maxStayNights'),
+        arrivalWeekdays: daniIzForme(formData, 'arrivalWeekdays'),
+        departureWeekdays: daniIzForme(formData, 'departureWeekdays'),
+        allowedStayNights: nociIzForme(formData),
         confirmOversold: formData.get('confirmOversold') === 'da' ? true : undefined,
       },
     });

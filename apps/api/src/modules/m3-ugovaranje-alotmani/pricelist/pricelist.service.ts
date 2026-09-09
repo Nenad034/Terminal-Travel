@@ -8,6 +8,7 @@ import { UpsertSeasonDto } from './dto/upsert-season.dto';
 import { WriteCellDto } from './dto/write-cell.dto';
 import { UpsertSurchargeDto } from './dto/upsert-surcharge.dto';
 import { domet, ulaziUZbir } from './surcharge-scope';
+import { imenaDana, nadjiPreklapanje, nepokriveniDani } from './weekday-coverage';
 import { UpsertPricingRuleDto } from './dto/upsert-pricing-rule.dto';
 
 /**
@@ -180,7 +181,7 @@ export class PricelistService {
       }
 
       for (const r of p.rateLines) {
-        const key = redKljuc(r.boardType, r.occupancy, r.priceBasis);
+        const key = redKljuc(r.boardType, r.occupancy, r.priceBasis, r.validWeekdays);
         let row = g.rows.find((x) => x.key === key);
         if (!row) {
           row = {
@@ -188,6 +189,7 @@ export class PricelistService {
             boardType: r.boardType,
             occupancy: r.occupancy,
             priceBasis: r.priceBasis,
+            validWeekdays: r.validWeekdays ?? [],
             cells: {},
           };
           g.rows.push(row);
@@ -279,12 +281,42 @@ export class PricelistService {
       periodIds.push(nov.id);
     }
 
+    const dani = [...new Set(dto.validWeekdays ?? [])].sort();
+
+    // §2.11d — preklapanje dana se odbija PRE upisa, i to izvan transakcije, da poruka stigne
+    // korisniku kao 400 a ne kao pad transakcije (isti razlog kao provera preklapanja perioda,
+    // zamka 7.9). Nepokriven dan se NE odbija — vidi `nepokriveniDani` niže i §2.11d.
+    for (const periodId of periodIds) {
+      const postojeci = await this.prisma.rateLine.findMany({
+        where: { contractPeriodId: periodId, status: 'ACTIVE' },
+      });
+      const sudar = nadjiPreklapanje(
+        { boardType: dto.boardType, occupancy: dto.occupancy, validWeekdays: dani },
+        postojeci.filter(
+          (r) =>
+            !(
+              r.boardType === dto.boardType &&
+              r.occupancy === dto.occupancy &&
+              isteDane(r.validWeekdays, dani)
+            ),
+        ),
+      );
+      if (sudar.length > 0) {
+        throw new BadRequestException(
+          `Za ovu kombinaciju već postoji cena za ${imenaDana(sudar)} — dva reda ne smeju ` +
+            `pokrivati isti dan, jer bi za taj datum postojale dve cene (M3 spec §2.11d).`,
+        );
+      }
+    }
+
     const rezultat = await this.prisma.$transaction(async (tx) => {
       const upisane: string[] = [];
       let ugasenih = 0;
 
       for (const periodId of periodIds) {
-        const stara = await tx.rateLine.findFirst({
+        // Ista ćelija = isti pansion, ista popunjenost I isti dani (§2.11d). Bez dana u ovom
+        // upitu bi upis vikend cene UGASIO cenu za radne dane umesto da stane pored nje.
+        const kandidati = await tx.rateLine.findMany({
           where: {
             contractPeriodId: periodId,
             boardType: dto.boardType,
@@ -292,6 +324,7 @@ export class PricelistService {
             status: 'ACTIVE',
           },
         });
+        const stara = kandidati.find((r) => isteDane(r.validWeekdays, dani)) ?? null;
 
         if (
           stara &&
@@ -320,6 +353,7 @@ export class PricelistService {
             occupancy: dto.occupancy,
             priceBasis: dto.priceBasis,
             price: dto.price,
+            validWeekdays: dani,
             bookingFrom: dto.bookingFrom ? dan(dto.bookingFrom) : null,
             bookingTo: dto.bookingTo ? dan(dto.bookingTo) : null,
           },
@@ -349,12 +383,33 @@ export class PricelistService {
       },
     });
 
+    // §2.11d — nepokriven dan se PRIJAVLJUJE, ne odbija. Cenovnik se unosi red po red: prvi red
+    // „ned–čet" bi po strogom pravilu bio odbijen jer petak i subota još ne postoje, pa se drugi
+    // red nikad ne bi ni stigao dodati. Posledica ostaje stvarna (za taj datum nema cene), ali je
+    // vidljiva na ekranu umesto da unos bude nemoguć.
+    const sviRedovi = await this.prisma.rateLine.findMany({
+      where: {
+        contractPeriodId: { in: periodIds },
+        boardType: dto.boardType,
+        occupancy: dto.occupancy,
+        status: 'ACTIVE',
+      },
+    });
+    const bezCene = nepokriveniDani(sviRedovi);
+
     return {
       seasonId: season.id,
       roomType,
       periodIds,
       rateLineIds: rezultat.upisane,
       deactivated: rezultat.ugasenih,
+      validWeekdays: dani,
+      /** Dani za koje ova kombinacija nema nijednu cenu — upozorenje, ne greška (§2.11d). */
+      daniBezCene: bezCene,
+      upozorenje:
+        bezCene.length > 0
+          ? `Za ${imenaDana(bezCene)} ova kombinacija nema cenu — ti datumi se neće pojaviti u pretrazi.`
+          : null,
     };
   }
 
@@ -789,6 +844,8 @@ export interface GridRow {
   boardType: string;
   occupancy: string;
   priceBasis: PriceBasis;
+  /** §2.11d — prazan niz znači „svi dani". */
+  validWeekdays: number[];
   cells: Record<string, GridCell>;
 }
 
@@ -798,8 +855,23 @@ export interface GridGrupa {
   bezSezone: { periodId: string; stayFrom: string; stayTo: string; cenovnihRedova: number }[];
 }
 
-function redKljuc(boardType: string, occupancy: string, priceBasis: PriceBasis): string {
-  return `${boardType}|${occupancy}|${priceBasis}`;
+// §2.11d — dani ulaze u ključ reda: „BB 2ADT ned–čet" i „BB 2ADT pet–sub" su DVA reda mreže sa
+// različitim cenama, ne jedan red čija se cena razilazi. Bez dana u ključu bi drugi red pregazio
+// prvi u prikazu i vikend cena bi nestala sa ekrana.
+/** Poređenje dana kao skupova — redosled unosa ne sme da napravi „drugu" ćeliju. */
+function isteDane(a: number[], b: number[]): boolean {
+  const x = [...new Set(a)].sort().join(',');
+  const y = [...new Set(b)].sort().join(',');
+  return x === y;
+}
+
+function redKljuc(
+  boardType: string,
+  occupancy: string,
+  priceBasis: PriceBasis,
+  validWeekdays: number[] | null | undefined,
+): string {
+  return `${boardType}|${occupancy}|${priceBasis}|${[...(validWeekdays ?? [])].sort().join(',')}`;
 }
 
 function dan(v: string | Date): Date {

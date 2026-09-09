@@ -102,6 +102,10 @@ export class ContractPeriodsService {
         agePolicyOverride: dto.agePolicyOverride as unknown as Prisma.InputJsonValue,
         minStayNights: dto.minStayNights,
         maxStayNights: dto.maxStayNights,
+        // §2.11d — turnusi; prazan niz je jedina vrednost koja znači „bez ograničenja".
+        arrivalWeekdays: dto.arrivalWeekdays ?? [],
+        departureWeekdays: dto.departureWeekdays ?? [],
+        allowedStayNights: dto.allowedStayNights ?? [],
       },
     });
     await this.auditLog.write({
@@ -203,6 +207,9 @@ export class ContractPeriodsService {
         fixedObligationCurrency: dto.fixedObligationCurrency,
         minStayNights: dto.minStayNights,
         maxStayNights: dto.maxStayNights,
+        arrivalWeekdays: dto.arrivalWeekdays,
+        departureWeekdays: dto.departureWeekdays,
+        allowedStayNights: dto.allowedStayNights,
       },
     });
 

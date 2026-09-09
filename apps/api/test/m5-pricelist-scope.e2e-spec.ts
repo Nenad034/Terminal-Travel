@@ -24,7 +24,7 @@ import { PrismaExceptionFilter } from '../src/common/filters/prisma-exception.fi
  *
  * Oba se mere kroz iste HTTP endpointe kojima ide prava prodaja, nad pravom bazom.
  */
-describe('M3 §2.11e/§2.11i/§2.11k — domet cenovnika u prodaji (e2e)', () => {
+describe('M3 §2.11d/§2.11e/§2.11i/§2.11k — domet cenovnika u prodaji (e2e)', () => {
   let app: INestApplication;
   let prisma: PrismaService;
   let jwt: JwtService;
@@ -679,5 +679,148 @@ describe('M3 §2.11e/§2.11i/§2.11k — domet cenovnika u prodaji (e2e)', () =>
     // Ista nabavna cena i ista (nulta) marža — razliku pravi ISKLJUČIVO domet provizije.
     expect(poStavci.get(soba.id)).toBe(9000); // 100,00 − 10 % provizije subagenta
     expect(poStavci.get(taksa.id)).toBe(10000); // „bez provizije" — pun iznos
+  });
+
+  /**
+   * M3 §2.11d — dani u nedelji i turnusi.
+   *
+   * Dva dokaza kroz prave endpointe: (1) upis cene koja preklapa dane već pokrivene drugom
+   * cenom se odbija sa imenovanim danima; (2) boravak koji ne poštuje turnus (subota–subota,
+   * 7 noći) ne prolazi kroz `POST /sales/quotes`, a onaj koji ga poštuje prolazi.
+   */
+  it('dani u nedelji: preklapanje se odbija pri upisu, a turnus se poštuje pri prodaji', async () => {
+    const { accessToken } = await createUser();
+
+    const supplier = await prisma.supplier.create({
+      data: {
+        name: `M5 Turnus Dobavljač ${uid}`,
+        type: 'HOTEL',
+        taxId: `TAX-M5TRN-${uid}`,
+        registrationNumber: `REG-M5TRN-${uid}`,
+        country: 'RS',
+        contactName: 'Kontakt',
+        contactEmail: `turnus-${uid}@tt-test.rs`,
+        contactPhone: '+381600000003',
+      },
+    });
+    createdSupplierIds.push(supplier.id);
+
+    const contract = await prisma.contract.create({
+      data: {
+        supplierId: supplier.id,
+        contractNumber: `C-M5TRN-${uid}`,
+        currency: 'EUR',
+        validFrom: new Date('2027-01-01'),
+        validTo: new Date('2027-12-31'),
+        cancellationTermsSummary: 'e2e',
+        documentUrl: 'mock://doc.pdf',
+        status: 'ACTIVE',
+        defaultTipNastupanja: 'ORGANIZATOR',
+      },
+    });
+
+    // Sezona sa jednim opsegom — kroz nju ide upis ćelije, isto kao sa ekrana cenovnika.
+    const season = await prisma.season.create({
+      data: {
+        contractId: contract.id,
+        code: `T${uid.slice(-4)}`,
+        rank: 1,
+        ranges: { create: [{ dateFrom: new Date('2027-06-01'), dateTo: new Date('2027-06-30') }] },
+      },
+    });
+
+    const roomType = `TRN_${uid}`;
+    const celija = {
+      seasonId: season.id,
+      roomType,
+      boardType: 'BB',
+      occupancy: '2ADT',
+      priceBasis: 'PER_ROOM_PER_NIGHT',
+      price: 10000,
+    };
+
+    // 1. Radni dani (ned–čet) prolaze.
+    const radni = await request(app.getHttpServer())
+      .put(`/api/v1/contracting/contracts/${contract.id}/pricelist-grid/cell`)
+      .set({ Authorization: `Bearer ${accessToken}` })
+      .send({ ...celija, validWeekdays: [7, 1, 2, 3, 4] });
+    expect(radni.status).toBe(200);
+    // Petak i subota još nemaju cenu — to je UPOZORENJE, ne odbijanje: cenovnik se unosi red po
+    // red, pa bi strogo pravilo onemogućilo unos drugog reda.
+    expect(radni.body.daniBezCene).toEqual([5, 6]);
+
+    // 2. Vikend (pet, sub) kao DRUGI red iste kombinacije — prolazi, jer se dani ne preklapaju.
+    const vikend = await request(app.getHttpServer())
+      .put(`/api/v1/contracting/contracts/${contract.id}/pricelist-grid/cell`)
+      .set({ Authorization: `Bearer ${accessToken}` })
+      .send({ ...celija, price: 14000, validWeekdays: [5, 6] });
+    expect(vikend.status).toBe(200);
+    expect(vikend.body.daniBezCene).toEqual([]);
+
+    // 3. Treći red koji ponovo pokriva petak se ODBIJA, i poruka imenuje dan.
+    const sudar = await request(app.getHttpServer())
+      .put(`/api/v1/contracting/contracts/${contract.id}/pricelist-grid/cell`)
+      .set({ Authorization: `Bearer ${accessToken}` })
+      .send({ ...celija, price: 12000, validWeekdays: [5] });
+    expect(sudar.status).toBe(400);
+    expect(sudar.body.message).toContain('petak');
+
+    // Turnus: subota–subota, 7 noći.
+    const period = await prisma.contractPeriod.findFirstOrThrow({
+      where: { contractId: contract.id, roomType },
+    });
+    await prisma.contractPeriod.update({
+      where: { id: period.id },
+      data: { arrivalWeekdays: [6], departureWeekdays: [6], allowedStayNights: [7] },
+    });
+
+    const product = await prisma.product.create({
+      data: {
+        type: 'ACCOMMODATION',
+        sourceType: 'CONTRACTED',
+        sourceContractId: contract.id,
+        destinationCountry: 'ME',
+        destinationCity: 'Budva',
+        status: 'ACTIVE',
+        attributes: {},
+        translations: {
+          create: [
+            { languageCode: 'sr', name: 'Hotel Turnus', description: 'o', slug: `ht-sr-${uid}` },
+            { languageCode: 'en', name: 'Hotel Turnus', description: 'd', slug: `ht-en-${uid}` },
+          ],
+        },
+      },
+    });
+    createdProductIds.push(product.id);
+
+    const marza = await prisma.markupRule.create({
+      data: { scopeType: 'M3_CONTRACT', scopeId: contract.id, percentage: 0 },
+    });
+    createdMarkupRuleIds.push(marza.id);
+
+    async function ponuda(stayFrom: string, stayTo: string) {
+      return request(app.getHttpServer())
+        .post('/api/v1/sales/quotes')
+        .set({ Authorization: `Bearer ${accessToken}` })
+        .send({
+          channel: 'INTERNAL_PANEL',
+          items: [
+            { productId: product.id, stayFrom, stayTo, occupancy: { adults: 2, children: 0 } },
+          ],
+        });
+    }
+
+    // Sreda → sreda: 7 noći, ali dolazak nije subota.
+    const sreda = await ponuda('2027-06-09', '2027-06-16');
+    expect(sreda.status).toBe(400);
+    expect(sreda.body.message).toContain('Prijava je moguća samo: subota');
+
+    // Subota → subota, 7 noći: prolazi, i cena se SASTAVLJA od oba reda — pet noći po radnoj
+    // (100,00) i dve po vikend ceni (140,00) = 780,00. Ovo je jedini deo §2.11d koji se ne vidi
+    // ni u jednom pojedinačnom redu cenovnika, pa se ovde i meri.
+    const subota = await ponuda('2027-06-12', '2027-06-19');
+    expect(subota.status).toBe(201);
+    createdQuoteIds.push(subota.body.id);
+    expect(subota.body.items[0].baseCost).toBe(78000);
   });
 });

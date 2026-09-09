@@ -155,6 +155,16 @@ Kad je `segments` poslato, ZAMENJUJE ceo postojeći skup (dodavanje/brisanje/pre
 
 Polja stavke se prepisuju iz izabranog `SearchResultOffer` (poglavlje 3.0b.3) — korisnik ih ne unosi ručno.
 
+**Odbijanja koja dolaze iz cenovnika (M3 §2.11d/§2.11e, dodato 9.9.2026).** Sva tri vraćaju `400` sa poljem `reason`, jer su to različite činjenice sa različitim nastavkom:
+
+| `reason`                      | Kada                                                                                                                            |
+| :---------------------------- | :------------------------------------------------------------------------------------------------------------------------------ |
+| `STAY_PATTERN`                | Boravak ne poštuje turnus perioda (dani prijave/odjave, dozvoljena dužina) — poruka kaže **kada se sme** doći.                  |
+| `BOOKING_WINDOW_CLOSED`       | Prozor za rezervisanje po toj ceni je prošao (`booking_from`/`booking_to` na cenovnoj stavci), ili po svakoj ceni za te datume. |
+| (bez `reason`, obična poruka) | Neka noć boravka nema cenu jer je nijedan cenovni red ne pokriva — poruka imenuje dan („Za petak i subota…").                   |
+
+**Cena boravka može doći iz više cenovnih redova.** Kad kombinacija ima vikend cenu kao poseban red (§2.11d), `base_cost` je zbir po noćima: subota→subota po cenama 100,00 (ned–čet) i 140,00 (pet–sub) daje **780,00**. Stavka i dalje nosi **jedan** `rateLineId` — onaj koji pokriva prvu noć.
+
 **Zahtev:**
 
 ```json

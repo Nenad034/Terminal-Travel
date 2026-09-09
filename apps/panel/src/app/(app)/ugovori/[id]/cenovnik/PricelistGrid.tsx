@@ -29,6 +29,8 @@ export interface Red {
   boardType: string;
   occupancy: string;
   priceBasis: string;
+  /** §2.11d — dani za koje red važi; prazno = svi dani. */
+  validWeekdays: number[];
   cells: Record<string, Celija>;
 }
 
@@ -46,6 +48,26 @@ export interface Mreza {
   commissionPercentage: string | number | null;
   seasons: Sezona[];
   roomTypes: Grupa[];
+}
+
+// §2.11d — dani se biraju kao TAGOVI, ne kao „radni dani / vikend": vlasnikova odluka, jer
+// vikend nije isti u svakom hotelu (kod njih petak i subota; nedelja se ne računa).
+export const DANI: { broj: number; kratko: string; pun: string }[] = [
+  { broj: 1, kratko: 'pon', pun: 'ponedeljak' },
+  { broj: 2, kratko: 'uto', pun: 'utorak' },
+  { broj: 3, kratko: 'sre', pun: 'sreda' },
+  { broj: 4, kratko: 'čet', pun: 'četvrtak' },
+  { broj: 5, kratko: 'pet', pun: 'petak' },
+  { broj: 6, kratko: 'sub', pun: 'subota' },
+  { broj: 7, kratko: 'ned', pun: 'nedelja' },
+];
+
+/** Prazno namerno piše „svi dani", ne prazninu — prazan skup se čita kao propust u unosu. */
+export function opisDana(dani: number[]): string {
+  if (!dani || dani.length === 0 || dani.length === 7) return 'svi dani';
+  return DANI.filter((d) => dani.includes(d.broj))
+    .map((d) => d.kratko)
+    .join(', ');
 }
 
 export const OSNOVE: Record<string, string> = {
@@ -182,6 +204,13 @@ function GrupaSobe({
           <td className="sticky left-0 z-10 border-b border-r border-border bg-panel px-3 py-1.5 text-ink-dim">
             <span className="pl-4">
               {r.boardType} · {r.occupancy}
+              {r.validWeekdays && r.validWeekdays.length > 0 && r.validWeekdays.length < 7 && (
+                // Bez ovoga bi dva reda iste kombinacije izgledala identično, a nose različitu
+                // cenu — čovek ne bi imao način da vidi koji je koji.
+                <Badge variant="secondary" className="ml-2 text-[9px]">
+                  {opisDana(r.validWeekdays)}
+                </Badge>
+              )}
             </span>
           </td>
           {seasons.map((s) => (
@@ -312,6 +341,9 @@ function CelijaCene({
         boardType: red.boardType,
         occupancy: red.occupancy,
         priceBasis: red.priceBasis,
+        // §2.11d — bez dana bi izmena vikend cene pogodila red za radne dane (ista kombinacija,
+        // drugi dani), pa bi jedan od dva reda tiho nestao.
+        validWeekdays: red.validWeekdays ?? [],
         cena: unos,
       });
       if (r.error) setGreska(r.error);
@@ -345,6 +377,7 @@ function NovRedForma({
   const [seasonId, setSeasonId] = useState(seasons[0]?.id ?? '');
   const [cena, setCena] = useState('');
   const [bookingTo, setBookingTo] = useState('');
+  const [dani, setDani] = useState<number[]>([]);
   const [greska, setGreska] = useState<string | null>(null);
   const [radi, start] = useTransition();
 
@@ -440,6 +473,40 @@ function NovRedForma({
         </label>
       </div>
 
+      <div className="flex flex-col gap-1 text-[11px] text-ink-faint">
+        Dani u nedelji na koje se ova cena odnosi
+        <div className="flex flex-wrap gap-1">
+          {DANI.map((d) => {
+            const izabran = dani.includes(d.broj);
+            return (
+              <button
+                key={d.broj}
+                type="button"
+                title={d.pun}
+                onClick={() =>
+                  setDani((prev) =>
+                    prev.includes(d.broj) ? prev.filter((x) => x !== d.broj) : [...prev, d.broj],
+                  )
+                }
+                className={
+                  izabran
+                    ? 'rounded border border-accent bg-accent/15 px-2 py-1 text-[11px] text-ink'
+                    : 'rounded border border-border px-2 py-1 text-[11px] text-ink-faint hover:text-ink'
+                }
+              >
+                {d.kratko}
+              </button>
+            );
+          })}
+        </div>
+        <span className="text-[10px]">
+          Ništa izabrano = <strong className="text-ink-dim">svi dani</strong>. Vikend cena se unosi
+          kao <strong className="text-ink-dim">drugi red</strong> sa svojim danima (npr. pet i sub),
+          ne kao nova sezona. Dva reda iste kombinacije ne smeju pokrivati isti dan — takav upis se
+          odbija.
+        </span>
+      </div>
+
       <p className="text-[10px] text-ink-faint">
         Red nastaje sa cenom za izabranu sezonu. Ostale kolone se popunjavaju klikom u mreži — tako
         se ne mora unositi pet cena pre nego što se vidi ijedan red.
@@ -465,6 +532,7 @@ function NovRedForma({
                 occupancy: occupancy.trim(),
                 priceBasis,
                 cena,
+                validWeekdays: dani,
                 bookingTo: bookingTo || undefined,
               });
               if (r.error) setGreska(r.error);

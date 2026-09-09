@@ -69,6 +69,8 @@ export async function upisiCeliju(
     occupancy: string;
     priceBasis: string;
     cena: string;
+    /** §2.11d — dani u nedelji (1 = ponedeljak … 7 = nedelja); prazno = svi dani. */
+    validWeekdays?: number[];
     bookingFrom?: string;
     bookingTo?: string;
   },
@@ -88,6 +90,7 @@ export async function upisiCeliju(
         occupancy: telo.occupancy,
         priceBasis: telo.priceBasis,
         price,
+        validWeekdays: telo.validWeekdays ?? [],
         bookingFrom: telo.bookingFrom || undefined,
         bookingTo: telo.bookingTo || undefined,
       },
