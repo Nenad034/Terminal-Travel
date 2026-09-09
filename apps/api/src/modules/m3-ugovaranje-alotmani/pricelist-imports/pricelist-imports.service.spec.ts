@@ -21,6 +21,13 @@ describe('PricelistImportsService (M3 spec §4.2)', () => {
       rateLine: { create: jest.fn() },
       supplierExtractionProfile: { upsert: jest.fn() },
     };
+    // §4.2.4 (9.9.2026) — period, cenovna stavka i status reda idu u JEDNOJ transakciji: ranije
+    // je pad na cenovnoj stavci ostavljao period bez cene, koji je zauvek blokirao ponovni
+    // pokušaj proverom preklapanja. Mock prosleđuje isti klijent, pa testovi vide sve upise.
+    (prisma as unknown as { $transaction: unknown }).$transaction = jest.fn(
+      (fn: (tx: unknown) => unknown) => fn(prisma),
+    );
+
     const auditLog = { write: jest.fn() };
     const service = new PricelistImportsService(prisma as any, auditLog as any);
     return { service, prisma, auditLog };

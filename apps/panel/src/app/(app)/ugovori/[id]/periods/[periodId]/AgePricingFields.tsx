@@ -12,8 +12,12 @@ import type { AgePricingEntry, AgePricingMode } from './RateLinesPanel';
 // Redovi izlaze kao PARALELNI NIZOVI skrivenih polja (`agePricingCategory[]`, `agePricingMode[]`…),
 // jer HTML forma nema ugnježdene objekte; server akcija ih spaja po indeksu i preskače prazne.
 
+// Vrednosti moraju tačno odgovarati Prisma enumu `AgeCategory` (ADULT/CHILD/TEEN/INFANT).
+// ISPRAVKA 9.9.2026: prva verzija je koristila 'BABY', koje u enumu ne postoji — izbor „Beba"
+// bi prošao kroz formu i pao tek pri upisu u bazu. Panel ne uvozi Prisma tipove, pa ovde nema
+// provere prevodioca; jedina zaštita je da se vrednost ne izmišlja (zamka 7.8).
 const KATEGORIJE = [
-  { value: 'BABY', label: 'Beba' },
+  { value: 'INFANT', label: 'Beba' },
   { value: 'CHILD', label: 'Dete' },
   { value: 'TEEN', label: 'Tinejdžer' },
   { value: 'ADULT', label: 'Odrasla osoba' },

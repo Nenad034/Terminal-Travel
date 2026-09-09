@@ -1151,7 +1151,12 @@ enum TouristTaxCollectedBy {
 model PricelistImport {
   id            String                @id @default(uuid())
   supplierId    String                @map("supplier_id")
-  sourceFileUrl String                @map("source_file_url")
+  /// §4.2.6 (v1.26) — TAČNO JEDNO od `sourceFileUrl`/`sourceText` je popunjeno. Fajl čeka
+  /// odluku o skladištu; do tada se uvozi nalepljen tekst (najčešće telo mejla dobavljača).
+  sourceFileUrl String?               @map("source_file_url")
+  sourceText    String?               @map("source_text")
+  /// §4.2.6 — zašto ekstrakcija nije uspela. Jedini trag kad uvoz ne da nijedan red.
+  failureReason String?               @map("failure_reason")
   sourceFormat  PricelistSourceFormat @map("source_format")
   status        PricelistImportStatus @default(PROCESSING)
   createdBy     String?               @map("created_by")
@@ -1168,6 +1173,9 @@ model PricelistImport {
 }
 
 enum PricelistSourceFormat {
+  /// §4.2.6 (v1.26) — tekst bez fajla (nalepljen sadržaj mejla). Nije `EMAIL`: te vrednosti
+  /// opisuju FAJL tog tipa, a ovde `source_file_url` ostaje prazan.
+  PASTED_TEXT
   PDF
   EXCEL
   WORD
@@ -1180,7 +1188,11 @@ enum PricelistImportStatus {
   PROCESSING
   READY_FOR_REVIEW
   COMPLETED
+  /// Čovek je odbio uvoz.
   REJECTED
+  /// §4.2.6 (v1.26) — ekstrakcija nije uspela. NAMERNO odvojeno od `REJECTED`: inače se u
+  /// spisku ne razlikuje „AI nije umeo da pročita" od „mi nismo hteli".
+  FAILED
 }
 
 // §4.2.2 `PricelistImportRow` — jedan red = jedna kombinacija hotel/soba/usluga/period/cena
@@ -3203,6 +3215,7 @@ enum AgentRole {
   EMAIL_INBOX_AGENT // M22 spec §4, dodato avgust 2026
   KNOWLEDGE_AGENT // M23 spec §3.2/§4, dodato avgust 2026
   BI_TERMINAL_AGENT // M15 spec §6.9, dodato avgust 2026 — isključivo read-only, isključivo Vlasnik
+  PRICELIST_IMPORT_AGENT // M3 spec §4.2.6, dodato 9.9.2026 — čita cenovnik iz teksta, ništa ne upisuje sam
   WEB_CONTENT_SAFETY_AGENT // M15 spec §6.9.7, dodato 23.8.2026 — proverava sadržaj sa interneta PRE prikaza, nezavisan log od BiTerminalAgent-a
 }
 

@@ -110,54 +110,67 @@ export class PricelistImportsService {
       row.extractedStayTo,
     );
 
-    // Cenovnik sam po sebi ne nosi kapacitet (to je zaseban dogovor o alotmanu) —
-    // ON_REQUEST je jedini bezbedan podrazumevani mod: ne pretpostavlja kapacitet koji
-    // dokument ne navodi (M3 spec §2.3, "ON_REQUEST period nema total_capacity").
-    const period = await this.prisma.contractPeriod.create({
-      data: {
-        contractId: product.sourceContractId,
-        stayFrom: row.extractedStayFrom,
-        stayTo: row.extractedStayTo,
-        roomType: row.extractedRoomType,
-        allotmentMode: 'ON_REQUEST',
-      },
-    });
+    // JEDNA TRANSAKCIJA (ispravka 9.9.2026, zatečeno pri prvom stvarnom uvozu).
+    //
+    // Ranije su ovo bila tri odvojena upisa: period, pa cenovna stavka, pa status reda. Kad je
+    // upis cenovne stavke pao (neispravna uzrasna kategorija), period je OSTAO — bez ijedne cene,
+    // i od tada je svaki ponovni pokušaj padao na proveru preklapanja sa tim istim praznim
+    // periodom. Dakle jedan neuspeh je trajno zaključavao red koji je inače ispravan.
+    //
+    // Provera preklapanja (iznad) je namerno OSTALA van transakcije: ona ne piše ništa, a njena
+    // poruka mora da stigne do čoveka kao 400, ne kao pad transakcije.
+    const { period, rateLine, updatedRow } = await this.prisma.$transaction(async (tx) => {
+      // Cenovnik sam po sebi ne nosi kapacitet (to je zaseban dogovor o alotmanu) —
+      // ON_REQUEST je jedini bezbedan podrazumevani mod: ne pretpostavlja kapacitet koji
+      // dokument ne navodi (M3 spec §2.3, "ON_REQUEST period nema total_capacity").
+      const period = await tx.contractPeriod.create({
+        data: {
+          contractId: product.sourceContractId!,
+          stayFrom: row.extractedStayFrom,
+          stayTo: row.extractedStayTo,
+          roomType: row.extractedRoomType,
+          allotmentMode: 'ON_REQUEST',
+        },
+      });
 
-    const agePricingCandidates = (row.extractedAgePricing ?? []) as unknown as {
-      age_category: string;
-      occupant_index?: number;
-      min_adults_present?: number;
-      pricing_mode: string;
-      percentage?: number;
-      flat_price?: number;
-    }[];
+      const agePricingCandidates = (row.extractedAgePricing ?? []) as unknown as {
+        age_category: string;
+        occupant_index?: number;
+        min_adults_present?: number;
+        pricing_mode: string;
+        percentage?: number;
+        flat_price?: number;
+      }[];
 
-    const rateLine = await this.prisma.rateLine.create({
-      data: {
-        contractPeriodId: period.id,
-        boardType: row.extractedBoardType,
-        occupancy: row.extractedOccupancy,
-        priceBasis: row.extractedPriceBasis,
-        price: row.extractedPrice,
-        cribFeePerNight: row.extractedCribFeePerNight,
-        agePricing: agePricingCandidates.length
-          ? {
-              create: agePricingCandidates.map((a) => ({
-                ageCategory: a.age_category as AgeCategory,
-                occupantIndex: a.occupant_index,
-                minAdultsPresent: a.min_adults_present,
-                pricingMode: a.pricing_mode as AgePricingMode,
-                percentage: a.percentage,
-                flatPrice: a.flat_price,
-              })),
-            }
-          : undefined,
-      },
-    });
+      const rateLine = await tx.rateLine.create({
+        data: {
+          contractPeriodId: period.id,
+          boardType: row.extractedBoardType,
+          occupancy: row.extractedOccupancy,
+          priceBasis: row.extractedPriceBasis!,
+          price: row.extractedPrice,
+          cribFeePerNight: row.extractedCribFeePerNight,
+          agePricing: agePricingCandidates.length
+            ? {
+                create: agePricingCandidates.map((a) => ({
+                  ageCategory: a.age_category as AgeCategory,
+                  occupantIndex: a.occupant_index,
+                  minAdultsPresent: a.min_adults_present,
+                  pricingMode: a.pricing_mode as AgePricingMode,
+                  percentage: a.percentage,
+                  flatPrice: a.flat_price,
+                })),
+              }
+            : undefined,
+        },
+      });
 
-    const updatedRow = await this.prisma.pricelistImportRow.update({
-      where: { id: rowId },
-      data: { reviewStatus: dto.decision, reviewedBy: actorId, matchedProductId },
+      const updatedRow = await tx.pricelistImportRow.update({
+        where: { id: rowId },
+        data: { reviewStatus: dto.decision, reviewedBy: actorId, matchedProductId },
+      });
+
+      return { period, rateLine, updatedRow };
     });
 
     // §4.2.5 — "tiho ažurira SupplierExtractionProfile ... potvrđenim vrednostima", ista

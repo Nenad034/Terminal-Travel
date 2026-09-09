@@ -4,6 +4,8 @@
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje
 
+**Verzija:** 2.73 — **ekran „Uvoz cenovnika (AI)"** (9.9.2026, na vlasnikovo pitanje gde se cene unose uz pomoć AI agenta). Novo poglavlje **6c**. Backend tok je postojao, ali ekrana nije bilo nigde — pretraga po „pricelist" kroz ceo panel davala je nula pogodaka, a stavke nije bilo ni u navigaciji. Dva ekrana: spisak uvoza sa statusom i **razlogom neuspeha odmah u redu**, i pregled redova sa iznosom, periodom i **ocenom poklapanja hotela u procentima**. Tri pravila koja ekran sprovodi: „ništa još nije upisano" stoji pre redova; red bez poklopljenog hotela ili bez prepoznate osnove cene se ne može potvrditi (dugme onemogućeno, uz razlog); izvorni tekst stoji uz rezultat, jer je bez njega nemoguće utvrditi da li je AI pogrešio ili je tako pisalo. Uvoz i ekstrakcija su namerno **dva poziva**, pa neuspeh modela ostavlja zapis sa razlogom i mogućnost ponovnog pokušaja nad istim tekstom.
+
 **Verzija:** 2.72 — **ekran proizvoda dobija „Izvor cene i objava"** (9.9.2026, posle vlasnikovog zahteva da se pređe ceo redosled od unosa stavke kataloga do izbora u pretrazi). Novo poglavlje **6b**. Dva koraka tog redosleda su postojala na backendu a nisu imala ekran: proizvod se u panelu nije mogao ni **vezati za ugovor** ni **objaviti**, pa je ostajao `DRAFT` zauvek dok pretraga uzima samo `ACTIVE` — sve što se u pretrazi videlo došlo je iz seed skripti. Blok nosi izbor ugovora, **listu provera** sa razdvojenim preprekama i upozorenjima (M2 §5.2), i kanale vidljivosti sa dugmetom za objavu koje stoji onemogućeno dok prepreke traju. Usput ispravljen zatečen kvar: detalj ekran `PACKAGE` proizvoda je padao jer je `GET /catalog/products` od 5.9.2026 vraćao `{ data, … }`, a poziv je ostao na starom obliku (golom nizu).
 
 **Verzija:** 2.71 — **filteri i desni panel na listama Kataloga i nabavke** (9.9.2026, vlasnikov nalaz nad `/katalog`, `/dobavljaci` i `/ugovori`). Novo poglavlje **6a**. **(1)** Ista traka filtera na sva tri ekrana — ikonice za vrstu proizvoda (isti `PRODUCT_ICONS` katalog kao Lista rezervacija) plus država/mesto/hotel/dobavljač; jedna komponenta, prosleđena imena parametara, jer tri ekrana gađaju tri različita endpointa. Filteri levog panela kataloga **ostaju** (vlasnikova odluka 9.9.2026). **(2)** Kod dobavljača i ugovora destinacija/objekat/vrsta gađaju **proizvode** tog reda, ne sam red — dobavljač u bazi ima samo svoje sedište, pa „Grčka" mora značiti „ko nam prodaje u Grčkoj" (M3 v1.24). **(3)** Klik na red otvara brz pregled u desnom panelu, ikonica `link-external` otvara pun zapis; tri nove vrste sažetka u postojećem `RowSummaryContext`, ne nov mehanizam. Zabeležena promena ponašanja: redovi ugovora i kartice kataloga su do sada bili veze koje odmah odvode sa ekrana.
@@ -781,6 +783,28 @@ Na ekranu proizvoda (`/katalog/:id`) stoji blok **„Izvor cene i objava"**, vid
 Uz kanale stoji rečenica da **interni tim vidi svaki objavljen proizvod** bez obzira na taj izbor (M2 §5.1) — bez nje se prazan izbor čita kao „niko ga neće videti", što nije tačno.
 
 **Proizvod iz M4 keširanja ne dobija izbor ugovora** nego rečenicu zašto: cene mu dolaze od provajdera, ne iz našeg ugovora. Forma koja bi svakako bila odbijena je gora od objašnjenja.
+
+## 6c. Ekran „Uvoz cenovnika (AI)" (dopuna 9.9.2026, na zahtev vlasnika)
+
+Vlasnikovo pitanje: _„ne vidim gde se cene unose ručno odnosno uz pomoć AI agenta."_ Ručni unos je postojao (§6a put: ugovor → period), ali za AI uvoz **nije postojao nijedan ekran** — pretraga po „pricelist" kroz ceo `apps/panel/src` davala je nula pogodaka, iako je backend tok bio dobrim delom napravljen. Model i podela posla: M3 §4.2 i §4.2.6.
+
+### 6c.1 Dva ekrana, jedan tok
+
+**Spisak uvoza** (`/cenovnici`) — po dobavljaču, sa statusom i, kad uvoz ne uspe, **razlogom odmah u redu**. „Nije uspeo" bez razloga je poruka bez nastavka; razlog je jedini trag zašto nema nijednog reda.
+
+**Pregled redova** (`/cenovnici/:id`) — svaki red koji je AI izvukao, sa iznosom, periodom, uslugom i **ocenom poklapanja hotela u procentima**. Ocena se prikazuje, ne skriva: red sa 61% izgleda isto kao red sa 100% ako se broj ne vidi, a razlika je između ispravne cene i cene na pogrešnom hotelu.
+
+### 6c.2 Tri pravila koja ekran sprovodi
+
+1. **„Ništa još nije upisano" stoji na vrhu, pre redova.** Ekran koji liči na gotov posao a nije upisao ništa navodi čoveka da ga zatvori i ode dalje. Potvrda reda je jedini korak koji stvarno pravi cenu (M3 §4.2.4).
+2. **Red bez poklopljenog hotela ili bez prepoznate osnove cene se NE MOŽE potvrditi.** Dugme je onemogućeno, i uz njega piše zašto — umesto da čovek klikne pa dobije grešku sa servera.
+3. **Izvorni tekst stoji uz rezultat**, sklopljen. Bez njega se ne može utvrditi da li je AI pogrešno pročitao ili je tako i pisalo u cenovniku — a to je prvo pitanje kad se broj ne poklapa.
+
+### 6c.3 Nalepljen tekst, ne fajl — i to se kaže na ekranu
+
+Forma prima **nalepljen tekst** (M3 §4.2.6), a ispod polja stoji rečenica da učitavanje PDF/Excel fajla još nije podržano i zašto. Prećutati to znači pustiti korisnika da traži dugme koje ne postoji.
+
+**Uvoz i ekstrakcija su dva poziva, ne jedan.** Da su spojeni, neuspeh modela bi značio da uvoz uopšte ne nastane — pa se ne bi videlo ni šta je pokušano ni zašto nije uspelo. Ovako neuspeh ostavlja zapis sa razlogom i dugme „Pokušaj ponovo" nad **istim** tekstom.
 
 ## 7. Izlazni kriterijum
 

@@ -129,6 +129,19 @@ export const NAV_ITEMS: NavItem[] = [
     implemented: true,
   },
   {
+    // M3 spec §4.2.6 / M17 §6c (9.9.2026) — AI uvoz cenovnika. Ekran nije postojao, iako je
+    // backend tok (uvoz → redovi → potvrda → ContractPeriod/RateLine) bio napravljen: vlasnik
+    // je zato pitao "gde se cene unose uz pomoć AI agenta" (zamka 7.6 — ekran koji radi a nije
+    // u navigaciji praktično ne postoji; ovde ekran nije ni postojao).
+    id: 'cenovnici',
+    label: 'Uvoz cenovnika (AI)',
+    icon: 'sparkle',
+    href: '/cenovnici',
+    permission: { module: 'M3', resource: 'pricelist-import', action: 'VIEW' },
+    phase: 1,
+    implemented: true,
+  },
+  {
     // M17 spec §4b (8.9.2026) — mreža kapaciteta po danima nad M3 §2.8.
     id: 'kapaciteti',
     label: 'Kapaciteti',
@@ -361,7 +374,7 @@ export const NAV_GROUPS: NavGroup[] = [
     id: 'katalog-nabavka',
     label: 'Katalog i nabavka',
     icon: 'package',
-    itemIds: ['katalog', 'destinacije', 'dobavljaci', 'ugovori', 'kapaciteti'],
+    itemIds: ['katalog', 'destinacije', 'dobavljaci', 'ugovori', 'cenovnici', 'kapaciteti'],
   },
   {
     id: 'klijenti-partneri',

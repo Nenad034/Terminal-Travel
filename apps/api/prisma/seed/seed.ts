@@ -1930,6 +1930,7 @@ async function main() {
   await seedM15ActionRegistry();
   await seedM19SupplierDraftAgent();
   await seedM19SystemNotificationUser();
+  await seedM3PricelistImportAgent();
   await seedM21HelpCenterAgent();
   await seedM21PublicGuestArticles();
   await seedM22EmailInboxAgent();
@@ -2453,6 +2454,37 @@ async function seedM19SupplierDraftAgent() {
       userId: agentUser.id,
       agentRole: 'SUPPLIER_DRAFT_AGENT',
       moduleCode: 'M19',
+      status: 'ACTIVE',
+      modelTier: 'LIGHT',
+      modelIdentifier: 'claude-haiku-4-5-20251001',
+    },
+  });
+}
+
+// M3 spec §4.2.6 — PricelistImportAgent (9.9.2026). Isti obrazac kao ostali sistemski AI
+// nalozi: formalni M1 korisnik + `AIAgent` zapis, da `AuditLogEntry`/`AgentInvocationLog` imaju
+// `actor_type = AI_AGENT`. `modelTier` je LIGHT jer je posao čitanje tabele iz teksta uz zadatu
+// šemu — nema rasuđivanja ni odluke; sve što je odluka (poklapanje hotela, upis cene) radi
+// deterministički kod ili čovek (§4.2.4).
+async function seedM3PricelistImportAgent() {
+  const agentUser = await prisma.user.upsert({
+    where: { email: 'pricelist-import-agent@sistem.terminal-travel.local' },
+    update: {},
+    create: {
+      email: 'pricelist-import-agent@sistem.terminal-travel.local',
+      fullName: 'PricelistImportAgent (sistemski AI nalog)',
+      accountType: 'AI_AGENT',
+      status: 'ACTIVE',
+    },
+  });
+
+  await prisma.aIAgent.upsert({
+    where: { userId: agentUser.id },
+    update: {},
+    create: {
+      userId: agentUser.id,
+      agentRole: 'PRICELIST_IMPORT_AGENT',
+      moduleCode: 'M3',
       status: 'ACTIVE',
       modelTier: 'LIGHT',
       modelIdentifier: 'claude-haiku-4-5-20251001',
