@@ -54,6 +54,22 @@ function dan(v: Date): number {
  * nastaviti da važi tačno kao pre.
  */
 export function vazi(d: DoplataZaProveru, k: KontekstProdaje): boolean {
+  if (!vaziPoDometu(d, k)) return false;
+  if (!vaziPoUzrastu(d, k.uzrast)) return false;
+  return true;
+}
+
+/**
+ * Sve osim uzrasta: domet, tip sobe, datum boravka, prozor rezervisanja.
+ *
+ * Izdvojeno zato što se uzrast zna na dva različita mesta u različitoj meri. Pri obračunu cene
+ * za jednog gosta uzrast je poznat i mora da odluči (`vazi` iznad). Pri **prikazu spiska
+ * doplata na stavci rezervacije** uzrast nije poznat — `BookingItem` nosi samo ime i prezime
+ * putnika (M5 `CreateBookingItemGuestDto` namerno nema `guestProfileId`) — pa bi provera po
+ * uzrastu sakrila boravišnu taksu koju prodavac mora da vidi. Tamo se koristi ovaj deo, a
+ * uzrasni opseg se prikazuje uz stavku da čovek izabere stepen.
+ */
+export function vaziPoDometu(d: DoplataZaProveru, k: KontekstProdaje): boolean {
   // Domet
   if (d.contractPeriodId && d.contractPeriodId !== k.contractPeriodId) return false;
   if (d.seasonId && d.seasonId !== k.seasonId) return false;
@@ -69,15 +85,52 @@ export function vazi(d: DoplataZaProveru, k: KontekstProdaje): boolean {
   if (d.bookingFrom && dan(k.danRezervacije) < dan(d.bookingFrom)) return false;
   if (d.bookingTo && dan(k.danRezervacije) > dan(d.bookingTo)) return false;
 
-  // Uzrast. Stavka sa uzrasnim opsegom se ne primenjuje kad uzrast nije poznat — pogađanje bi
-  // ovde značilo naplatiti dečju taksu odrasloj osobi ili obrnuto.
-  if (d.ageFrom != null || d.ageTo != null) {
-    if (k.uzrast == null) return false;
-    if (d.ageFrom != null && k.uzrast < d.ageFrom) return false;
-    if (d.ageTo != null && k.uzrast > d.ageTo) return false;
-  }
-
   return true;
+}
+
+/**
+ * Uzrast. Stavka sa uzrasnim opsegom se ne primenjuje kad uzrast nije poznat — pogađanje bi
+ * ovde značilo naplatiti dečju taksu odrasloj osobi ili obrnuto.
+ */
+export function vaziPoUzrastu(
+  d: Pick<DoplataZaProveru, 'ageFrom' | 'ageTo'>,
+  uzrast: number | null,
+): boolean {
+  if (d.ageFrom == null && d.ageTo == null) return true;
+  if (uzrast == null) return false;
+  if (d.ageFrom != null && uzrast < d.ageFrom) return false;
+  if (d.ageTo != null && uzrast > d.ageTo) return false;
+  return true;
+}
+
+/** Da li stavka uopšte nosi uzrasni uslov (boravišna taksa u stepenima ga nosi, večera ne). */
+export function imaUzrasniOpseg(d: Pick<DoplataZaProveru, 'ageFrom' | 'ageTo'>): boolean {
+  return d.ageFrom != null || d.ageTo != null;
+}
+
+/**
+ * Ista provera kao `vaziPoDometu`, ali nad CELIM boravkom jedne stavke rezervacije umesto nad
+ * jednom noći: stavka važi ako se njen datumski opseg seče sa boravkom bar jednom noći.
+ *
+ * Bez ovoga bi Novogodišnja večera (31.12) ispala iz spiska za boravak 28.12–03.01, jer se
+ * spisak pravi jednom za celu stavku, a ne po noći. `boravakDo` je dan odjave — poslednja noć
+ * je dan pre njega.
+ */
+export function vaziZaBoravak(
+  d: DoplataZaProveru,
+  k: Omit<KontekstProdaje, 'danBoravka' | 'uzrast'> & { boravakOd: Date; boravakDo: Date },
+): boolean {
+  const poslednjaNoc = new Date(dan(k.boravakDo) - 86_400_000);
+  const prvaNoc = k.boravakOd;
+  // Presek dva opsega: stavka počinje pre kraja boravka i završava se posle početka boravka.
+  if (d.appliesFrom && dan(d.appliesFrom) > dan(poslednjaNoc < prvaNoc ? prvaNoc : poslednjaNoc))
+    return false;
+  if (d.appliesTo && dan(d.appliesTo) < dan(prvaNoc)) return false;
+
+  return vaziPoDometu(
+    { ...d, appliesFrom: null, appliesTo: null },
+    { ...k, danBoravka: prvaNoc, uzrast: null },
+  );
 }
 
 /**

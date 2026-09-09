@@ -1,4 +1,13 @@
-import { domet, podeliPoNaplati, ulaziUZbir, vazi } from './surcharge-scope';
+import {
+  domet,
+  imaUzrasniOpseg,
+  podeliPoNaplati,
+  ulaziUZbir,
+  vazi,
+  vaziPoDometu,
+  vaziPoUzrastu,
+  vaziZaBoravak,
+} from './surcharge-scope';
 
 /**
  * M3 §2.11j/§2.11k — primena doplate i njen uticaj na zbir.
@@ -124,6 +133,92 @@ describe('surcharge-scope (M3 §2.11j/§2.11k)', () => {
 
     it('stavka bez uzrasnog opsega važi i kad uzrast nije poznat', () => {
       expect(vazi(OSNOVA, { ...K, uzrast: null })).toBe(true);
+    });
+  });
+
+  // ==========================================================================
+  // Podela provere na domet i uzrast (9.9.2026) — nastala kad se ista pravila
+  // primenjuju i pri PRODAJI (M5 §6.7a), gde uzrast putnika nije poznat.
+  // ==========================================================================
+
+  describe('vaziPoDometu / vaziPoUzrastu', () => {
+    const taksaZaDecu = { ...OSNOVA, ageFrom: 0, ageTo: 11.99 };
+
+    it('domet i uzrast su dva odvojena pitanja — taksa za decu prolazi domet i pada na uzrastu', () => {
+      expect(vaziPoDometu(taksaZaDecu, K)).toBe(true);
+      expect(vaziPoUzrastu(taksaZaDecu, 35)).toBe(false);
+      expect(vazi(taksaZaDecu, K)).toBe(false);
+    });
+
+    it('spisak doplata na rezervaciji vidi taksu iako uzrast nije poznat', () => {
+      expect(vaziPoDometu(taksaZaDecu, { ...K, uzrast: null })).toBe(true);
+      expect(vaziPoUzrastu(taksaZaDecu, null)).toBe(false);
+    });
+
+    it('imaUzrasniOpseg razlikuje stepenastu taksu od večere', () => {
+      expect(imaUzrasniOpseg(taksaZaDecu)).toBe(true);
+      expect(imaUzrasniOpseg(OSNOVA)).toBe(false);
+    });
+  });
+
+  describe('vaziZaBoravak — spisak se pravi jednom za celu stavku, ne po noći', () => {
+    const BORAVAK = {
+      seasonId: 's1',
+      contractPeriodId: 'p1',
+      roomType: 'Budget double room',
+      danRezervacije: new Date('2026-11-01T00:00:00Z'),
+      boravakOd: new Date('2026-12-28T00:00:00Z'),
+      boravakDo: new Date('2027-01-03T00:00:00Z'), // dan odjave, poslednja noć je 2.1.
+    };
+
+    it('Novogodišnja večera (31.12) važi za boravak 28.12–03.01', () => {
+      const vecera = {
+        ...OSNOVA,
+        appliesFrom: new Date('2026-12-31T00:00:00Z'),
+        appliesTo: new Date('2026-12-31T00:00:00Z'),
+      };
+      expect(vaziZaBoravak(vecera, BORAVAK)).toBe(true);
+    });
+
+    it('ista večera ne važi za boravak koji se završava pre nje', () => {
+      const vecera = {
+        ...OSNOVA,
+        appliesFrom: new Date('2026-12-31T00:00:00Z'),
+        appliesTo: new Date('2026-12-31T00:00:00Z'),
+      };
+      expect(
+        vaziZaBoravak(vecera, {
+          ...BORAVAK,
+          boravakOd: new Date('2026-12-20T00:00:00Z'),
+          boravakDo: new Date('2026-12-27T00:00:00Z'),
+        }),
+      ).toBe(false);
+    });
+
+    it('dan odjave se ne računa kao noć — stavka samo za 3.1. ne važi za boravak do 3.1.', () => {
+      const samoTrecegJanuara = {
+        ...OSNOVA,
+        appliesFrom: new Date('2027-01-03T00:00:00Z'),
+        appliesTo: new Date('2027-01-03T00:00:00Z'),
+      };
+      expect(vaziZaBoravak(samoTrecegJanuara, BORAVAK)).toBe(false);
+    });
+
+    it('doplata sa dometom „ceo ugovor" važi — to je slučaj zbog kog je M5 nije video', () => {
+      expect(vaziZaBoravak(OSNOVA, BORAVAK)).toBe(true);
+    });
+
+    it('doplata drugog perioda ne ulazi u spisak', () => {
+      expect(vaziZaBoravak({ ...OSNOVA, contractPeriodId: 'p9' }, BORAVAK)).toBe(false);
+    });
+
+    it('uzrast se ovde NE proverava — taksa za decu ostaje u spisku da je prodavac vidi', () => {
+      expect(vaziZaBoravak({ ...OSNOVA, ageFrom: 0, ageTo: 11.99 }, BORAVAK)).toBe(true);
+    });
+
+    it('prozor rezervisanja i dalje odlučuje po datumu nastanka rezervacije', () => {
+      const isteklaCena = { ...OSNOVA, bookingTo: new Date('2025-12-31T00:00:00Z') };
+      expect(vaziZaBoravak(isteklaCena, BORAVAK)).toBe(false);
     });
   });
 

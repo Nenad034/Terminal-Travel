@@ -262,8 +262,8 @@ export default function AranzmanItemCard({
             // §3.0g.5 obrazac — izričita rečenica umesto prazne liste. Doplate su UGOVORNA
             // kategorija (M3 §2.6): stavka preko API veze ih nema, i to nije kvar.
             <p className="text-ink-faint">
-              Za ovu stavku nema ugovorenih doplata ni popusta — unose se na periodu ugovora (M3),
-              kartica „Dodatne usluge“.
+              Za ovu stavku nema ugovorenih doplata ni popusta — unose se u cenovniku ugovora (M3),
+              kartica „Doplate i popusti“, sa dometom „ceo ugovor“, „sezona“ ili jedan period.
             </p>
           )}
           <div className="flex flex-col gap-1">
@@ -278,6 +278,18 @@ export default function AranzmanItemCard({
                   {o.isMandatory && <span className="ml-1.5 text-warn">obavezno</span>}
                   {o.payable === 'ON_SITE' && (
                     <span className="ml-1.5 text-warn">na licu mesta</span>
+                  )}
+                  {(o.ageFrom != null || o.ageTo != null) && (
+                    // §2.11j — boravišna taksa ima stepene po uzrastu. Rezervacija ne zna datum
+                    // rođenja putnika, pa se stepen NE bira sam: prodavac vidi opseg i bira.
+                    <span className="ml-1.5 text-ink-faint">
+                      uzrast {o.ageFrom ?? 0}–{o.ageTo ?? '∞'}
+                    </span>
+                  )}
+                  {o.scope !== 'PERIOD' && (
+                    <span className="ml-1.5 text-ink-faint">
+                      {o.scope === 'CONTRACT' ? 'ceo ugovor' : 'sezona'}
+                    </span>
                   )}
                   {o.blockedReason && <span className="ml-1.5 text-danger">{o.blockedReason}</span>}
                 </span>
@@ -303,7 +315,9 @@ export default function AranzmanItemCard({
           <p className="mt-2 text-[11px] text-ink-faint">
             Obavezne doplate se dodaju automatski uz uslugu (M5 spec §6.7a) — ovde se biraju
             opcione. Iznos koji se plaća na licu mesta ne ulazi u ukupno zaduženje, ali ide u ugovor
-            i na vaučer.
+            i na vaučer. <strong className="text-warn">Doplata sa uzrasnim opsegom</strong> se ne
+            dodaje automatski ni kad je obavezna: rezervacija ne zna godine putnika, a sami bismo
+            dodali sva tri stepena boravišne takse istom gostu.
           </p>
         </div>
       )}

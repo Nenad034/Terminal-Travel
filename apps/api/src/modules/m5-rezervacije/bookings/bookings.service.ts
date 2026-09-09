@@ -10,6 +10,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import {
+  AncillaryService,
   Booking,
   BookingItem,
   PaymentStatus,
@@ -46,6 +47,11 @@ import {
   signedAncillaryAmount,
   type AncillaryServiceLike,
 } from '../common/ancillary-pricing';
+import {
+  domet,
+  imaUzrasniOpseg,
+  vaziZaBoravak,
+} from '../../m3-ugovaranje-alotmani/pricelist/surcharge-scope';
 import { SupplierChangeNoticesService } from '../supplier-manifests/supplier-change-notices.service';
 import { SupplierManifestsService } from '../supplier-manifests/supplier-manifests.service';
 import { resolveCallerIdentity } from '../../../common/auth/resolve-caller-identity';
@@ -1748,6 +1754,64 @@ export class BookingsService {
     };
   }
 
+  /**
+   * Doplate/popusti koji STVARNO važe za ovu stavku rezervacije (M3 §2.11k).
+   *
+   * Do 9.9.2026. se čitalo `contractPeriod.ancillaryServices` — dakle isključivo doplate
+   * vezane za taj jedan period. Od v1.27 doplata sme da ima domet „ceo ugovor" ili „sezona"
+   * (`contract_period_id = null`), pa je boravišna taksa uneta na ugovor postojala na ekranu
+   * cenovnika a prodavcu se **nije prikazivala**. Zato se sada čita ceo ugovor i filtrira kroz
+   * `vaziZaBoravak` iz M3 — jedno mesto koje zna pravila dometa, isto za cenovnik i za prodaju.
+   *
+   * Uzrast se ovde NE proverava: `BookingItem` nosi samo ime i prezime putnika, ne datum
+   * rođenja. Uzrasni opseg se zato vraća uz stavku (`ageFrom`/`ageTo`) i prodavac bira stepen.
+   */
+  private async ancillariesInScopeFor(
+    parent: BookingItem,
+    danRezervacije: Date,
+  ): Promise<AncillaryService[]> {
+    if (!parent.rateLineId) return [];
+    const rateLine = await this.prisma.rateLine.findUnique({
+      where: { id: parent.rateLineId },
+      include: { contractPeriod: true },
+    });
+    if (!rateLine) return [];
+    const period = rateLine.contractPeriod;
+
+    // Ugašena stavka cenovnika (§2.4c) ne ulazi u prodaju — ranije je `include` uzimao sve
+    // redom, pa bi ispravljena doplata bila ponuđena zajedno sa svojom zamenom.
+    const sveUgovorne = await this.prisma.ancillaryService.findMany({
+      where: { contractId: period.contractId, status: 'ACTIVE' },
+      orderBy: { name: 'asc' },
+    });
+
+    return sveUgovorne.filter((svc) =>
+      vaziZaBoravak(
+        {
+          seasonId: svc.seasonId,
+          contractPeriodId: svc.contractPeriodId,
+          appliesToRoomTypes: svc.appliesToRoomTypes,
+          appliesFrom: svc.appliesFrom,
+          appliesTo: svc.appliesTo,
+          ageFrom: svc.ageFrom == null ? null : Number(svc.ageFrom),
+          ageTo: svc.ageTo == null ? null : Number(svc.ageTo),
+          bookingFrom: svc.bookingFrom,
+          bookingTo: svc.bookingTo,
+          payable: svc.payable,
+          isMandatory: svc.isMandatory,
+        },
+        {
+          seasonId: period.seasonId,
+          contractPeriodId: period.id,
+          roomType: period.roomType,
+          boravakOd: parent.stayFrom,
+          boravakDo: parent.stayTo,
+          danRezervacije,
+        },
+      ),
+    );
+  }
+
   /** Doplate/popusti ugovoreni za period matične stavke, sa već izračunatom cenom za ovu stavku. */
   async listAncillariesForItem(bookingId: string, itemId: string, actor: { userId: string }) {
     const booking = await this.prisma.booking.findUnique({
@@ -1763,12 +1827,8 @@ export class BookingsService {
 
     // Doplate su ugovorna kategorija (M3 §2.6) — API stavka nema ugovorni period, pa ni spisak.
     // Prazna lista, ne greška: to je tačno stanje, ne kvar.
-    if (!parent.rateLineId) return [];
-    const rateLine = await this.prisma.rateLine.findUnique({
-      where: { id: parent.rateLineId },
-      include: { contractPeriod: { include: { ancillaryServices: true } } },
-    });
-    if (!rateLine) return [];
+    const usluge = await this.ancillariesInScopeFor(parent, booking.createdAt);
+    if (usluge.length === 0) return [];
 
     const alreadyAdded = new Set(
       booking.items
@@ -1777,7 +1837,7 @@ export class BookingsService {
     );
     const ctx = this.ancillaryContextFor(parent, 1);
 
-    return rateLine.contractPeriod.ancillaryServices.map((svc) => ({
+    return usluge.map((svc) => ({
       id: svc.id,
       name: svc.name,
       kind: svc.kind,
@@ -1787,6 +1847,11 @@ export class BookingsService {
       isRefundable: svc.isRefundable,
       maxQuantity: svc.maxQuantity,
       notes: svc.notes,
+      /** Domet stavke (M3 §2.11k) — prodavac mora da vidi važi li za ceo ugovor ili samo ovde. */
+      scope: domet({ seasonId: svc.seasonId, contractPeriodId: svc.contractPeriodId }),
+      /** Uzrasni opseg (§2.11j). Popunjen znači: bira se stepen, ne dodaju se svi. */
+      ageFrom: svc.ageFrom == null ? null : Number(svc.ageFrom),
+      ageTo: svc.ageTo == null ? null : Number(svc.ageTo),
       /** Iznos za TAČNO ovu stavku (njene noći, sobe i putnike) — ne gola cena iz cenovnika. */
       amount: signedAncillaryAmount(svc as unknown as AncillaryServiceLike, ctx),
       currency: parent.finalPriceCurrency,
@@ -1872,19 +1937,26 @@ export class BookingsService {
   private async attachMandatoryAncillaries(parentId: string): Promise<number> {
     const parent = await this.prisma.bookingItem.findUnique({
       where: { id: parentId },
-      include: { guests: true },
+      include: { guests: true, booking: { select: { createdAt: true } } },
     });
     if (!parent?.rateLineId) return 0;
-    const rateLine = await this.prisma.rateLine.findUnique({
-      where: { id: parent.rateLineId },
-      include: {
-        contractPeriod: { include: { ancillaryServices: { where: { isMandatory: true } } } },
-      },
-    });
-    if (!rateLine) return 0;
+    const uScope = await this.ancillariesInScopeFor(parent, parent.booking.createdAt);
 
     let added = 0;
-    for (const svc of rateLine.contractPeriod.ancillaryServices) {
+    for (const svc of uScope) {
+      if (!svc.isMandatory) continue;
+      // UZRASNA stavka se NE povlači automatski (M3 §2.11j). Boravišna taksa ima tri stepena
+      // (odrasli / 12–17,99 / 0–11,99); `BookingItem` ne zna datum rođenja putnika, pa bi
+      // automatsko povlačenje dodalo SVA TRI stepena istom gostu — trostruka naplata. Stavka
+      // ostaje u spisku sa svojim opsegom, vidljiva, i prodavac bira stepen.
+      // Poznat nedostatak, ne prećutan: upisan u M3 §2.11j i M5 §6.7a.
+      if (
+        imaUzrasniOpseg({
+          ageFrom: svc.ageFrom == null ? null : Number(svc.ageFrom),
+          ageTo: svc.ageTo == null ? null : Number(svc.ageTo),
+        })
+      )
+        continue;
       // Sastav gostiju koji ne staje u granice obavezne doplate se PRESKAČE, ne ruši dodavanje
       // stavke: bolje stavka bez doplate koju čovek vidi i doda ručno, nego odbijena rezervacija
       // zbog cenovnika dobavljača.

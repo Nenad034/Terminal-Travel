@@ -323,6 +323,11 @@ export interface AncillaryOption {
   alreadyAdded: boolean;
   /** Razlog zašto se ne može dodati (sastav gostiju), ili `null`. */
   blockedReason: string | null;
+  /** Domet stavke iz cenovnika (M3 §2.11k) — važi li za ceo ugovor, sezonu ili samo ovaj period. */
+  scope: 'CONTRACT' | 'SEASON' | 'PERIOD';
+  /** Uzrasni opseg (§2.11j); popunjen znači da se bira stepen, jer se dodaje po gostu. */
+  ageFrom: number | null;
+  ageTo: number | null;
 }
 
 /** Spisak ugovorenih doplata/popusta za period matične stavke, sa već izračunatom cenom. */

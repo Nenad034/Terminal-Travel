@@ -435,7 +435,11 @@ Isti ulaz i ista pravila pristupa kao `POST /bookings/:id/items`, ali **ništa n
 
 ### GET /bookings/:id/items/:itemId/ancillaries
 
-Dopuna 3.9.2026 (M5 spec §6.7a) — doplate i popusti **ugovoreni za period te stavke** (M3 `AncillaryService`, M3 spec §2.6), sa cenom već izračunatom za TAČNO tu stavku (njene noći, sobe i putnike), ne golom cenom iz cenovnika. Zahteva `M5/booking/VIEW`.
+Dopuna 3.9.2026 (M5 spec §6.7a) — doplate i popusti **ugovoreni za tu stavku** (M3 `AncillaryService`, M3 spec §2.6), sa cenom već izračunatom za TAČNO tu stavku (njene noći, sobe i putnike), ne golom cenom iz cenovnika. Zahteva `M5/booking/VIEW`.
+
+**Dopuna 9.9.2026 (M3 §2.11k) — čita se ceo ugovor, ne samo period.** Od M3 v1.27 doplata sme da ima domet „ceo ugovor" ili „sezona" (`contract_period_id = null`). Do ove dopune je ovaj endpoint čitao isključivo doplate vezane za period stavke, pa se boravišna taksa uneta na ugovor **nije prikazivala prodavcu** iako postoji u cenovniku. Sada se čitaju sve `ACTIVE` doplate ugovora i filtriraju kroz ista pravila kao u cenovniku (`vaziZaBoravak`): domet, tip sobe, datumski opseg stavke (presek sa boravkom — Novogodišnja večera 31.12. važi za boravak 28.12–03.01) i prozor rezervisanja (`booking_from`/`booking_to`, po datumu nastanka rezervacije).
+
+**Uzrast se ovde NE proverava.** `BookingItem` nosi samo ime i prezime putnika, ne datum rođenja, pa se stepenasta taksa (Aycon: odrasli / 12–17,99 / 0–11,99) ne može sama razvrstati. Umesto pogađanja, svaki stepen se vraća sa svojim opsegom (`ageFrom`/`ageTo`) i prodavac bira. Iz istog razloga se **uzrasna doplata ne povlači automatski ni kad je `isMandatory`** — automatsko povlačenje bi dodalo sva tri stepena istom gostu. Poznat nedostatak, upisan u M3 §2.11j i M5 §6.7a.
 
 Za stavku preko API veze vraća **praznu listu** — doplate su ugovorna kategorija, API stavka nema ugovorni period. To je tačno stanje, ne greška.
 
@@ -456,7 +460,10 @@ Za stavku preko API veze vraća **praznu listu** — doplate su ugovorna kategor
     "amount": 3500,
     "currency": "EUR",
     "alreadyAdded": false,
-    "blockedReason": null
+    "blockedReason": null,
+    "scope": "PERIOD",
+    "ageFrom": null,
+    "ageTo": null
   },
   {
     "id": "anc-2",
@@ -471,7 +478,10 @@ Za stavku preko API veze vraća **praznu listu** — doplate su ugovorna kategor
     "amount": 1050,
     "currency": "EUR",
     "alreadyAdded": true,
-    "blockedReason": null
+    "blockedReason": null,
+    "scope": "CONTRACT",
+    "ageFrom": 18,
+    "ageTo": null
   },
   {
     "id": "anc-3",
@@ -486,10 +496,15 @@ Za stavku preko API veze vraća **praznu listu** — doplate su ugovorna kategor
     "amount": -2000,
     "currency": "EUR",
     "alreadyAdded": false,
-    "blockedReason": null
+    "blockedReason": null,
+    "scope": "SEASON",
+    "ageFrom": null,
+    "ageTo": null
   }
 ]
 ```
+
+`scope` je domet stavke iz cenovnika (`CONTRACT` \| `SEASON` \| `PERIOD`, M3 §2.11k) — prodavac mora da vidi da li je uslov hotelski ili važi samo za ovaj period. `ageFrom`/`ageTo` su popunjeni samo kod stepenastih stavki; kad jesu, stepen bira čovek.
 
 `amount` je **potpisan**: doplata je pozitivna, popust negativan. `blockedReason` je rečenica na srpskom kad sastav gostiju ne staje u granice doplate (npr. „Doplata važi za najviše 2 osoba, a traženo je 3.") — tada se ta doplata ne može dodati.
 

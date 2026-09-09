@@ -83,6 +83,12 @@ Dve stvari koje su tu bitne za posao:
 
 **Doplata koja se plaća „na licu mesta" ne ulazi u ono što gost duguje vama** — ali se **ispisuje na ugovoru i na vaučeru**, da gost zna šta ga čeka na recepciji. Ovo je česta zamka: ko to previdi, sabere isti iznos dvaput.
 
+**Ista doplata se unosi jednom, ne pedeset puta (dodato 9.9.2026).** Boravišna taksa važi za ceo hotel, a ne za jedan tip sobe u jednom mesecu. Zato doplata sada ima „domet": može da važi za **ceo ugovor**, za **jednu sezonu**, ili samo za **jedan period**. Unesete je jednom na nivou ugovora i pojavljuje se svuda gde treba.
+
+Uz to je istog dana ispravljena greška koju je lako prevideti: prodavac je gledao samo doplate vezane za **jedan** period, pa taksu unetu na nivou ugovora **uopšte nije video** — postojala je u cenovniku, a u ponudi je nije bilo. Sada obe strane, i unos i prodaja, koriste **isto pravilo**, pa se više ne mogu razići.
+
+**Jedna stvar namerno nije automatska.** Boravišna taksa često ima stepene po godinama (odrasli 1,50 / tinejdžeri 1,00 / deca 0,50). Rezervacija za sada čuva ime i prezime putnika, ali ne i datum rođenja — zato sistem **ne bira stepen sam**, jer bi u suprotnom dodao sva tri stepena istom gostu i naplatio trostruko. Umesto toga prodavcu prikaže sva tri sa naznačenim godinama („uzrast 0–11,99") i on izabere. Kad rezervacija jednog dana bude nosila i godine putnika, ovo može da postane automatsko — zapisano je gde treba, nije zaboravljeno.
+
 ---
 
 ## Akcije: „rana rezervacija" i „plati 6, ostani 7"

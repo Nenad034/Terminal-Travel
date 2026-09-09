@@ -1,6 +1,8 @@
 # Predaja rada — cenovnik kao mreža (stanje 9.9.2026)
 
 **Kome:** sledećem agentu/sesiji koja preuzme repozitorijum sa GitHub-a i nastavlja rad na cenovniku (M3 §2.11).
+**Stanje 9.9.2026, kasnije istog dana:** rupa 4.1 iz ovog dokumenta je **zatvorena** (vidi okvir u tom odeljku). Rupe 4.2, 4.3 i 4.4 i dalje stoje.
+
 **Zašto postoji:** posao je urađen do trećeg od sedam koraka. Tri koraka su u kodu i proverena nad pravom bazom, četiri stoje samo u specifikaciji. Uz to postoje **tri mesta gde kod postoji ali nije povezan sa prodajom** — to se iz commit poruka ne vidi, a bez toga bi se prvo pomislilo da je gotovo.
 
 **Ovo nije zamena za specifikaciju.** Sve odluke i obrazloženja su u M3 §2.11 i §4.8; ovde stoji samo **gde se stalo, šta je sledeće, šta je već pokušano i šta izgleda gotovo a nije**.
@@ -62,7 +64,16 @@ Commitovi: `a5d315f` (korak 1), `88d8325` (korak 2), `8ae927b` (korak 3). CI zel
 
 Ovo su tri prave rupe. Sve tri su **namerno ostavljene** jer pripadaju M5 toku prodaje, ne unosu cenovnika — ali nijedna nije prećutana i sve tri su u izlaznom kriterijumu.
 
-### 4.1 Doplata šireg dometa se NE VIDI pri prodaji
+### 4.1 Doplata šireg dometa se NE VIDI pri prodaji — **REŠENO 9.9.2026**
+
+> **Zatvoreno.** `listAncillariesForItem` i `attachMandatoryAncillaries` sada čitaju sve `ACTIVE`
+> doplate **ugovora** i filtriraju ih kroz `vaziZaBoravak` iz `pricelist/surcharge-scope.ts` —
+> isti kod koji koristi i ekran cenovnika. Uz to: ugašena stavka (§2.4c) više ne ulazi u prodajni
+> spisak, a odgovor nosi `scope`/`ageFrom`/`ageTo`. **Uzrasna doplata se ne povlači automatski**
+> ni kad je obavezna (rezervacija ne zna godine putnika — tri stepena takse bi se dodala istom
+> gostu); nudi se prodavcu sa opsegom. Dokaz: `test/m5-ancillary-scope.e2e-spec.ts` nad svežom
+> bazom + 10 novih jediničnih testova. Upisano u M3 v1.28 §2.11k i M5 v2.30 §6.7a.
+> Opis ispod ostaje kao zapis šta je bilo pokvareno i zašto.
 
 `BookingsService.listAvailableAncillaries` (oko linije 1769 u `bookings.service.ts`) čita doplate ovako:
 
