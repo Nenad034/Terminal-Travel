@@ -9,6 +9,7 @@ import { SYSTEM_ROLES } from '../src/modules/m1-core-identitet/roles/system-role
 import { PrismaExceptionFilter } from '../src/common/filters/prisma-exception.filter';
 import { FactSyncService } from '../src/modules/m13-bi/sync/fact-sync.service';
 import { ContentPublishSchedulerService } from '../src/modules/m12-marketing/content/content-publish-scheduler.service';
+import { sacekajDa } from './sacekaj-da';
 
 /**
  * E2E protiv prave Postgres baze — pokriva stavke M12 izlaznog kriterijuma
@@ -179,19 +180,20 @@ describe('M12 — izlazni kriterijum (e2e)', () => {
       const { accessToken } = await createInternalUser(SYSTEM_ROLES.VLASNIK);
       const productId = await createAndPublishProduct(accessToken);
 
-      await wait(700); // async LISTEN/NOTIFY, isti obrazac kao M7/M10/M13/M14 e2e
-
-      const draft = await prisma.contentPiece.findFirst({
-        where: { productId },
-        include: { translations: true },
-      });
-      expect(draft).not.toBeNull();
-      createdContentIds.push(draft!.id);
-      expect(draft!.status).toBe('PENDING_APPROVAL');
-      expect(draft!.generatedBy).toBe('AI');
-      expect(draft!.approvedBy).toBeNull();
-      expect(draft!.translations.length).toBeGreaterThanOrEqual(1);
-      expect(draft!.trackingCode).toHaveLength(8);
+      const draft = await sacekajDa(
+        () =>
+          prisma.contentPiece.findFirst({
+            where: { productId },
+            include: { translations: true },
+          }),
+        { opis: 'pretplatnik na product.published napravi AI nacrt' },
+      );
+      createdContentIds.push(draft.id);
+      expect(draft.status).toBe('PENDING_APPROVAL');
+      expect(draft.generatedBy).toBe('AI');
+      expect(draft.approvedBy).toBeNull();
+      expect(draft.translations.length).toBeGreaterThanOrEqual(1);
+      expect(draft.trackingCode).toHaveLength(8);
     });
   });
 

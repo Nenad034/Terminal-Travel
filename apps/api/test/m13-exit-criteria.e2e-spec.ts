@@ -10,6 +10,7 @@ import { PrismaExceptionFilter } from '../src/common/filters/prisma-exception.fi
 import { EventBusService } from '../src/common/events/event-bus.service';
 import { FactSyncService } from '../src/modules/m13-bi/sync/fact-sync.service';
 import { ReconciliationService } from '../src/modules/m13-bi/reconciliation/reconciliation.service';
+import { sacekajDa } from './sacekaj-da';
 
 /**
  * E2E protiv prave Postgres baze — pokriva stavke M13 izlaznog kriterijuma
@@ -331,13 +332,13 @@ describe('M13 — izlazni kriterijum (e2e)', () => {
         bookingId: booking.id,
         bookingNumber: booking.bookingNumber,
       });
-      await wait(500);
-
-      const fact = await prisma.factBooking.findFirst({ where: { bookingId: booking.id } });
-      expect(fact).not.toBeNull();
-      expect(fact!.margin).toBe(2000); // 12000 - 10000
-      expect(fact!.supplierName).toBe(fixture.supplier.name);
-      expect(fact!.lastSyncedAt).not.toBeNull();
+      const fact = await sacekajDa(
+        () => prisma.factBooking.findFirst({ where: { bookingId: booking.id } }),
+        { opis: 'Event Bus upiše FactBooking za potvrđenu rezervaciju' },
+      );
+      expect(fact.margin).toBe(2000); // 12000 - 10000
+      expect(fact.supplierName).toBe(fixture.supplier.name);
+      expect(fact.lastSyncedAt).not.toBeNull();
 
       const res = await request(app.getHttpServer())
         .get('/api/v1/bi/reports/profitability')

@@ -14,6 +14,8 @@ import { ProviderHealthService } from '../src/modules/m18-operativni-nadzor/prov
 import { WeeklyReviewsService } from '../src/modules/m18-operativni-nadzor/weekly-reviews/weekly-reviews.service';
 import { AgentInvocationLogService } from '../src/modules/m18-operativni-nadzor/agent-invocations/agent-invocation-log.service';
 import { AiProviderQuotaService } from '../src/modules/m18-operativni-nadzor/ai-provider-quota/ai-provider-quota.service';
+import type { HealthSignalType } from '@prisma/client';
+import { sacekajDa } from './sacekaj-da';
 
 /**
  * E2E protiv prave Postgres baze — pokriva stavke M18 izlaznog kriterijuma
@@ -35,8 +37,6 @@ describe('M18 — izlazni kriterijum (e2e)', () => {
   const createdUserIds: string[] = [];
   const createdAiAgentIds: string[] = [];
   const createdProviderCodes: string[] = [];
-
-  const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
@@ -411,27 +411,24 @@ describe('M18 — izlazni kriterijum (e2e)', () => {
       bookingId: marker,
       reason: 'MISSING_FISCAL_DOCUMENT',
     });
-    await wait(500);
+    /**
+     * Ceka se signal koji nosi obelezje OVOG pokretanja, ne prosto najnoviji te vrste: paket
+     * ostavlja signale i iz ranijih testova, pa bi „najnoviji" mogao biti tudji.
+     */
+    const cekajSignal = (signalType: HealthSignalType, polje: 'periodId' | 'bookingId') =>
+      sacekajDa(
+        async () => {
+          const signal = await prisma.healthSignal.findFirst({
+            where: { signalType },
+            orderBy: { detectedAt: 'desc' },
+          });
+          return signal && (signal.details as any)?.[polje] === marker ? signal : null;
+        },
+        { opis: `${signalType} sa obelezjem ovog pokretanja stigne do zdravstvenog signala` },
+      );
 
-    const lowCapacity = await prisma.healthSignal.findFirst({
-      where: { signalType: 'LOW_CAPACITY_CRITICAL' },
-      orderBy: { detectedAt: 'desc' },
-    });
-    expect(lowCapacity).not.toBeNull();
-    expect((lowCapacity!.details as any).periodId).toBe(marker);
-
-    const paymentDeadline = await prisma.healthSignal.findFirst({
-      where: { signalType: 'PAYMENT_DEADLINE_MISSED' },
-      orderBy: { detectedAt: 'desc' },
-    });
-    expect(paymentDeadline).not.toBeNull();
-    expect((paymentDeadline!.details as any).bookingId).toBe(marker);
-
-    const reconciliation = await prisma.healthSignal.findFirst({
-      where: { signalType: 'RECONCILIATION_MISMATCH' },
-      orderBy: { detectedAt: 'desc' },
-    });
-    expect(reconciliation).not.toBeNull();
-    expect((reconciliation!.details as any).bookingId).toBe(marker);
+    await cekajSignal('LOW_CAPACITY_CRITICAL', 'periodId');
+    await cekajSignal('PAYMENT_DEADLINE_MISSED', 'bookingId');
+    await cekajSignal('RECONCILIATION_MISMATCH', 'bookingId');
   });
 });

@@ -10,6 +10,7 @@ import { PrismaService } from '../src/prisma/prisma.service';
 import { SYSTEM_ROLES } from '../src/modules/m1-core-identitet/roles/system-roles.constants';
 import { PrismaExceptionFilter } from '../src/common/filters/prisma-exception.filter';
 import { HealthSignalsService } from '../src/modules/m18-operativni-nadzor/health-signals/health-signals.service';
+import { sacekajDa } from './sacekaj-da';
 
 /**
  * E2E protiv prave Postgres baze — pokriva REST-testabilne stavke M19 izlaznog kriterijuma
@@ -28,8 +29,6 @@ describe('M19 — izlazni kriterijum (e2e)', () => {
   const testRunId = Date.now();
   const createdUserIds: string[] = [];
   const createdSupplierIds: string[] = [];
-
-  const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
@@ -283,24 +282,23 @@ describe('M19 — izlazni kriterijum (e2e)', () => {
       severity: 'CRITICAL',
       details: { marker },
     });
-    await wait(1500); // Event Bus (Postgres LISTEN/NOTIFY) je asinhron preko procesa.
-
-    const notifConversations = await prisma.conversationParticipant.findMany({
-      where: { userId: owner.user.id },
-      select: { conversationId: true },
-    });
-    let found = false;
-    for (const { conversationId } of notifConversations) {
-      const msg = await prisma.message.findFirst({
-        where: { conversationId, body: { contains: marker } },
-      });
-      if (msg) {
-        found = true;
-        expect(msg.body).toContain('CRITICAL');
-        break;
-      }
-    }
-    expect(found).toBe(true);
+    // Event Bus (Postgres LISTEN/NOTIFY) je asinhron preko procesa — ceka se na ishod, ne na sat.
+    const poruka = await sacekajDa(
+      async () => {
+        const razgovori = await prisma.conversationParticipant.findMany({
+          where: { userId: owner.user.id },
+          select: { conversationId: true },
+        });
+        return prisma.message.findFirst({
+          where: {
+            conversationId: { in: razgovori.map((r) => r.conversationId) },
+            body: { contains: marker },
+          },
+        });
+      },
+      { opis: 'kriticni zdravstveni signal stigne kao poruka vlasniku' },
+    );
+    expect(poruka.body).toContain('CRITICAL');
   });
 
   // ==========================================================================
