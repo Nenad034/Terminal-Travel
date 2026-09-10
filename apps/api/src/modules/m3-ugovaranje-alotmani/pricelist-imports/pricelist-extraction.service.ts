@@ -52,6 +52,38 @@ type ModelBlok =
       };
     };
 
+/**
+ * §4.2.8 (v1.37) — ono što model vraća: kombinacija opisana JEDNOM, sa nizom perioda.
+ *
+ * Stara šema je tražila jedan zapis po periodu, pa je model za cenovnik sa 4 kombinacije i 9
+ * sezona ispisivao naziv hotela, sobu, uslugu, popunjenost, valutu, krevetac i uzrasnu cenu
+ * 36 puta — menjala su se samo dva datuma i jedan broj. Izmereno: 72% izlaznih tokena je
+ * odlazilo na to ponavljanje, a na cenovniku sa 117 redova odgovor je bivao PREKINUT na pola
+ * i uvoz je vraćao nulu uz punu naplatu.
+ */
+interface IzvucenaKombinacija {
+  hotel: string;
+  room_type: string;
+  board_type: string;
+  occupancy: string;
+  currency: string;
+  price_basis?: 'PER_ROOM_PER_NIGHT' | 'PER_PERSON_PER_NIGHT' | null;
+  crib_fee_per_night?: number | null;
+  age_pricing?: {
+    age_category: string;
+    min_adults_present?: number | null;
+    pricing_mode: 'PERCENTAGE_OF_BASE_PRICE' | 'FLAT_PRICE_PER_NIGHT';
+    percentage?: number | null;
+    flat_price?: number | null;
+  }[];
+  periodi?: { od: string; do: string; cena: number }[];
+}
+
+/**
+ * Jedan red pripremljen za `PricelistImportRow`. Model ovo VIŠE NE PIŠE — kod ga dobija
+ * raspakivanjem kombinacije po periodima (§4.2.8). Oblik je namerno ostao nepromenjen: sve
+ * provere i poklapanje hotela ispod rade nad njim isto kao pre.
+ */
 interface IzvuceniRed {
   hotel: string;
   room_type: string;
@@ -73,18 +105,48 @@ interface IzvuceniRed {
 }
 
 /**
+ * §4.2.8 — KOD umnožava kombinaciju po periodima. Ovo je deo koji je ranije radio model, i
+ * jedini razlog zbog kog ga je radio bio je oblik šeme, ne potreba.
+ *
+ * Kombinacija bez ijednog perioda se odbacuje ovde, ne kasnije: bez datuma nema cenovne
+ * stavke, a red bez datuma bi na ekranu izgledao kao podatak.
+ */
+export function raspakujKombinacije(kombinacije: IzvucenaKombinacija[]): IzvuceniRed[] {
+  return kombinacije.flatMap((k) =>
+    (k.periodi ?? []).map((p) => ({
+      hotel: k.hotel,
+      room_type: k.room_type,
+      board_type: k.board_type,
+      occupancy: k.occupancy,
+      currency: k.currency,
+      price_basis: k.price_basis ?? null,
+      crib_fee_per_night: k.crib_fee_per_night ?? null,
+      age_pricing: k.age_pricing,
+      stay_from: p?.od,
+      stay_to: p?.do,
+      price_minor_units: p?.cena,
+    })),
+  );
+}
+
+/**
  * Model odgovara ISKLJUČIVO kroz ovaj alat, ne slobodnim tekstom (§4.2.6). Slobodan tekst koji
  * treba pretvoriti u cenu je mesto gde greška ulazi tiho — šema odbija sve što nije broj tamo
  * gde broj mora biti.
+ *
+ * §4.2.8 — šema sada SPROVODI pravilo koje je ranije stajalo samo kao rečenica u uputstvu
+ * („nikad dva reda za istu kombinaciju"). Ograda koja postoji u strukturi se ne može prekršiti;
+ * ograda koja postoji samo kao podsećanje se pre ili kasnije prekrši.
  */
 const ALAT = {
-  name: 'upisi_redove_cenovnika',
+  name: 'upisi_kombinacije_cenovnika',
   description:
-    'Vraća redove cenovnika izvučene iz teksta. Jedan red = jedna kombinacija hotel/soba/usluga/period/cena.',
+    'Vraća kombinacije iz cenovnika. Jedna kombinacija = hotel + tip sobe + usluga + popunjenost, ' +
+    'sa nizom perioda i cena ispod nje. NIKAD ne ponavljaj istu kombinaciju za drugi period.',
   input_schema: {
     type: 'object' as const,
     properties: {
-      rows: {
+      kombinacije: {
         type: 'array',
         items: {
           type: 'object',
@@ -98,13 +160,6 @@ const ALAT = {
             occupancy: {
               type: 'string',
               description: 'Na koga se cena odnosi, npr. "odrasla osoba u dvokrevetnoj"',
-            },
-            stay_from: { type: 'string', description: 'Početak perioda, oblik YYYY-MM-DD' },
-            stay_to: { type: 'string', description: 'Kraj perioda, oblik YYYY-MM-DD' },
-            price_minor_units: {
-              type: 'integer',
-              description:
-                'Cena u NAJMANJOJ jedinici valute: 89,50 EUR = 8950. Nikad decimalan broj.',
             },
             currency: { type: 'string', description: 'Troslovna oznaka, npr. EUR' },
             price_basis: {
@@ -130,21 +185,29 @@ const ALAT = {
                 required: ['age_category', 'pricing_mode'],
               },
             },
+            periodi: {
+              type: 'array',
+              description: 'Svaki period ove kombinacije, sa svojom cenom za taj period.',
+              items: {
+                type: 'object',
+                properties: {
+                  od: { type: 'string', description: 'Početak perioda, oblik GGGG-MM-DD' },
+                  do: { type: 'string', description: 'Kraj perioda, oblik GGGG-MM-DD' },
+                  cena: {
+                    type: 'integer',
+                    description:
+                      'Cena u NAJMANJOJ jedinici valute: 89,50 EUR = 8950. Nikad decimalan broj.',
+                  },
+                },
+                required: ['od', 'do', 'cena'],
+              },
+            },
           },
-          required: [
-            'hotel',
-            'room_type',
-            'board_type',
-            'occupancy',
-            'stay_from',
-            'stay_to',
-            'price_minor_units',
-            'currency',
-          ],
+          required: ['hotel', 'room_type', 'board_type', 'occupancy', 'currency', 'periodi'],
         },
       },
     },
-    required: ['rows'],
+    required: ['kombinacije'],
   },
 };
 
@@ -395,10 +458,14 @@ ${izvucen}`,
       'čovek će je potvrditi, tvoja pogrešna pretpostavka bi postala pogrešna prodajna cena; ' +
       '(4) datume vrati u obliku GGGG-MM-DD; (5) ti ništa ne upisuješ u sistem — svaki red ide ' +
       'čoveku na potvrdu; ' +
-      '(6) JEDAN RED = jedna kombinacija period + tip sobe + usluga. Nikad dva reda za istu ' +
-      'kombinaciju: ako za nju postoji i dečja cena, ona ide u age_pricing TOG reda, ne u nov red; ' +
-      '(7) doplate (krevetac, dodatni ležaj) NISU red cenovnika — krevetac ide isključivo u polje ' +
-      'crib_fee_per_night reda na koji se odnosi; ' +
+      // §4.2.8 — pravilo 6 je promenjeno zajedno sa šemom: kombinacija se opisuje jednom, sa
+      // svim svojim periodima. Cilj je isti kao pre (nikad dva zapisa za istu kombinaciju),
+      // ali ga sada sprovodi sama struktura, ne podsećanje u rečenici.
+      '(6) JEDNA KOMBINACIJA = hotel + tip sobe + usluga + popunjenost. SVI njeni periodi idu ' +
+      'u niz periodi TE kombinacije — nikad ne pravi drugu kombinaciju za drugi period. Dečja ' +
+      'cena ide u age_pricing kombinacije, ne u zaseban zapis; ' +
+      '(7) doplate (krevetac, dodatni ležaj) NISU zasebna kombinacija — krevetac ide isključivo ' +
+      'u polje crib_fee_per_night kombinacije na koju se odnosi; ' +
       '(8) u polje hotel upiši SAMO naziv objekta, bez mesta i bez države — „Hotel Splendid, Bečići" ' +
       'je „Hotel Splendid".';
 
@@ -411,7 +478,9 @@ ${izvucen}`,
       : blokovi;
     const odgovor = await client.messages.create({
       model,
-      max_tokens: 8192,
+      // §4.2.8 — podignuto sa 8.192. Najveći izmereni cenovnik (117 redova) grupisanom šemom
+      // troši 4.648 izlaznih tokena; ovo nosi zalihu za oko četiri puta veći dokument.
+      max_tokens: 16000,
       system,
       tools: [ALAT],
       tool_choice: { type: 'tool', name: ALAT.name },
@@ -420,9 +489,24 @@ ${izvucen}`,
 
     await this.zabeleziPoziv(odgovor, model);
 
+    // §4.2.8 — PREKID ZBOG DUŽINE SE PRIJAVLJUJE KAO PREKID.
+    //
+    // Ovo je bio stvaran kvar, izmeren 10.9.2026 nad `Primeri cenovnika/Bellevue Rates 2025_hr.pdf`:
+    // odgovor bude presečen na pola nedovršenog poziva alata, `input` ostane prazan, i uvoz je
+    // padao sa porukom „AI nije prepoznao nijedan red u ovom tekstu" — tačan simptom, pogrešan
+    // uzrok, i uputstvo koje čoveka šalje da traži grešku u dokumentu koji je ispravan.
+    if (odgovor.stop_reason === 'max_tokens') {
+      throw new Error(
+        'cenovnik je prevelik da stane u jedan prolaz (odgovor je prekinut zbog dužine). ' +
+          'Podeli dokument na manje delove — npr. po hotelu ili po sezoni — i uvezi ih redom.',
+      );
+    }
+
     const alat = odgovor.content.find((b: { type: string }) => b.type === 'tool_use') as
-      { input?: { rows?: IzvuceniRed[] } } | undefined;
-    return alat?.input?.rows ?? [];
+      { input?: { kombinacije?: IzvucenaKombinacija[] } } | undefined;
+    // §4.2.8 — od ove tačke nadalje ništa se ne menja: raspakovan red ima isti oblik kao pre,
+    // pa sve provere i poklapanje hotela ispod rade nad njim identično.
+    return raspakujKombinacije(alat?.input?.kombinacije ?? []);
   }
 
   private async zabeleziPoziv(

@@ -155,6 +155,18 @@ export class PricelistInstructionService {
 
     await this.zabeleziPoziv(odgovor);
 
+    // §4.2.8 (10.9.2026) — isti kvar nadjen i ovde pri pregledu svih poziva modelu: odgovor
+    // presecen zbog duzine ostavlja nedovrsen poziv alata, `izmene` ostaje prazno, i tok bi to
+    // prijavio kao „recenica nije razumljiva" — pogresan uzrok, i covek bi prepravljao recenicu
+    // koja je bila ispravna. Rizik je manji nego kod uvoza (recenica daje malo namera), ali je
+    // oblik greske identican, pa je i ograda ista.
+    if (odgovor.stop_reason === 'max_tokens') {
+      throw new Error(
+        'Odgovor je prekinut zbog dužine — traženo obuhvata previše stavki za jedan prolaz. ' +
+          'Podeli zahtev na manje izmene i ponovi.',
+      );
+    }
+
     const alat = odgovor.content.find((b: { type: string }) => b.type === 'tool_use') as
       { input?: { izmene?: Namera[]; pitanja?: string[] } } | undefined;
 

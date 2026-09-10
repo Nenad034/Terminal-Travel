@@ -18,7 +18,9 @@ describe('PricelistExtractionService (M3 §4.2.6)', () => {
   function makeService(
     opts: {
       configured?: boolean;
-      rows?: unknown[];
+      rows?: any[];
+      kombinacije?: unknown[];
+      stopReason?: string;
       baci?: Error;
       uvozOverride?: Record<string, unknown>;
       izvucenTekst?: string;
@@ -51,7 +53,23 @@ describe('PricelistExtractionService (M3 §4.2.6)', () => {
     const create = jest.fn().mockImplementation(async () => {
       if (opts.baci) throw opts.baci;
       return {
-        content: [{ type: 'tool_use', input: { rows: opts.rows ?? [] } }],
+        // §4.2.8 — model od v1.37 vraća KOMBINACIJE, ne redove. Testovi i dalje opisuju ulaz
+        // kao ravan red (tako se čita), a ovde se pretvara u ono što model stvarno vraća — pa
+        // svaki postojeći test usput dokazuje i da ih `raspakujKombinacije` vraća u isti oblik.
+        content: [
+          {
+            type: 'tool_use',
+            input: {
+              kombinacije:
+                opts.kombinacije ??
+                (opts.rows ?? []).map((r: any) => ({
+                  ...r,
+                  periodi: [{ od: r.stay_from, do: r.stay_to, cena: r.price_minor_units }],
+                })),
+            },
+          },
+        ],
+        stop_reason: opts.stopReason ?? 'tool_use',
         usage: { input_tokens: 10, output_tokens: 20 },
       };
     });
@@ -210,8 +228,8 @@ describe('PricelistExtractionService (M3 §4.2.6)', () => {
 
     const alat = create.mock.calls[0][0].tools[0];
     const kategorije =
-      alat.input_schema.properties.rows.items.properties.age_pricing.items.properties.age_category
-        .enum;
+      alat.input_schema.properties.kombinacije.items.properties.age_pricing.items.properties
+        .age_category.enum;
     // Prva verzija je ovde ukucala 'BABY', a enum ima 'INFANT' — poziv je prolazio kroz šemu i
     // padao tek pri upisu u bazu, sa porukom koju korisnik ne može da razume (9.9.2026).
     expect([...kategorije].sort()).toEqual([...Object.values(AgeCategory)].sort());
@@ -224,7 +242,7 @@ describe('PricelistExtractionService (M3 §4.2.6)', () => {
     await service.extract('imp1', 'u1');
 
     const poziv = create.mock.calls[0][0];
-    expect(poziv.tool_choice).toEqual({ type: 'tool', name: 'upisi_redove_cenovnika' });
+    expect(poziv.tool_choice).toEqual({ type: 'tool', name: 'upisi_kombinacije_cenovnika' });
     expect(poziv.tools).toHaveLength(1);
   });
   /**
@@ -338,6 +356,88 @@ describe('PricelistExtractionService (M3 §4.2.6)', () => {
 
       const upisi = prisma.pricelistImport.update.mock.calls.map((c: any) => c[0].data);
       expect(upisi.some((d: any) => 'extractionPath' in d)).toBe(false);
+    });
+  });
+  /**
+   * §4.2.8 (v1.37) — model opisuje kombinaciju jednom, kod je umnožava po periodima.
+   *
+   * Ovo je jedini deo posla koji je prebačen sa modela na kod, i vredi zaključati testom
+   * upravo zato što je nevidljiv spolja: `PricelistImportRow` izgleda isto kao pre.
+   */
+  describe('grupisana šema (§4.2.8)', () => {
+    const kombinacija = {
+      hotel: 'Hotel Splendid',
+      room_type: 'DBL',
+      board_type: 'BB',
+      occupancy: 'odrasla osoba u dvokrevetnoj',
+      currency: 'EUR',
+      price_basis: 'PER_ROOM_PER_NIGHT',
+      crib_fee_per_night: 500,
+      age_pricing: [
+        { age_category: 'CHILD', pricing_mode: 'PERCENTAGE_OF_BASE_PRICE', percentage: 50 },
+      ],
+      periodi: [
+        { od: '2027-06-01', do: '2027-06-30', cena: 8950 },
+        { od: '2027-07-01', do: '2027-07-31', cena: 12500 },
+        { od: '2027-08-01', do: '2027-08-31', cena: 14000 },
+      ],
+    };
+
+    it('jedna kombinacija sa tri perioda daje TRI reda, sa ponovljenim opisom na svakom', async () => {
+      const { service, prisma } = makeService({ kombinacije: [kombinacija] });
+
+      await service.extract('imp1', 'u1');
+
+      expect(prisma.pricelistImportRow.create).toHaveBeenCalledTimes(3);
+      const upisani = prisma.pricelistImportRow.create.mock.calls.map((c: any) => c[0].data);
+      expect(upisani.map((r: any) => r.extractedPrice)).toEqual([8950, 12500, 14000]);
+      // Opis se ne gubi pri raspakivanju — model ga je napisao jednom, kod ga nosi na svaki red.
+      expect(upisani.every((r: any) => r.extractedRoomType === 'DBL')).toBe(true);
+      expect(upisani.every((r: any) => r.extractedCribFeePerNight === 500)).toBe(true);
+      expect(upisani.every((r: any) => r.extractedPriceBasis === 'PER_ROOM_PER_NIGHT')).toBe(true);
+      expect(upisani.every((r: any) => r.extractedAgePricing)).toBe(true);
+    });
+
+    it('kombinacija bez ijednog perioda ne daje nijedan red — bez datuma nema cenovne stavke', async () => {
+      const { service, prisma } = makeService({
+        kombinacije: [{ ...kombinacija, periodi: [] }],
+      });
+
+      const rez: any = await service.extract('imp1', 'u1');
+
+      expect(prisma.pricelistImportRow.create).not.toHaveBeenCalled();
+      expect(rez.status).toBe('FAILED');
+    });
+
+    /**
+     * Izmereno 10.9.2026 nad `Primeri cenovnika/Bellevue Rates 2025_hr.pdf`: stara šema je
+     * potrošila ceo `max_tokens` na prepisivanje istih naziva, bila prekinuta na pola
+     * nedovršenog poziva alata, i uvoz je padao sa porukom „AI nije prepoznao nijedan red" —
+     * tačan simptom, pogrešan uzrok. Naplaćeno 0,40 €, dobijeno ništa.
+     */
+    it('odgovor prekinut zbog dužine se prijavljuje kao prekid, ne kao „nijedan red"', async () => {
+      const { service } = makeService({ kombinacije: [], stopReason: 'max_tokens' });
+
+      const rez: any = await service.extract('imp1', 'u1');
+
+      expect(rez.status).toBe('FAILED');
+      expect(rez.failureReason).toContain('prekinut zbog dužine');
+      expect(rez.failureReason).toContain('Podeli dokument');
+      expect(rez.failureReason).not.toContain('nije prepoznao');
+    });
+
+    it('šema sama sprovodi pravilo — traži niz periodâ, ne zaseban zapis po periodu', async () => {
+      const { service, create } = makeService({ kombinacije: [kombinacija] });
+
+      await service.extract('imp1', 'u1');
+
+      const alat = create.mock.calls[0][0].tools[0];
+      const stavka = alat.input_schema.properties.kombinacije.items;
+      expect(stavka.properties.periodi.type).toBe('array');
+      expect(stavka.required).toContain('periodi');
+      // Datum i cena postoje SAMO unutar perioda — model ih ne može staviti na kombinaciju.
+      expect(stavka.properties.stay_from).toBeUndefined();
+      expect(stavka.properties.price_minor_units).toBeUndefined();
     });
   });
 });

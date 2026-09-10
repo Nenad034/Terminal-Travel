@@ -248,6 +248,22 @@ Rekli ste: _„čuvamo na lokalnom računaru za sada."_ Ta jedna rečenica odblo
 
 **Ono što se nije promenilo, i neće:** nijedan red ne postaje aktivna cena bez vaše potvrde. AI čita i predlaže; potpis je i dalje ljudski, bez obzira da li je čitao tekst, PDF ili sken.
 
+## Ušteda tokena — i kvar koji se pojavio usput, dodato 10.9.2026
+
+Pitali ste može li se veći deo posla prebaciti sa AI-a na kod, da se troši manje. Odgovor je da, ali je merenje ispalo zanimljivije od uštede.
+
+**Prvo sam morao da izmerim gde novac odlazi**, jer su dve „očigledne" ideje pale. Keširanje onoga što se šalje AI-u ne vredi skoro ništa — 91% cene je ono što AI **napiše**, ne ono što pročita. Smanjenje „truda" koji AI ulaže štedi 4%, dakle on ne troši na nepotrebno razmišljanje. Treća provera je potvrdila vašu raniju odluku umesto da je obori: jeftiniji model je na malom primeru dao identičan rezultat 60% jeftinije, ali je na **stvarnom** cenovniku vratio 20 od 36 redova. Nije izmislio pogrešne — samo je stao ranije. Da sam gledao samo mali primer, preporučio bih vam nešto što tiho gubi trećinu cenovnika.
+
+**Pravi uzrok troška: AI je prepisivao isto po trideset puta.** Cenovnik ima, recimo, četiri kombinacije (tip sobe × usluga) i devet sezona. Do sada je AI morao da za svaku od 36 stavki iznova napiše naziv hotela, tip sobe, uslugu, valutu, cenu krevetca i dečju cenu — a menjala su se samo dva datuma i jedan broj. Sad AI opiše kombinaciju **jednom** i doda spisak perioda sa cenama, a **sistem to sam razmnoži** u pojedinačne redove. Za vas se ništa ne menja — na ekranu vidite iste redove kao pre.
+
+Rezultat, izmeren na vaša dva prava cenovnika: **oko dve trećine niža cena i tri puta brže, uz isti rezultat do poslednjeg polja.**
+
+**Ali važnije od uštede — veliki cenovnici do danas uopšte nisu radili.** Cenovnik hotela Bellevue ima 117 redova. Uvezen po starom, AI bi potrošio sav raspoloživi prostor na ponavljanje istih naziva, bio bi presečen na pola, i vi biste dobili **prazan rezultat uz punu naplatu** — sa porukom „AI nije prepoznao nijedan red u ovom tekstu". Poruka je bila dvostruko pogrešna: AI ih jeste prepoznao, a vi biste tražili grešku u dokumentu koji je ispravan. Isti taj cenovnik sada prolazi ceo, sa svih 117 redova.
+
+Znači, uvoz je do danas radio na malim cenovnicima a tiho padao na velikim — a upravo veliki najviše štede ručnog kucanja. Ovo se ne bi videlo dok ne pokušate prvi veliki uvoz.
+
+**Dve dodatne ograde postavljene u istom prolazu.** Ako odgovor ipak bude presečen, sistem to sada kaže kao presecanje i predlaže da podelite dokument — ne pretvara se da ničega nema. I pregledao sam svih petnaest mesta u sistemu gde se poziva AI: samo još jedno (izmena cenovnika rečima) moglo je da padne na isti način, i tamo je postavljena ista ograda.
+
 ---
 
 _Za tehničke detalje (tačna imena polja, redosled provera, API pozivi) vidi `04-SPECIFIKACIJA-M3-UGOVARANJE-ALOTMANI.md` u istom folderu i `docs/api/M3-ugovaranje-alotmani.md` — ovaj dokument je namerno pojednostavljen, ne zamenjuje ih._
