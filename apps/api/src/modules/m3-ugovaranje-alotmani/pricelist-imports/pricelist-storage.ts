@@ -108,3 +108,30 @@ export function ensurePricelistUploadDir(configured?: string | null): string {
 export function imeNaDisku(originalName: string): string {
   return `${randomUUID()}${extname(originalName).toLowerCase()}`;
 }
+
+/**
+ * §4.2.8 — GORNJA granica izvučenog teksta, u znakovima.
+ *
+ * `MAX_VELICINA_FAJLA` meri fajl NA DISKU i tu ne pomaže: izmereno 10.9.2026, stvaran fajl
+ * `Primeri cenovnika/014_Solvex_Offer_Summer_2025.xlsx` ima **1 MB na disku** a daje **2,1
+ * miliona znakova** teksta — 946.445 tokena, oko **4,35 € samo za ulaz**, i skoro ceo kontekst
+ * modela. Excel se pakuje, pa disk ne govori ništa o količini sadržaja.
+ *
+ * Taj fajl nije cenovnik jednog hotela nego ceo katalog dobavljača: 17 listova po destinaciji,
+ * 966 hotela. Uvoz takvog dokumenta u jednom prolazu nema smisla ni po ceni ni po rezultatu —
+ * odgovor bi ionako bio presečen (§4.2.8), jer 16.000 izlaznih tokena nosi oko 390 redova.
+ *
+ * 100.000 znakova je odabrano iz TOG računa, ne odokativno: najveći izmereni cenovnik jednog
+ * hotela ima 19.721 znak, pa granica nosi petostruku zalihu, a Solvex katalog hvata dvadeset
+ * puta.
+ */
+export const MAX_ZNAKOVA_TEKSTA = 100_000;
+
+export function porukaZaPrevelikTekst(znakova: number): string {
+  return (
+    `Iz ovog dokumenta je izvučeno ${znakova.toLocaleString('sr-RS')} znakova teksta, a granica za ` +
+    `jedan uvoz je ${MAX_ZNAKOVA_TEKSTA.toLocaleString('sr-RS')}. Ovo je najčešće ceo katalog ` +
+    'dobavljača (više hotela ili više destinacija u jednom fajlu), ne cenovnik jednog objekta. ' +
+    'Podeli ga — po listu, hotelu ili destinaciji — i uvezi delove redom.'
+  );
+}

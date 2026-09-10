@@ -264,6 +264,44 @@ Znači, uvoz je do danas radio na malim cenovnicima a tiho padao na velikim — 
 
 **Dve dodatne ograde postavljene u istom prolazu.** Ako odgovor ipak bude presečen, sistem to sada kaže kao presecanje i predlaže da podelite dokument — ne pretvara se da ničega nema. I pregledao sam svih petnaest mesta u sistemu gde se poziva AI: samo još jedno (izmena cenovnika rečima) moglo je da padne na isti način, i tamo je postavljena ista ograda.
 
+## Excel cenovnici — šta je merenje našlo kad ste dodali još osam, 10.9.2026
+
+Rekao sam da Excel put ne mogu pošteno da izmerim jer imam jedan uzorak. Dodali ste ih još osam i merenje je našlo dve stvari — nijedna nije bila ono što sam očekivao.
+
+**Ono što sam očekivao ne postoji.** Mislio sam da prazni redovi i kolone u Excel tabelama troše novac. Izmereno na svih devet fajlova: čišćenje praznih linija ne donosi ništa, **0%**. Dobro je što je mereno pre nego što je napravljeno.
+
+### Kvar prvi: više od polovine ćelija je stizalo AI-u kao besmislica
+
+Ovo je ozbiljno i vredi da razumete šta se dešavalo. Kad Excel ćelija nije obična vrednost nego **tekst sa formatiranjem** (naziv hotela gde je kategorija podebljana, upozorenje ispisano crvenim) ili **cena koja je rezultat formule**, sistem ju je pretvarao u doslovan tekst `[object Object]` — dakle u ništa.
+
+Koliko: u sedam od devet vaših fajlova, od 3% do **52% svih ćelija**. Gubilo se tačno ono najvažnije:
+
+- nazivi hotela sa kategorijom — „Argisht Palace Aparthotel **3+\***";
+- crvena upozorenja tipa „CHANGE: The Rates are NOT Valid on Czech Market!" — dakle na kom tržištu cena **ne važi**;
+- **cene koje su u Excel-u izračunate formulom** — a to je vrlo često, jer dobavljači računaju cene iz osnovice.
+
+Najgore je kako je izgledalo: nikako. Nije bilo greške na ekranu, ni u testovima, ni pri pravljenju programa — jer `[object Object]` je za računar savršeno ispravan tekst. AI bi na mestu cene dobio tu besmislicu i red ili preskočio ili popunio pretpostavkom. Popravljeno; od 50.177 pokvarenih ćelija vraćeno je 50.174 (preostale tri su prazne formule, gde je prazno tačan odgovor).
+
+**Isti kvar je imao i AI chat u panelu** kad mu neko priloži Excel — jer oba koriste isti deo sistema. Popravka je zato urađena na jednom mestu i rešava oba.
+
+### Kvar drugi: granica veličine merila je pogrešnu stvar
+
+Vaš fajl `014_Solvex_Offer_Summer_2025.xlsx` ima **1 MB na disku** — deluje sitno, i granica od 25 MB ga pušta bez reči. Ali kad se raspakuje, iz njega izađe **1,8 miliona znakova**. Jedan jedini uvoz tog fajla koštao bi **oko 4,35 €** samo da ga AI pročita, i skoro bi popunio sve što AI može odjednom da primi.
+
+Razlog je što taj fajl **i nije cenovnik** — to je ceo Solvex katalog: 17 listova po destinaciji (Golden Sands, Sunny Beach, Nessebar…) i 966 hotela. Excel se pakuje, pa veličina na disku ne govori ništa o količini sadržaja.
+
+Sada postoji granica koja meri **izvučeni tekst**, ne fajl, i odbija ga **pre nego što se AI uopšte pozove** — dakle pre nego što se bilo šta naplati. Poruka vam kaže koliko je stvarno izvučeno i predlaže da fajl podelite po listu, hotelu ili destinaciji.
+
+### Provereno na vašim fajlovima
+
+`0F Hotel Liberty S26-vente.xlsx` je uvezen sa **24 reda** za 13 sekundi, i uporedio sam ih sa samom tabelom: gde u Excel-u piše `27.5 | 33 | 38.5` za prva tri perioda, u sistemu stoji 27,50 / 33,00 / 38,50 € i periodi se poklapaju.
+
+`014_Solvex_Offer_Summer_2025.xlsx` je odbijen za **jednu sekundu**, bez ijednog poziva AI-u i bez ijednog dinara troška.
+
+### Dva fajla koja se i dalje ne mogu uvesti
+
+`OLYMPIC CENE 2026.xls` i jedan `.doc` su u starim Excel/Word formatima (do 2003), koje biblioteke ne čitaju pouzdano. Odgovor nije nova biblioteka za format koji je Microsoft napustio pre dvadeset godina — nego da ih otvorite i sačuvate kao `.xlsx`/`.docx`. Ako vam se ti formati često pojavljuju, recite pa da vidimo drugačije rešenje.
+
 ---
 
 _Za tehničke detalje (tačna imena polja, redosled provera, API pozivi) vidi `04-SPECIFIKACIJA-M3-UGOVARANJE-ALOTMANI.md` u istom folderu i `docs/api/M3-ugovaranje-alotmani.md` — ovaj dokument je namerno pojednostavljen, ne zamenjuje ih._

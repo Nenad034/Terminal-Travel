@@ -74,6 +74,42 @@ async function extractDocx(buffer: Buffer): Promise<string> {
   return result.value;
 }
 
+/**
+ * Prevod JEDNE ćelije u tekst.
+ *
+ * ISPRAVKA 10.9.2026, izmerena nad stvarnim cenovnicima u `Primeri cenovnika/`: prethodna
+ * verzija je radila `String(v)`, a ExcelJS za veći deo ćelija NE vraća primitivnu vrednost nego
+ * objekat — pa je `String(v)` davao doslovno `[object Object]`. U 7 od 9 stvarnih Excel
+ * cenovnika bilo je tako pokvareno između 3% i **52%** svih ćelija.
+ *
+ * Nije bila kozmetika, jer je gubilo tačno ono što nosi značenje:
+ *  - `richText` — naziv hotela sa kategorijom („Argisht Palace Aparthotel 3+*") i crveno
+ *    istaknuta upozorenja („CHANGE: The Rates are NOT Valid on Czech Market!");
+ *  - `formula`/`sharedFormula` sa `result` — **izračunate cene**, dakle sam podatak zbog kog
+ *    se cenovnik i uvozi.
+ *
+ * Greška se nije videla kao greška: model bi dobio `[object Object]` tamo gde stoji cena, pa
+ * bi red ili preskočio ili popunio pretpostavkom.
+ *
+ * Izmereno posle ispravke: od 50.177 pokvarenih ćelija vraćeno 50.174; preostale tri su
+ * formule bez izračunatog rezultata, gde je prazno tačan odgovor.
+ */
+function celijaUTekst(v: unknown): string {
+  if (v === null || v === undefined) return '';
+  if (v instanceof Date) return v.toISOString().slice(0, 10);
+  if (typeof v !== 'object') return String(v);
+  const o = v as Record<string, unknown>;
+  if (Array.isArray(o.richText)) {
+    return (o.richText as { text?: string }[]).map((d) => d?.text ?? '').join('');
+  }
+  // `result` pokriva i `formula` i `sharedFormula` — zanima nas izračunata vrednost, ne izraz.
+  if ('result' in o) return celijaUTekst(o.result);
+  if ('text' in o) return celijaUTekst(o.text);
+  if ('hyperlink' in o) return String(o.hyperlink);
+  if ('error' in o) return String(o.error);
+  return '';
+}
+
 // Svaki list postaje "list <naziv>" naslov + redovi razdvojeni tabom (dovoljno da agent vidi
 // vrednosti po koloni, ne pokušava savršen tabelarni prikaz u čistom tekstu).
 async function extractXlsx(buffer: Buffer): Promise<string> {
@@ -83,9 +119,7 @@ async function extractXlsx(buffer: Buffer): Promise<string> {
   workbook.eachSheet((sheet) => {
     parts.push(`List "${sheet.name}":`);
     sheet.eachRow((row) => {
-      const cells = (row.values as unknown[])
-        .slice(1)
-        .map((v) => (v === null || v === undefined ? '' : String(v)));
+      const cells = (row.values as unknown[]).slice(1).map(celijaUTekst);
       parts.push(cells.join('\t'));
     });
   });

@@ -15,10 +15,12 @@ import { AgentInvocationLogService } from '../../m18-operativni-nadzor/agent-inv
 import { ExtractFileService } from '../../m15-ai-orkestracija/omnisearch/extract-file.service';
 import { PRAG_AUTOMATSKOG_POKLAPANJA, nadjiNajbolji } from './hotel-matching';
 import {
+  MAX_ZNAKOVA_TEKSTA,
   MIN_KORISNOG_TEKSTA,
   PRICELIST_STORAGE_ENV,
   jeSlika,
   mediaTypeSlike,
+  porukaZaPrevelikTekst,
   storageDir,
   tekstJeUpotrebljiv,
 } from './pricelist-storage';
@@ -335,6 +337,11 @@ export class PricelistExtractionService {
     uvoz: PricelistImport,
   ): Promise<{ blokovi: ModelBlok[]; path: PricelistExtractionPath }> {
     if (!uvoz.sourceFileUrl) {
+      // Ista granica važi i za nalepljen tekst — čovek ume da nalepi ceo katalog jednako kao
+      // što ume da ga otpremi, a trošak i ishod su isti.
+      if ((uvoz.sourceText ?? '').length > MAX_ZNAKOVA_TEKSTA) {
+        throw new Error(porukaZaPrevelikTekst((uvoz.sourceText ?? '').length));
+      }
       return {
         blokovi: [
           {
@@ -377,6 +384,12 @@ ${uvoz.sourceText ?? ''}`,
       // Za ostale formate greska parsera JESTE kraj, i njena poruka je korisnija od nase.
       this.logger.warn(`Parser nije uspeo nad "${ime}": ${(err as Error).message}`);
       if (uvoz.sourceFormat !== 'PDF') throw err;
+    }
+
+    // §4.2.8 — granica se meri nad IZVUČENIM tekstom, ne nad fajlom na disku. Excel se pakuje,
+    // pa 1 MB na disku ume da da 2,1 miliona znakova (izmereno nad Solvex katalogom).
+    if (izvucen.length > MAX_ZNAKOVA_TEKSTA) {
+      throw new Error(porukaZaPrevelikTekst(izvucen.length));
     }
 
     if (tekstJeUpotrebljiv(izvucen)) {

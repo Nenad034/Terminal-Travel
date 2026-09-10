@@ -3,6 +3,12 @@
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M3) i poglavlje 8 (Faza 1)
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje
+**Verzija:** 1.38 — **Excel put izmeren nad devet stvarnih cenovnika** (10.9.2026, pošto je vlasnik dopunio `Primeri cenovnika/`). Novo poglavlje **4.2.9**. Očekivana ušteda (prazni redovi) **ne postoji** — 0%. Umesto nje nađena dva kvara koja se drugačije ne bi videla.
+
+**(1) Više od polovine ćelija je stizalo modelu kao `[object Object]`** — `String(v)` nad ExcelJS ćelijom koja je objekat. Pokvareno u 7 od 9 fajlova, od 3,2% do **52%**, i to baš `richText` (naziv hotela sa kategorijom, crvena upozorenja o tržištima) i `formula` sa `result` (**izračunate cene**). Ispravljeno u M15 v1.51 — isti kvar je imao i AI chat u panelu. Vraćeno 50.174 od 50.177 ćelija.
+
+**(2) Granica veličine merila je fajl na disku, a Excel se pakuje.** `014_Solvex_Offer_Summer_2025.xlsx`: 1 MB na disku, **1,8 miliona znakova**, 946.445 tokena, ~4,35 € samo za ulaz — prolazio bi kroz granicu od 25 MB bez reči. Nije cenovnik nego katalog: 17 listova, 966 hotela. Nova granica **`MAX_ZNAKOVA_TEKSTA` = 100.000** nad izvučenim tekstom, izvedena iz merenja (najveći cenovnik jednog hotela: 19.721 znak), odbija se **pre** poziva modelu.
+
 **Verzija:** 1.37 — **model opisuje kombinaciju jednom, kod je umnožava po periodima** (10.9.2026, na pitanje vlasnika o potrošnji tokena). Novo poglavlje **4.2.8**. Izmereno nad stvarnim cenovnicima iz `Primeri cenovnika/`: **72% manje izlaznih tokena, 66% niža cena, tri puta brže, isti rezultat do poslednjeg polja.**
 
 **Usput nađen i ispravljen kvar koji se drugačije ne bi video:** stara šema je na cenovniku sa 117 redova trošila ceo `max_tokens` na prepisivanje istih naziva, bila prekinuta na pola i vraćala **nula redova uz punu naplatu** — uz poruku „AI nije prepoznao nijedan red", koja je tačan simptom i pogrešan uzrok. Uvoz je radio na malim cenovnicima a tiho padao na većim. Prekid zbog dužine se od sada prijavljuje kao prekid, a `max_tokens` je podignut na 16.000.
@@ -1156,6 +1162,29 @@ Kod Bono cenovnika rezultat je **identičan do poslednjeg polja** — 36 redova,
 **`max_tokens` je podignut sa 8.192 na 16.000.** Najveći izmereni cenovnik (117 redova) grupisanom šemom troši 4.648 izlaznih tokena, pa 16.000 nosi zalihu za oko četiri puta veći dokument. Granica ostaje jer beskonačan odgovor nije zaštita ni od čega — ali sada, kad se dostigne, čovek to i sazna.
 
 **Šta se NE menja.** Sve ograde iz §4.2.6 i §4.2.7 stoje netaknute: cena i dalje mora biti ceo pozitivan broj u najmanjoj jedinici valute i proverava se **posle** modela; poklapanje hotela i dalje radi kod (§4.2.3); nijedan `ContractPeriod`/`RateLine` ne nastaje bez ljudske potvrde (§4.2.4). Promenjen je oblik u kom model isporučuje podatke, ne ko o njima odlučuje. Pravilo 6 iz uputstva modelu (`jedan red = jedna kombinacija perioda`) zamenjeno je pravilom da se kombinacija opisuje jednom sa svim svojim periodima — isti cilj (nikad dva zapisa za istu kombinaciju), izražen tako da ga šema sama sprovodi umesto da se na njega podseća rečenicom.
+
+#### 4.2.9 Excel: pokvarene ćelije i katalog koji nije cenovnik (dopuna v1.38, 10.9.2026)
+
+Vlasnik je dopunio `Primeri cenovnika/` sa osam novih Excel cenovnika (ukupno devet `.xlsx`), pa je Excel put prvi put mogao da se **izmeri** umesto da se pretpostavi. Prethodna verzija ovog dokumenta je izričito rekla da to nije mereno jer postoji jedan uzorak — merenje je našlo dve stvari, i nijedna nije bila ono što se očekivalo.
+
+**Očekivana ušteda ne postoji.** Pretpostavka je bila da prazni redovi i kolone u Excel tabelama troše tokene. Izmereno nad svih devet fajlova: čišćenje praznih linija skida **0%**. Pretpostavka je bila pogrešna i tako je zabeležena, umesto da se optimizacija napravi „za svaki slučaj".
+
+**Nađeno umesto toga (1): više od polovine ćelija je stizalo modelu kao `[object Object]`.** `ExtractFileService` je vrednost ćelije prevodio sa `String(v)`, a ExcelJS veći deo ćelija vraća kao **objekat**, ne primitivnu vrednost. Izmereno po fajlu: Solvex **52%**, Iberostar (dva fajla) **49%**, Neptunia 20,5%, Delphin 13,1%, Hilton 8,1%, Liberty 3,2% — u sedam od devet fajlova. Gubilo se tačno ono što nosi značenje:
+
+- `richText` — naziv hotela sa kategorijom („Argisht Palace Aparthotel **3+\***") i crveno istaknuta upozorenja („CHANGE: The Rates are NOT Valid on Czech Market!", „Extras are for arrivals till 17.06 incl.");
+- `formula`/`sharedFormula` sa `result` — **izračunate cene**, dakle sam podatak zbog kog se cenovnik uvozi.
+
+Kvar se nije video kao kvar: ni `tsc`, ni build, ni ijedan test ga nisu hvatali, a model bi na mestu cene dobio `[object Object]` i red preskočio ili popunio pretpostavkom. Ispravka je u M15 (`extract-file.service.ts`, v1.51) jer je servis tamo i dele ga oba pozivaoca — **AI chat u panelu je imao isti kvar nad istim fajlovima.** Izmereno posle ispravke: od 50.177 pokvarenih ćelija vraćeno **50.174**; preostale tri su formule bez izračunatog rezultata, gde je prazno tačan odgovor.
+
+**Nađeno umesto toga (2): granica veličine merila je pogrešnu stvar.** `MAX_VELICINA_FAJLA` (25 MB) meri fajl **na disku**, a Excel se pakuje. `014_Solvex_Offer_Summer_2025.xlsx` ima **1 MB na disku** i daje **1,8 miliona znakova** teksta — 946.445 tokena, oko **4,35 € samo za ulaz**, i skoro ceo kontekst modela. Prošao bi kroz postojeću granicu bez reči.
+
+Taj fajl i **nije cenovnik** nego ceo katalog dobavljača: 17 listova po destinaciji (Golden Sands, Sunny Beach, Nessebar…), 966 hotela u listu „Hotel_list". Uvoz takvog dokumenta u jednom prolazu nema smisla ni po ceni ni po ishodu — odgovor bi ionako bio presečen (§4.2.8), jer 16.000 izlaznih tokena nosi oko 390 redova.
+
+Zato postoji **`MAX_ZNAKOVA_TEKSTA` = 100.000**, nad **izvučenim tekstom**, ne nad fajlom. Broj je izveden iz merenja, ne odokativan: najveći izmereni cenovnik **jednog** hotela ima 19.721 znak, pa granica nosi petostruku zalihu, a Solvex katalog hvata dvadeset puta. Prekoračenje se odbija **pre poziva modelu** — inače bi upozorenje stiglo posle naplate — sa porukom koja imenuje stvarnu veličinu i kaže šta da se uradi (podeliti po listu, hotelu ili destinaciji). Ista granica važi i za nalepljen tekst: čovek ume da nalepi ceo katalog jednako kao što ume da ga otpremi.
+
+**Izmereno kroz produkcione endpoint-e, isti dan:** `0F Hotel Liberty S26-vente.xlsx` → **24 reda** za 13 s; provereno prema izvornoj tabeli (`½ DBL + AI | 27.5 | 33 | 38.5` za prva tri perioda) da su upisane cene `2750`, `3300`, `3850` i da se periodi poklapaju. `014_Solvex_Offer_Summer_2025.xlsx` → odbijen za **1 sekundu**, bez ijednog poziva modelu, sa porukom koja navodi 1.802.012 znakova i uputstvom da se podeli.
+
+**Stari binarni formati ostaju nepodržani, i to je odgovor a ne propust.** Među primerima su i `OLYMPIC CENE 2026.xls` i jedan `.doc` — formate koje ni `exceljs` ni `mammoth` ne čitaju pouzdano. Pretvaranje bi tražilo novu biblioteku za format koji je proizvođač napustio pre dvadeset godina; umesto toga se traži da se fajl sačuva kao `.xlsx`/`.docx`.
 
 ### 4.3 Alarm za nizak preostali kapacitet
 

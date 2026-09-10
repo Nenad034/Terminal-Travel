@@ -341,6 +341,40 @@ describe('PricelistExtractionService (M3 §4.2.6)', () => {
       expect(create).not.toHaveBeenCalled();
     });
 
+    /**
+     * §4.2.8 — granica se meri nad IZVUČENIM tekstom, ne nad fajlom na disku.
+     *
+     * Izmereno 10.9.2026 nad `Primeri cenovnika/014_Solvex_Offer_Summer_2025.xlsx`: 1 MB na
+     * disku, 2,1 miliona znakova teksta, 946.445 tokena, oko 4,35 € samo za ulaz. Postojeća
+     * granica od 25 MB ga pušta bez reči, jer se Excel pakuje.
+     */
+    it('prevelik izvučen tekst se odbija PRE poziva modelu, sa uputstvom da se dokument podeli', async () => {
+      const { service, create } = makeService({
+        uvozOverride: fajlUvoz('cenovnik.xlsx', 'EXCEL'),
+        izvucenTekst: 'x'.repeat(120_000),
+      });
+
+      const rez: any = await service.extract('imp1', 'u1');
+
+      expect(rez.status).toBe('FAILED');
+      expect(rez.failureReason).toContain('granica za jedan uvoz');
+      expect(rez.failureReason).toContain('Podeli ga');
+      // Najvažnije: model se NE poziva — inače bi upozorenje stiglo posle naplate.
+      expect(create).not.toHaveBeenCalled();
+    });
+
+    it('ista granica važi i za nalepljen tekst, ne samo za fajl', async () => {
+      const { service, create } = makeService({
+        uvozOverride: { sourceText: 'y'.repeat(120_000), sourceFileUrl: null },
+      });
+
+      const rez: any = await service.extract('imp1', 'u1');
+
+      expect(rez.status).toBe('FAILED');
+      expect(rez.failureReason).toContain('granica za jedan uvoz');
+      expect(create).not.toHaveBeenCalled();
+    });
+
     it('uvoz cenovnika ide na HEAVY model i tako se knjiži (§4.2.7)', async () => {
       const { service, create } = makeService({ rows: [validanRed] });
 
