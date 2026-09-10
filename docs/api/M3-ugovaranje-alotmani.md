@@ -903,30 +903,71 @@ Dozvola: `M3/pricelist-import/VIEW`.
 ]
 ```
 
-### POST /pricelist-imports/:id/rows/:rowId/approve
+### GET /pricelist-imports/:id/razlike
 
-Dozvola: `M3/pricelist-import/APPROVE_ROW` — **nikad se ne dodeljuje AI agentu.** Poziv se dodatno beleži kao agentski potez.
+Dozvola: `M3/pricelist-import/VIEW`. §4.2.10 (v1.39) — **zamenjuje potvrdu reda po red.**
 
-```json
-{ "decision": "CONFIRMED" }
-```
+Redovi uvoza se grupišu po ugovoru (preko `matched_product_id → Product.source_contract_id`) i porede sa zatečenim cenovnikom. **Ništa se ne upisuje.** Sezona se izvodi iz datuma iz dokumenta: opseg koji se tačno poklapa sa postojećom sezonom koristi njenu oznaku, inače se najavljuje nova.
 
-ili, kad AI nije pogodio proizvod pa ga čovek bira:
+**Odgovor `200`:**
 
 ```json
-{ "decision": "MANUALLY_MATCHED", "matchedProductId": "b7e2f1a0-..." }
+{
+  "importId": "431d3733-...",
+  "status": "READY_FOR_REVIEW",
+  "ugovori": [
+    {
+      "contractId": "0605f31b-...",
+      "contractNumber": "MOCK-DEST/grcka-002",
+      "supplierName": "MOCK-DEST Elliniko Travel DMC",
+      "noveSezone": [{ "code": "1", "label": "01.06.2027.–30.06.2027." }],
+      "ukupno": 3,
+      "razlike": [
+        {
+          "kljuc": "CENA|DBL standard|1|Nocenje sa dorucom|po sobi|PER_ROOM_PER_NIGHT|svi",
+          "vrsta": "NOVA",
+          "stavka": "CENA",
+          "opis": "DBL standard · sezona 1 · Nocenje sa dorucom · po sobi",
+          "staraVrednost": null,
+          "novaVrednost": 8950,
+          "izmenjenaPolja": []
+        }
+      ],
+      "sviKljucevi": ["CENA|DBL standard|1|Nocenje sa dorucom|po sobi|PER_ROOM_PER_NIGHT|svi"]
+    }
+  ],
+  "nepoklopljeni": [{ "rowId": "2c90583d-...", "hotel": "Hotel Liberty", "matchConfidence": 14 }]
+}
 ```
 
-Odobrenje kreira stvarni `ContractPeriod`/`RateLine`. Odbijanja koja ćete videti:
+`nepoklopljeni` su redovi koje AI nije povezao sa proizvodom iz kataloga — ne mogu ući ni u jedan predlog i prikazuju se zasebno da ne nestanu tiho.
+
+### POST /pricelist-imports/:id/ugovori/:contractId/primeni
+
+Dozvola: `M3/pricelist-import/APPROVE_ROW`. Primenjuje **samo potvrđene ključeve**, kroz isti `primeni` put koji koristi i izmena rečima; nastala verzija nosi `source_import_id`.
+
+Namerno **ne prima cene** — predlog se gradi na serveru iz `PricelistImportRow` zapisa. Da klijent šalje i cene, potvrđeno i primenjeno bi mogli da se raziđu (§2.11l, pravilo 3).
 
 ```json
-{"message":"Red mora imati matched_product_id pre odobrenja (M3 spec §4.2.3/§4.2.4)","error":"Bad Request","statusCode":400}
-{"message":"Poklopljeni proizvod nema source_contract_id — nije CONTRACTED proizvod","error":"Bad Request","statusCode":400}
-{"message":"extracted_price_basis nije prepoznat — ne može se pretpostaviti PER_ROOM/PER_PERSON (M3 spec §2.4)","error":"Bad Request","statusCode":400}
-{"message":"Stavka ne pripada navedenom uvozu","error":"Bad Request","statusCode":400}
+{
+  "effectiveFrom": "2027-01-01",
+  "prihvaceniKljucevi": ["CENA|DBL standard|1|Nocenje sa dorucom|po sobi|PER_ROOM_PER_NIGHT|svi"]
+}
 ```
 
-Treća poruka je namerna stroga ograda: ako se iz dokumenta ne vidi da li je cena po sobi ili po osobi, sistem **ne pogađa**. Razlika je dvostruka ili polovična cena.
+**Odgovor `201`:**
+
+```json
+{
+  "id": "83aa608f-...",
+  "versionNo": 1,
+  "effectiveFrom": "2027-01-01",
+  "primenjeno": 3,
+  "odbijeno": []
+}
+```
+
+Nova sezona se pravi **tek ovde**, i samo ona iz koje je bar jedna razlika potvrđena. Redovi koji su učestvovali u primenjenoj razlici dobijaju `review_status = CONFIRMED`; ostali ostaju `PENDING`.
 
 ### POST /pricelist-imports/:id/rows/:rowId/reject
 

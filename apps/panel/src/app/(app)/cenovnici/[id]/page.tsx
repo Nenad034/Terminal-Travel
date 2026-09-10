@@ -3,7 +3,13 @@ import { apiFetch } from '@/lib/api-client';
 import { getMe, hasPermission } from '@/lib/me';
 import RegisterTab from '@/components/RegisterTab';
 import Icon from '@/components/Icon';
-import RowsReview, { type UvozRed } from './RowsReview';
+import RazlikeReview, { type UgovorRazlike } from './RazlikeReview';
+
+/** Sirov red uvoza — koristi se samo za brojače u zaglavlju (§4.2.10). */
+interface UvozRed {
+  id: string;
+  reviewStatus: string;
+}
 import RetryButton from './RetryButton';
 
 // M3 spec §4.2.2/§4.2.3/§4.2.4, M17 §6c — pregled redova koje je AI izvukao.
@@ -44,30 +50,23 @@ export default async function UvozDetaljPage(props: { params: Promise<{ id: stri
   const canRetry = hasPermission(me, 'M3', 'pricelist-import', 'CREATE');
 
   const uvoz = await apiFetch<Uvoz>(`/contracting/pricelist-imports/${id}`);
-  const [redovi, dobavljaci, proizvodi] = await Promise.all([
+  // §4.2.10 — ekran prikazuje RAZLIKE prema zatečenom cenovniku, ne sirove redove uvoza.
+  // Redovi se i dalje dohvataju, ali samo da bi se videlo koliko ih je i koliko čeka odluku.
+  const [redovi, razlike, dobavljaci] = await Promise.all([
     apiFetch<UvozRed[]>(`/contracting/pricelist-imports/${id}/rows`).catch(() => [] as UvozRed[]),
-    apiFetch<{ data: { id: string; name: string }[] }>('/contracting/suppliers?limit=200')
-      .then((r) => r.data)
-      .catch(() => []),
-    // Kandidati za ručno poklapanje — proizvodi TOG dobavljača, isti skup koji je i AI gledao.
     apiFetch<{
-      data: {
-        id: string;
-        destinationCity: string;
-        destinationCountry: string;
-        supplierName?: string | null;
-        translation?: { name: string } | null;
-      }[];
-    }>('/catalog/products')
+      ugovori: UgovorRazlike[];
+      nepoklopljeni: { rowId: string; hotel: string; matchConfidence: number | null }[];
+    }>(`/contracting/pricelist-imports/${id}/razlike`).catch(() => ({
+      ugovori: [] as UgovorRazlike[],
+      nepoklopljeni: [] as { rowId: string; hotel: string; matchConfidence: number | null }[],
+    })),
+    apiFetch<{ data: { id: string; name: string }[] }>('/contracting/suppliers?limit=200')
       .then((r) => r.data)
       .catch(() => []),
   ]);
 
   const dobavljac = dobavljaci.find((d) => d.id === uvoz.supplierId);
-  const kandidati = proizvodi.map((p) => ({
-    id: p.id,
-    label: `${p.translation?.name ?? '(bez naziva)'} — ${p.destinationCity}, ${p.destinationCountry}`,
-  }));
 
   const cekaju = redovi.filter((r) => r.reviewStatus === 'PENDING').length;
 
@@ -105,7 +104,12 @@ export default async function UvozDetaljPage(props: { params: Promise<{ id: stri
         </p>
       )}
 
-      <RowsReview importId={uvoz.id} rows={redovi} kandidati={kandidati} canApprove={canApprove} />
+      <RazlikeReview
+        importId={uvoz.id}
+        ugovori={razlike.ugovori}
+        nepoklopljeni={razlike.nepoklopljeni}
+        canApprove={canApprove}
+      />
 
       {/*
         §4.2.7 — ko je pročitao sadržaj stoji na ekranu, ne samo u bazi. „AI je čitao sken"

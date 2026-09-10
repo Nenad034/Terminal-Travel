@@ -15,7 +15,7 @@ import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { PricelistImportsService } from './pricelist-imports.service';
 import { PricelistExtractionService } from './pricelist-extraction.service';
 import { CreatePricelistImportDto } from './dto/create-pricelist-import.dto';
-import { ReviewRowDto } from './dto/review-row.dto';
+import { PrimeniUvozDto } from './dto/primeni-uvoz.dto';
 import { JwtAuthGuard } from '../../m1-core-identitet/auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../../common/guards/permissions.guard';
 import { RequirePermission } from '../../../common/decorators/require-permission.decorator';
@@ -145,16 +145,31 @@ export class PricelistImportsController {
     return this.imports.listRows(id);
   }
 
-  @Post(':id/rows/:rowId/approve')
+  /**
+   * §4.2.10 (v1.39) — razlike uvoza prema zatečenom cenovniku, grupisane po ugovoru.
+   *
+   * Ovo je zamena za potvrdu reda po red: čovek potvrđuje **razlike**, ne redove. Dozvola je
+   * `VIEW` jer se ništa ne upisuje (§2.11l, pravilo 2).
+   */
+  @Get(':id/razlike')
+  @RequirePermission('M3', 'pricelist-import', 'VIEW')
+  razlike(@Param('id') id: string) {
+    return this.imports.razlike(id);
+  }
+
+  /**
+   * §4.2.10 — primena potvrđenih razlika za JEDAN ugovor, kroz isti `primeni` put koji koristi
+   * i izmena rečima. Dozvola je `APPROVE_ROW` — ovde cena postaje aktivna (§4.2.4).
+   */
+  @Post(':id/ugovori/:contractId/primeni')
   @RequirePermission('M3', 'pricelist-import', 'APPROVE_ROW')
-  @AgentAction('M3', 'pricelist_import.approve_row')
-  approve(
+  primeni(
     @Param('id') id: string,
-    @Param('rowId') rowId: string,
-    @Body() dto: ReviewRowDto,
+    @Param('contractId') contractId: string,
+    @Body() dto: PrimeniUvozDto,
     @CurrentUser() actor: { userId: string },
   ) {
-    return this.imports.reviewRow(id, rowId, dto, actor.userId);
+    return this.imports.primeniZaUgovor(id, contractId, dto, actor.userId);
   }
 
   @Post(':id/rows/:rowId/reject')
@@ -164,6 +179,6 @@ export class PricelistImportsController {
     @Param('rowId') rowId: string,
     @CurrentUser() actor: { userId: string },
   ) {
-    return this.imports.reviewRow(id, rowId, { decision: 'REJECTED' }, actor.userId);
+    return this.imports.odbijRed(id, rowId, actor.userId);
   }
 }

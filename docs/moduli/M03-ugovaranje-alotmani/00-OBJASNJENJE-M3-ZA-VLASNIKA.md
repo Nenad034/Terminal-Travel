@@ -302,6 +302,34 @@ Sada postoji granica koja meri **izvučeni tekst**, ne fajl, i odbija ga **pre n
 
 `OLYMPIC CENE 2026.xls` i jedan `.doc` su u starim Excel/Word formatima (do 2003), koje biblioteke ne čitaju pouzdano. Odgovor nije nova biblioteka za format koji je Microsoft napustio pre dvadeset godina — nego da ih otvorite i sačuvate kao `.xlsx`/`.docx`. Ako vam se ti formati često pojavljuju, recite pa da vidimo drugačije rešenje.
 
+## Uvoz i verzije spojeni — jedan put do cenovnika, 10.9.2026
+
+Do sada su postojala **dvoja vrata** u isti cenovnik: uvoz dokumenta je upisivao red po red, a ručna izmena i izmena rečima su išle kroz verzije. Odlučili ste da se stari ekran zameni. Napravljeno.
+
+**Ono što sam našao pre nego što sam počeo, a nisam očekivao.** U predaji rada je pisalo da je ovo „čisto povezivanje, bez novih odluka". Nije bilo tačno, i tri stvari su stajale na putu:
+
+1. **Uvezene cene su bile nevidljive za istoriju.** Nije se radilo samo o tome da se verzija ne pravi — cena uvezena AI-em nije ulazila ni u jedan snimak cenovnika.
+2. **U mreži su se videle samo kao „izuzetak"**, ne kao ćelija u koloni.
+3. **Prelazak bi tiho obrisao dečje cene i krevetac** — put verzija ih uopšte nije umeo da upiše. Da sam samo „povezao", svaka uvezena dečja cena bi nestala bez poruke.
+
+Prodaja pri tom nije bila pogođena — uvezene cene su se prodavale ispravno. Problem je bio u pregledu i istoriji.
+
+**Kako sada izgleda.** Otvorite uvoz i vidite **razlike prema zatečenom cenovniku**, grupisane po ugovoru — jer jedan dokument ume da nosi više hotela. Kvačicom potvrđujete pojedinačne razlike, ne redove. To je ono što je obećano: deset izmena u cenovniku od dvesta redova je deset odluka, ne dvesta.
+
+**Sezone se same izvode iz datuma.** Dokument daje „01.06–30.06", a cenovnik traži kolonu. Ako takva sezona već postoji — koristi se. Ako ne — najavljuje se da će potvrdom nastati nova kolona, i vidite koja. Poklapanje je namerno **tačno**: 01.06–15.06 nije ista sezona kao 01.06–30.06, jer bi tiho svrstavanje promenilo cenu za petnaest dana koje niste potvrdili.
+
+**Provereno na pravom cenovniku:** tri reda → jedan ugovor, dve nove sezone izvedene iz datuma, tri razlike. Posle potvrde: cene 89,50 / 109,00 / 125,00, **krevetac i dečja cena sačuvani**, period nosi sezonu (dakle vidi se kao ćelija u mreži), i nastala je verzija 1 koja po prvi put nosi oznaku iz kog je uvoza došla.
+
+### Jedna stvar koja NIJE gotova, i vredi da je znate
+
+**Ponovni uvoz istog dokumenta još uvek pokazuje duple razlike.** Razlog: AI popunjenost („po sobi", „po osobi") vraća kao slobodan tekst, i za isti red daje različite formulacije iz prolaza u prolaz. Izmerio sam četiri: „po sobi", „soba (DBL standard)", „soba", „cena po sobi po noci". Sve četiri su tačne, ali sistem po tom tekstu prepoznaje da li je red isti — pa misli da je stari nestao i nov se pojavio.
+
+Dodao sam svođenje u kodu; ono je **sezone rešilo u potpunosti** (ponovni uvoz više ne pravi nove kolone), ali za popunjenost ne pomaže dovoljno — svaka nova formulacija prolazi kroz svaki spisak sinonima.
+
+Pravo rešenje je da AI-u to polje **više ne bude slobodan tekst** nego izbor iz zatvorene liste, uz posebno polje za stvarne razlike tipa „1 odrasla + 1 dete 7–11,99". To dotiče i modul rezervacija, pa vam ga predlažem kao sledeći korak umesto da ga uradim sam.
+
+**Do tada:** prvi uvoz cenovnika radi potpuno i ispravno. Ponovni uvoz **istog** dokumenta za isti ugovor pregledajte pažljivo ili ga izbegavajte.
+
 ---
 
 _Za tehničke detalje (tačna imena polja, redosled provera, API pozivi) vidi `04-SPECIFIKACIJA-M3-UGOVARANJE-ALOTMANI.md` u istom folderu i `docs/api/M3-ugovaranje-alotmani.md` — ovaj dokument je namerno pojednostavljen, ne zamenjuje ih._

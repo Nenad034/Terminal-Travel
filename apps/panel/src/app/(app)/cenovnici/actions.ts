@@ -111,25 +111,27 @@ export async function retryExtraction(id: string): Promise<void> {
 }
 
 /**
- * §4.2.4 — potvrda reda je jedini korak koji stvarno upisuje cenu (`ContractPeriod` + `RateLine`).
- * Zato je odvojena dozvola (`APPROVE_ROW`) i zato AI ovo nikad ne radi sam.
+ * §4.2.10 (v1.39) — primena potvrđenih RAZLIKA iz uvoza, za jedan ugovor.
+ *
+ * Zamenjuje `approveRow`. Klijent šalje samo ključeve razlika koje je čovek potvrdio i datum od
+ * kog nova cena važi — cene se grade na serveru iz `PricelistImportRow` zapisa. Da klijent šalje
+ * i cene, potvrđeno i primenjeno bi mogli da se raziđu (§2.11l, pravilo 3).
  */
-export async function approveRow(
+export async function primeniUvoz(
   importId: string,
-  rowId: string,
-  matchedProductId: string | undefined,
+  contractId: string,
+  telo: { effectiveFrom: string; prihvaceniKljucevi: string[] },
 ): Promise<{ error: string | null }> {
   try {
-    await apiFetch(`/contracting/pricelist-imports/${importId}/rows/${rowId}/approve`, {
+    await apiFetch(`/contracting/pricelist-imports/${importId}/ugovori/${contractId}/primeni`, {
       method: 'POST',
-      body: matchedProductId
-        ? { decision: 'MANUALLY_MATCHED', matchedProductId }
-        : { decision: 'CONFIRMED' },
+      body: telo,
     });
     revalidatePath(`/cenovnici/${importId}`);
+    revalidatePath('/ugovori');
     return { error: null };
   } catch (err) {
-    return { error: poruka(err, 'Potvrda reda nije uspela.') };
+    return { error: poruka(err, 'Primena razlika nije uspela.') };
   }
 }
 

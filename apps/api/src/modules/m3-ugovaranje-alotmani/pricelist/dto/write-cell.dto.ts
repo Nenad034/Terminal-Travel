@@ -1,6 +1,9 @@
 import { PriceBasis } from '@prisma/client';
+import { Type } from 'class-transformer';
+import { PredlozenaUzrasnaCenaDto } from './predlog-cenovnika.dto';
 import {
   ArrayMaxSize,
+  ValidateNested,
   IsArray,
   IsDateString,
   IsEnum,
@@ -65,4 +68,24 @@ export class WriteCellDto {
   @IsOptional()
   @IsDateString()
   bookingTo?: string;
+
+  /**
+   * §4.2.10 (v1.39) — krevetac i uzrasna cena se od sada upisuju i ovim putem.
+   *
+   * Bez toga bi prelazak uvoza (§4.2) na tok verzija tiho obrisao svaku uvezenu dečju cenu:
+   * snimak ih je već poredio, ali ih nijedan upisni put osim red-po-red potvrde nije pisao.
+   *
+   * `undefined` znači „ne diraj" — ćelija upisana sa ekrana mreže nema ta polja i ne sme da
+   * obriše ono što je uvoz doneo. Prazan niz je izričito brisanje.
+   */
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  cribFeePerNight?: number;
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => PredlozenaUzrasnaCenaDto)
+  agePricing?: PredlozenaUzrasnaCenaDto[];
 }

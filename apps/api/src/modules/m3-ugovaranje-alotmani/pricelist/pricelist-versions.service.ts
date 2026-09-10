@@ -24,6 +24,39 @@ import { PotvrdiVerzijuDto } from './dto/potvrdi-verziju.dto';
  * razlika prema prošloj verziji ne može izračunati kasnije: žive tabele se u međuvremenu menjaju
  * (stavke se gase i zamenjuju), pa „kako je cenovnik izgledao tada" prestaje da bude upit.
  */
+/**
+ * §4.2.10 — uzrasna cena kao jedan uporediv tekst.
+ *
+ * Poredi se **sadržaj**, ne redosled ni `id`: nov dokument od dobavljača donosi nove zapise iste
+ * dečje cene, pa bi poređenje po `id`-u svaku izmenu prikazalo kao „nestala + nova" — ista
+ * greška koju §2.11l već izbegava kod doplata.
+ */
+function opisUzrasta(
+  lista: {
+    ageCategory: string;
+    occupantIndex: number | null;
+    minAdultsPresent: number | null;
+    pricingMode: string;
+    percentage: unknown;
+    flatPrice: number | null;
+  }[],
+): string | null {
+  if (!lista || lista.length === 0) return null;
+  return lista
+    .map((a) =>
+      [
+        a.ageCategory,
+        a.occupantIndex ?? '-',
+        a.minAdultsPresent ?? '-',
+        a.pricingMode,
+        a.percentage === null || a.percentage === undefined ? '-' : String(a.percentage),
+        a.flatPrice ?? '-',
+      ].join(':'),
+    )
+    .sort()
+    .join(' | ');
+}
+
 @Injectable()
 export class PricelistVersionsService {
   constructor(
@@ -173,7 +206,7 @@ export class PricelistVersionsService {
   async predlozi(contractId: string, dto: PredlogCenovnikaDto) {
     await this.assertContract(contractId);
     const sada = await this.snimiStanje(contractId);
-    const predlozeno = await this.snapshotIzPredloga(contractId, dto);
+    const predlozeno = await this.snapshotIzPredloga(contractId, dto, sada);
 
     // Doplate se ovim putem ne menjaju (vidi `primeni`), pa se prenose netaknute — inače bi
     // svaki predlog cena prikazao svaku doplatu kao „ugašena", što nije istina.
@@ -206,7 +239,7 @@ export class PricelistVersionsService {
     }
 
     const sada = await this.snimiStanje(contractId);
-    const predlozeno = await this.snapshotIzPredloga(contractId, dto);
+    const predlozeno = await this.snapshotIzPredloga(contractId, dto, sada);
     const doplate = sada.filter((r) => r.vrsta === 'DOPLATA');
     const razlike = uporedi(sada, [...predlozeno, ...doplate]);
 
@@ -270,6 +303,10 @@ export class PricelistVersionsService {
           validWeekdays: red.validWeekdays ?? [],
           bookingFrom: red.bookingFrom,
           bookingTo: red.bookingTo,
+          // §4.2.10 — bez ova dva polja bi prelazak uvoza na ovaj put tiho obrisao svaku
+          // uvezenu dečju cenu i krevetac.
+          cribFeePerNight: red.cribFeePerNight,
+          agePricing: red.agePricing,
         } as any,
         actorId,
       );
@@ -375,7 +412,11 @@ export class PricelistVersionsService {
         where: { contractId, status: 'ACTIVE', seasonId: { not: null } },
         include: {
           season: true,
-          rateLines: { where: { status: 'ACTIVE' }, orderBy: { createdAt: 'asc' } },
+          rateLines: {
+            where: { status: 'ACTIVE' },
+            orderBy: { createdAt: 'asc' },
+            include: { agePricing: true },
+          },
         },
       }),
       this.prisma.ancillaryService.findMany({
@@ -413,6 +454,9 @@ export class PricelistVersionsService {
             'prodaja od': r.bookingFrom ? iso(r.bookingFrom) : null,
             'prodaja do': r.bookingTo ? iso(r.bookingTo) : null,
             'doplata za krevetac': r.cribFeePerNight ?? null,
+            // §4.2.10 — bez ovoga se izmena SAMO dečje cene ne bi videla kao razlika: poredila
+            // se cena i krevetac, a uzrasna cena je stajala van poređenja iako je uvoz donosi.
+            'uzrasna cena': opisUzrasta(r.agePricing),
           },
         });
       }
@@ -448,22 +492,54 @@ export class PricelistVersionsService {
   }
 
   /** Predloženi cenovnik kao snimak — isti oblik, da poređenje bude jedan te isti proračun. */
+  /**
+   * §4.2.10 — „nije pomenuto" znači **nepromenjeno**, ne „obrisano".
+   *
+   * Ranija verzija je za svaki predloženi red pisala `'doplata za krevetac': null`, pa je svaki
+   * predlog cena tvrdio da krevetac nestaje — razlika koja nije postojala, i koju bi čovek
+   * potvrdio ne znajući šta potvrđuje. Isto važi za uzrasnu cenu od ove dopune.
+   *
+   * Zato se vrednosti koje predlog ne navodi **nasleđuju iz zatečenog stanja** po istom ključu.
+   * Isti dogovor sprovodi i `writeCell` pri upisu, pa se poređenje i upis slažu.
+   */
   private async snapshotIzPredloga(
     contractId: string,
     dto: PredlogCenovnikaDto,
+    sada: SnapshotRed[],
   ): Promise<SnapshotRed[]> {
     void contractId;
-    return dto.redovi.map((r) => ({
-      vrsta: 'CENA' as const,
-      kljuc: kljucRedaPredloga(r),
-      opis: opisCene(r.roomType, r.seasonCode, r.boardType, r.occupancy, r.validWeekdays ?? []),
-      vrednost: r.price,
-      detalji: {
-        'prodaja od': r.bookingFrom ?? null,
-        'prodaja do': r.bookingTo ?? null,
-        'doplata za krevetac': null,
-      },
-    }));
+    const zateceno = new Map(sada.map((r) => [r.kljuc, r.detalji ?? {}]));
+    return dto.redovi.map((r) => {
+      const kljuc = kljucRedaPredloga(r);
+      const staro = zateceno.get(kljuc) ?? {};
+      return {
+        vrsta: 'CENA' as const,
+        kljuc,
+        opis: opisCene(r.roomType, r.seasonCode, r.boardType, r.occupancy, r.validWeekdays ?? []),
+        vrednost: r.price,
+        detalji: {
+          'prodaja od': r.bookingFrom ?? null,
+          'prodaja do': r.bookingTo ?? null,
+          'doplata za krevetac':
+            r.cribFeePerNight !== undefined
+              ? r.cribFeePerNight
+              : ((staro['doplata za krevetac'] as number | null) ?? null),
+          'uzrasna cena':
+            r.agePricing !== undefined
+              ? opisUzrasta(
+                  r.agePricing.map((a) => ({
+                    ageCategory: a.ageCategory,
+                    occupantIndex: a.occupantIndex ?? null,
+                    minAdultsPresent: a.minAdultsPresent ?? null,
+                    pricingMode: a.pricingMode,
+                    percentage: a.percentage ?? null,
+                    flatPrice: a.flatPrice ?? null,
+                  })),
+                )
+              : ((staro['uzrasna cena'] as string | null) ?? null),
+        },
+      };
+    });
   }
 
   /** Gašenje svih `ACTIVE` cenovnih redova koji odgovaraju ključu (§2.4c — gašenje, ne brisanje). */
@@ -552,7 +628,7 @@ export class PricelistVersionsService {
   }
 }
 
-function kljucRedaPredloga(r: {
+export function kljucRedaPredloga(r: {
   roomType: string;
   seasonCode: string;
   boardType: string;

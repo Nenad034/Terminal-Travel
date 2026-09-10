@@ -3,6 +3,14 @@
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M3) i poglavlje 8 (Faza 1)
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje
+**Verzija:** 1.39 — **uvoz i verzije spojeni: jedan put do cenovnika** (10.9.2026, vlasnikova odluka „zameniti stari ekran"). Novo poglavlje **4.2.10**. Uvoz više ne upisuje red po red nego gradi **predlog** koji ide kroz isti `predlog`/`primeni` put kao ručna izmena i izmena rečima; `source_import_id` se konačno popunjava.
+
+**Predaja rada je ovo procenila kao „čisto povezivanje, bez novih odluka". Procena je bila netačna** — provera koda pre pisanja našla je tri prepreke: (1) uvezene cene su bile **nevidljive** za tok verzija, jer snimak čita samo periode sa sezonom a uvoz je pravio period bez nje; (2) u mreži su se videle samo kao „izuzetak", ne kao ćelija; (3) put verzija bi **tiho pojeo dečje cene i krevetac**, jer ih `writeCell` nije primao. Sve tri su rešene: predlog i `writeCell` od sada nose `crib_fee_per_night` i `age_pricing`, uzrasna cena ulazi u poređenje, a sezona se **izvodi iz datuma** (tačno poklapanje; nova sezona nastaje tek pri primeni potvrđene razlike).
+
+**Izmereno kroz produkcione endpoint-e nad pravom bazom:** cenovnik sa 3 reda → 1 ugovor, **2 nove sezone izvedene iz datuma**, 3 razlike; posle potvrde period **nosi sezonu**, cene 8950/10900/12500, krevetac 500 i dečja cena 50% **sačuvani**, verzija 1 sa popunjenim `source_import_id`.
+
+**Nedovršeno i zapisano:** ponovni uvoz istog dokumenta još uvek duplira redove, jer je `occupancy` slobodan tekst modela koji varira između prolaza (izmereno četiri različite formulacije za isti red). Detalji i predlog rešenja u §4.2.10.
+
 **Verzija:** 1.38 — **Excel put izmeren nad devet stvarnih cenovnika** (10.9.2026, pošto je vlasnik dopunio `Primeri cenovnika/`). Novo poglavlje **4.2.9**. Očekivana ušteda (prazni redovi) **ne postoji** — 0%. Umesto nje nađena dva kvara koja se drugačije ne bi videla.
 
 **(1) Više od polovine ćelija je stizalo modelu kao `[object Object]`** — `String(v)` nad ExcelJS ćelijom koja je objekat. Pokvareno u 7 od 9 fajlova, od 3,2% do **52%**, i to baš `richText` (naziv hotela sa kategorijom, crvena upozorenja o tržištima) i `formula` sa `result` (**izračunate cene**). Ispravljeno u M15 v1.51 — isti kvar je imao i AI chat u panelu. Vraćeno 50.174 od 50.177 ćelija.
@@ -1185,6 +1193,48 @@ Zato postoji **`MAX_ZNAKOVA_TEKSTA` = 100.000**, nad **izvučenim tekstom**, ne 
 **Izmereno kroz produkcione endpoint-e, isti dan:** `0F Hotel Liberty S26-vente.xlsx` → **24 reda** za 13 s; provereno prema izvornoj tabeli (`½ DBL + AI | 27.5 | 33 | 38.5` za prva tri perioda) da su upisane cene `2750`, `3300`, `3850` i da se periodi poklapaju. `014_Solvex_Offer_Summer_2025.xlsx` → odbijen za **1 sekundu**, bez ijednog poziva modelu, sa porukom koja navodi 1.802.012 znakova i uputstvom da se podeli.
 
 **Stari binarni formati ostaju nepodržani, i to je odgovor a ne propust.** Među primerima su i `OLYMPIC CENE 2026.xls` i jedan `.doc` — formate koje ni `exceljs` ni `mammoth` ne čitaju pouzdano. Pretvaranje bi tražilo novu biblioteku za format koji je proizvođač napustio pre dvadeset godina; umesto toga se traži da se fajl sačuva kao `.xlsx`/`.docx`.
+
+#### 4.2.10 Uvoz i verzije — jedan put do cenovnika (dopuna v1.39, 10.9.2026, vlasnikova odluka)
+
+Do sada su postojala **dvoja vrata** u isti cenovnik: uvoz dokumenta je upisivao red po red (§4.2.4), a ručna izmena i izmena rečima su išle kroz verzije (§2.11l). `PricelistVersion.source_import_id` je postojao kao polje koje niko ne popunjava. Vlasnik je 10.9.2026 odlučio: **uvoz se zamenjuje, ne dopunjuje** — jedan put, jedno mesto na kom nastaje istorija.
+
+**Predaja rada je ovo procenila kao „čisto povezivanje, bez novih odluka" (`docs/analize/47-...`, §4.3). Procena je bila netačna, i to se ovde zapisuje da se ne ponovi.** Provera koda pre pisanja našla je tri prepreke:
+
+1. **Uvezene cene su za tok verzija bile nevidljive.** Snimak stanja čita samo periode sa sezonom (`seasonId: { not: null }`), a uvoz je pravio period **bez** sezone. Nije se radilo o tome da verzija ne nastaje — uvezena cena nije ulazila ni u jedan snimak.
+2. **U mreži cenovnika su se videle samo kao izuzetak.** Period bez sezone ide u listu „bez sezone" i prikazuje broj cenovnih redova, ali nema kolonu (§2.11b, izuzetak po tipu sobe). To pravilo je napravljeno za stvaran izuzetak; kod uvoza je tamo završavao **svaki** red.
+3. **Put verzija bi tiho pojeo dečje cene i krevetac.** `writeCell`, kojim `primeni` upisuje, ne prima ni `age_pricing` ni `crib_fee_per_night` — a red-po-red potvrda ih je upisivala. Prosto „povezivanje" bi obrisalo svaku uvezenu uzrasnu cenu bez traga, isti oblik greške kao `[object Object]` iz §4.2.9.
+
+Prodaja pri tom **nije bila pogođena**: M5 čita `season_id` kao opcion, pa su se uvezene cene prodavale ispravno. Problem je bio u pregledu i istoriji, ne u naplati.
+
+**Nov tok.** Uvoz i dalje daje `PricelistImportRow` (§4.2.2, nepromenjeno — ekstrakcija, provere i poklapanje hotela ostaju isti). Umesto potvrde reda po red:
+
+1. `GET /pricelist-imports/:id/razlike` — redovi se grupišu **po ugovoru** (preko `matched_product_id → Product.source_contract_id`), i za svaki ugovor se gradi predlog i uporedi sa zatečenim cenovnikom (§2.11l). Ništa se ne upisuje.
+2. Čovek potvrđuje **razlike**, ne redove. To je ono što §2.11l i obećava: „deset izmena u cenovniku od dvesta redova znači deset odluka, ne dvesta".
+3. `POST /pricelist-imports/:id/primeni` — primenjuje potvrđene ključeve kroz **isti** `primeni` put koji koristi i izmena rečima, sa `source_import_id` popunjenim. Redovi koji su ušli u primenjenu razliku dobijaju `review_status = CONFIRMED`; ostali ostaju `PENDING` dok se ne potvrde ili odbiju.
+
+**Sezona se izvodi iz datuma, i to je jedina nova odluka u ovom prolazu.** Dokument daje opseg boravka, a predlog traži oznaku sezone. Pravilo:
+
+- ako u ugovoru postoji sezona čiji se **opseg tačno poklapa** sa opsegom iz dokumenta — koristi se ona;
+- ako ne postoji — predlaže se **nova sezona**, sa oznakom koja je sledeći slobodan broj u tom ugovoru i opisom koji nosi sam datumski opseg („01.06–30.06");
+- nova sezona se **pravi tek pri primeni**, i to samo ako je bar jedna razlika iz nje potvrđena. Predlog i dalje ne upisuje ništa (§2.11l, pravilo 2).
+
+Poklapanje je namerno **tačno**, ne „preklapa se": opseg 01.06–15.06 nije ista sezona kao 01.06–30.06, i tiho svrstavanje u postojeću kolonu bi promenilo cenu za petnaest dana koje niko nije potvrdio.
+
+**Šta predlog od sada nosi.** `PredlozenRedDto` dobija `crib_fee_per_night` i `age_pricing[]`, a `writeCell` ih upisuje. Uz to `age_pricing` ulazi u `detalji` snimka, pa se **izmena samo dečje cene vidi kao razlika** — do sada se ne bi videla, jer se poredila samo cena i krevetac.
+
+**Namerna granica, zapisana:** oznaka sezone iz samog dokumenta („Sezona A", „Špic") se **ne prenosi** — model danas vraća datumske opsege, ne oznake. Nova sezona zato dobija redni broj, a datumi stoje u opisu i u zaglavlju kolone (§2.11b). Kad se pokaže da dobavljači dosledno imenuju sezone, ekstrakcija može da vrati i oznaku; do tada se ne izmišlja.
+
+**Nedovršeno i izmereno — ponovni uvoz istog cenovnika još uvek duplira redove.** Ovo se ne prećutkuje, jer je jedina stvar koja stoji između ovog prolaza i pune vrednosti spajanja.
+
+Popunjenost (`occupancy`) je **slobodan tekst koji vraća model**, a ulazi u ključ stavke (§2.11l). Izmereno nad **istim** dokumentom u četiri prolaza, model je za isti red vratio: `„po sobi"`, `„soba (DBL standard)"`, `„soba"`, `„cena po sobi po noci"`. Pošto se ključ razlikuje, ponovni uvoz prikazuje svaki red kao **„nov + ugašen"** umesto „bez izmena" — a to je tačno ono što spajanje treba da ukine.
+
+Uvedeno je svođenje u kodu (`normalizujPopunjenost`) koje hvata poznate oblike i **rešava sezone u potpunosti** (ponovni uvoz istog dokumenta više ne pravi nove sezone — izmereno: 0 novih), ali formulacija tipa `„cena po sobi po noci"` prolazi kroz svaki razuman spisak sinonima. Zaključak iz merenja: **slobodan tekst ne može biti deo identiteta stavke**, koliko god se svodio.
+
+**Predlog za sledeći prolaz (traži vlasnikovu potvrdu, jer dotiče i M5):** `occupancy` u šemi alata prestaje da bude slobodan tekst i postaje ograničena vrednost — `PO_SOBI` / `PO_OSOBI` — uz odvojeno, opciono polje za stvarnu razliku kad je dokument pravi (`„1 Adult + 1 Chd 07-11,99"`). Ograda tada stoji u **strukturi**, ne u svođenju posle činjenice, po istom principu kao §4.2.8 (šema koja ne dozvoljava pogrešan oblik je jača od uputstva koje na njega podseća).
+
+**Šta ovo znači u praksi do tada:** prvi uvoz cenovnika radi ispravno i potpuno — cene, sezone, dečja cena, krevetac, verzija. Ponovni uvoz **istog** dokumenta za **isti** ugovor prikazaće duple razlike, pa ga do te ispravke treba izbegavati ili pažljivo pregledati.
+
+**Red-po-red potvrda se uklanja** (`POST /pricelist-imports/:id/rows/:rowId/approve`), po vlasnikovoj odluci. Odbijanje pojedinačnog reda (`/reject`) **ostaje** — to nije drugi put do cenovnika nego način da se iz predloga izbaci red koji je AI pogrešno pročitao, pre nego što se razlike uopšte pogledaju.
 
 ### 4.3 Alarm za nizak preostali kapacitet
 

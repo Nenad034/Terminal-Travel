@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { PriceBasis } from '@prisma/client';
+import { AgeCategory, AgePricingMode, PriceBasis } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { AuditLogService } from '../../m1-core-identitet/audit-log/audit-log.service';
 import { assertNoContractPeriodOverlap } from '../contract-periods/overlap';
@@ -20,6 +20,34 @@ import { UpsertPricingRuleDto } from './dto/upsert-pricing-rule.dto';
  * isti tip sobe, a jedna potvrđena ćelija upisuje istu cenu u oba. Da se to radilo na ekranu,
  * korisnik bi morao da zna koliko perioda stoji iza jedne kolone — a to je unutrašnja stvar.
  */
+/**
+ * §4.2.10 — uzrasne cene koje idu uz novu cenovnu stavku.
+ *
+ * `undefined` = „predlog ih ne pominje" → nasleđuje se ono što je zatečena stavka imala. Ovo je
+ * bitno zato što §2.4c ispravku radi kao **gašenje pa nova stavka**: bez nasleđivanja bi svaka
+ * izmena cene sa ekrana mreže obrisala dečju cenu koju je doneo uvoz.
+ *
+ * Prazan niz je izričito brisanje i tako se i ponaša — razlika između „ne pominjem" i „nema ih"
+ * mora da postoji, inače se jedno od to dvoje ne može izraziti.
+ */
+interface UzrasnaZaUpis {
+  ageCategory: AgeCategory;
+  occupantIndex?: number;
+  minAdultsPresent?: number;
+  pricingMode: AgePricingMode;
+  percentage?: number;
+  flatPrice?: number;
+}
+
+function uzrastZaUpis(
+  iz: UzrasnaZaUpis[] | undefined,
+  nasledjeno: UzrasnaZaUpis[] | undefined,
+): { create: UzrasnaZaUpis[] } | undefined {
+  const lista = iz ?? nasledjeno ?? [];
+  if (lista.length === 0) return undefined;
+  return { create: lista };
+}
+
 @Injectable()
 export class PricelistService {
   constructor(
@@ -309,6 +337,29 @@ export class PricelistService {
       }
     }
 
+    // §4.2.10 — uzrasne cene zatečenih stavki, da se pri zameni ne izgube kad ih predlog ne
+    // navodi. Čita se PRE transakcije jer je čitanje, a transakcija treba da bude kratka.
+    const staraUzrasna = new Map<string, UzrasnaZaUpis[]>();
+    {
+      const postojece = await this.prisma.rateLine.findMany({
+        where: { contractPeriodId: { in: periodIds }, status: 'ACTIVE' },
+        include: { agePricing: true },
+      });
+      for (const r of postojece) {
+        staraUzrasna.set(
+          r.id,
+          (r.agePricing ?? []).map((a) => ({
+            ageCategory: a.ageCategory,
+            occupantIndex: a.occupantIndex ?? undefined,
+            minAdultsPresent: a.minAdultsPresent ?? undefined,
+            pricingMode: a.pricingMode,
+            percentage: a.percentage === null ? undefined : Number(a.percentage),
+            flatPrice: a.flatPrice ?? undefined,
+          })),
+        );
+      }
+    }
+
     const rezultat = await this.prisma.$transaction(async (tx) => {
       const upisane: string[] = [];
       let ugasenih = 0;
@@ -331,7 +382,11 @@ export class PricelistService {
           stara.price === dto.price &&
           stara.priceBasis === dto.priceBasis &&
           isteGranice(stara.bookingFrom, dto.bookingFrom) &&
-          isteGranice(stara.bookingTo, dto.bookingTo)
+          isteGranice(stara.bookingTo, dto.bookingTo) &&
+          // §4.2.10 — bez ovoga bi izmena SAMO dečje cene izgledala kao „ništa se nije
+          // promenilo" i tiho se preskočila, iako je čovek baš nju potvrdio.
+          (dto.cribFeePerNight === undefined || stara.cribFeePerNight === dto.cribFeePerNight) &&
+          dto.agePricing === undefined
         ) {
           upisane.push(stara.id);
           continue; // ništa se nije promenilo — bez lažnog traga u auditu
@@ -356,6 +411,14 @@ export class PricelistService {
             validWeekdays: dani,
             bookingFrom: dto.bookingFrom ? dan(dto.bookingFrom) : null,
             bookingTo: dto.bookingTo ? dan(dto.bookingTo) : null,
+            // §4.2.10 — `undefined` znači „ne diraj": ćelija upisana sa ekrana mreže nema ta
+            // polja i ne sme da obriše ono što je uvoz doneo. Zato se pri zameni stavke
+            // (§2.4c gašenje pa nova) vrednost NASLEĐUJE sa ugašene kad je nova ne navodi.
+            cribFeePerNight:
+              dto.cribFeePerNight !== undefined
+                ? dto.cribFeePerNight
+                : (stara?.cribFeePerNight ?? null),
+            agePricing: uzrastZaUpis(dto.agePricing, stara?.id ? staraUzrasna.get(stara.id) : []),
           },
         });
         upisane.push(nova.id);

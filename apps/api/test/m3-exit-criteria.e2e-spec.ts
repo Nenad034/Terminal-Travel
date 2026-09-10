@@ -539,7 +539,7 @@ describe('M3 — izlazni kriterijum (e2e)', () => {
   });
 
   describe('Uvoz cenovnika — ljudski tok odobrenja i SupplierExtractionProfile učenje (stavke 8-9, 15-17)', () => {
-    it('upload testnog cenovnika kreira uvoz; odobrenje seedovanog reda kreira ContractPeriod/RateLine i ažurira SupplierExtractionProfile', async () => {
+    it('uvoz daje RAZLIKE po ugovoru; potvrda pravi period sa sezonom, cenu i verziju sa source_import_id (§4.2.10)', async () => {
       const { accessToken, user: owner } = await createInternalUser(SYSTEM_ROLES.VLASNIK);
       const supplier = await createSupplier(accessToken);
       const contract = await createContract(accessToken, supplier.id);
@@ -590,21 +590,55 @@ describe('M3 — izlazni kriterijum (e2e)', () => {
       // Prisma Decimal se serijalizuje kao string preko JSON-a (nema izgubljene preciznosti).
       expect(Number(rowsRes.body[0].matchConfidence)).toBeCloseTo(92.5);
 
-      const approveRes = await request(app.getHttpServer())
-        .post(`/api/v1/contracting/pricelist-imports/${importRes.body.id}/rows/${row.id}/approve`)
+      // §4.2.10 (v1.39) — uvoz se od sada potvrđuje kao RAZLIKE, ne red po red.
+      const razlikeRes = await request(app.getHttpServer())
+        .get(`/api/v1/contracting/pricelist-imports/${importRes.body.id}/razlike`)
+        .set(authed(accessToken));
+      expect(razlikeRes.status).toBe(200);
+      expect(razlikeRes.body.ugovori).toHaveLength(1);
+      const grupa = razlikeRes.body.ugovori[0];
+      expect(grupa.contractId).toBe(contract.id);
+      // Ugovor nema sezona, pa se sezona IZVODI iz datuma i najavljuje pre potvrde (§4.2.10).
+      expect(grupa.noveSezone).toHaveLength(1);
+      expect(grupa.noveSezone[0].label).toBe('01.09.2027.–30.09.2027.');
+      expect(grupa.razlike).toHaveLength(1);
+      expect(grupa.razlike[0].vrsta).toBe('NOVA');
+      expect(grupa.razlike[0].novaVrednost).toBe(6000);
+
+      // Predlog NIŠTA ne upisuje (§2.11l, pravilo 2).
+      expect(await prisma.contractPeriod.count({ where: { contractId: contract.id } })).toBe(0);
+
+      const primeniRes = await request(app.getHttpServer())
+        .post(
+          `/api/v1/contracting/pricelist-imports/${importRes.body.id}/ugovori/${contract.id}/primeni`,
+        )
         .set(authed(accessToken))
-        .send({ decision: 'CONFIRMED' });
-      expect(approveRes.status).toBe(201);
-      expect(approveRes.body.reviewedBy).toBe(owner.id);
+        .send({ effectiveFrom: '2027-01-01', prihvaceniKljucevi: [grupa.razlike[0].kljuc] });
+      expect(primeniRes.status).toBe(201);
+
+      const rowAfter = await prisma.pricelistImportRow.findUniqueOrThrow({ where: { id: row.id } });
+      expect(rowAfter.reviewStatus).toBe('CONFIRMED');
+      expect(rowAfter.reviewedBy).toBe(owner.id);
 
       const period = await prisma.contractPeriod.findFirst({
         where: { contractId: contract.id, roomType: 'STANDARD' },
       });
       expect(period).not.toBeNull();
       expect(period!.allotmentMode).toBe('ON_REQUEST');
+      // Ključna razlika prema starom toku: period sada NOSI sezonu, pa se cena vidi kao ćelija
+      // u mreži i ulazi u snimak verzije (§4.2.10).
+      expect(period!.seasonId).not.toBeNull();
 
       const rateLine = await prisma.rateLine.findFirst({ where: { contractPeriodId: period!.id } });
       expect(rateLine?.price).toBe(6000);
+
+      // `source_import_id` je do v1.39 stajao kao polje koje niko ne popunjava.
+      const verzija = await prisma.pricelistVersion.findFirst({
+        where: { contractId: contract.id },
+        orderBy: { versionNo: 'desc' },
+      });
+      expect(verzija?.sourceImportId).toBe(importRes.body.id);
+      expect(verzija?.changeCount).toBe(1);
 
       const importAfter = await prisma.pricelistImport.findUniqueOrThrow({
         where: { id: importRes.body.id },

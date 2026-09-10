@@ -135,3 +135,42 @@ export function porukaZaPrevelikTekst(znakova: number): string {
     'Podeli ga — po listu, hotelu ili destinaciji — i uvezi delove redom.'
   );
 }
+
+/**
+ * §4.2.10 — svođenje popunjenosti na ponovljiv oblik.
+ *
+ * IZMERENO 10.9.2026 nad istim dokumentom u tri prolaza: model je za isti red vratio
+ * „po sobi", „soba (DBL standard)" i „soba". Popunjenost ulazi u ključ stavke (§2.11l), pa bi
+ * ponovni uvoz istog cenovnika prikazao **svaki red kao „nov + ugašen"** umesto „bez izmena" —
+ * čime bi ceo smisao poređenja razlika nestao.
+ *
+ * Uzrok nije greška modela nego to što je polje slobodan tekst: isti podatak ima više jednako
+ * tačnih formulacija. Svođenje zato radi KOD, deterministički, po M15 principu — od modela se
+ * traži da pročita, ne da pamti kako je prošli put formulisao.
+ *
+ * Sirov tekst ostaje netaknut u `PricelistImportRow.extracted_occupancy` kao dokaz šta je AI
+ * stvarno pročitao; svodi se samo ono što ide u predlog i u upis.
+ */
+const SINONIMI: { obrazac: RegExp; u: string }[] = [
+  { obrazac: /^(po\s+)?sob[ai]|per\s+room|room$/i, u: 'po sobi' },
+  { obrazac: /^(po\s+)?osob[ai]|per\s+person|odrasl[aио]/i, u: 'po osobi' },
+];
+
+export function normalizujPopunjenost(sirovo: string, priceBasis: string | null): string {
+  const ocisceno = sirovo
+    .replace(/\([^)]*\)/g, ' ') // „soba (DBL standard)" → „soba"
+    .replace(/[.,;:]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  for (const s of SINONIMI) {
+    if (s.obrazac.test(ocisceno)) return s.u;
+  }
+
+  // Prazno polje nije podatak — osnova cene ga određuje jednoznačno i ponovljivo.
+  if (!ocisceno) return priceBasis === 'PER_PERSON_PER_NIGHT' ? 'po osobi' : 'po sobi';
+
+  // Sve ostalo (npr. „1 Adult + 1 Chd 07-11,99") nosi stvarnu razliku i ostaje — samo u
+  // doslednom obliku: mala slova i jedan razmak.
+  return ocisceno.toLowerCase();
+}

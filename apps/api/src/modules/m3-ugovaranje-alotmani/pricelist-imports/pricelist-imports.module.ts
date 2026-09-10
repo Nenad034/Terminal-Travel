@@ -6,6 +6,7 @@ import { AuditLogModule } from '../../m1-core-identitet/audit-log/audit-log.modu
 import { AuthModule } from '../../m1-core-identitet/auth/auth.module';
 import { PermissionsModule } from '../../m1-core-identitet/permissions/permissions.module';
 import { M18OperativniNadzorModule } from '../../m18-operativni-nadzor/m18-operativni-nadzor.module';
+import { PricelistModule } from '../pricelist/pricelist.module';
 import { AnthropicClientService } from '../../m15-ai-orkestracija/anthropic/anthropic-client.service';
 import { ExtractFileService } from '../../m15-ai-orkestracija/omnisearch/extract-file.service';
 
@@ -20,7 +21,16 @@ import { ExtractFileService } from '../../m15-ai-orkestracija/omnisearch/extract
 // (čiste funkcije nad baferom), pa lokalna registracija ne duplira ništa — dupliranje bi bio
 // drugi parser, a to je tačno greška zbog koje ovaj repozitorijum postoji (dok. 22).
 @Module({
-  imports: [AuditLogModule, AuthModule, PermissionsModule, M18OperativniNadzorModule],
+  // §4.2.10 (10.9.2026) — `PricelistModule` zbog `PricelistVersionsService`/`PricelistService`:
+  // uvoz od sada NE upisuje sam nego ide kroz isti tok verzija kao ručna izmena i izmena rečima.
+  // Jedan put do cenovnika, jedno mesto na kom nastaje istorija.
+  imports: [
+    AuditLogModule,
+    AuthModule,
+    PermissionsModule,
+    M18OperativniNadzorModule,
+    PricelistModule,
+  ],
   controllers: [PricelistImportsController],
   providers: [
     PricelistImportsService,
