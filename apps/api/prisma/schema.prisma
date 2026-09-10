@@ -993,16 +993,16 @@ model RateLine {
   /// cenovni red sa drugim danima, ne nova sezona.
   validWeekdays Int[] @map("valid_weekdays")
 
-  price            Int // najmanja jedinica valute ugovora
-  cribFeePerNight  Int?       @map("crib_fee_per_night")
+  price           Int // najmanja jedinica valute ugovora
+  cribFeePerNight Int?      @map("crib_fee_per_night")
   // M3 spec §2.11e (v1.27) — stavka ucestvuje u obracunu samo ako datum NASTANKA rezervacije
   // pada u ovaj prozor. null = bez ogranicenja. Razlicito od ContractPeriod.bookingFrom/To (2.3e),
   // koje govori kad kapacitet sme da se trosi; ovo govori dokle vazi CENA.
   // Dokaz iz prakse: Aycon 2026 — "bookings made till 31.12.2025 for period of stay 01.04–30.10.2026".
-  bookingFrom      DateTime?  @map("booking_from") @db.Date
-  bookingTo        DateTime?  @map("booking_to") @db.Date
-  createdAt        DateTime   @default(now()) @map("created_at")
-  updatedAt        DateTime   @updatedAt @map("updated_at")
+  bookingFrom     DateTime? @map("booking_from") @db.Date
+  bookingTo       DateTime? @map("booking_to") @db.Date
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
 
   contractPeriod ContractPeriod       @relation(fields: [contractPeriodId], references: [id], onDelete: Cascade)
   agePricing     RateLineAgePricing[]
@@ -1310,18 +1310,27 @@ enum TouristTaxCollectedBy {
 
 // §4.2.1 `PricelistImport`
 model PricelistImport {
-  id            String                @id @default(uuid())
-  supplierId    String                @map("supplier_id")
-  /// §4.2.6 (v1.26) — TAČNO JEDNO od `sourceFileUrl`/`sourceText` je popunjeno. Fajl čeka
-  /// odluku o skladištu; do tada se uvozi nalepljen tekst (najčešće telo mejla dobavljača).
-  sourceFileUrl String?               @map("source_file_url")
-  sourceText    String?               @map("source_text")
+  id             String                   @id @default(uuid())
+  supplierId     String                   @map("supplier_id")
+  /// §4.2.6 (v1.26) — TAČNO JEDNO od `sourceFileUrl`/`sourceText` je popunjeno.
+  /// §4.2.7 (v1.36, 10.9.2026) — skladiste je odluceno: LOKALNI DISK. Ovo polje od tada nosi
+  /// PUTANJU NA DISKU relativnu na `PRICELIST_STORAGE_DIR`, ne URL. Ime je zadrzano da se ne
+  /// lomi postojeci zapis, ali sadrzaj mu je drugaciji -- zato ovaj komentar postoji.
+  sourceFileUrl  String?                  @map("source_file_url")
+  /// §4.2.7 -- originalno ime fajla kako ga je covek otpremio. Ime na disku je nasumicno
+  /// (dva dobavljaca lako posalju "cenovnik.pdf"), pa bez ovoga na ekranu nema sta da se pokaze.
+  sourceFileName String?                  @map("source_file_name")
+  /// §4.2.7 -- da li je sadrzaj procitao PARSER (tekstualni fajl/PDF sa tekstom) ili MODEL
+  /// (sken, slika). Objasnjava i cenu poziva i kvalitet rezultata; bez toga se posle ne zna
+  /// zasto je jedan uvoz bio deset puta skuplji od drugog.
+  extractionPath PricelistExtractionPath? @map("extraction_path")
+  sourceText     String?                  @map("source_text")
   /// §4.2.6 — zašto ekstrakcija nije uspela. Jedini trag kad uvoz ne da nijedan red.
-  failureReason String?               @map("failure_reason")
-  sourceFormat  PricelistSourceFormat @map("source_format")
-  status        PricelistImportStatus @default(PROCESSING)
-  createdBy     String?               @map("created_by")
-  createdAt     DateTime              @default(now()) @map("created_at")
+  failureReason  String?                  @map("failure_reason")
+  sourceFormat   PricelistSourceFormat    @map("source_format")
+  status         PricelistImportStatus    @default(PROCESSING)
+  createdBy      String?                  @map("created_by")
+  createdAt      DateTime                 @default(now()) @map("created_at")
 
   supplier Supplier             @relation(fields: [supplierId], references: [id])
   rows     PricelistImportRow[]
@@ -1343,6 +1352,18 @@ enum PricelistSourceFormat {
   HTML
   EMAIL
   SCANNED_PDF
+  /// §4.2.7 (v1.36) -- fotografija ili snimak ekrana cenovnika. Ide modelu kao `image` blok.
+  IMAGE
+  /// §4.2.7 (v1.36) -- .csv/.txt; cist tekst, cita ga parser.
+  CSV
+}
+
+/// §4.2.7 (v1.36) -- ko je procitao sadrzaj fajla.
+enum PricelistExtractionPath {
+  /// M15 `ExtractFileService` je izvukao tekst (PDF sa tekstom, Word, Excel, HTML, CSV).
+  PARSER
+  /// Fajl je poslat modelu kao dokument/slika, jer parser nije dao upotrebljiv tekst.
+  MODEL
 }
 
 enum PricelistImportStatus {

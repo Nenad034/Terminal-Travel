@@ -2480,14 +2480,19 @@ async function seedM3PricelistImportAgent() {
 
   await prisma.aIAgent.upsert({
     where: { userId: agentUser.id },
-    update: {},
+    update: { modelTier: 'HEAVY', modelIdentifier: 'claude-opus-5' },
     create: {
       userId: agentUser.id,
       agentRole: 'PRICELIST_IMPORT_AGENT',
       moduleCode: 'M3',
       status: 'ACTIVE',
-      modelTier: 'LIGHT',
-      modelIdentifier: 'claude-haiku-4-5-20251001',
+      // M3 §4.2.7 (10.9.2026, vlasnikova odluka) — HEAVY, jedini agent koji nije LIGHT.
+      // `update` ispod NIJE prazan namerno: seed je idempotentan, pa bi bez ovoga postojeci
+      // zapis zauvek ostao na LIGHT/haiku i dnevnik potrosnje bi prijavljivao tier koji se ne
+      // slaze sa modelom koji se stvarno zove. Izmereno 10.9.2026: poziv je isao na opus-5, a
+      // AgentInvocationLog je pisao LIGHT.
+      modelTier: 'HEAVY',
+      modelIdentifier: 'claude-opus-5',
     },
   });
 }

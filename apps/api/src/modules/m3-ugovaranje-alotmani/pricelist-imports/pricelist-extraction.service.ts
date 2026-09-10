@@ -1,10 +1,27 @@
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
-import { AgeCategory, AgePricingMode } from '@prisma/client';
+import { ConfigService } from '@nestjs/config';
+import { readFile } from 'fs/promises';
+import { isAbsolute, join } from 'path';
+import {
+  AgeCategory,
+  AgePricingMode,
+  PricelistExtractionPath,
+  PricelistImport,
+} from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { AuditLogService } from '../../m1-core-identitet/audit-log/audit-log.service';
 import { AnthropicClientService } from '../../m15-ai-orkestracija/anthropic/anthropic-client.service';
 import { AgentInvocationLogService } from '../../m18-operativni-nadzor/agent-invocations/agent-invocation-log.service';
+import { ExtractFileService } from '../../m15-ai-orkestracija/omnisearch/extract-file.service';
 import { PRAG_AUTOMATSKOG_POKLAPANJA, nadjiNajbolji } from './hotel-matching';
+import {
+  MIN_KORISNOG_TEKSTA,
+  PRICELIST_STORAGE_ENV,
+  jeSlika,
+  mediaTypeSlike,
+  storageDir,
+  tekstJeUpotrebljiv,
+} from './pricelist-storage';
 
 /**
  * M3 spec §4.2 / §4.2.6 — AI uvoz cenovnika.
@@ -18,6 +35,22 @@ import { PRAG_AUTOMATSKOG_POKLAPANJA, nadjiNajbolji } from './hotel-matching';
  * čovek pregleda. Nijedan `ContractPeriod` ni `RateLine` ne nastaje ovde; to radi
  * `PricelistImportsService.reviewRow` tek posle ljudske potvrde.
  */
+
+/**
+ * §4.2.7 — blokovi koje saljemo modelu. `text` za nalepljen/izvucen tekst, `document` za
+ * skeniran PDF, `image` za fotografiju cenovnika.
+ */
+type ModelBlok =
+  | { type: 'text'; text: string }
+  | { type: 'document'; source: { type: 'base64'; media_type: 'application/pdf'; data: string } }
+  | {
+      type: 'image';
+      source: {
+        type: 'base64';
+        media_type: 'image/jpeg' | 'image/png' | 'image/webp';
+        data: string;
+      };
+    };
 
 interface IzvuceniRed {
   hotel: string;
@@ -124,6 +157,8 @@ export class PricelistExtractionService {
     private readonly auditLog: AuditLogService,
     private readonly anthropic: AnthropicClientService,
     private readonly invocationLog: AgentInvocationLogService,
+    private readonly config: ConfigService,
+    private readonly extractFile: ExtractFileService,
   ) {}
 
   /**
@@ -139,10 +174,10 @@ export class PricelistExtractionService {
         `Ekstrakcija se pokreće samo nad uvozom u statusu PROCESSING (trenutno: ${uvoz.status})`,
       );
     }
-    if (!uvoz.sourceText) {
+    if (!uvoz.sourceText && !uvoz.sourceFileUrl) {
       return this.oznaciNeuspeh(
         importId,
-        'Ovaj uvoz nema nalepljen tekst. Učitavanje PDF/Excel fajla još nije podržano (M3 §4.2.6).',
+        'Ovaj uvoz nema ni nalepljen tekst ni učitan fajl — nema šta da se pročita.',
       );
     }
     if (!this.anthropic.isConfigured()) {
@@ -153,7 +188,18 @@ export class PricelistExtractionService {
     }
 
     try {
-      const redovi = await this.pozoviModel(uvoz.sourceText, uvoz.supplierId);
+      // §4.2.7 — sadržaj se pripremi PRE poziva: nalepljen tekst ide kakav jeste, fajl prolazi
+      // kroz parser, a fajl iz kog parser ne izvuče upotrebljiv tekst ide modelu kao dokument.
+      const sadrzaj = await this.pripremiSadrzaj(uvoz);
+      // `extraction_path` se upisuje samo kad postoji fajl — kod nalepljenog teksta pitanje
+      // "ko je čitao" nema smisla, i `null` to kaže tačnije od bilo koje vrednosti enuma.
+      if (uvoz.sourceFileUrl) {
+        await this.prisma.pricelistImport.update({
+          where: { id: importId },
+          data: { extractionPath: sadrzaj.path },
+        });
+      }
+      const redovi = await this.pozoviModel(sadrzaj.blokovi, uvoz.supplierId);
       const ispravni = redovi.filter((r) => this.jeIspravan(r));
       if (ispravni.length === 0) {
         return this.oznaciNeuspeh(
@@ -214,6 +260,109 @@ export class PricelistExtractionService {
     return this.extract(importId, actorId);
   }
 
+  /**
+   * §4.2.7 — priprema sadrzaja PRE poziva modelu, i odluka ko ga je citao.
+   *
+   * Redosled je namerno "parser pa model", ne obrnuto: parser je besplatan i determinstican, pa
+   * se model placa samo kad parser ne moze. Skeniran PDF se prepoznaje po tome sto parser iz
+   * njega vrati prazan tekst — ne postavlja se pitanje "da li je ovo skenirano", na koje bi se
+   * ionako odgovaralo pogadjanjem.
+   */
+  private async pripremiSadrzaj(
+    uvoz: PricelistImport,
+  ): Promise<{ blokovi: ModelBlok[]; path: PricelistExtractionPath }> {
+    if (!uvoz.sourceFileUrl) {
+      return {
+        blokovi: [
+          {
+            type: 'text',
+            text: `Tekst cenovnika:
+
+${uvoz.sourceText ?? ''}`,
+          },
+        ],
+        path: PricelistExtractionPath.PARSER,
+      };
+    }
+
+    const bafer = await readFile(this.punaPutanja(uvoz.sourceFileUrl));
+    const ime = uvoz.sourceFileName ?? uvoz.sourceFileUrl;
+
+    // Slika nema parser — ide modelu odmah, bez pokusaja koji bi sigurno pao.
+    if (jeSlika(uvoz.sourceFormat)) {
+      return {
+        blokovi: [
+          {
+            type: 'image',
+            source: {
+              type: 'base64',
+              media_type: mediaTypeSlike(ime),
+              data: bafer.toString('base64'),
+            },
+          },
+          { type: 'text', text: 'Ovo je slika cenovnika. Izvuci redove iz nje.' },
+        ],
+        path: PricelistExtractionPath.MODEL,
+      };
+    }
+
+    let izvucen = '';
+    try {
+      izvucen = (await this.extractFile.extractText(bafer, ime)).text;
+    } catch (err) {
+      // Parser koji je pao nije kraj puta ako je fajl PDF — model ga jos uvek moze procitati.
+      // Za ostale formate greska parsera JESTE kraj, i njena poruka je korisnija od nase.
+      this.logger.warn(`Parser nije uspeo nad "${ime}": ${(err as Error).message}`);
+      if (uvoz.sourceFormat !== 'PDF') throw err;
+    }
+
+    if (tekstJeUpotrebljiv(izvucen)) {
+      return {
+        blokovi: [
+          {
+            type: 'text',
+            text: `Tekst cenovnika:
+
+${izvucen}`,
+          },
+        ],
+        path: PricelistExtractionPath.PARSER,
+      };
+    }
+
+    if (uvoz.sourceFormat !== 'PDF') {
+      throw new Error(
+        `Iz fajla "${ime}" nije izvučen upotrebljiv tekst (manje od ${MIN_KORISNOG_TEKSTA} znakova). ` +
+          'Proveri da dokument nije prazan ili zaštićen lozinkom.',
+      );
+    }
+
+    // Skeniran PDF: ceo fajl ide modelu, bez OCR biblioteke (§4.2.7).
+    return {
+      blokovi: [
+        {
+          type: 'document',
+          source: { type: 'base64', media_type: 'application/pdf', data: bafer.toString('base64') },
+        },
+        {
+          type: 'text',
+          text: 'Ovo je skenirani cenovnik — u njemu nema teksta nego slike strana. Izvuci redove iz njega.',
+        },
+      ],
+      path: PricelistExtractionPath.MODEL,
+    };
+  }
+
+  /**
+   * §4.2.7 — `source_file_url` nosi putanju RELATIVNU na `PRICELIST_STORAGE_DIR`. Zapisi
+   * napravljeni pre te dopune mogu nositi apsolutnu putanju, pa se i ona prihvata: stariji
+   * zapis ne sme da postane necitljiv zbog promene koja je dosla posle njega.
+   */
+  private punaPutanja(sacuvano: string): string {
+    if (isAbsolute(sacuvano)) return sacuvano;
+    return join(storageDir(this.config.get<string>(PRICELIST_STORAGE_ENV)), sacuvano);
+  }
+
   private async oznaciNeuspeh(importId: string, razlog: string) {
     return this.prisma.pricelistImport.update({
       where: { id: importId },
@@ -225,7 +374,7 @@ export class PricelistExtractionService {
    * §4.2.5 — profil dobavljača se čita iz baze i daje modelu kao NAGOVEŠTAJ. Ne traži se od
    * modela da išta pamti između poziva; pamćenje je red u bazi, model je samo čitač.
    */
-  private async pozoviModel(tekst: string, supplierId: string): Promise<IzvuceniRed[]> {
+  private async pozoviModel(blokovi: ModelBlok[], supplierId: string): Promise<IzvuceniRed[]> {
     const profil = await this.prisma.supplierExtractionProfile.findUnique({
       where: { supplierId },
     });
@@ -254,23 +403,32 @@ export class PricelistExtractionService {
       'je „Hotel Splendid".';
 
     const client = this.anthropic.getClient();
+    // §4.2.7 — jedini poziv u sistemu na HEAVY tier, vlasnikova odluka: cita se skenirani
+    // dokument, a greska ovde je pogresna prodajna cena, ne kozmetika.
+    const model = AnthropicClientService.HEAVY_MODEL;
+    const poruka: ModelBlok[] = nagovestaj
+      ? [...blokovi, { type: 'text', text: nagovestaj }]
+      : blokovi;
     const odgovor = await client.messages.create({
-      model: AnthropicClientService.MODEL,
-      max_tokens: 4096,
+      model,
+      max_tokens: 8192,
       system,
       tools: [ALAT],
       tool_choice: { type: 'tool', name: ALAT.name },
-      messages: [{ role: 'user', content: `Tekst cenovnika:\n\n${tekst}${nagovestaj}` }],
+      messages: [{ role: 'user', content: poruka as never }],
     });
 
-    await this.zabeleziPoziv(odgovor);
+    await this.zabeleziPoziv(odgovor, model);
 
     const alat = odgovor.content.find((b: { type: string }) => b.type === 'tool_use') as
       { input?: { rows?: IzvuceniRed[] } } | undefined;
     return alat?.input?.rows ?? [];
   }
 
-  private async zabeleziPoziv(odgovor: { usage: { input_tokens: number; output_tokens: number } }) {
+  private async zabeleziPoziv(
+    odgovor: { usage: { input_tokens: number; output_tokens: number } },
+    model: string,
+  ) {
     const agent = await this.prisma.aIAgent.findFirst({
       where: { agentRole: 'PRICELIST_IMPORT_AGENT' },
     });
@@ -278,9 +436,12 @@ export class PricelistExtractionService {
     await this.invocationLog.record({
       agentId: agent.id,
       actionCode: 'pricelist_import.extract',
-      requestedTier: agent.modelTier ?? 'LIGHT',
+      // Tier se izvodi iz modela koji je STVARNO pozvan, ne iz registra agenta. Izmereno
+      // 10.9.2026: registar je nosio LIGHT, poziv je isao na opus-5, i dnevnik potrosnje je
+      // prijavljivao tier koji se ne slaze sa cenom — a M18 §6.5 na tom tieru gradi degradaciju.
+      requestedTier: 'HEAVY',
       securityCritical: false,
-      modelIdentifier: AnthropicClientService.MODEL,
+      modelIdentifier: model,
       inputTokens: odgovor.usage.input_tokens,
       outputTokens: odgovor.usage.output_tokens,
       latencyMs: 0,

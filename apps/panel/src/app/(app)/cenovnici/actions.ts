@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { apiFetch, ApiError } from '@/lib/api-client';
+import { apiFetch, apiFetchMultipart, ApiError } from '@/lib/api-client';
 
 // M3 spec §4.2/§4.2.6 — AI uvoz cenovnika. Backend tok je postojao od v1.7 kao specifikacija i
 // delom kao kod, ali ekran nije postojao uopšte — zato vlasnik 9.9.2026 nije mogao da nađe „gde
@@ -54,6 +54,46 @@ export async function createImport(
     await apiFetch(`/contracting/pricelist-imports/${id}/extract`, { method: 'POST' });
   } catch {
     // Namerno prazno: `extract` sam upisuje status FAILED sa razlogom, koji se vidi na ekranu.
+  }
+
+  revalidatePath('/cenovnici');
+  redirect(`/cenovnici/${id}`);
+}
+
+/**
+ * §4.2.7 (v1.36, 10.9.2026) — uvoz FAJLA. Isti tok kao nalepljen tekst: prvo nastane zapis, pa
+ * se ekstrakcija poziva zasebno, iz istog razloga (neuspeh modela ostavlja trag umesto da
+ * pojede ceo uvoz).
+ *
+ * Razlika je samo u prvom koraku — `multipart/form-data` umesto JSON-a, jer fajl ide na disk.
+ */
+export async function uploadImport(
+  _prev: UvozFormState,
+  formData: FormData,
+): Promise<UvozFormState> {
+  const fajl = formData.get('file');
+  if (!(fajl instanceof File) || fajl.size === 0) {
+    return { error: 'Nijedan fajl nije izabran.', ok: null };
+  }
+
+  let id: string;
+  try {
+    const telo = new FormData();
+    telo.append('supplierId', String(formData.get('supplierId') ?? ''));
+    telo.append('file', fajl);
+    const uvoz = await apiFetchMultipart<{ id: string }>(
+      '/contracting/pricelist-imports/upload',
+      telo,
+    );
+    id = uvoz.id;
+  } catch (err) {
+    return { error: poruka(err, 'Učitavanje fajla nije uspelo.'), ok: null };
+  }
+
+  try {
+    await apiFetch(`/contracting/pricelist-imports/${id}/extract`, { method: 'POST' });
+  } catch {
+    // Isto kao kod teksta: razlog se upisuje na sam uvoz i vidi se na ekranu.
   }
 
   revalidatePath('/cenovnici');

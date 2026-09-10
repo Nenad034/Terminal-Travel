@@ -29,6 +29,19 @@ export class AnthropicClientService {
 
   static readonly MODEL = 'claude-haiku-4-5-20251001';
 
+  /**
+   * M3 §4.2.7 (10.9.2026, vlasnikova odluka) — HEAVY tier, koristi ga SAMO uvoz cenovnika.
+   *
+   * Razlog je zapisan da bi se odluka mogla ponovo proceniti, ne da bi se pamtila: uvoz cita
+   * skenirane dokumente i tabele, sto je bitno tezi posao od nalepljenog teksta, a greska je
+   * pogresna prodajna cena. Uvoz je redak posao (par puta godisnje po dobavljacu), pa je
+   * apsolutni trosak mali; da je ovo poziv na svaku pretragu, odluka bi bila druga.
+   *
+   * Svaki drugi pozivalac ostaje na `MODEL` (LIGHT). Ako se ovo pojavi jos negde, to je znak
+   * da se odluka siri bez odluke — proveriti sa vlasnikom, ne kopirati.
+   */
+  static readonly HEAVY_MODEL = 'claude-opus-5';
+
   constructor(
     private readonly config: ConfigService,
     private readonly prisma: PrismaService,

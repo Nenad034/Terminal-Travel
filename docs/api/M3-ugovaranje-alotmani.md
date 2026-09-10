@@ -828,15 +828,50 @@ Dozvola: `M3/pricelist-import/VIEW`. `GET /:id` vraća i ugnežden `rows[]`.
 
 Dozvola: `M3/pricelist-import/CREATE` — jedina M3 dozvola koju sme imati i AI agent, i to samo za predlog, nikad za potvrdu.
 
+Tačno jedno od `sourceText` i `sourceFileUrl` mora biti popunjeno.
+
+**Nalepljen tekst** (§4.2.6 — najčešći ulaz, sadržaj mejla dobavljača):
+
 ```json
 {
   "supplierId": "515a72e5-...",
-  "sourceFileUrl": "https://primer.rs/cenovnici/jh-2027.pdf",
-  "sourceFormat": "PDF"
+  "sourceFormat": "PASTED_TEXT",
+  "sourceText": "CENOVNIK 2027 — Hotel Splendid, Bečići\nPeriod: 01.06.2027 — 30.06.2027\nDBL, BB: 89,50 EUR po sobi/noć"
 }
 ```
 
-> **Stanje u septembru 2026:** endpoint prima oba formata i registruje uvoz, ali **sama AI ekstrakcija još nije povezana** — uvoz ostaje u `PROCESSING` dok se ne izabere AI provajder. Redove je moguće uneti i pregledati, ali ih ništa ne popunjava automatski.
+Uvoz nastaje u statusu `PROCESSING`. **Ekstrakcija je zaseban poziv** (`POST /pricelist-imports/:id/extract`) — namerno, da neuspeh modela ostavi zapis sa razlogom umesto da uvoz uopšte ne nastane.
+
+### POST /pricelist-imports/upload
+
+Dozvola: `M3/pricelist-import/CREATE`. Sadržaj: `multipart/form-data`, polja `supplierId` i `file`.
+
+§4.2.7 (v1.36, 10.9.2026) — učitavanje fajla. Fajl se snima na **lokalni disk** (`PRICELIST_STORAGE_DIR`, podrazumevano `storage/pricelists/`), a `source_file_url` u odgovoru nosi **putanju relativnu na taj folder**, ne URL.
+
+Podržano: `.pdf` (i skeniran), `.xlsx`, `.docx`, `.html`/`.htm`, `.csv`/`.txt`/`.md`, `.jpg`/`.jpeg`/`.png`/`.webp`. Granica **25 MB**. Neispravan tip ili prevelik fajl se odbija **pri učitavanju**, pre nego što se išta upiše.
+
+```bash
+curl -X POST https://api.primer.rs/api/v1/contracting/pricelist-imports/upload \
+  -H "Authorization: Bearer $TOKEN" \
+  -F "supplierId=515a72e5-..." \
+  -F "file=@jh-cenovnik-2027.pdf"
+```
+
+**Odgovor `201`:**
+
+```json
+{
+  "id": "9f3c1a20-...",
+  "supplierId": "515a72e5-...",
+  "sourceFileUrl": "b41f9c02-8e17-4a55-9d3e-1c7a2f0b6e44.pdf",
+  "sourceFileName": "jh-cenovnik-2027.pdf",
+  "sourceFormat": "PDF",
+  "status": "PROCESSING",
+  "extractionPath": null
+}
+```
+
+Posle `POST /pricelist-imports/:id/extract`, polje `extractionPath` kaže **ko je pročitao sadržaj**: `PARSER` (tekst izvučen iz fajla deterministički) ili `MODEL` (skeniran dokument ili slika, koju je model čitao direktno). Objašnjava i cenu poziva i očekivanu pouzdanost redova.
 
 ### GET /pricelist-imports/:id/rows
 

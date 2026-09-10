@@ -18,9 +18,18 @@ export class CreatePricelistImportDto {
   @MinLength(20, { message: 'Nalepljen tekst cenovnika je prekratak da bi sadržao ijedan red.' })
   sourceText?: string;
 
+  /**
+   * §4.2.7 (v1.36) — putanja RELATIVNA na `PRICELIST_STORAGE_DIR`, ne URL. Popunjava je
+   * `POST /pricelist-imports/upload`; ime polja je zadrzano da se ne lomi postojeci zapis.
+   */
   @IsString()
   @IsOptional()
   sourceFileUrl?: string;
+
+  /** §4.2.7 — originalno ime fajla, iskljucivo za prikaz coveku. */
+  @IsString()
+  @IsOptional()
+  sourceFileName?: string;
 
   @IsEnum(PricelistSourceFormat)
   sourceFormat!: PricelistSourceFormat;

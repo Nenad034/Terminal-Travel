@@ -216,13 +216,37 @@ Sistem tu rečenicu razloži i pokazaže vam **šta je razumeo**, deo po deo, pa
 
 ## Šta još ne radi (namerno, i zna se zašto)
 
-**AI čitanje cenovnika još nije uključeno.** Sve okolo radi — uvoz se registruje, redovi se mogu pregledati i odobriti, i to je testirano — ali sam deo koji čita PDF čeka odluku o tome koji AI servis koristimo. Do tada uvoz stoji u stanju „u obradi".
+**~~AI čitanje cenovnika još nije uključeno.~~ Uključeno je** — 9.9.2026 za nalepljen tekst, 10.9.2026 i za fajl (PDF, Excel, Word, sken, slika). Ova stavka je ostala zapisana kao nerešena dan duže nego što je bila tačna; ispravljeno 10.9.2026.
 
 **Rate iz zakupa još ne stižu u finansije.** Kad se dogovori zakup sa planom plaćanja u tri rate, sistem te rate čuva, ali ih još ne prosleđuje modulu za finansije (M10) kao obavezu koja dospeva. Čeka da taj deo M10 bude napravljen.
 
 **Sedam nalaza iz analize stvarnih ugovora čeka drugi krug.** Iz onih 55 cenovnika izašle su stvari za koje danas nema mesta u sistemu: hotel koji jednostrano zabrani prodaju („stop sale"), rok povrata kao fiksan datum umesto „N dana ranije", zabrana objave cene na javnom sajtu, obavezan minimalni markup koji hotel nameće, ograničenje na goste iz određenih zemalja. Nisu zaboravljene — zapisane su i čekaju, jer većina traži izmenu i u M5, ne samo ovde.
 
 **Oslobađanje kapaciteta nema svoje dugme spolja.** Kad se rezervacija otkaže, M5 sam vrati sobu u slobodne. Ali ako neko preko API-ja ručno umanji kapacitet, ne postoji način da ga vrati istim putem. Nije problem u praksi, ali je pošteno da stoji zapisano.
+
+## Cenovnik kao fajl: AI čita PDF, sken i sliku — dodato 10.9.2026
+
+Rekli ste: _„čuvamo na lokalnom računaru za sada."_ Ta jedna rečenica odblokirala je deo koji je mesecima stajao.
+
+**Šta je bilo zaglavljeno i zašto.** Uvoz cenovnika je do juče primao samo **nalepljen tekst** — prekopirate sadržaj mejla u polje i AI ga pročita. Fajl nije mogao, ali ne zato što AI ne ume, nego zato što nije bilo odlučeno **gde se fajl čuva**. Dokument mora negde da stoji da bi se posle mogao otvoriti i proveriti šta je AI zapravo čitao.
+
+**Sada radi.** Na ekranu uvoza postoje dve kartice: „Nalepi tekst" i „Učitaj fajl". Prima PDF, Excel, Word, HTML, CSV i sliku — uključujući **skenirani PDF i fotografiju cenovnika**.
+
+**Za sken nam nije trebao poseban program.** Uobičajeno rešenje za čitanje skeniranih dokumenata zove se OCR i traži zasebnu biblioteku. Ispalo je da nam ne treba: AI čita PDF i sliku direktno, isto kao što bi čovek pogledao papir. Jedna zavisnost manje u sistemu je jedna stvar manje koja se kvari.
+
+**Kako sistem zna da je nešto skenirano.** Ne pita i ne pogađa. Prvo pokuša da izvuče tekst iz fajla — to je besplatno i uvek daje isti rezultat. Ako iz fajla ne izađe ništa upotrebljivo (a iz skena ne izlazi, jer u njemu nema slova nego slike stranica), tek tada se ceo fajl šalje AI-u. Jedna provera koja je ujedno i odluka.
+
+**Na ekranu piše ko je čitao.** Kad je AI čitao sken, uvoz nosi vidljivo upozorenje da iznose proverite pažljivije nego obično — čitanje sa slike greši češće nego čitanje teksta. To nije skromnost nego podatak koji vam treba pri pregledu.
+
+**Za cenovnike koristimo jači (i skuplji) AI model.** Sve ostalo u sistemu radi na najjeftinijem modelu. Uvoz cenovnika je jedini izuzetak, i to je vaša odluka od 10.9.2026. Razlog: čitanje tabele sa skenirane stranice je bitno teži posao od čitanja teksta, a greška ovde je pogrešna prodajna cena. Skeniran dokument je i sam po sebi skuplji za obradu od istog sadržaja u tekstu. U praksi su to i dalje **centi po dokumentu**, ne evri, jer se cenovnik od istog hotela uvozi par puta godišnje — a potrošnja se broji i troši isti mesečni budžet kao svaki drugi AI poziv, sa vašom tvrdom bravom uključenom.
+
+**Tri stvari koje treba da znate o lokalnom čuvanju**, jer su posledica odluke a ne propust:
+
+- Fajlovi **ostaju na tom računaru**. Ako radite na drugoj mašini, uvoz će biti tu i cene će biti tu, ali originalni dokument neće.
+- **Nema rezervne kopije.** Kvar diska znači gubitak originala. Cene se ne gube — one su u bazi.
+- Prelazak na server kasnije menja **jedno podešavanje**, ništa više. Nije ćorsokak.
+
+**Ono što se nije promenilo, i neće:** nijedan red ne postaje aktivna cena bez vaše potvrde. AI čita i predlaže; potpis je i dalje ljudski, bez obzira da li je čitao tekst, PDF ili sken.
 
 ---
 

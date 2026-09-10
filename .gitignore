@@ -13,6 +13,12 @@ coverage/
 apps/web/.next/
 apps/panel/.next/
 apps/api/uploads/
+
+# M3 §4.2.7 (10.9.2026) — uvezeni cenovnici dobavljaca. Vlasnikova odluka: cuvaju se na
+# LOKALNOM disku, za sada. Namerno van gita: to su tudji poslovni dokumenti, i ne bi trebalo
+# da putuju kroz istoriju repozitorijuma. Posledica (fajlovi ne prelaze izmedju masina, nemaju
+# rezervnu kopiju) je zapisana u specifikaciji, ne precutana.
+storage/
 # Dnevnici lokalnog dev servera
 *-dev.log
 

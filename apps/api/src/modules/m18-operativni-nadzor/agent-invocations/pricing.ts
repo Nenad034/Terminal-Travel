@@ -5,6 +5,10 @@
 // Cene po milionu tokena, u EUR (grubo pretvoreno iz USD cenovnika, ~0.92 EUR/USD).
 const PRICE_PER_MILLION_TOKENS_EUR: Record<string, { input: number; output: number }> = {
   'claude-haiku-4-5-20251001': { input: 0.92, output: 4.6 },
+  // M3 §4.2.7 (10.9.2026) — uvoz cenovnika je jedini posao koji ide na HEAVY tier, vlasnikova
+  // odluka: cita se skenirani dokument, a greska je pogresna prodajna cena. Cena iz zvanicnog
+  // cenovnika: 5 USD / 25 USD po milionu tokena.
+  'claude-opus-5': { input: 4.6, output: 23 },
 };
 
 const DEFAULT_PRICE = { input: 1, output: 5 }; // konzervativna pretpostavka za nepoznat model_identifier

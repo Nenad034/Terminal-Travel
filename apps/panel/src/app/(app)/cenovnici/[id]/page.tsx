@@ -19,6 +19,9 @@ interface Uvoz {
   supplierId: string;
   sourceFormat: string;
   sourceText: string | null;
+  sourceFileName: string | null;
+  /** §4.2.7 — PARSER (tekst izvučen iz fajla) ili MODEL (sken/slika pročitana direktno). */
+  extractionPath: 'PARSER' | 'MODEL' | null;
   status: string;
   failureReason: string | null;
   createdAt: string;
@@ -82,6 +85,7 @@ export default async function UvozDetaljPage(props: { params: Promise<{ id: stri
             {new Date(uvoz.createdAt).toLocaleString('sr-RS')} · {uvoz.sourceFormat} ·{' '}
             {redovi.length} {redovi.length === 1 ? 'red' : 'redova'}
             {cekaju > 0 && ` · ${cekaju} čeka odluku`}
+            {uvoz.sourceFileName && ` · ${uvoz.sourceFileName}`}
           </p>
         </div>
         {uvoz.status === 'FAILED' && canRetry && <RetryButton importId={uvoz.id} />}
@@ -102,6 +106,19 @@ export default async function UvozDetaljPage(props: { params: Promise<{ id: stri
       )}
 
       <RowsReview importId={uvoz.id} rows={redovi} kandidati={kandidati} canApprove={canApprove} />
+
+      {/*
+        §4.2.7 — ko je pročitao sadržaj stoji na ekranu, ne samo u bazi. „AI je čitao sken"
+        objašnjava i zašto je taj uvoz skuplji i zašto redovi mogu biti manje pouzdani nego kod
+        fajla iz kog je tekst izvučen deterministički.
+      */}
+      {uvoz.extractionPath === 'MODEL' && (
+        <p className="rounded-lg bg-sunken p-3 text-[11px] text-ink-faint">
+          <Icon name="sparkle" /> Iz ovog fajla nije se mogao izvući tekst (skeniran dokument ili
+          slika), pa ga je <strong className="text-ink">AI čitao direktno</strong>. Proverite iznose
+          pažljivije nego obično — čitanje sa slike greši češće nego čitanje teksta.
+        </p>
+      )}
 
       {uvoz.sourceText && (
         <details className="rounded-lg border border-border bg-panel p-3">

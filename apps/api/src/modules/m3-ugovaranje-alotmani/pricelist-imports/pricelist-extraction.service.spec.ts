@@ -1,5 +1,8 @@
 import { BadRequestException } from '@nestjs/common';
 import { AgeCategory } from '@prisma/client';
+import { mkdirSync, writeFileSync } from 'fs';
+import { tmpdir } from 'os';
+import { join } from 'path';
 import { PricelistExtractionService } from './pricelist-extraction.service';
 
 /**
@@ -12,12 +15,25 @@ import { PricelistExtractionService } from './pricelist-extraction.service';
  *     potvrda, ne AI korak).
  */
 describe('PricelistExtractionService (M3 §4.2.6)', () => {
-  function makeService(opts: { configured?: boolean; rows?: unknown[]; baci?: Error } = {}) {
+  function makeService(
+    opts: {
+      configured?: boolean;
+      rows?: unknown[];
+      baci?: Error;
+      uvozOverride?: Record<string, unknown>;
+      izvucenTekst?: string;
+      parserBaca?: Error;
+    } = {},
+  ) {
     const uvoz = {
       id: 'imp1',
       supplierId: 's1',
       sourceText: 'Hotel Splendid, DBL, BB, 01.07.-10.07.2027, 89,50 EUR',
+      sourceFileUrl: null as string | null,
+      sourceFileName: null as string | null,
+      sourceFormat: 'PASTED_TEXT',
       status: 'PROCESSING',
+      ...(opts.uvozOverride ?? {}),
     };
     const prisma = {
       pricelistImport: {
@@ -44,13 +60,21 @@ describe('PricelistExtractionService (M3 §4.2.6)', () => {
       getClient: () => ({ messages: { create } }),
     };
     const invocationLog = { record: jest.fn() };
+    const config = { get: jest.fn().mockReturnValue(join(tmpdir(), 'tt-test-cenovnici')) };
+    const extractText = jest.fn().mockImplementation(async () => {
+      if (opts.parserBaca) throw opts.parserBaca;
+      return { text: opts.izvucenTekst ?? '' };
+    });
+    const extractFile = { extractText };
     const service = new PricelistExtractionService(
       prisma as any,
       auditLog as any,
       anthropic as any,
       invocationLog as any,
+      config as any,
+      extractFile as any,
     );
-    return { service, prisma, auditLog, create, uvoz };
+    return { service, prisma, auditLog, create, uvoz, extractText, invocationLog };
   }
 
   const validanRed = {
@@ -171,7 +195,10 @@ describe('PricelistExtractionService (M3 §4.2.6)', () => {
 
     await service.extract('imp1', 'u1');
 
-    const poruka = create.mock.calls[0][0].messages[0].content as string;
+    // §4.2.7 — sadržaj je od v1.36 niz blokova, ne string: fajl može biti dokument ili slika.
+    // Nagoveštaj je zaseban tekstualni blok NA KRAJU, posle sadržaja cenovnika.
+    const blokovi = create.mock.calls[0][0].messages[0].content as { type: string; text: string }[];
+    const poruka = blokovi.map((b) => b.text ?? '').join(' ');
     expect(poruka).toContain('PER_PERSON_PER_NIGHT');
     expect(poruka).toContain('SAMO ako dokument ne kaže drugačije');
   });
@@ -199,5 +226,118 @@ describe('PricelistExtractionService (M3 §4.2.6)', () => {
     const poziv = create.mock.calls[0][0];
     expect(poziv.tool_choice).toEqual({ type: 'tool', name: 'upisi_redove_cenovnika' });
     expect(poziv.tools).toHaveLength(1);
+  });
+  /**
+   * §4.2.7 (v1.36) — uvoz fajla. Težište je na tome KO čita sadržaj i da se ta odluka
+   * zapiše: parser je besplatan i deterministički, model se plaća. Uvoz koji tiho ode na
+   * model umesto na parser je razlika između centa i nekoliko centi po dokumentu, i bez
+   * `extraction_path` se posle ne može utvrditi zašto je jedan uvoz bio skuplji od drugog.
+   */
+  describe('uvoz fajla (§4.2.7)', () => {
+    const FOLDER = join(tmpdir(), 'tt-test-cenovnici');
+    const DOVOLJNO_TEKSTA = 'Hotel Splendid DBL BB 01.07.-10.07.2027 89,50 EUR. '.repeat(6);
+
+    beforeAll(() => {
+      mkdirSync(FOLDER, { recursive: true });
+      writeFileSync(join(FOLDER, 'cenovnik.pdf'), 'nebitan bajtni sadrzaj');
+      writeFileSync(join(FOLDER, 'cenovnik.xlsx'), 'nebitan bajtni sadrzaj');
+      writeFileSync(join(FOLDER, 'cenovnik.jpg'), 'nebitan bajtni sadrzaj');
+    });
+
+    function fajlUvoz(ime: string, format: string) {
+      return {
+        sourceText: null,
+        sourceFileUrl: ime,
+        sourceFileName: ime,
+        sourceFormat: format,
+      };
+    }
+
+    it('PDF iz kog parser izvuče tekst ide PARSER putem — model dobija tekst, ne dokument', async () => {
+      const { service, prisma, create, extractText } = makeService({
+        rows: [validanRed],
+        uvozOverride: fajlUvoz('cenovnik.pdf', 'PDF'),
+        izvucenTekst: DOVOLJNO_TEKSTA,
+      });
+
+      await service.extract('imp1', 'u1');
+
+      expect(extractText).toHaveBeenCalledTimes(1);
+      expect(prisma.pricelistImport.update).toHaveBeenCalledWith(
+        expect.objectContaining({ data: { extractionPath: 'PARSER' } }),
+      );
+      const sadrzaj = create.mock.calls[0][0].messages[0].content;
+      expect(sadrzaj.map((b: any) => b.type)).toEqual(['text']);
+    });
+
+    /**
+     * Skeniran PDF ne baca grešku — `pdf-parse` iz njega vrati PRAZAN tekst, jer u njemu nema
+     * teksta nego slike strana. Bez ovog testa bi se takav uvoz završio kao „AI nije prepoznao
+     * nijedan red", što je tačan simptom i pogrešan uzrok.
+     */
+    it('skeniran PDF (parser vrati prazno) ide MODEL putem, kao document blok', async () => {
+      const { service, prisma, create } = makeService({
+        rows: [validanRed],
+        uvozOverride: fajlUvoz('cenovnik.pdf', 'PDF'),
+        izvucenTekst: '',
+      });
+
+      await service.extract('imp1', 'u1');
+
+      expect(prisma.pricelistImport.update).toHaveBeenCalledWith(
+        expect.objectContaining({ data: { extractionPath: 'MODEL' } }),
+      );
+      const sadrzaj = create.mock.calls[0][0].messages[0].content;
+      expect(sadrzaj[0].type).toBe('document');
+      expect(sadrzaj[0].source.media_type).toBe('application/pdf');
+    });
+
+    it('slika ide modelu odmah — parser se ni ne poziva', async () => {
+      const { service, create, extractText } = makeService({
+        rows: [validanRed],
+        uvozOverride: fajlUvoz('cenovnik.jpg', 'IMAGE'),
+      });
+
+      await service.extract('imp1', 'u1');
+
+      expect(extractText).not.toHaveBeenCalled();
+      const sadrzaj = create.mock.calls[0][0].messages[0].content;
+      expect(sadrzaj[0].type).toBe('image');
+      expect(sadrzaj[0].source.media_type).toBe('image/jpeg');
+    });
+
+    /**
+     * Excel iz kog ne izađe tekst NEMA rezervni put — model ne čita .xlsx. Uvoz mora da padne
+     * u `FAILED` sa razlogom, ne da tiho ode modelu koji bi vratio prazno.
+     */
+    it('Excel bez upotrebljivog teksta pada u FAILED sa razlogom, ne ide modelu', async () => {
+      const { service, create } = makeService({
+        uvozOverride: fajlUvoz('cenovnik.xlsx', 'EXCEL'),
+        izvucenTekst: 'prazno',
+      });
+
+      const rez: any = await service.extract('imp1', 'u1');
+
+      expect(rez.status).toBe('FAILED');
+      expect(rez.failureReason).toContain('upotrebljiv tekst');
+      expect(create).not.toHaveBeenCalled();
+    });
+
+    it('uvoz cenovnika ide na HEAVY model i tako se knjiži (§4.2.7)', async () => {
+      const { service, create } = makeService({ rows: [validanRed] });
+
+      await service.extract('imp1', 'u1');
+
+      expect(create.mock.calls[0][0].model).toBe('claude-opus-5');
+    });
+
+    it('nalepljen tekst ne dobija extraction_path — pitanje „ko je čitao" tu nema smisla', async () => {
+      const { service, prisma } = makeService({ rows: [validanRed] });
+
+      await service.extract('imp1', 'u1');
+
+      const upisi = prisma.pricelistImport.update.mock.calls.map((c: any) => c[0].data);
+      expect(upisi.some((d: any) => 'extractionPath' in d)).toBe(false);
+    });
   });
 });
