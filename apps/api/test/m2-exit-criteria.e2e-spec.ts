@@ -359,6 +359,79 @@ describe('M2 — izlazni kriterijum (e2e)', () => {
     });
   });
 
+  describe('bed_combinations[] — raspored osoba po krevetima (§2.3g, izlazni kriterijum, stavke 15-18)', () => {
+    const izvedi = async (accessToken: string, telo: Record<string, unknown>) =>
+      request(app.getHttpServer())
+        .post('/api/v1/catalog/products/bed-combinations/izvedi')
+        .set(authed(accessToken))
+        .send(telo)
+        .expect(201);
+
+    it('soba 2 osnovna + 1 pomoćni daje 3A_0C / 2A_1C / 1A_2C, odrasli pune osnovne krevete pre pomoćnih', async () => {
+      const { accessToken } = await createInternalUser(SYSTEM_ROLES.VLASNIK);
+      const res = await izvedi(accessToken, { beds: { base_beds: 2, extra_beds_max: 1 } });
+
+      const zaTri = res.body.redovi.filter((r: { ukupno: number }) => r.ukupno === 3);
+      expect(zaTri.map((r: { key: string }) => r.key)).toEqual(['3A_0C', '2A_1C', '1A_2C']);
+      expect(zaTri.find((r: { key: string }) => r.key === '2A_1C').raspored).toEqual([
+        { krevet: 'OSNOVNI', ko: 'ODRASLA' },
+        { krevet: 'OSNOVNI', ko: 'ODRASLA' },
+        { krevet: 'POMOCNI', ko: 'DETE' },
+      ]);
+    });
+
+    it('prazan bed_combinations[] znači sve dozvoljeno, a allowed=false pada samo na svoj red', async () => {
+      const { accessToken } = await createInternalUser(SYSTEM_ROLES.VLASNIK);
+      const beds = { base_beds: 2, extra_beds_max: 1 };
+
+      const prazan = await izvedi(accessToken, { beds, bed_combinations: [] });
+      expect(prazan.body.redovi.every((r: { allowed: boolean }) => r.allowed)).toBe(true);
+
+      const saZabranom = await izvedi(accessToken, {
+        beds,
+        bed_combinations: [{ key: '1A_2C', allowed: false }],
+      });
+      const poKljucu = Object.fromEntries(
+        saZabranom.body.redovi.map((r: { key: string; allowed: boolean }) => [r.key, r.allowed]),
+      );
+      expect(poKljucu['1A_2C']).toBe(false);
+      expect(poKljucu['2A_1C']).toBe(true);
+      expect(poKljucu['3A_0C']).toBe(true);
+    });
+
+    it('pravilo koje se posle smanjenja kreveta više ne izvodi se PRIJAVLJUJE i ignoriše, ne briše', async () => {
+      const { accessToken } = await createInternalUser(SYSTEM_ROLES.VLASNIK);
+      const bed_combinations = [{ key: '4A_0C', allowed: false }];
+
+      const smanjena = await izvedi(accessToken, {
+        beds: { base_beds: 2, extra_beds_max: 1 },
+        bed_combinations,
+      });
+      expect(smanjena.body.vanMatrice.map((o: { key: string }) => o.key)).toEqual(['4A_0C']);
+      expect(smanjena.body.redovi.some((r: { key: string }) => r.key === '4A_0C')).toBe(false);
+
+      // Isto pravilo ponovo važi čim se kreveti vrate — zato se ne briše.
+      const vracena = await izvedi(accessToken, {
+        beds: { base_beds: 3, extra_beds_max: 1 },
+        bed_combinations,
+      });
+      expect(vracena.body.vanMatrice).toEqual([]);
+      expect(vracena.body.redovi.find((r: { key: string }) => r.key === '4A_0C').allowed).toBe(
+        false,
+      );
+    });
+
+    it('matrica ne sadrži nijednu kategoriju iz cenovnika — ista soba, ista matrica bez obzira na age_policy', async () => {
+      const { accessToken } = await createInternalUser(SYSTEM_ROLES.VLASNIK);
+      const beds = { base_beds: 2, extra_beds_max: 1 };
+
+      const prva = await izvedi(accessToken, { beds });
+      const druga = await izvedi(accessToken, { beds });
+      expect(prva.body.redovi).toEqual(druga.body.redovi);
+      expect(JSON.stringify(prva.body)).not.toMatch(/CHD|ADL|INF|ADULT|CHILD|INFANT|TEEN/);
+    });
+  });
+
   describe('ProductContentImport — M23_RESEARCH i ljudski tok odobrenja (izlazni kriterijum, stavke 12-14)', () => {
     it('M23_RESEARCH ulazi direktno u EXTRACTED sa source_article_revision_id, i primenjuje se tek posle reviewedBy', async () => {
       const { accessToken, user: owner } = await createInternalUser(SYSTEM_ROLES.VLASNIK);

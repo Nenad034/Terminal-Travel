@@ -19,6 +19,8 @@ import { UpdateProductDto } from './dto/update-product.dto';
 import { UpsertTranslationDto } from './dto/upsert-translation.dto';
 import { PublishProductDto } from './dto/publish-product.dto';
 import { CreatePackageDepartureDto } from './dto/create-package-departure.dto';
+import { IzvediKombinacijeDto } from './dto/izvedi-kombinacije.dto';
+import { izvediMatricu, odstupanjaVanMatrice, primeniOdstupanja } from './bed-combinations';
 import { JwtAuthGuard } from '../../m1-core-identitet/auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../../common/guards/permissions.guard';
 import { RequirePermission } from '../../../common/decorators/require-permission.decorator';
@@ -147,5 +149,23 @@ export class ProductsController {
   @RequirePermission('M2', 'product', 'EDIT')
   syncCache(@Body('productId') productId: string) {
     return this.products.syncCache(productId);
+  }
+
+  /**
+   * M2 spec §2.3g — izvodi matricu kombinacija osoba po krevetima iz `beds`.
+   *
+   * POST, a ne GET, zato što ulaz nije zapamćena soba nego kreveti iz obrasca koji je još otvoren
+   * (§2.3g: "matrica se izračunava, ne kuca"). Ništa se ne menja u bazi — čisto računanje.
+   *
+   * `VIEW`, a ne `EDIT`: isti račun treba i onome ko sobu samo gleda.
+   */
+  @Post('bed-combinations/izvedi')
+  @RequirePermission('M2', 'product', 'VIEW')
+  izvediKombinacije(@Body() dto: IzvediKombinacijeDto) {
+    const matrica = izvediMatricu(dto.beds, dto.min_occupancy);
+    return {
+      redovi: primeniOdstupanja(matrica, dto.bed_combinations),
+      vanMatrice: odstupanjaVanMatrice(matrica, dto.bed_combinations),
+    };
   }
 }

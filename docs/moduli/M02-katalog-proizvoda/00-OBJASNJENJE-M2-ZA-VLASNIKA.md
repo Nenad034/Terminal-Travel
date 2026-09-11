@@ -96,6 +96,22 @@ Ispravljeno tako što se naziv države sada svodi na jedan oblik **pri upisu**, 
 
 ---
 
+## Koje kombinacije gostiju soba prima (napravljeno 11.9.2026)
+
+Soba 2+1 fizički prima i „dve odrasle osobe i dete" i „jednu odraslu osobu i dvoje dece". Mnogi hoteli dozvoljavaju samo prvo. Do sada to nigde nije moglo da se zapiše — soba je imala samo brojeve.
+
+Sada, kad unosite tip sobe, ispod kreveta se sama pojavi **tabela svih rasporeda koje ta soba prima**, sa prikazom ko na kom krevetu leži. Ništa ne kucate: tabela se izračunava iz broja kreveta koji ste uneli. Promenite broj kreveta i ona se odmah prekroji.
+
+Vaš posao je samo da **skinete kvačicu** sa kombinacije koju taj hotel ne dozvoljava, i po želji dopišete zašto — da sledeći zaposleni ne mora da nagađa. Sve ostalo ostaje dozvoljeno.
+
+**Zašto je ovo važno baš tako.** Vi ste postavili pravilo koje je oblikovalo ceo posao: kategorije osoba su stvar **cenovnika**, ne sobe. Jedan ugovor deli decu na jednu kategoriju, drugi na tri, treći drugačije. Zato u ovoj tabeli **nema nijedne kategorije iz cenovnika** — samo „odrasla osoba" i „dete". Posledica je ta da se raspored unosi **jednom po sobi** i ostaje tačan za svaki budući cenovnik tog hotela, koliko god novih dečjih kategorija taj cenovnik uveo.
+
+Iste godine gosta odgovaraju na dva odvojena pitanja: **soba** kaže gde sme da spava, **cenovnik** kaže koliko košta. Ako te dve stvari spojite u jedno, svaki nov ugovor traži da sve unosite ispočetka. Tako je napravljeno u PrimeTravel-u, i zato se tamo isti posao ponavljao.
+
+**Jedna sitnica koju ćete primetiti:** ako smanjite broj kreveta, pravilo koje ste ranije uneli za veću sobu ne nestaje. Sistem ga pokaže žutim upozorenjem i kaže da se ne primenjuje. Nije obrisano namerno — vratite li krevete, ono ponovo važi. Obrisati ga možete samo vi, izričitim klikom.
+
+**Šta ovo još ne radi:** kombinacija koju označite kao nedozvoljenu se **čuva, ali je prodaja još ne čita**. Pretraga i sastavljanje ponude trenutno ne pitaju ovu tabelu. To je sledeći korak i traži izmenu u modulu rezervacija — do tada je ovo tačan zapis pravila, ne i njegova primena.
+
 ## Šta još ne radi (namerno, i zna se zašto)
 
 **AI čitanje sa sajta hotela još nije uključeno.** Ceo tok oko njega radi i testiran je — uvoz, pregled, odobravanje stavke po stavku — ali sam deo koji čita stranicu čeka odluku o tome koji AI servis koristimo. Do tada uvoz se jasno završi kao neuspeo, sa razlogom, umesto da se pravi da je uspeo.

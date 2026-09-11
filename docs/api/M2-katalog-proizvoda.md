@@ -255,6 +255,101 @@ Namenjen osvežavanju keširanog sadržaja proizvoda koji dolaze sa spoljnog API
 
 ---
 
+### POST /catalog/products/bed-combinations/izvedi
+
+Dozvola: `M2/product/VIEW`. Izvodi matricu kombinacija osoba po krevetima (spec §2.3g).
+
+Ne dira bazu i ne prima `productId` — ulaz su **kreveti**, ne zapamćena soba, jer se matrica prikazuje dok se soba tek uređuje. POST je zbog tela zahteva, ne zbog izmene.
+
+**Zašto postoji kao endpoint, a ne kao funkcija u svakom pozivaocu:** isto izvođenje mora da važi i na ekranu za unos i pri proveri u prodaji (M5 §3.2a). Dve kopije istog algoritma se tiho raziđu, pa bi ekran nudio raspored koji prodaja odbija.
+
+Telo zahteva — sva tri polja su opciona:
+
+| Polje              | Značenje                                                                                    |
+| :----------------- | :------------------------------------------------------------------------------------------ |
+| `beds`             | `{ base_beds, extra_beds_max }` — iz `attributes.room_types[].beds` (§2.3b)                 |
+| `min_occupancy`    | donja granica ukupnog broja osoba; izostavljeno = 1                                         |
+| `bed_combinations` | već uneta odstupanja (§2.3g) — vraćaju se spojena sa redovima i provereno da li još postoje |
+
+Zahtev:
+
+```json
+{
+  "beds": { "base_beds": 2, "extra_beds_max": 1 },
+  "bed_combinations": [
+    { "key": "1A_2C", "allowed": false, "note": "hotel ne prima jednu odraslu sa dvoje dece" },
+    { "key": "4A_0C", "allowed": false }
+  ]
+}
+```
+
+Odgovor `201` (skraćen — izostavljena su prva tri reda, za ukupno 1 i 2 osobe):
+
+```json
+{
+  "redovi": [
+    {
+      "key": "3A_0C",
+      "odraslih": 3,
+      "dece": 0,
+      "ukupno": 3,
+      "raspored": [
+        { "krevet": "OSNOVNI", "ko": "ODRASLA" },
+        { "krevet": "OSNOVNI", "ko": "ODRASLA" },
+        { "krevet": "POMOCNI", "ko": "ODRASLA" }
+      ],
+      "decaNaPomocnom": 0,
+      "allowed": true,
+      "shared_bed_children": 0,
+      "note": null,
+      "imaOdstupanje": false
+    },
+    {
+      "key": "2A_1C",
+      "odraslih": 2,
+      "dece": 1,
+      "ukupno": 3,
+      "raspored": [
+        { "krevet": "OSNOVNI", "ko": "ODRASLA" },
+        { "krevet": "OSNOVNI", "ko": "ODRASLA" },
+        { "krevet": "POMOCNI", "ko": "DETE" }
+      ],
+      "decaNaPomocnom": 1,
+      "allowed": true,
+      "shared_bed_children": 0,
+      "note": null,
+      "imaOdstupanje": false
+    },
+    {
+      "key": "1A_2C",
+      "odraslih": 1,
+      "dece": 2,
+      "ukupno": 3,
+      "raspored": [
+        { "krevet": "OSNOVNI", "ko": "ODRASLA" },
+        { "krevet": "OSNOVNI", "ko": "DETE" },
+        { "krevet": "POMOCNI", "ko": "DETE" }
+      ],
+      "decaNaPomocnom": 1,
+      "allowed": false,
+      "shared_bed_children": 0,
+      "note": "hotel ne prima jednu odraslu sa dvoje dece",
+      "imaOdstupanje": true
+    }
+  ],
+  "vanMatrice": [{ "key": "4A_0C", "allowed": false }]
+}
+```
+
+Četiri stvari koje ovaj odgovor govori, a nisu očigledne:
+
+- **`raspored` je determinističan** — odrasli redom pune osnovne krevete, pa pomoćne; deca uzimaju ono što preostane. Zato `2A_1C` stavlja dete na pomoćni, a `1A_2C` jedno dete na osnovni i jedno na pomoćni.
+- **Nema reda sa nula odraslih.** Soba puna samo dece nije prodajni slučaj.
+- **`vanMatrice` su pravila koja se više ne izvode** iz poslatih kreveta (ovde `4A_0C`, jer soba prima najviše troje). Ona se **ne primenjuju i ne brišu** — ostaju zapisana, pa ponovo važe ako se kreveti vrate. Klijent ih mora prikazati, ne progutati.
+- **Nigde nema kategorije iz cenovnika** (`CHD1`, `CHD2`, `INF`). Ista soba daje istu matricu bez obzira koliko dečjih kategorija ima cenovnik koji je gleda — raspored po krevetima je svojstvo sobe, kategorije su svojstvo cenovnika (§2.3g, M3 §2.4a).
+
+---
+
 ## Termini polaska (samo za pakete)
 
 Grupni paket ima unapred određene datume polaska; smeštaj nema. Zato ovi endpointi rade **isključivo** nad `type = PACKAGE`.

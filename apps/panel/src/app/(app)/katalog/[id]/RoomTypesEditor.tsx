@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { saveRoomTypes } from '../actions';
 import { ButtonGroup, ToggleButton } from '@/components/ButtonGroup';
 import { Button } from '@/components/ui/button';
@@ -35,6 +35,34 @@ export interface RoomBeds {
   extra_bed_max_age?: number | null;
 }
 
+// M2 §2.3g (10.9.2026) — raspored osoba po krevetima. Čuvaju se SAMO odstupanja od izvedene
+// matrice; prazan niz znači „sve fizički moguće kombinacije su dozvoljene", nikad „nijedna".
+//
+// Vlasnikovo tvrdo ograničenje istog dana: kategorije osoba (`CHD1`, `CHD2`…) su svojstvo
+// CENOVNIKA i menjaju se od ugovora do ugovora, pa se ovde ne pojavljuje nijedna — samo uloga na
+// krevetu. Zato se matrica unosi jednom po sobi i ostaje tačna za svaki budući cenovnik.
+export interface BedCombination {
+  key: string;
+  allowed?: boolean;
+  shared_bed_children?: number;
+  note?: string | null;
+}
+
+// Jedan red matrice kako ga vraća API (`/catalog/products/bed-combinations/izvedi`) — izvedeno
+// stanje spojeno sa odstupanjem koje na njega pada.
+export interface RedMatrice {
+  key: string;
+  odraslih: number;
+  dece: number;
+  ukupno: number;
+  raspored: { krevet: 'OSNOVNI' | 'POMOCNI'; ko: 'ODRASLA' | 'DETE' }[];
+  decaNaPomocnom: number;
+  allowed: boolean;
+  shared_bed_children: number;
+  note: string | null;
+  imaOdstupanje: boolean;
+}
+
 // `beds`, `capacity_*` i `name` su po M2 §2.3a/§2.3b deo svake stavke — ali `Product.attributes`
 // je JSONB BEZ šeme (M2 §2, namerno "fleksibilan JSONB"), pa ništa ne sprečava da stigne stavka
 // bez njih: uvoz sadržaja (§3.3), API provajder, starija seed skripta ili ručna izmena kroz
@@ -51,6 +79,7 @@ export interface RoomType {
   features?: string[];
   beds?: RoomBeds;
   age_policy?: AgePolicyEntry[];
+  bed_combinations?: BedCombination[];
 }
 
 // Ono što se UREĐUJE u modalu je uvek potpuno — `openAdd`/`openEdit` popune svako polje pre nego
@@ -142,6 +171,7 @@ function emptyRoomType(): RoomTypeDraft {
       extra_bed_max_age: null,
     },
     age_policy: DEFAULT_AGE_POLICY.map((a) => ({ ...a })),
+    bed_combinations: [],
   };
 }
 
@@ -176,6 +206,7 @@ export default function RoomTypesEditor({
       capacity_children: rt.capacity_children ?? 0,
       beds: { ...EMPTY_BEDS, ...(rt.beds ?? {}) },
       age_policy: (rt.age_policy ?? DEFAULT_AGE_POLICY).map((a) => ({ ...a })),
+      bed_combinations: (rt.bed_combinations ?? []).map((k) => ({ ...k })),
     });
     setEditingIndex(index);
     setError(null);
@@ -503,6 +534,8 @@ export default function RoomTypesEditor({
               </Field>
             </div>
 
+            <BedCombinationsSection draft={draft} setDraft={setDraft} />
+
             <h4 className="mb-2 text-xs font-semibold text-ink-faint">Uzrasna politika</h4>
             <div className="mb-4 flex flex-col gap-2">
               {(draft.age_policy ?? []).map((ap, i) => (
@@ -638,6 +671,225 @@ function updateAgePolicy(
   const next = [...(draft.age_policy ?? [])];
   next[index] = { ...next[index], ...patch };
   setDraft({ ...draft, age_policy: next });
+}
+
+/**
+ * M2 §2.3g — matrica kombinacija osoba po krevetima.
+ *
+ * Matricu RAČUNA API (`/api/catalog/bed-combinations` → `POST /catalog/products/bed-combinations/
+ * izvedi`), ne ovaj ekran. Razlog nije lenjost nego to što isto izvođenje mora da važi i ovde i
+ * pri prodaji (M5): dve kopije istog algoritma se tiho raziđu, pa bi ekran nudio raspored koji
+ * prodaja odbija. Podrazumevana uzrasna politika JESTE prepisana u ovaj fajl, ali konstanta se
+ * vidi golim okom — algoritam ne.
+ *
+ * Čuvaju se samo ODSTUPANJA: red koji ostane netaknut ne pravi nijedan zapis.
+ */
+function BedCombinationsSection({
+  draft,
+  setDraft,
+}: {
+  draft: RoomTypeDraft;
+  setDraft: (d: RoomTypeDraft) => void;
+}) {
+  const [redovi, setRedovi] = useState<RedMatrice[] | null>(null);
+  const [greska, setGreska] = useState<string | null>(null);
+
+  const osnovnih = draft.beds.base_beds;
+  const pomocnih = draft.beds.extra_beds_max ?? 0;
+  const minGostiju = draft.min_occupancy ?? null;
+
+  useEffect(() => {
+    const kontrola = new AbortController();
+    // Kratko odlaganje: broj kreveta se kuca cifru po cifru, a svaka cifra bi bila zaseban zahtev.
+    const tajmer = setTimeout(async () => {
+      try {
+        const odg = await fetch('/api/catalog/bed-combinations', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            beds: { base_beds: osnovnih, extra_beds_max: pomocnih },
+            min_occupancy: minGostiju,
+          }),
+          signal: kontrola.signal,
+        });
+        if (!odg.ok) throw new Error('nije uspelo');
+        setRedovi(((await odg.json()) as { redovi: RedMatrice[] }).redovi);
+        setGreska(null);
+      } catch (e) {
+        if ((e as Error)?.name === 'AbortError') return;
+        // Prazna tabela bi izgledala kao „soba ništa ne prima" — mora se reći da matrica NIJE
+        // stigla, ne ćutati (zamka: prazan ekran je prazna baza, ne pokvaren kod).
+        setRedovi(null);
+        setGreska('Matrica trenutno nije dostupna — proverite vezu pa pokušajte ponovo.');
+      }
+    }, 300);
+    return () => {
+      clearTimeout(tajmer);
+      kontrola.abort();
+    };
+  }, [osnovnih, pomocnih, minGostiju]);
+
+  const odstupanja = draft.bed_combinations ?? [];
+
+  function postavi(key: string, izmena: Partial<BedCombination>) {
+    const zatecen = odstupanja.find((k) => k.key === key) ?? { key };
+    const spojen: BedCombination = { ...zatecen, ...izmena };
+    // Red koji se vratio na izvedeno stanje ne ostavlja zapis (§2.3g: „čuvaju se samo
+    // odstupanja"). Inače bi svaka otvorena soba počela da nosi pun spisak, koji zastari sa
+    // prvim promenjenim krevetom.
+    const jePodrazumevan =
+      (spojen.allowed ?? true) && !(spojen.shared_bed_children ?? 0) && !(spojen.note ?? '').trim();
+    const ostali = odstupanja.filter((k) => k.key !== key);
+    setDraft({ ...draft, bed_combinations: jePodrazumevan ? ostali : [...ostali, spojen] });
+  }
+
+  const kljuceviMatrice = new Set((redovi ?? []).map((r) => r.key));
+  const vanMatrice = redovi === null ? [] : odstupanja.filter((k) => !kljuceviMatrice.has(k.key));
+
+  return (
+    <>
+      <h4 className="mb-1 text-xs font-semibold text-ink-faint">Kombinacije osoba po krevetima</h4>
+      <p className="mb-2 text-[10px] leading-relaxed text-ink-faint">
+        Izračunato iz kreveta koje ste uneli — odrasli pune osnovne krevete pre pomoćnih. Skinite
+        kvačicu sa kombinacije koju hotel ne dozvoljava; sve ostalo ostaje dozvoljeno. Ovde nema
+        kategorija iz cenovnika (dete 1, dete 2…) — one se menjaju od ugovora do ugovora, a raspored
+        po krevetima je svojstvo sobe i ostaje isti za svaki budući cenovnik.
+      </p>
+
+      {greska && <p className="mb-4 rounded bg-danger-bg p-2 text-[11px] text-danger">{greska}</p>}
+
+      {!greska && osnovnih + pomocnih === 0 && (
+        <p className="mb-4 rounded border border-border bg-sunken p-2 text-[11px] text-ink-faint">
+          Unesite broj kreveta iznad da bi se kombinacije izračunale.
+        </p>
+      )}
+
+      {redovi !== null && redovi.length > 0 && (
+        <div className="mb-4 overflow-x-auto">
+          <table className="w-full min-w-[640px] text-[11px]">
+            <thead>
+              <tr className="border-b border-border text-left text-ink-faint">
+                <th className="w-16 py-1 font-normal">Dozvoljeno</th>
+                <th className="py-1 font-normal">Sastav</th>
+                <th className="py-1 font-normal">Ko na kom krevetu</th>
+                <th className="w-28 py-1 font-normal">Još dele krevet</th>
+                <th className="py-1 font-normal">Napomena</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {redovi.map((r) => {
+                const o = odstupanja.find((k) => k.key === r.key);
+                const dozvoljeno = o?.allowed ?? true;
+                return (
+                  <tr key={r.key} className={dozvoljeno ? '' : 'opacity-50'}>
+                    <td className="py-1.5 align-top">
+                      <input
+                        type="checkbox"
+                        checked={dozvoljeno}
+                        onChange={(e) => postavi(r.key, { allowed: e.target.checked })}
+                        aria-label={`dozvoli ${r.key}`}
+                      />
+                    </td>
+                    <td className="py-1.5 align-top text-ink">
+                      {sastavRecima(r.odraslih, r.dece)}
+                      {r.decaNaPomocnom > 0 && draft.beds.extra_bed_max_age != null && (
+                        <span className="block text-[10px] text-ink-faint">
+                          {r.decaNaPomocnom === 1 ? 'dete' : 'deca'} na pomoćnom krevetu — do{' '}
+                          {draft.beds.extra_bed_max_age} god.
+                        </span>
+                      )}
+                    </td>
+                    <td className="py-1.5 align-top">
+                      <div className="flex flex-wrap gap-1">
+                        {r.raspored.map((m, i) => (
+                          <span
+                            key={i}
+                            className={`rounded px-1.5 py-0.5 text-[10px] ${
+                              m.krevet === 'OSNOVNI' ? 'bg-sunken text-ink' : 'bg-warn-bg text-warn'
+                            }`}
+                          >
+                            {m.ko === 'ODRASLA' ? 'odrasla' : 'dete'}
+                            <span className="text-ink-faint">
+                              {' '}
+                              · {m.krevet === 'OSNOVNI' ? 'osnovni' : 'pomoćni'}
+                            </span>
+                          </span>
+                        ))}
+                      </div>
+                    </td>
+                    <td className="py-1.5 align-top">
+                      <input
+                        type="number"
+                        min={0}
+                        className="input w-16 text-[11px]"
+                        value={o?.shared_bed_children ?? 0}
+                        disabled={!dozvoljeno}
+                        onChange={(e) =>
+                          postavi(r.key, { shared_bed_children: Number(e.target.value) })
+                        }
+                        aria-label={`deca koja dele krevet uz ${r.key}`}
+                      />
+                    </td>
+                    <td className="py-1.5 align-top">
+                      <input
+                        type="text"
+                        className="input w-full text-[11px]"
+                        placeholder="zašto je pravilo takvo"
+                        value={o?.note ?? ''}
+                        disabled={!dozvoljeno}
+                        onChange={(e) => postavi(r.key, { note: e.target.value })}
+                        aria-label={`napomena uz ${r.key}`}
+                      />
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+          {draft.beds.shares_bed_max_age == null && (
+            <p className="mt-1 text-[10px] text-ink-faint">
+              „Još dele krevet" znači decu bez sopstvenog ležajnog mesta. Da bi se primenilo,
+              popunite „maks. uzrast deteta koje deli krevet" u odeljku Kreveti.
+            </p>
+          )}
+        </div>
+      )}
+
+      {/*
+        §2.3g — zapis čiji se ključ posle izmene kreveta više ne izvodi iz matrice se PRIJAVLJUJE
+        i ignoriše, ne briše tiho: pravilo koje je neko svesno uneo ponovo postaje tačno čim se
+        kreveti vrate.
+      */}
+      {vanMatrice.length > 0 && (
+        <div className="mb-4 rounded border border-warn/40 bg-warn-bg p-2">
+          <p className="text-[11px] text-warn">
+            Ova pravila više ne odgovaraju unetim krevetima i ne primenjuju se:{' '}
+            {vanMatrice.map((k) => k.key).join(', ')}. Ostaju zapisana — vrate li se kreveti na
+            stari broj, ponovo važe. Obrišite ih samo ako pravilo stvarno više ne postoji.
+          </p>
+          <button
+            type="button"
+            className="mt-1 text-[10px] text-ink-faint underline hover:text-danger"
+            onClick={() =>
+              setDraft({
+                ...draft,
+                bed_combinations: odstupanja.filter((k) => kljuceviMatrice.has(k.key)),
+              })
+            }
+          >
+            obriši pravila koja se ne primenjuju
+          </button>
+        </div>
+      )}
+    </>
+  );
+}
+
+/** „2 odrasle + 1 dete" — bez ijedne kategorije iz cenovnika, samo uloga na krevetu (§2.3g). */
+function sastavRecima(odraslih: number, dece: number): string {
+  const o = odraslih === 1 ? '1 odrasla' : `${odraslih} odrasle`;
+  if (dece === 0) return o;
+  return `${o} + ${dece === 1 ? '1 dete' : `${dece} dece`}`;
 }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
