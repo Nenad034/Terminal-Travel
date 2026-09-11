@@ -330,6 +330,27 @@ Pravo rešenje je da AI-u to polje **više ne bude slobodan tekst** nego izbor i
 
 **Do tada:** prvi uvoz cenovnika radi potpuno i ispravno. Ponovni uvoz **istog** dokumenta za isti ugovor pregledajte pažljivo ili ga izbegavajte.
 
+## Tip sobe se sada bira sa spiska (10.9.2026)
+
+**Šta je bio problem — i nije bio samo nezgodan unos.** Kad se unosio period, šifra tipa sobe se **kucala rukom**, sa napomenom „mora odgovarati katalogu". A uvoz cenovnika je upisivao doslovno ono što piše u dobavljačevom dokumentu — „STANDARD", „Studio A2". U katalogu, međutim, svaka soba ima **automatski dodeljen broj** (npr. `3584729001`).
+
+Broj i tekst se ne poklapaju nikad.
+
+**Posledica je bila ozbiljnija nego što zvuči.** Kad prodavac napravi ponudu, sistem treba da proveri da li tražena grupa gostiju uopšte staje u tu sobu. Da bi to uradio, mora da pronađe sobu u katalogu. Nije je nalazio — i u tom slučaju je uzimao „kapacitet 99", što je više od svake grupe koja će ikad doći. Provera je time prestajala da radi, a u kodu je i dalje izgledala kao da postoji.
+
+**Šta je sada.** Tip sobe se **bira sa spiska**, i to na oba mesta:
+
+- **Pri ručnom unosu perioda** — padajući spisak soba tog objekta, sa nazivom i brojem kreveta uz svaku, da se dve slično nazvane sobe razlikuju bez otvaranja kataloga.
+- **Pri uvozu cenovnika** — sistem sam pokušava da poklopi tekst iz dokumenta sa sobom iz kataloga. Prepoznaće i šifru, i pun naziv, i deo naziva — **ali samo kad je nedvosmisleno.** Ako u dokumentu piše samo „Studio", a katalog ima „Studio A2" i „Studio A3", sistem **neće pogađati** — pitaće vas.
+
+**Ono što nije poklopljeno vidi se pre potvrde**, u žutoj traci iznad spiska razlika, sa brojem redova koje taj tip nosi. Izaberete sobu sa spiska, i razlike se osveže.
+
+**A ako potvrdite razliku sa tipom koji katalog ne poznaje** — sistem će stati i reći koji su to tipovi. Možete nastaviti, jer dobavljač ima pravo na sobu koju katalog još nema; ali tada izričito potvrđujete da nad tom sobom prodaja neće proveravati kapacitet. Izbor, ne propust.
+
+**Provereno merenjem:** uvoz reda sa tekstom „STANDARD" sada u cenovnik upisuje šifru `3584729001`, a ne tekst. Uvoz reda sa „Predsednički apartman", koji katalog nema, odbija se sa porukom koja taj tip imenuje — i prolazi tek kad se izabere soba ili se izričito potvrdi.
+
+**Šta ovo još ne radi.** Sama provera kapaciteta u prodaji **i dalje nije uključena** — funkcija postoji i testirana je, ali je niko ne poziva. Ovaj prolaz je napravio most bez kog ta provera ne bi mogla da radi ni kad se uključi. Uključivanje je sledeći korak.
+
 ---
 
 _Za tehničke detalje (tačna imena polja, redosled provera, API pozivi) vidi `04-SPECIFIKACIJA-M3-UGOVARANJE-ALOTMANI.md` u istom folderu i `docs/api/M3-ugovaranje-alotmani.md` — ovaj dokument je namerno pojednostavljen, ne zamenjuje ih._

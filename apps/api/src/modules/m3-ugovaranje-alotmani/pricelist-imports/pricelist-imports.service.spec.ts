@@ -54,9 +54,17 @@ describe('PricelistImportsService (M3 §4.2 / §4.2.10)', () => {
         count: jest.fn().mockResolvedValue(0),
       },
       product: {
-        findMany: jest
-          .fn()
-          .mockResolvedValue(opts.proizvodi ?? [{ id: 'prod-1', sourceContractId: 'ug-1' }]),
+        findMany: jest.fn().mockResolvedValue(
+          // §2.11m — proizvod nosi šifarnik tipova soba; bez njega uvoz ne bi imao šta da
+          // poklopi i primena bi tražila izričitu potvrdu (v. testove ograde niže).
+          opts.proizvodi ?? [
+            {
+              id: 'prod-1',
+              sourceContractId: 'ug-1',
+              attributes: { room_types: [{ code: 'DBL', name: 'Dvokrevetna soba' }] },
+            },
+          ],
+        ),
       },
       contract: {
         findUnique: jest.fn().mockResolvedValue({
@@ -196,6 +204,165 @@ describe('PricelistImportsService (M3 §4.2 / §4.2.10)', () => {
       expect(rez.nepoklopljeni).toEqual([
         { rowId: 'row-1', hotel: 'Hotel Splendid', matchConfidence: 61 },
       ]);
+    });
+  });
+
+  /**
+   * §2.11m — most između dobavljačevog teksta i šifre sobe iz kataloga.
+   *
+   * Merilo je nalaz od 10.9.2026: uvoz je upisivao sirov tekst u `ContractPeriod.room_type`, a
+   * šifra u katalogu je automatski generisan broj — M5 pri prodaji sobu ne prepozna i uzme
+   * kapacitet 99, pa provera kapaciteta prestane da radi (zamka 7.14).
+   */
+  describe('tip sobe se poklapa sa katalogom (§2.11m)', () => {
+    const KATALOG = [
+      {
+        id: 'prod-1',
+        sourceContractId: 'ug-1',
+        attributes: { room_types: [{ code: '3584729001', name: 'Dvokrevetna soba' }] },
+      },
+    ];
+
+    it('u cenovnik ide ŠIFRA iz kataloga, ne tekst iz dokumenta', async () => {
+      const { service } = makeService({
+        proizvodi: KATALOG,
+        redovi: [{ ...RED, extractedRoomType: 'Dvokrevetna soba' }],
+      });
+
+      const r = await service.razlike('imp-1');
+
+      expect(r.ugovori[0].tipoviSoba).toEqual([
+        { tekst: 'Dvokrevetna soba', code: '3584729001', nacin: 'NAZIV', brojRedova: 1 },
+      ]);
+    });
+
+    it('tekst koji katalog ne poznaje se PRIJAVLJUJE, ne ćuti', async () => {
+      const { service } = makeService({
+        proizvodi: KATALOG,
+        redovi: [{ ...RED, extractedRoomType: 'Predsednički apartman' }],
+      });
+
+      const r = await service.razlike('imp-1');
+
+      expect(r.ugovori[0].tipoviSoba[0]).toMatchObject({
+        tekst: 'Predsednički apartman',
+        code: null,
+        nacin: null,
+      });
+      expect(r.ugovori[0].katalogSobe).toEqual([{ code: '3584729001', name: 'Dvokrevetna soba' }]);
+    });
+
+    it('ranija LJUDSKA odluka pobeđuje automatsko poklapanje', async () => {
+      const { service } = makeService({
+        proizvodi: KATALOG,
+        redovi: [{ ...RED, extractedRoomType: 'Dvokrevetna soba', matchedRoomTypeCode: 'RUCNO-1' }],
+      });
+
+      const r = await service.razlike('imp-1');
+
+      expect(r.ugovori[0].tipoviSoba[0]).toMatchObject({ code: 'RUCNO-1', nacin: 'RUCNO' });
+    });
+
+    it('isti tekst u više redova je JEDNA odluka, sa brojem redova', async () => {
+      const { service } = makeService({
+        proizvodi: KATALOG,
+        redovi: [
+          { ...RED, extractedRoomType: 'Dvokrevetna soba' },
+          { ...RED, id: 'row-2', extractedRoomType: 'Dvokrevetna soba', extractedBoardType: 'HB' },
+        ],
+      });
+
+      const r = await service.razlike('imp-1');
+
+      expect(r.ugovori[0].tipoviSoba).toHaveLength(1);
+      expect(r.ugovori[0].tipoviSoba[0].brojRedova).toBe(2);
+    });
+
+    it('primena se ODBIJA dok tip sobe nije poklopljen — i poruka kaže koji', async () => {
+      const { service, versions } = makeService({
+        proizvodi: KATALOG,
+        redovi: [{ ...RED, extractedRoomType: 'Predsednički apartman' }],
+      });
+      const kljuc = 'CENA|Predsednički apartman|1|BB|2adt|PER_ROOM_PER_NIGHT|svi';
+
+      await expect(
+        service.primeniZaUgovor(
+          'imp-1',
+          'ug-1',
+          { effectiveFrom: '2027-01-01', prihvaceniKljucevi: [kljuc] },
+          'u1',
+        ),
+      ).rejects.toThrow(/Predsednički apartman/);
+      expect(versions.primeni).not.toHaveBeenCalled();
+    });
+
+    it('izričita potvrda pušta upis bez poklapanja — dobavljač sme imati tip van kataloga', async () => {
+      const { service, versions } = makeService({
+        proizvodi: KATALOG,
+        redovi: [{ ...RED, extractedRoomType: 'Predsednički apartman' }],
+      });
+      const kljuc = 'CENA|Predsednički apartman|1|BB|2adt|PER_ROOM_PER_NIGHT|svi';
+
+      await service.primeniZaUgovor(
+        'imp-1',
+        'ug-1',
+        {
+          effectiveFrom: '2027-01-01',
+          prihvaceniKljucevi: [kljuc],
+          dozvoliNepoklopljeneTipoveSoba: true,
+        },
+        'u1',
+      );
+
+      expect(versions.primeni).toHaveBeenCalledTimes(1);
+    });
+
+    it('nepoklopljen tip koji NIJE potvrđen ne blokira primenu ostalih razlika', async () => {
+      const { service, versions } = makeService({
+        proizvodi: KATALOG,
+        redovi: [
+          { ...RED, extractedRoomType: 'Dvokrevetna soba' },
+          { ...RED, id: 'row-2', extractedRoomType: 'Predsednički apartman' },
+        ],
+      });
+      const kljucPoklopljen = 'CENA|3584729001|1|BB|2adt|PER_ROOM_PER_NIGHT|svi';
+
+      await service.primeniZaUgovor(
+        'imp-1',
+        'ug-1',
+        { effectiveFrom: '2027-01-01', prihvaceniKljucevi: [kljucPoklopljen] },
+        'u1',
+      );
+
+      expect(versions.primeni).toHaveBeenCalledTimes(1);
+    });
+
+    it('ljudski izbor se upisuje na SVE PENDING redove sa tim tekstom', async () => {
+      const { service, prisma } = makeService({ proizvodi: KATALOG });
+      prisma.pricelistImportRow.updateMany.mockResolvedValue({ count: 3 });
+
+      const r = await service.poklopiTipoveSobaUvoza(
+        'imp-1',
+        [{ tekst: 'Predsednički apartman', code: '3584729001' }],
+        'u1',
+      );
+
+      expect(r.redova).toBe(3);
+      const [poziv] = prisma.pricelistImportRow.updateMany.mock.calls.at(-1) as any[];
+      expect(poziv.where).toEqual({
+        pricelistImportId: 'imp-1',
+        reviewStatus: 'PENDING',
+        extractedRoomType: 'Predsednički apartman',
+      });
+      expect(poziv.data).toEqual({ matchedRoomTypeCode: '3584729001' });
+    });
+
+    it('prazan tekst ili prazna šifra se odbijaju — poklapanje mora imati obe strane', async () => {
+      const { service } = makeService({ proizvodi: KATALOG });
+
+      await expect(
+        service.poklopiTipoveSobaUvoza('imp-1', [{ tekst: '  ', code: 'X' }], 'u1'),
+      ).rejects.toThrow(/tekst iz dokumenta i šifru/);
     });
   });
 

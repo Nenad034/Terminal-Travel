@@ -64,6 +64,48 @@ export class ContractsService {
     return this.prisma.contract.findUniqueOrThrow({ where: { id }, include: { periods: true } });
   }
 
+  /**
+   * §2.11m — šifarnik tipova soba za ovaj ugovor, iz M2 kataloga.
+   *
+   * Zašto ovde a ne u M2: ekran za unos perioda pita „koje sobe ovaj UGOVOR pokriva", a to je
+   * pitanje o ugovoru — M3 zna koji su proizvodi na njega vezani (`Product.source_contract_id`),
+   * M2 ne zna ništa o ugovorima. Granica modula ostaje poštovana: čita se javno polje `attributes`
+   * (M2 §2.3a konvencija), ne unutrašnja struktura M2 servisa.
+   *
+   * Prazan spisak nije greška — znači da objekat u katalogu još nema unete tipove soba. Ekran to
+   * kaže rečenicom i dozvoljava ručan unos (dobavljač sme imati tip koji katalog nema).
+   */
+  async roomTypes(id: string) {
+    await this.prisma.contract.findUniqueOrThrow({ where: { id }, select: { id: true } });
+    const proizvodi = await this.prisma.product.findMany({
+      where: { sourceContractId: id },
+      select: { id: true, attributes: true },
+    });
+
+    const poSifri = new Map<string, { code: string; name: string | null; beds: string | null }>();
+    for (const p of proizvodi) {
+      const a = (p.attributes ?? {}) as Record<string, unknown>;
+      const sirovo = a.room_types ?? a.roomTypes;
+      if (!Array.isArray(sirovo)) continue;
+      for (const x of sirovo) {
+        if (!x || typeof x !== 'object') continue;
+        const r = x as Record<string, any>;
+        if (typeof r.code !== 'string' || r.code.trim().length === 0) continue;
+        const b = r.beds as Record<string, any> | undefined;
+        poSifri.set(r.code, {
+          code: r.code,
+          name: typeof r.name === 'string' ? r.name : null,
+          // Kratak opis kreveta ide uz šifru da čovek u biraču ne mora da otvara katalog da bi
+          // razlikovao dve slično nazvane sobe.
+          beds: b
+            ? `${b.base_beds ?? 0} osnovnih${b.extra_beds_max ? ` + ${b.extra_beds_max} pomoćnih` : ''}`
+            : null,
+        });
+      }
+    }
+    return [...poSifri.values()];
+  }
+
   async create(dto: CreateContractDto, actorId: string) {
     const contract = await this.prisma.contract.create({
       data: {

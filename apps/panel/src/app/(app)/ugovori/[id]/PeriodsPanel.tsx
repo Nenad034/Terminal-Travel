@@ -132,10 +132,13 @@ export default function PeriodsPanel({
   contractId,
   periods,
   canEdit,
+  katalogSobe,
 }: {
   contractId: string;
   periods: ContractPeriod[];
   canEdit: boolean;
+  /** §2.11m — tipovi soba iz M2 kataloga koje ovaj ugovor pokriva; prazno = katalog ih nema. */
+  katalogSobe: KatalogSoba[];
 }) {
   const [showForm, setShowForm] = useState(false);
 
@@ -156,11 +159,17 @@ export default function PeriodsPanel({
 
       <div className="flex flex-col gap-1.5">
         {periods.map((p) => (
-          <PeriodRow key={p.id} contractId={contractId} period={p} canEdit={canEdit} />
+          <PeriodRow
+            key={p.id}
+            contractId={contractId}
+            period={p}
+            canEdit={canEdit}
+            katalogSobe={katalogSobe}
+          />
         ))}
       </div>
 
-      {showForm && canEdit && <NewPeriodForm contractId={contractId} />}
+      {showForm && canEdit && <NewPeriodForm contractId={contractId} katalogSobe={katalogSobe} />}
     </div>
   );
 }
@@ -172,10 +181,12 @@ function PeriodRow({
   contractId,
   period,
   canEdit,
+  katalogSobe,
 }: {
   contractId: string;
   period: ContractPeriod;
   canEdit: boolean;
+  katalogSobe: KatalogSoba[];
 }) {
   const [editing, setEditing] = useState(false);
   const neaktivan = period.status === 'INACTIVE';
@@ -218,7 +229,12 @@ function PeriodRow({
         </div>
       </div>
       {editing && (
-        <EditPeriodForm contractId={contractId} period={period} onDone={() => setEditing(false)} />
+        <EditPeriodForm
+          contractId={contractId}
+          period={period}
+          onDone={() => setEditing(false)}
+          katalogSobe={katalogSobe}
+        />
       )}
     </div>
   );
@@ -228,10 +244,12 @@ function EditPeriodForm({
   contractId,
   period,
   onDone,
+  katalogSobe,
 }: {
   contractId: string;
   period: ContractPeriod;
   onDone: () => void;
+  katalogSobe: KatalogSoba[];
 }) {
   const boundAction = updatePeriod.bind(null, contractId, period.id);
   const [state, formAction] = useActionState(boundAction, initialState);
@@ -256,8 +274,8 @@ function EditPeriodForm({
         <Field label="Period boravka do">
           <DateField name="stayTo" required defaultValue={period.stayTo.slice(0, 10)} />
         </Field>
-        <Field label="Šifra tipa sobe">
-          <input name="roomType" required className="input" defaultValue={period.roomType} />
+        <Field label="Tip sobe">
+          <TipSobePolje sobe={katalogSobe} defaultValue={period.roomType} />
         </Field>
       </div>
 
@@ -367,7 +385,96 @@ function AkcijaDugme({ label }: { label: string }) {
   );
 }
 
-function NewPeriodForm({ contractId }: { contractId: string }) {
+/** §2.11m — jedan tip sobe iz M2 kataloga, onako kako ga vraća `GET /contracts/:id/room-types`. */
+export interface KatalogSoba {
+  code: string;
+  name: string | null;
+  /** Kratak opis kreveta — razlikuje dve slično nazvane sobe bez otvaranja kataloga. */
+  beds: string | null;
+}
+
+/**
+ * §2.11m — tip sobe se BIRA iz kataloga, ne kuca.
+ *
+ * Do ove verzije je ovde stajalo slobodno tekstualno polje sa napomenom „mora odgovarati
+ * room_types[].code". U praksi se kucao naziv iz dobavljačevog dokumenta („DBL", „Studio A2"), a
+ * šifra u katalogu je automatski generisan broj — dve vrednosti koje se ne poklapaju nikad. M5 tu
+ * sobu onda ne prepozna i uzme kapacitet 99, pa provera kapaciteta prestane da radi (zamka 7.14).
+ *
+ * Ručan unos OSTAJE moguć (§2.11m: „dobavljač sme imati tip koji katalog još nema"), ali je sada
+ * svestan izbor sa upozorenjem, a ne podrazumevani put.
+ */
+function TipSobePolje({ sobe, defaultValue }: { sobe: KatalogSoba[]; defaultValue?: string }) {
+  const uKatalogu = defaultValue ? sobe.some((x) => x.code === defaultValue) : false;
+  // Zatečen period čija šifra NIJE u katalogu odmah otvara ručno polje — inače bi izbor izgledao
+  // prazan, a vrednost bi se tiho izgubila pri prvom čuvanju.
+  const [rucno, setRucno] = useState(Boolean(defaultValue) && !uKatalogu);
+  const [izbor, setIzbor] = useState(uKatalogu ? defaultValue! : '');
+  const [tekst, setTekst] = useState(uKatalogu ? '' : (defaultValue ?? ''));
+
+  if (sobe.length === 0) {
+    return (
+      <>
+        <input
+          name="roomType"
+          required
+          className="input"
+          defaultValue={defaultValue}
+          placeholder="npr. DBL"
+        />
+        <span className="text-[10px] text-warn">
+          Objekat u katalogu nema unete tipove soba — dok se ne unesu, prodaja neće moći da proveri
+          kapacitet ove sobe.
+        </span>
+      </>
+    );
+  }
+
+  return (
+    <>
+      <input type="hidden" name="roomType" value={rucno ? tekst : izbor} />
+      {rucno ? (
+        <input
+          className="input"
+          value={tekst}
+          onChange={(e) => setTekst(e.target.value)}
+          placeholder="oznaka iz dobavljačevog dokumenta"
+          required
+        />
+      ) : (
+        <select className="input" value={izbor} onChange={(e) => setIzbor(e.target.value)} required>
+          <option value="">— izaberite sobu —</option>
+          {sobe.map((x) => (
+            <option key={x.code} value={x.code}>
+              {x.name ?? x.code}
+              {x.beds ? ` — ${x.beds}` : ''}
+            </option>
+          ))}
+        </select>
+      )}
+      <button
+        type="button"
+        className="self-start text-[10px] text-ink-faint underline hover:text-ink"
+        onClick={() => setRucno((v) => !v)}
+      >
+        {rucno ? 'izaberi iz kataloga' : 'tip koji katalog nema'}
+      </button>
+      {rucno && (
+        <span className="text-[10px] text-warn">
+          Prodaja ovu sobu neće prepoznati iz kataloga, pa nad njom neće proveravati kapacitet.
+        </span>
+      )}
+    </>
+  );
+}
+
+function NewPeriodForm({
+  contractId,
+  katalogSobe,
+}: {
+  contractId: string;
+  katalogSobe: KatalogSoba[];
+}) {
   const boundAction = createPeriod.bind(null, contractId);
   const [state, formAction] = useActionState(boundAction, initialState);
   const [mode, setMode] = useState<AllotmentMode>('FIXED');
@@ -390,13 +497,8 @@ function NewPeriodForm({ contractId }: { contractId: string }) {
         <Field label="Period boravka do">
           <DateField name="stayTo" required />
         </Field>
-        <Field label="Šifra tipa sobe">
-          <input
-            name="roomType"
-            required
-            className="input"
-            placeholder="mora odgovarati room_types[].code (M2)"
-          />
+        <Field label="Tip sobe">
+          <TipSobePolje sobe={katalogSobe} />
         </Field>
       </div>
 

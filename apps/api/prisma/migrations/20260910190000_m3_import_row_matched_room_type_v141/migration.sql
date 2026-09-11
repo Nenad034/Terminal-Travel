@@ -1,0 +1,11 @@
+-- M3 §2.11m — šifra tipa sobe iz kataloga na redu uvoza cenovnika.
+--
+-- Do sada je uvoz upisivao SIROV tekst iz dobavljačevog dokumenta („Studio A2") u
+-- `ContractPeriod.room_type`, a šifra sobe u katalogu je automatski generisan broj — dve
+-- vrednosti koje se ne poklapaju nikad, pa je M5 pri prodaji uzimao kapacitet 99 i provera
+-- kapaciteta se tiho isključivala (zamka 7.14).
+--
+-- Kolona je nullable namerno: `null` znači „još nije poklopljeno" i ekran to izričito prijavljuje,
+-- umesto da se pogađa. Zatečeni redovi ostaju kakvi jesu.
+-- AlterTable
+ALTER TABLE "pricelist_import_rows" ADD COLUMN     "matched_room_type_code" TEXT;

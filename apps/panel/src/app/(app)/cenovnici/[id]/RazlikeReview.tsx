@@ -4,7 +4,7 @@ import { useState, useTransition } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import Icon from '@/components/Icon';
-import { primeniUvoz, rejectRow } from '../actions';
+import { poklopiTipoveSoba, primeniUvoz, rejectRow } from '../actions';
 
 /**
  * M3 spec §4.2.10 (v1.39) — uvoz se potvrđuje kao RAZLIKE, ne red po red.
@@ -29,6 +29,14 @@ interface Razlika {
   izmenjenaPolja: { polje: string; staro: string | null; novo: string | null }[];
 }
 
+/** §2.11m — jedan tekst tipa sobe iz dokumenta i šta je od njega postalo. */
+interface TipSobe {
+  tekst: string;
+  code: string | null;
+  nacin: 'SIFRA' | 'NAZIV' | 'DEO_NAZIVA' | 'RUCNO' | null;
+  brojRedova: number;
+}
+
 export interface UgovorRazlike {
   contractId: string;
   contractNumber: string;
@@ -36,6 +44,8 @@ export interface UgovorRazlike {
   noveSezone: { code: string; label: string }[];
   razlike: Razlika[];
   ukupno: number;
+  katalogSobe: { code: string; name?: string | null }[];
+  tipoviSoba: TipSobe[];
 }
 
 const OZNAKA = {
@@ -75,6 +85,108 @@ export default function RazlikeReview({
       ))}
 
       {nepoklopljeni.length > 0 && <Nepoklopljeni importId={importId} redovi={nepoklopljeni} />}
+    </div>
+  );
+}
+
+/**
+ * §2.11m — tipovi soba koje katalog ne prepoznaje.
+ *
+ * Zašto stoji IZNAD spiska razlika, a ne uz svaki red: tip sobe je odluka o SOBI, ne o ceni.
+ * Jedan tekst pogodi desetine redova cenovnika, pa bi birač uz svaki red tražio istu odluku
+ * desetinama puta. I zato što nepoklopljen tip menja ono što razlike ispod uopšte znače — poklapanje
+ * menja ključ razlike, pa se spisak posle njega ponovo učitava.
+ *
+ * Posledica koja se ovde izričito kaže: red sa nepoklopljenim tipom ući će u cenovnik kao sirov
+ * tekst, i prodaja nad njim neće moći da proveri kapacitet sobe.
+ */
+function TipoviSobaPanel({
+  importId,
+  tipovi,
+  katalog,
+  canApprove,
+}: {
+  importId: string;
+  tipovi: TipSobe[];
+  katalog: { code: string; name?: string | null }[];
+  canApprove: boolean;
+}) {
+  const nepoklopljeni = tipovi.filter((t) => t.code === null);
+  const [izbor, setIzbor] = useState<Record<string, string>>({});
+  const [greska, setGreska] = useState<string | null>(null);
+  const [radi, startTransition] = useTransition();
+
+  if (nepoklopljeni.length === 0) return null;
+
+  const spremni = Object.entries(izbor).filter(([, code]) => code.length > 0);
+
+  return (
+    <div className="border-b border-border bg-warn-bg/40 px-3 py-3">
+      <p className="mb-2 text-[11px] text-ink">
+        <Icon name="warning" />{' '}
+        <strong>
+          {nepoklopljeni.length} {nepoklopljeni.length === 1 ? 'tip sobe nije' : 'tipa soba nisu'}{' '}
+          poklopljen sa katalogom.
+        </strong>{' '}
+        Dok se ne poklope, u cenovnik ide tekst iz dokumenta — prodaja takvu sobu ne prepoznaje, pa
+        nad njom ne može da proveri kapacitet.
+      </p>
+
+      {katalog.length === 0 ? (
+        <p className="text-[11px] text-ink-dim">
+          Ovaj objekat u katalogu nema nijedan tip sobe. Unesite ih na ekranu proizvoda, pa se
+          vratite ovde — poklapanje bez šifarnika nije moguće.
+        </p>
+      ) : (
+        <ul className="flex flex-col gap-1.5">
+          {nepoklopljeni.map((t) => (
+            <li key={t.tekst} className="flex flex-wrap items-center gap-2 text-[11px]">
+              <span className="font-mono text-ink">{t.tekst}</span>
+              <span className="text-ink-faint">
+                ({t.brojRedova} {t.brojRedova === 1 ? 'red' : 'redova'})
+              </span>
+              <span className="text-ink-faint">→</span>
+              <select
+                className="input h-7 py-0 text-[11px]"
+                value={izbor[t.tekst] ?? ''}
+                disabled={!canApprove || radi}
+                onChange={(e) => setIzbor((p) => ({ ...p, [t.tekst]: e.target.value }))}
+                aria-label={`tip sobe iz kataloga za: ${t.tekst}`}
+              >
+                <option value="">— izaberite sobu iz kataloga —</option>
+                {katalog.map((k) => (
+                  <option key={k.code} value={k.code}>
+                    {k.name ? `${k.name} (${k.code})` : k.code}
+                  </option>
+                ))}
+              </select>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {greska && <p className="mt-2 text-[11px] text-danger">{greska}</p>}
+
+      {canApprove && spremni.length > 0 && (
+        <Button
+          size="sm"
+          className="mt-2"
+          disabled={radi}
+          onClick={() =>
+            startTransition(async () => {
+              setGreska(null);
+              const rez = await poklopiTipoveSoba(
+                importId,
+                spremni.map(([tekst, code]) => ({ tekst, code })),
+              );
+              if (rez.error) setGreska(rez.error);
+              else setIzbor({});
+            })
+          }
+        >
+          {radi ? 'Poklapam…' : `Poklopi ${spremni.length} i osveži razlike`}
+        </Button>
+      )}
     </div>
   );
 }
@@ -131,6 +243,13 @@ function UgovorBlok({
           {ugovor.noveSezone.map((s) => `${s.code} (${s.label})`).join(', ')}
         </p>
       )}
+
+      <TipoviSobaPanel
+        importId={importId}
+        tipovi={ugovor.tipoviSoba}
+        katalog={ugovor.katalogSobe}
+        canApprove={canApprove}
+      />
 
       {ugovor.ukupno === 0 ? (
         <p className="px-3 py-6 text-center text-[11px] text-ink-faint">
@@ -210,9 +329,27 @@ function UgovorBlok({
             onClick={() =>
               startTransition(async () => {
                 setGreska(null);
+                // §2.11m — ako je među potvrđenim razlikama tip sobe koji katalog ne poznaje,
+                // upis se traži IZRIČITO. Server isto to proverava i odbija bez ove potvrde —
+                // ovde se samo pita pre nego što zahtev ode, da čovek ne dobije golu grešku.
+                const sporni = ugovor.tipoviSoba
+                  .filter((t) => t.code === null)
+                  .filter((t) => [...izabrani].some((k) => k.includes(`|${t.tekst}|`)))
+                  .map((t) => t.tekst);
+                let dozvoli = false;
+                if (sporni.length > 0) {
+                  dozvoli = confirm(
+                    `Tipovi soba koji nisu poklopljeni sa katalogom: ${sporni.join(', ')}. ` +
+                      'Cena će biti upisana, ali prodaja tu sobu neće prepoznati i neće moći ' +
+                      'da proveri kapacitet. Nastaviti?',
+                  );
+                  if (!dozvoli) return;
+                }
+
                 const rez = await primeniUvoz(importId, ugovor.contractId, {
                   effectiveFrom: vaziOd,
                   prihvaceniKljucevi: [...izabrani],
+                  dozvoliNepoklopljeneTipoveSoba: dozvoli || undefined,
                 });
                 if (rez.error) setGreska(rez.error);
                 else setIzabrani(new Set());

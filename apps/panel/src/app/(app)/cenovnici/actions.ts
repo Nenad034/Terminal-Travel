@@ -120,7 +120,11 @@ export async function retryExtraction(id: string): Promise<void> {
 export async function primeniUvoz(
   importId: string,
   contractId: string,
-  telo: { effectiveFrom: string; prihvaceniKljucevi: string[] },
+  telo: {
+    effectiveFrom: string;
+    prihvaceniKljucevi: string[];
+    dozvoliNepoklopljeneTipoveSoba?: boolean;
+  },
 ): Promise<{ error: string | null }> {
   try {
     await apiFetch(`/contracting/pricelist-imports/${importId}/ugovori/${contractId}/primeni`, {
@@ -132,6 +136,28 @@ export async function primeniUvoz(
     return { error: null };
   } catch (err) {
     return { error: poruka(err, 'Primena razlika nije uspela.') };
+  }
+}
+
+/**
+ * M3 §2.11m — čovek bira tip sobe iz kataloga za tekst koji automatsko poklapanje nije razrešilo.
+ *
+ * Odluka se čuva na redovima uvoza, pa se posle nje spisak razlika mora ponovo pročitati:
+ * ključ razlike sadrži tip sobe, pa poklapanje menja i same ključeve.
+ */
+export async function poklopiTipoveSoba(
+  importId: string,
+  mapiranja: { tekst: string; code: string }[],
+): Promise<{ error: string | null }> {
+  try {
+    await apiFetch(`/contracting/pricelist-imports/${importId}/tipovi-soba`, {
+      method: 'POST',
+      body: { mapiranja },
+    });
+    revalidatePath(`/cenovnici/${importId}`);
+    return { error: null };
+  } catch (err) {
+    return { error: poruka(err, 'Poklapanje tipa sobe nije uspelo.') };
   }
 }
 

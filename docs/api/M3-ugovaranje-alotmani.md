@@ -1448,6 +1448,77 @@ Pravila:
 
 Dozvole: `M3/contract-period/VIEW` za čitanje i predlog, `M3/contract-period/EDIT` za potvrdu i primenu.
 
+## Tip sobe kao šifarnik (v1.41, M3 §2.11m)
+
+`ContractPeriod.room_type` treba da nosi `code` iz `M2 Product.attributes.room_types[]`, ne tekst iz
+dobavljačevog dokumenta. Kad ne nosi, M5 pri prodaji sobu ne prepozna i provera kapaciteta prestane da radi.
+
+### GET /contracts/:contractId/room-types
+
+Dozvola: `M3/contract-period/VIEW`.
+
+```bash
+curl -s "$API/contracting/contracts/$CONTRACT/room-types" -H "Authorization: Bearer $TOKEN"
+```
+
+```json
+[
+  { "code": "3584729001", "name": "Dvokrevetna soba", "beds": "2 osnovnih + 1 pomoćnih" },
+  { "code": "3584729002", "name": "Studio A2", "beds": "2 osnovnih" }
+]
+```
+
+Prazan niz nije greška — objekat u katalogu još nema unete tipove soba; ručan unos šifre ostaje moguć.
+
+### POST /pricelist-imports/:id/tipovi-soba
+
+Dozvola: `M3/pricelist-import/APPROVE_ROW`. Poklapa tekst iz dokumenta sa šifrom iz kataloga, za **sve**
+`PENDING` redove tog uvoza koji nose taj tekst. Odluka se čuva na redu, pa je `GET .../razlike` posle nje
+vraća kao `nacin: "RUCNO"` — i ključevi razlika se menjaju, jer ključ sadrži tip sobe.
+
+```bash
+curl -s -X POST "$API/contracting/pricelist-imports/$IMPORT/tipovi-soba"   -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json'   --data-binary @telo.json
+```
+
+```json
+{ "mapiranja": [{ "tekst": "Predsednički apartman", "code": "9001" }] }
+```
+
+```json
+{ "redova": 1 }
+```
+
+### Uticaj na GET /pricelist-imports/:id/razlike
+
+Svaka grupa ugovora nosi i:
+
+```json
+{
+  "katalogSobe": [{ "code": "9001", "name": "Dvokrevetna soba" }],
+  "tipoviSoba": [
+    { "tekst": "STANDARD", "code": "3584729001", "nacin": "NAZIV", "brojRedova": 4 },
+    { "tekst": "Predsednički apartman", "code": null, "nacin": null, "brojRedova": 1 }
+  ]
+}
+```
+
+`nacin`: `SIFRA` (tekst je već šifra) → `NAZIV` (pun naziv sobe) → `DEO_NAZIVA` (sadržan u nazivu, **samo kad
+pogađa tačno jednu sobu**) → `RUCNO` (čovek izabrao). `null` = nije poklopljeno.
+
+### Uticaj na POST /pricelist-imports/:id/ugovori/:contractId/primeni
+
+Primena se **odbija** kad je među potvrđenim razlikama tip sobe koji katalog ne poznaje:
+
+```json
+{
+  "statusCode": 400,
+  "message": "Ovi tipovi soba nisu poklopljeni sa katalogom: Predsednički apartman. Izaberite sobu iz kataloga, ili izričito potvrdite upis bez poklapanja — tada provera kapaciteta nad tim redovima neće raditi (M3 §2.11m)."
+}
+```
+
+Prolazi uz `"dozvoliNepoklopljeneTipoveSoba": true` u telu — dobavljač sme imati tip van kataloga, ali to mora
+biti izbor, ne propuštanje.
+
 ## Greške — zajednički oblik
 
 Sve greške imaju isti oblik (NestJS standard):

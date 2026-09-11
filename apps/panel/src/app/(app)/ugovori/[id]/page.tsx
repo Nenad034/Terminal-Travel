@@ -3,7 +3,7 @@ import { apiFetch } from '@/lib/api-client';
 import { getMe, hasPermission } from '@/lib/me';
 import RegisterTab from '@/components/RegisterTab';
 import { Badge } from '@/components/ui/badge';
-import PeriodsPanel, { type ContractPeriod } from './PeriodsPanel';
+import PeriodsPanel, { type ContractPeriod, type KatalogSoba } from './PeriodsPanel';
 
 interface Contract {
   id: string;
@@ -37,6 +37,14 @@ export default async function ContractDetailPage(props: { params: Promise<{ id: 
   const canEdit = hasPermission(me, 'M3', 'contract-period', 'EDIT');
 
   const contract = await apiFetch<Contract>(`/contracting/contracts/${params.id}`);
+  // §2.11m — šifarnik tipova soba iz M2 kataloga; forma za period bira iz njega umesto da se
+  // šifra kuca ručno. Prazan spisak nije greška (objekat ih još nema) — forma to kaže rečenicom.
+  let katalogSobe: KatalogSoba[] = [];
+  try {
+    katalogSobe = await apiFetch<KatalogSoba[]>(`/contracting/contracts/${params.id}/room-types`);
+  } catch {
+    // Šifarnik je pomoć, ne uslov: ekran ugovora ne sme da padne ako on ne stigne.
+  }
   let supplierName = contract.supplierId;
   try {
     const supplier = await apiFetch<Supplier>(`/contracting/suppliers/${contract.supplierId}`);
@@ -109,7 +117,12 @@ export default async function ContractDetailPage(props: { params: Promise<{ id: 
         </dl>
       </div>
 
-      <PeriodsPanel contractId={contract.id} periods={contract.periods} canEdit={canEdit} />
+      <PeriodsPanel
+        contractId={contract.id}
+        periods={contract.periods}
+        canEdit={canEdit}
+        katalogSobe={katalogSobe}
+      />
     </div>
   );
 }

@@ -3,6 +3,8 @@
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M3) i poglavlje 8 (Faza 1)
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje
+**Verzija:** 1.41 — **tip sobe se bira iz šifarnika, ne kuca** (10.9.2026, implementacija §2.11m, koje je od v1.32 stajalo kao specifikacija bez koda). Merenje koje je pokrenulo prolaz: uvoz je upisivao doslovan tekst iz dobavljačevog dokumenta u `ContractPeriod.room_type`, a šifra sobe u katalogu je automatski generisan broj — poklapanja nije bilo nikad, pa je M5 pri prodaji uzimao kapacitet 99 i provera kapaciteta se tiše isključivala (zamka 7.14). Nov endpoint `GET /contracting/contracts/:id/room-types`, birač u formi za period, automatsko poklapanje pri uvozu (`room-type-match.ts` — šifra → naziv → deo naziva, i to samo kad pogađa tačno jednu sobu), ručno poklapanje na ekranu pregleda (`POST .../tipovi-soba`, migracija `20260910190000`), i ograda koja odbija primenu dok tip nije poklopljen ili izričito potvrđen. Izmereno: 16 + 9 novih jediničnih testova i 3 e2e nad sveže napravljenom bazom; uvoz „STANDARD" sada upisuje `3584729001`.
+
 **Verzija:** 1.40 — **šta znači „1. dete“** (10.9.2026, vlasnikovo pitanje: _„u jednom će biti info da dete u pratnji dve odrasle osobe ima popust 100%, u drugom da isključivo 1. dete ima, u trećem samo 2. ili 3.“_). Dopuna poglavlja **2.4a**: `ContractPeriod.child_counting_basis` (`ALL_CHILDREN` — podrazumevano — ili `PER_CATEGORY`) i `child_order` (`OLDEST_FIRST` — podrazumevano — ili `YOUNGEST_FIRST`), oba potvrđena od vlasnika istog dana. Sam OBLIK pravila („samo 1. dete“, „samo 2. i 3.“, „uz dve odrasle osobe“) je već bio pokriven poljima `occupant_index` i `min_adults_present` — nedostajalo je jedino **po čemu se redna oznaka dodeljuje**. Ispravlja i stvaran kvar: do sada je redni broj dolazio iz redosleda kojim su godine dece UKUCANE, pa je ista porodica dobijala različitu cenu za „9, 5“ i „5, 9“. Uz to i provera koja se prijavljuje: kad bi obrnut redosled dao drugu ukupnu cenu, panel to kaže uz cenovnik. Kategorije osoba ostaju svojstvo cenovnika, a raspored po krevetima svojstvo sobe (M2 poglavlje 2.3g) — dve odluke iz istog ulaza, uzrasta gosta. Nije implementirano; četiri nove stavke u izlaznom kriterijumu (poglavlje 7).
 
 **Verzija:** 1.39 — **uvoz i verzije spojeni: jedan put do cenovnika** (10.9.2026, vlasnikova odluka „zameniti stari ekran"). Novo poglavlje **4.2.10**. Uvoz više ne upisuje red po red nego gradi **predlog** koji ide kroz isti `predlog`/`primeni` put kao ručna izmena i izmena rečima; `source_import_id` se konačno popunjava.
@@ -1005,6 +1007,32 @@ Nov zapis `PricelistVersion` (`contract_id`, `version_no`, `effective_from`, `cr
 `ContractPeriod.room_type` je slobodan tekst; u šemi stoji „konvencija ka M2 `attributes.room_types[].code`, **ne strogi FK**". Posledica: „DBL" se kuca ručno pri svakom unosu, multiselect nije moguć bez šifarnika, a AI poklapanje je teže nego što mora biti.
 
 Ekran za unos od ove verzije **bira tip sobe iz M2 liste** za taj objekat, uz mogućnost unosa nove vrednosti (dobavljač sme imati tip koji katalog još nema). Polje ostaje string radi kompatibilnosti — menja se način unosa, ne tip podatka. Strogi FK ostaje otvoren dok se ne vidi koliko dobavljača stvarno uvodi tipove van kataloga.
+
+**Napravljeno u v1.41** (10.9.2026), posle merenja koje je pokazalo da posledica nije bila samo nezgodan unos:
+`ContractPeriod.room_type` je iz uvoza dobijao **doslovan tekst iz dobavljačevog dokumenta** („Studio A2"), a
+`room_types[].code` je automatski generisan broj — dve vrednosti koje se ne poklapaju nikad. M5 zato pri prodaji
+sobu nije prepoznavao i uzimao je kapacitet 99, čime se provera kapaciteta tiše isključivala (zamka 7.14).
+
+Tri dela, svaki na svom mestu u toku:
+
+1. **`GET /contracting/contracts/:id/room-types`** — šifarnik za taj ugovor, iz proizvoda vezanih na njega
+   (`Product.source_contract_id`). Vraća `code`, `name` i kratak opis kreveta, da se dve slično nazvane sobe
+   razlikuju bez otvaranja kataloga. Prazan spisak **nije greška** — znači da objekat još nema unete tipove soba,
+   i forma to kaže rečenicom.
+2. **Ručan unos perioda** (`PeriodsPanel`) bira iz tog spiska. Ručan upis ostaje moguć jednim klikom, ali sa
+   upozorenjem šta gubi — svestan izbor, ne podrazumevani put.
+3. **Uvoz cenovnika** poklapa tekst iz dokumenta sa šifarnikom (`room-type-match.ts`, čista funkcija): tačna
+   šifra → pun naziv → deo naziva **ali samo kad pogađa tačno jednu sobu**. „Studio" koji odgovara i „Studio A2"
+   i „Studio A3" ostaje **nepoklopljen** — dvosmislen slučaj ide čoveku, isti princip kao ograda u §2.4a.
+
+**Odluka čoveka se čuva na REDU UVOZA** (`PricelistImportRow.matched_room_type_code`, migracija
+`20260910190000`), ne šalje se uz `primeni`. Razlog je merljiv: ključ razlike (§2.11l) sadrži tip sobe, pa bi
+mapiranje poslato tek pri primeni promenilo ključeve u odnosu na one koje je čovek video — potvrdio bi jedno,
+primenilo bi se drugo. Endpoint: `POST /contracting/pricelist-imports/:id/tipovi-soba`.
+
+**Ograda pri primeni:** ako je među potvrđenim razlikama tip sobe koji katalog ne poznaje, primena se **odbija**
+i poruka nabraja koji su. Proširi je izričito `dozvoliNepoklopljeneTipoveSoba: true` — jer dobavljač SME imati
+tip van kataloga, ali takav red u prodaji neće proći proveru kapaciteta, pa to mora biti izbor, ne propuštanje.
 
 #### 2.11n Šta ova dopuna NE menja
 

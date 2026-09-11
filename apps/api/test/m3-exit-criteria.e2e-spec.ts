@@ -553,6 +553,13 @@ describe('M3 — izlazni kriterijum (e2e)', () => {
           sourceContractId: contract.id,
         });
       const productId = productRes.body.id;
+      // §2.11m — šifarnik tipova soba se upisuje kroz PATCH (`POST /catalog/products` ne prima
+      // `attributes`, M2 §7), isti put koji koristi i panel. Bez njega bi tekst iz dokumenta otišao
+      // u cenovnik kao tip sobe koji prodaja ne prepoznaje, pa primena traži izričitu potvrdu.
+      await request(app.getHttpServer())
+        .patch(`/api/v1/catalog/products/${productId}`)
+        .set(authed(accessToken))
+        .send({ attributes: { room_types: [{ code: '3584729001', name: 'STANDARD' }] } });
 
       const importRes = await request(app.getHttpServer())
         .post('/api/v1/contracting/pricelist-imports')
@@ -604,6 +611,11 @@ describe('M3 — izlazni kriterijum (e2e)', () => {
       expect(grupa.razlike).toHaveLength(1);
       expect(grupa.razlike[0].vrsta).toBe('NOVA');
       expect(grupa.razlike[0].novaVrednost).toBe(6000);
+      // §2.11m — tekst iz dokumenta („STANDARD") je poklopljen sa šifrom iz kataloga; u cenovnik
+      // ide šifra, jer sirov tekst prodaja ne bi prepoznala kao sobu (zamka 7.14).
+      expect(grupa.tipoviSoba).toEqual([
+        { tekst: 'STANDARD', code: '3584729001', nacin: 'NAZIV', brojRedova: 1 },
+      ]);
 
       // Predlog NIŠTA ne upisuje (§2.11l, pravilo 2).
       expect(await prisma.contractPeriod.count({ where: { contractId: contract.id } })).toBe(0);
@@ -620,8 +632,10 @@ describe('M3 — izlazni kriterijum (e2e)', () => {
       expect(rowAfter.reviewStatus).toBe('CONFIRMED');
       expect(rowAfter.reviewedBy).toBe(owner.id);
 
+      // §2.11m — period nosi ŠIFRU iz kataloga, ne tekst iz dokumenta („STANDARD"). Do 10.9.2026
+      // je ovde stajao sirov tekst, pa ga prodaja nije prepoznavala kao sobu (zamka 7.14).
       const period = await prisma.contractPeriod.findFirst({
-        where: { contractId: contract.id, roomType: 'STANDARD' },
+        where: { contractId: contract.id, roomType: '3584729001' },
       });
       expect(period).not.toBeNull();
       expect(period!.allotmentMode).toBe('ON_REQUEST');
@@ -1226,6 +1240,155 @@ describe('M3 — izlazni kriterijum (e2e)', () => {
         .send({ units: 1, stayFrom: '2027-07-02', stayTo: '2027-07-05' });
       expect(res.status).toBe(400);
       expect(res.body.reason).toBe('BOOKING_WINDOW_CLOSED');
+    });
+  });
+
+  /**
+   * §2.11m — most između šifre sobe iz kataloga i ugovornog perioda.
+   *
+   * Nalaz 10.9.2026: ekran za unos je tražio šifru kao slobodan tekst, a uvoz cenovnika upisivao
+   * doslovan tekst iz dobavljačevog dokumenta — pa se sa `room_types[].code` (automatski generisan
+   * broj) nije poklapalo nikad, i provera kapaciteta u prodaji se tiše isključivala (zamka 7.14).
+   */
+  describe('Tip sobe se bira iz kataloga (§2.11m)', () => {
+    it('uvoz sa tipom koji katalog ne poznaje se ODBIJA dok se ne poklopi ili izričito potvrdi', async () => {
+      const { accessToken } = await createInternalUser(SYSTEM_ROLES.VLASNIK);
+      const supplier = await createSupplier(accessToken);
+      const contract = await createContract(accessToken, supplier.id);
+      const productRes = await request(app.getHttpServer())
+        .post('/api/v1/catalog/products')
+        .set(authed(accessToken))
+        .send({
+          type: 'ACCOMMODATION',
+          destinationCountry: 'Srbija',
+          destinationCity: `Zlatibor-${testRunId}`,
+          sourceContractId: contract.id,
+        });
+      await request(app.getHttpServer())
+        .patch(`/api/v1/catalog/products/${productRes.body.id}`)
+        .set(authed(accessToken))
+        .send({ attributes: { room_types: [{ code: '9001', name: 'Dvokrevetna soba' }] } });
+
+      const importRes = await request(app.getHttpServer())
+        .post('/api/v1/contracting/pricelist-imports')
+        .set(authed(accessToken))
+        .send({
+          supplierId: supplier.id,
+          sourceFileUrl: 'https://example.com/cenovnik2.xlsx',
+          sourceFormat: 'EXCEL',
+        });
+
+      await prisma.pricelistImportRow.create({
+        data: {
+          pricelistImportId: importRes.body.id,
+          extractedHotelName: 'Hotel Zlatibor',
+          matchedProductId: productRes.body.id,
+          matchConfidence: 90,
+          extractedRoomType: 'Predsednički apartman',
+          extractedBoardType: 'polupansion',
+          extractedOccupancy: 'odrasla osoba u dvokrevetnoj',
+          extractedStayFrom: new Date('2027-10-01'),
+          extractedStayTo: new Date('2027-10-31'),
+          extractedPrice: 9000,
+          extractedCurrency: 'EUR',
+          extractedPriceBasis: 'PER_ROOM_PER_NIGHT',
+        },
+      });
+
+      const razlike = await request(app.getHttpServer())
+        .get(`/api/v1/contracting/pricelist-imports/${importRes.body.id}/razlike`)
+        .set(authed(accessToken));
+      const grupa = razlike.body.ugovori[0];
+      expect(grupa.tipoviSoba[0]).toMatchObject({ code: null, nacin: null });
+
+      const kljuc = grupa.razlike[0].kljuc;
+      const odbijeno = await request(app.getHttpServer())
+        .post(
+          `/api/v1/contracting/pricelist-imports/${importRes.body.id}/ugovori/${contract.id}/primeni`,
+        )
+        .set(authed(accessToken))
+        .send({ effectiveFrom: '2027-01-01', prihvaceniKljucevi: [kljuc] });
+      expect(odbijeno.status).toBe(400);
+      expect(odbijeno.body.message).toContain('Predsednički apartman');
+      expect(await prisma.contractPeriod.count({ where: { contractId: contract.id } })).toBe(0);
+
+      // Čovek bira sobu iz kataloga — odluka se čuva na redu uvoza, pa se i ključ razlike menja.
+      const poklopljeno = await request(app.getHttpServer())
+        .post(`/api/v1/contracting/pricelist-imports/${importRes.body.id}/tipovi-soba`)
+        .set(authed(accessToken))
+        .send({ mapiranja: [{ tekst: 'Predsednički apartman', code: '9001' }] });
+      expect(poklopljeno.status).toBe(201);
+      expect(poklopljeno.body.redova).toBe(1);
+
+      const posle = await request(app.getHttpServer())
+        .get(`/api/v1/contracting/pricelist-imports/${importRes.body.id}/razlike`)
+        .set(authed(accessToken));
+      const grupa2 = posle.body.ugovori[0];
+      expect(grupa2.tipoviSoba[0]).toMatchObject({ code: '9001', nacin: 'RUCNO' });
+
+      const primenjeno = await request(app.getHttpServer())
+        .post(
+          `/api/v1/contracting/pricelist-imports/${importRes.body.id}/ugovori/${contract.id}/primeni`,
+        )
+        .set(authed(accessToken))
+        .send({ effectiveFrom: '2027-01-01', prihvaceniKljucevi: [grupa2.razlike[0].kljuc] });
+      expect(primenjeno.status).toBe(201);
+
+      const period = await prisma.contractPeriod.findFirstOrThrow({
+        where: { contractId: contract.id },
+      });
+      expect(period.roomType).toBe('9001');
+    });
+
+    it('vraća tipove soba objekta vezanog za ovaj ugovor, sa nazivom i opisom kreveta', async () => {
+      const { accessToken } = await createInternalUser(SYSTEM_ROLES.VLASNIK);
+      const supplier = await createSupplier(accessToken);
+      const contract = await createContract(accessToken, supplier.id);
+
+      const product = await prisma.product.create({
+        data: {
+          type: 'ACCOMMODATION',
+          sourceType: 'CONTRACTED',
+          sourceContractId: contract.id,
+          destinationCountry: 'Crna Gora',
+          destinationCity: `Bečići-${testRunId}`,
+          attributes: {
+            room_types: [
+              {
+                code: '3584729001',
+                name: 'Dvokrevetna soba',
+                beds: { base_beds: 2, extra_beds_max: 1 },
+              },
+              { code: '3584729002', name: 'Studio A2', beds: { base_beds: 2 } },
+            ],
+          },
+        },
+      });
+
+      const res = await request(app.getHttpServer())
+        .get(`/api/v1/contracting/contracts/${contract.id}/room-types`)
+        .set(authed(accessToken));
+
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual([
+        { code: '3584729001', name: 'Dvokrevetna soba', beds: '2 osnovnih + 1 pomoćnih' },
+        { code: '3584729002', name: 'Studio A2', beds: '2 osnovnih' },
+      ]);
+
+      await prisma.product.delete({ where: { id: product.id } });
+    });
+
+    it('ugovor bez proizvoda u katalogu vraća prazan spisak, ne grešku — ručan unos ostaje moguć', async () => {
+      const { accessToken } = await createInternalUser(SYSTEM_ROLES.VLASNIK);
+      const supplier = await createSupplier(accessToken);
+      const contract = await createContract(accessToken, supplier.id);
+
+      const res = await request(app.getHttpServer())
+        .get(`/api/v1/contracting/contracts/${contract.id}/room-types`)
+        .set(authed(accessToken));
+
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual([]);
     });
   });
 });

@@ -16,6 +16,7 @@ import { PricelistImportsService } from './pricelist-imports.service';
 import { PricelistExtractionService } from './pricelist-extraction.service';
 import { CreatePricelistImportDto } from './dto/create-pricelist-import.dto';
 import { PrimeniUvozDto } from './dto/primeni-uvoz.dto';
+import { PoklopiTipoveSobaDto } from './dto/poklopi-tipove-soba.dto';
 import { JwtAuthGuard } from '../../m1-core-identitet/auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../../common/guards/permissions.guard';
 import { RequirePermission } from '../../../common/decorators/require-permission.decorator';
@@ -170,6 +171,21 @@ export class PricelistImportsController {
     @CurrentUser() actor: { userId: string },
   ) {
     return this.imports.primeniZaUgovor(id, contractId, dto, actor.userId);
+  }
+
+  /**
+   * §2.11m — čovek bira tip sobe iz kataloga za tekst koji automatsko poklapanje nije razrešilo.
+   * Dozvola je `APPROVE_ROW`, ista kao primena: ovo je odluka koja određuje šta će u cenovniku
+   * stajati kao tip sobe, i time da li će prodaja tu sobu uopšte prepoznati.
+   */
+  @Post(':id/tipovi-soba')
+  @RequirePermission('M3', 'pricelist-import', 'APPROVE_ROW')
+  poklopiTipoveSoba(
+    @Param('id') id: string,
+    @Body() dto: PoklopiTipoveSobaDto,
+    @CurrentUser() actor: { userId: string },
+  ) {
+    return this.imports.poklopiTipoveSobaUvoza(id, dto.mapiranja, actor.userId);
   }
 
   @Post(':id/rows/:rowId/reject')

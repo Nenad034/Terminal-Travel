@@ -1,4 +1,11 @@
-import { ArrayMinSize, IsArray, IsDateString, IsString } from 'class-validator';
+import {
+  ArrayMinSize,
+  IsArray,
+  IsBoolean,
+  IsDateString,
+  IsOptional,
+  IsString,
+} from 'class-validator';
 
 /**
  * M3 spec §4.2.10 (v1.39) — primena potvrđenih razlika iz uvoza, za JEDAN ugovor.
@@ -16,4 +23,16 @@ export class PrimeniUvozDto {
   @ArrayMinSize(1)
   @IsString({ each: true })
   prihvaceniKljucevi!: string[];
+
+  /**
+   * §2.11m — svesna potvrda da se cenovnik upisuje sa tipom sobe koji katalog ne poznaje.
+   *
+   * Dobavljač SME imati tip koji katalog još nema, pa tvrdo odbijanje ne bi bilo tačno. Ali
+   * takav red u prodaji neće biti prepoznat kao soba iz kataloga, pa provera kapaciteta nad njim
+   * ne može da radi (zamka 7.14) — zato mora biti izbor, ne propuštanje. Bez ovoga primena se
+   * odbija i poruka nabraja tipove koji nisu poklopljeni.
+   */
+  @IsOptional()
+  @IsBoolean()
+  dozvoliNepoklopljeneTipoveSoba?: boolean;
 }

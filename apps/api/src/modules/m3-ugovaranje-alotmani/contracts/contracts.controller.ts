@@ -64,6 +64,17 @@ export class ContractsController {
     return this.periods.expiringReleases();
   }
 
+  /**
+   * §2.11m — tipovi soba iz kataloga koje ovaj ugovor pokriva; ekran za unos perioda bira iz
+   * ovog spiska umesto da se šifra kuca ručno. Dozvola je ista kao za period — ko sme da unese
+   * period sme i da vidi iz kojih soba bira.
+   */
+  @Get(':id/room-types')
+  @RequirePermission('M3', 'contract-period', 'VIEW')
+  roomTypes(@Param('id') id: string) {
+    return this.contracts.roomTypes(id);
+  }
+
   @Get(':id')
   @RequirePermission('M3', 'contract', 'VIEW')
   findOne(@Param('id') id: string) {
