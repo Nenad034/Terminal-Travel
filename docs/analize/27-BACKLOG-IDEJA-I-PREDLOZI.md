@@ -465,6 +465,7 @@ _(§11, `docs/moduli/M18-operativni-nadzor/19-SPECIFIKACIJA-M18-OPERATIVNI-NADZO
 
 - Dodavanje `VIBER`/`WHATSAPP` kanala obaveštenja.
 - Tačan prag za "neuobičajen skok" po tipu signala — podešava se empirijski u produkciji.
+- **Look-to-Book odnos po provajderu (pretrage na jednu rezervaciju) — meriti, bez praga za sada** (§11, 11.9.2026, potvrda vlasnika). Podaci već postoje u `ProviderCallLog`, niko ih ne deli; `ProviderHealthService` agregira istu tabelu ne razdvajajući vrstu poziva. Prag i sprovođenje `capabilities_profile.rateLimit` (M4 §9 — danas se samo čita) čekaju prvi `ACTIVE` provajder.
 - Konkretan iznos `budget_limit_eur` (globalno i po agentu) i period — poslovna odluka pri implementaciji (§6.5).
 - Da li bezbednosno kritične akcije treba da imaju sopstveni, odvojeni budžet umesto deljenog (§6.5).
 - **Provera "bez modela" liste (§6.2, 11 akcija) pri aktivaciji svakog domenskog agenta** (18.8.2026, na zahtev vlasnika) — pre nego što M5/M7/M10/M14/M20 domenski agent pređe u `ACTIVATED`, proveriti da kod za tu deterministički-opisanu akciju zaista ne poziva jezički model.
