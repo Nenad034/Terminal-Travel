@@ -848,8 +848,8 @@ function BedCombinationsSection({
           </table>
           {draft.beds.shares_bed_max_age == null && (
             <p className="mt-1 text-[10px] text-ink-faint">
-              „Još dele krevet" znači decu bez sopstvenog ležajnog mesta. Da bi se primenilo,
-              popunite „maks. uzrast deteta koje deli krevet" u odeljku Kreveti.
+              „Još dele krevet“ znači decu bez sopstvenog ležajnog mesta. Da bi se primenilo,
+              popunite „maks. uzrast deteta koje deli krevet“ u odeljku Kreveti.
             </p>
           )}
         </div>
