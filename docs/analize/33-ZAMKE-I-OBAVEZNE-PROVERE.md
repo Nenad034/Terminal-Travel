@@ -257,6 +257,12 @@ Brojevi 5.6, 5.7, 5.11–5.14, 9.4 i 12.2 i dalje postoje — nose **drugi** od 
 - _Uzrok:_ `SearchService.buildContractedOffers` poziva `MarkupRuleService.resolveForContracted`, koja **baca** `NotFoundException` kad ne nađe pravilo marže ni na jednom od četiri nivoa (proizvod → period → ugovor → dobavljač, M5 §2.2). Taj izuzetak se nigde ne hvata — u `search.service.ts` nema nijednog `try/catch` — pa izlazi kroz ceo zahtev. Dovoljan je **jedan** objavljen proizvod bez marže da obori pretragu za svakoga ko traži tu destinaciju. Zatečeno na seed podacima: `mock-cap-product-3` (Hotel Budva) je `ACTIVE`, ima ugovor, period i cenu — ali nema marže ni na jednom nivou.
 - _Provera:_ **ispravljeno 9.9.2026, isti dan** (M5 §3.0b.5, vlasnikova odluka): pretraga takav proizvod sada **preskače** i podiže signal `PRODUCT_MISSING_MARKUP` (M18 §2.1), umesto da obori ceo upit — izmereno posle ispravke: isti poziv za Budvu vraća `200` sa 2 hotela, a proizvod bez marže izostaje uz jedan zapis u nadzoru. Preventivna strana je M2 §5.2: proizvod koji već ima ugovor i cenu ne može da se objavi bez marže. **Zamka ostaje** jer uzrok nije strukturno uklonjen — obrazac „potez nad jednim zapisom obara ceo odgovor" postoji svuda gde se izuzetak iz petlje ne hvata; kad pretraga (ili bilo koji spisak) vrati grešku umesto praznog rezultata, prvo se traži **jedan loš zapis**, ne kvar u samoj pretrazi.
 
+**3.16 Novo interno polje na `Product` se ne strip-uje samo zato što je „logično" da je interno**
+
+- _Simptom:_ interna napomena (npr. cena po kojoj smo pregovarali, kritika dobavljača) se pojavi na B2C sajtu ili u B2B portalu, iako niko namerno nije napravio ekran za to.
+- _Uzrok:_ M2 §5.1 briše konkretno nabrojana polja (`source_*`) iz odgovora ka M7/M8/M9-gost preko posebnog javnog serializera — ne generičko pravilo „sve što zvuči interno". Novo polje na `Product` (npr. `sales_notes`/`internal_notes`, M2 v1.29, ili `ProductSupplierLink[]`) se ne strip-uje automatski — mora se **ručno dodati na listu u §5.1** i pokriti e2e testom (isti obrazac kao izlazni kriterijum §8, stavka o `source_*` poljima), inače prolazi kroz serializer neprimećeno.
+- _Provera:_ svaki put kad se doda novo polje na `Product` (ili novi entitet vezan za njega preko FK/weak ref) koje nosi internu informaciju, u ISTOM prolazu proveriti da li ga `/catalog/public/products` vraća — ne pretpostaviti da će "prirodno" ostati skriveno.
+
 ## 4. Obeležavanje AI poteza (cross-modularno)
 
 **4.1 Poreklo AI teksta se mora upisati u trenutku slanja**
