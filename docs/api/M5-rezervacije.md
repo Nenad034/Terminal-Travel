@@ -220,6 +220,35 @@ Polja stavke se prepisuju iz izabranog `SearchResultOffer` (poglavlje 3.0b.3) �
 }
 ```
 
+**Greška — grupa ne staje u sobu (`400`, od 11.9.2026, M5 §3.2a):**
+
+Tri odvojena razloga, sva tri vraćaju `400` i **imenuju konkretan uzrok**. Do ove izmene nijedan od njih nije postojao — stavka je prolazila do cene.
+
+```json
+{
+  "statusCode": 400,
+  "message": "Traženi broj gostiju premašuje kapacitet sobe KAP_1 (M2 spec §2.3a/§2.3b)."
+}
+```
+
+```json
+{
+  "statusCode": 400,
+  "message": "hotel ne dozvoljava kombinaciju 1A_2C u sobi KAP_1 (hotel traži dve odrasle osobe) (M2 spec §2.3g)."
+}
+```
+
+```json
+{
+  "statusCode": 400,
+  "message": "Tip sobe „Deluxe suite\" iz cenovnika ne postoji u katalogu proizvoda 9c07…, pa se kapacitet ne može proveriti. Povežite ga sa tipom sobe iz šifarnika (M3 spec §2.11m) pre prodaje — M5 spec §3.2a."
+}
+```
+
+Poslednji slučaj je **podatak koji nedostaje, ne pogrešan zahtev pozivaoca**: tip sobe iz cenovnika nije povezan sa šifarnikom u katalogu. Ponavljanje istog zahteva neće pomoći — mora se ispraviti veza u M3 (`POST /contracting/.../poklopi-tipove-soba`, M3 §2.11m).
+
+**Isto pravilo u `GET /search` se ponaša drugačije:** ponuda koja ne prođe **ispada iz rezultata** umesto da vrati grešku, jer pretraga vraća ponude, ne objašnjenja. Ako proizvod koji očekujete ne stigne u rezultat, a stiže bez `occupancy`, razlog je gotovo uvek jedan od ova tri.
+
 ### GET /quotes/:id
 
 **Odgovor `200`:**

@@ -10,10 +10,13 @@ import {
   OccupancyInput,
   RoomTypeDefinition,
   AgePolicyEntry,
+  assertRoomCapacity,
 } from '../common/occupancy';
 import { TOLERANCE_MS } from '../common/date-mismatch';
 import { bookingWindowOpen } from '../../m3-ugovaranje-alotmani/contract-periods/day-capacity';
 import { proveriTurnus, vaziZaDan } from '../../m3-ugovaranje-alotmani/pricelist/weekday-coverage';
+import { parseRoomTypes, resolveRoomTypeOrThrow } from '../common/room-types';
+import { assertBedCombinationAllowed } from '../common/bed-fit';
 
 const ROOM_BASED_TYPES = ['ACCOMMODATION', 'PACKAGE'];
 
@@ -360,14 +363,35 @@ export class QuoteItemBuilderService {
     }
 
     const nights = Math.round((stayTo.getTime() - stayFrom.getTime()) / 86_400_000);
-    const roomTypes = ((product.attributes as any)?.roomTypes ??
-      (product.attributes as any)?.room_types ??
-      []) as RoomTypeDefinition[];
-    const roomType = roomTypes.find((r) => r.code === rateLine!.contractPeriod.roomType) ?? {
-      code: rateLine!.contractPeriod.roomType,
-      capacityAdults: 99,
-      capacityChildren: 99,
-    };
+    const roomTypes = parseRoomTypes(product.attributes);
+    // §3.2a + izlazni kriterijum §13 — ovde se, za razliku od pretrage, GRESKA PROPUSTA do
+    // pozivaoca: gost je vec izabrao sobu, pa mora da sazna zasto ne moze, umesto da ponuda tiho
+    // nestane. Do 11.9.2026 je nepoklopljen tip sobe davao kapacitet 99 i prolazio uvek.
+    //
+    // Samo za tipove sa smestajem: sastojak paketa koji je let ili transfer nema tip sobe
+    // (`roomType` mu je `null`) i nema sta da se proverava. Provera van te granice bi odbila
+    // avio-kartu zato sto "nema sobu" -- uhvaceno jedinicnim testom paketa.
+    const jeSmestaj = ROOM_BASED_TYPES.includes(product.type);
+    const roomType = jeSmestaj
+      ? resolveRoomTypeOrThrow(roomTypes, rateLine!.contractPeriod.roomType, product.id)
+      : ({
+          code: rateLine!.contractPeriod.roomType,
+          capacityAdults: 0,
+          capacityChildren: 0,
+        } as ReturnType<typeof resolveRoomTypeOrThrow>);
+    if (jeSmestaj) {
+      for (const room of roomConfig) {
+        assertRoomCapacity(room, roomType);
+        assertBedCombinationAllowed({
+          adults: room.adults,
+          childrenAges: room.childrenAges ?? [],
+          minOccupancy: roomType.minOccupancy,
+          beds: roomType.beds,
+          bedCombinations: roomType.bedCombinations,
+          roomTypeCode: roomType.code,
+        });
+      }
+    }
 
     // §2.11d — cena boravka je ZBIR PO NOĆIMA nad svim redovima iste kombinacije (isti pansion i
     // popunjenost), jer vikend cena stoji kao poseban red. Kad kombinacija ima samo jedan red,

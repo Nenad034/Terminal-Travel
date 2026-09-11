@@ -317,8 +317,13 @@ describe('M21 — izlazni kriterijum (e2e)', () => {
     const generated = await helpSuggestions.generateSuggestions();
     expect(generated).toBeGreaterThanOrEqual(1);
 
+    // Predlog se trazi po ID-jevima pitanja koja su ga izazvala, NE po tekstu nacrta.
+    // `draftBody` pise MODEL kad je `ANTHROPIC_API_KEY` podesen (§5.4) -- da li ce u odgovoru
+    // doslovno ponoviti nasumicnu oznaku teme je stvar slucaja, pa je test bio nedeterministican:
+    // u CI-ju uvek prolazi (tamo kljuca nema, pa rezervni put ispisuje sama pitanja), a lokalno
+    // pada nasumicno. `basedOnQuestionIds` je stabilan identitet i ne zavisi od formulacije.
     const suggestion = await prisma.helpArticleSuggestion.findFirst({
-      where: { draftBody: { contains: topicMarker } },
+      where: { basedOnQuestionIds: { hasSome: createdQuestionIds.slice(-questions.length) } },
       orderBy: { createdAt: 'desc' },
     });
     expect(suggestion).not.toBeNull();

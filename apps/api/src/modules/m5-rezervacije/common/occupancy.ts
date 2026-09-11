@@ -5,6 +5,8 @@ import {
   vaziZaDan,
 } from '../../m3-ugovaranje-alotmani/pricelist/weekday-coverage';
 import { AgeCategory } from '@prisma/client';
+import { BedCombinationOverride } from '../../m2-katalog-proizvoda/products/bed-combinations';
+import { BedsDefinition } from './bed-fit';
 import {
   resolveAgePricing,
   AgePricingCandidate,
@@ -37,9 +39,16 @@ export interface AgePolicyEntry {
 
 export interface RoomTypeDefinition {
   code: string;
+  name?: string | null;
   capacityAdults: number;
   capacityChildren: number;
+  /** M2 §2.3a — donja granica broja gostiju; ulazi u izvodjenje matrice kombinacija (§2.3g). */
+  minOccupancy?: number | null;
   agePolicy?: AgePolicyEntry[];
+  /** M2 §2.3b — kreveti; bez njih se raspored ne moze proveriti, pa provera otpada, ne prolazi. */
+  beds?: BedsDefinition | null;
+  /** M2 §2.3g — SAMO odstupanja od izvedene matrice; prazno znaci "sve dozvoljeno". */
+  bedCombinations?: BedCombinationOverride[] | null;
 }
 
 // M2 spec §2.3b — "podrazumevana politika (fallback)" kad room_types[] stavka nema

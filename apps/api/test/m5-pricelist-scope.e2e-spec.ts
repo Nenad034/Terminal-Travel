@@ -264,7 +264,26 @@ describe('M3 §2.11d/§2.11e/§2.11i/§2.11k — domet cenovnika u prodaji (e2e)
         destinationCountry: 'ME',
         destinationCity: 'Budva',
         status: 'ACTIVE',
-        attributes: {},
+        attributes: {
+          // M5 §3.2a — tip sobe iz cenovnika mora postojati u katalogu, inače se kapacitet ne
+          // može proveriti i `POST /quotes` odbija stavku (M3 §2.11m).
+          room_types: [
+            {
+              code: 'Budget double room',
+              name: 'Budget double',
+              capacity_adults: 4,
+              capacity_children: 2,
+              beds: { base_beds: 4, extra_beds_max: 2 },
+            },
+            {
+              code: 'Deluxe suite',
+              name: 'Deluxe suite',
+              capacity_adults: 4,
+              capacity_children: 2,
+              beds: { base_beds: 4, extra_beds_max: 2 },
+            },
+          ],
+        },
         translations: {
           create: [
             { languageCode: 'sr', name: 'Hotel Doplate', description: 'o', slug: `hd-sr-${uid}` },
@@ -440,7 +459,19 @@ describe('M3 §2.11d/§2.11e/§2.11i/§2.11k — domet cenovnika u prodaji (e2e)
         destinationCountry: 'ME',
         destinationCity: 'Budva',
         status: 'ACTIVE',
-        attributes: {},
+        attributes: {
+          // M5 §3.2a — tip sobe iz cenovnika mora postojati u katalogu, inače se kapacitet ne
+          // može proveriti i `POST /quotes` odbija stavku (M3 §2.11m).
+          room_types: [
+            {
+              code: `MRZ_${uid}`,
+              name: 'Standardna soba',
+              capacity_adults: 4,
+              capacity_children: 2,
+              beds: { base_beds: 4, extra_beds_max: 2 },
+            },
+          ],
+        },
         translations: {
           create: [
             { languageCode: 'sr', name: 'Hotel Marza', description: 'o', slug: `hm-sr-${uid}` },
@@ -607,7 +638,19 @@ describe('M3 §2.11d/§2.11e/§2.11i/§2.11k — domet cenovnika u prodaji (e2e)
         destinationCountry: 'ME',
         destinationCity: 'Budva',
         status: 'ACTIVE',
-        attributes: {},
+        attributes: {
+          // M5 §3.2a — tip sobe iz cenovnika mora postojati u katalogu, inače se kapacitet ne
+          // može proveriti i `POST /quotes` odbija stavku (M3 §2.11m).
+          room_types: [
+            {
+              code: `PRV_${uid}`,
+              name: 'Standardna soba',
+              capacity_adults: 4,
+              capacity_children: 2,
+              beds: { base_beds: 4, extra_beds_max: 2 },
+            },
+          ],
+        },
         translations: {
           create: [
             { languageCode: 'sr', name: 'Hotel Provizija', description: 'o', slug: `hp-sr-${uid}` },
@@ -782,7 +825,19 @@ describe('M3 §2.11d/§2.11e/§2.11i/§2.11k — domet cenovnika u prodaji (e2e)
         destinationCountry: 'ME',
         destinationCity: 'Budva',
         status: 'ACTIVE',
-        attributes: {},
+        attributes: {
+          // M5 §3.2a — tip sobe iz cenovnika mora postojati u katalogu, inače se kapacitet ne
+          // može proveriti i `POST /quotes` odbija stavku (M3 §2.11m).
+          room_types: [
+            {
+              code: `TRN_${uid}`,
+              name: 'Standardna soba',
+              capacity_adults: 4,
+              capacity_children: 2,
+              beds: { base_beds: 4, extra_beds_max: 2 },
+            },
+          ],
+        },
         translations: {
           create: [
             { languageCode: 'sr', name: 'Hotel Turnus', description: 'o', slug: `ht-sr-${uid}` },

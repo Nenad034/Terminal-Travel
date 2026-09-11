@@ -103,6 +103,22 @@ Tražio si četiri podatka: dobavljača, nabavnu cenu, maržu i izlaznu cenu. Ma
 
 **4. Ko sme.** Uslugu dodaje **isključivo interni tim**, i na rezervacijama subagenata — tvoja odluka. Subagent svoju rezervaciju vidi i sme da je otkaže, ali uslugu mu dodaje agencija. To nije stvar dozvole koja se može dodeliti: poziv iz subagentskog kanala se odbija bez obzira na prava.
 
+## Sistem od danas proverava da li gosti stvarno staju u sobu (11.9.2026)
+
+Do danas nije. Postojala je funkcija koja to ume, napisana i pokrivena testovima — ali je **niko nije pozivao**. Četvoro ljudi u dvokrevetnoj sobi prolazilo je bez ijedne reči, sve do potvrde rezervacije.
+
+Sada se pri sastavljanju ponude proveravaju tri stvari: staje li grupa u kapacitet sobe, dozvoljava li hotel baš tu podelu gostiju po krevetima (tabela koju si juče dobio u katalogu), i nije li dete starije nego što hotel dozvoljava za pomoćni ležaj.
+
+**Pretraga i ponuda se ponašaju različito, namerno.** U pretrazi hotel koji ne prima tu grupu jednostavno **ne bude ponuđen** — pretraga vraća ponude, ne objašnjenja. Kad prodavac već izabere sobu i pravi ponudu, dobija **punu poruku zašto ne može**, sa imenom kombinacije i napomenom koju je neko uneo.
+
+## Dve tihe greške koje su usput nađene i popravljene
+
+**Prva: kapacitet je bio nevidljiv sistemu.** Podaci o sobi stoje u bazi pod imenima sa donjom crtom (`capacity_adults`), a kod ih je tražio pod imenima bez nje (`capacityAdults`). Ništa nije pucalo — kod je jednostavno dobijao „nema vrednosti", a poređenje sa „nema vrednosti" uvek ispadne kao da je sve u redu. Izmerio sam: **225 soba u bazi, nijedna jedina nije bila čitljiva na taj način.** Da sam samo uključio proveru bez ove ispravke, dobio bi proveru koja izgleda kao da radi, a nikad ništa ne odbija.
+
+**Druga: kad se tip sobe ne pronađe, kapacitet je postajao 99.** To nije bila podrazumevana vrednost sa smislom nego broj izabran da ništa ne padne — praktično isto kao da provere nema. Sada je to jasno odbijanje sa porukom koja imenuje šifru koja nedostaje.
+
+**Ovo ima cenu koju treba da znaš unapred.** Izmereno na tvojim podacima: **18 od 249 aktivnih perioda smeštaja (7%) od sada neće ulaziti u prodaju** dok im se tip sobe ne poveže sa šifarnikom iz kataloga. Do sada su se prodavali sa pretpostavljenim kapacitetom — što znači da su se mogli prodati i gostima koji u tu sobu ne staju. Povezivanje se radi na ekranu ugovora, a od juče uvoz cenovnika to radi sam.
+
 ## Šta još čeka (namerno, ne propust)
 
 **Dva poznata nedostatka iz dopune od 3.9.2026, oba upisana da se ne izgube:**

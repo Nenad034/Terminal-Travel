@@ -147,7 +147,20 @@ describe('M16 — izlazni kriterijum (e2e)', () => {
         destinationCity: 'Kopaonik',
         status: 'ACTIVE',
         visibleChannels: ['B2C_SITE'],
-        attributes: { stars: 4 },
+        attributes: {
+          stars: 4,
+          // M2 §2.3a/§2.3b — tip sobe MORA postojati u katalogu da bi se kapacitet mogao
+          // proveriti (M5 §3.2a). Bez ovoga `POST /quotes` odbija stavku, i to ispravno.
+          room_types: [
+            {
+              code: 'STD',
+              name: 'Standardna soba',
+              capacity_adults: 4,
+              capacity_children: 2,
+              beds: { base_beds: 4, extra_beds_max: 2 },
+            },
+          ],
+        },
         translations: {
           create: [
             {

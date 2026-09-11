@@ -14,6 +14,7 @@ import {
   computeRoomBaseCostPoNocima,
   OccupancyInput,
   RoomTypeDefinition,
+  assertRoomCapacity,
 } from '../common/occupancy';
 import { TOLERANCE_MS } from '../common/date-mismatch';
 import {
@@ -30,6 +31,8 @@ import {
   SearchResultProduct,
 } from './search-result.types';
 import { SearchChannel } from './dto/search-query.dto';
+import { parseRoomTypes, resolveRoomTypeOrThrow } from '../common/room-types';
+import { assertBedCombinationAllowed } from '../common/bed-fit';
 
 export interface SearchParamsInput {
   type?: ProductType[];
@@ -516,9 +519,7 @@ export class SearchService {
     });
 
     const roomsRequested = params.occupancy?.roomConfig?.length ?? 1;
-    const roomTypes = ((product.attributes as any)?.roomTypes ??
-      (product.attributes as any)?.room_types ??
-      []) as RoomTypeDefinition[];
+    const roomTypes = parseRoomTypes(product.attributes);
     const offers: SearchResultOffer[] = [];
 
     for (const period of periods) {
@@ -573,11 +574,27 @@ export class SearchService {
         const needsRoomCalc = ROOM_BASED_TYPES.includes(product.type) && params.occupancy;
         if (needsRoomCalc) {
           const roomConfig = assertRoomConfigMatchesTotals(params.occupancy!);
-          const roomType = roomTypes.find((r) => r.code === period.roomType) ?? {
-            code: period.roomType,
-            capacityAdults: 99,
-            capacityChildren: 99,
-          };
+          // §3.2a + izlazni kriterijum §13 — nepoznat tip sobe, prekoracen kapacitet i
+          // nedozvoljen raspored po krevetima ne smeju proci. U PRETRAZI takva ponuda ISPADA
+          // (kao i ponuda bez cene nize u istom `try`), jer pretraga vraca ponude, ne
+          // objasnjenja; puna poruka stize pri sastavljanju ponude, gde je gost vec izabrao.
+          let roomType: RoomTypeDefinition;
+          try {
+            roomType = resolveRoomTypeOrThrow(roomTypes, period.roomType, product.id);
+            for (const room of roomConfig) {
+              assertRoomCapacity(room, roomType);
+              assertBedCombinationAllowed({
+                adults: room.adults,
+                childrenAges: room.childrenAges ?? [],
+                minOccupancy: roomType.minOccupancy,
+                beds: roomType.beds,
+                bedCombinations: roomType.bedCombinations,
+                roomTypeCode: roomType.code,
+              });
+            }
+          } catch {
+            continue;
+          }
           const od = new Date(params.stayFrom!);
           const doDatum = new Date(params.stayTo!);
           try {
@@ -757,9 +774,7 @@ export class SearchService {
           },
         });
 
-        const roomTypes = ((component.attributes as any)?.roomTypes ??
-          (component.attributes as any)?.room_types ??
-          []) as RoomTypeDefinition[];
+        const roomTypes = parseRoomTypes(component.attributes);
         let best: { finalPrice: number; period: (typeof periods)[number] } | null = null;
 
         for (const period of periods) {
@@ -792,11 +807,25 @@ export class SearchService {
             let baseCost: number;
             if (isRoomBased && params.occupancy) {
               const roomConfig = assertRoomConfigMatchesTotals(params.occupancy);
-              const roomType = roomTypes.find((r) => r.code === period.roomType) ?? {
-                code: period.roomType,
-                capacityAdults: 99,
-                capacityChildren: 99,
-              };
+              // Isto kao iznad, ali za sastojak paketa: sastojak koji ne prima trazenu grupu
+              // ispada, pa se paket sastavlja od ostalih ili ne nastane.
+              let roomType: RoomTypeDefinition;
+              try {
+                roomType = resolveRoomTypeOrThrow(roomTypes, period.roomType, component.id);
+                for (const room of roomConfig) {
+                  assertRoomCapacity(room, roomType);
+                  assertBedCombinationAllowed({
+                    adults: room.adults,
+                    childrenAges: room.childrenAges ?? [],
+                    minOccupancy: roomType.minOccupancy,
+                    beds: roomType.beds,
+                    bedCombinations: roomType.bedCombinations,
+                    roomTypeCode: roomType.code,
+                  });
+                }
+              } catch {
+                continue;
+              }
               baseCost = roomConfig.reduce(
                 (sum, room) =>
                   sum +
