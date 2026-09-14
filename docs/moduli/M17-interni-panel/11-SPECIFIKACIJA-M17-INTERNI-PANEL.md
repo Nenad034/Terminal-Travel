@@ -4,6 +4,8 @@
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje
 
+**Verzija:** 2.75 — **akcije pred istek na radnom spisku i u odobravanju objave** (14.9.2026, na predlog vlasnika; izvor M3 v1.43 §4.9, M12 v1.7 §3d, M7 v1.13 §5b). Dve dopune, bez novog ekrana: (1) radni spisak kapaciteta (§4b, stanje 1) dobija red „akcija ističe za N dana" sa dugmetom „video" (`POST /pricelist/expiry-notices/:id/acknowledge`); (2) ekran `/marketing/:id` za nacrt nastao iz akcije prikazuje rok rezervacije **kao datum**, kanal `B2B_SUBAGENTS` i prekidač publike `b2b_audience` (samo dodeljeni / svi aktivni) — to je jedini klik koji čovek mora da napravi pre odobrenja, i zato stoji na vrhu, ne u dnu forme. Specifikacija bez koda.
+
 **Verzija:** 2.74 — **ekran „Cenovnik hotela" — mreža umesto trideset ekrana** (9.9.2026, vlasnikov nalaz nad postojećim ekranom za unos cena: _„Previše zbrkano, nedostaju polja"_). Novo poglavlje **6d**. Uzrok nije bio model nego **jedinica ekrana**: postojeći `/ugovori/:id/periods/:periodId` prikazuje jedan period — jedan tip sobe i jedan datumski opseg (naslov mu je bukvalno `DBL — period`), pa hotel sa 5 soba i 6 sezona traži 30 poseta. Provera nad **58 stvarnih cenovnika** iz `Primeri cenovnika/` pokazuje da nijedan dobavljač tako ne piše cenovnik — svuda su tipovi soba redovi, sezone kolone. Četiri ekrana na jednoj strani: mreža cena, doplate i popusti, marža i provizija po stavci, kalendar. Sedam pravila, od kojih tri najvažnija: **osnova cene je osobina reda** (u istom hotelu jedna soba po osobi, druga po sobi — Aycon to doslovno radi), **vikend je skup dana biranih tagovima** a ne fiksna podela, uz proveru da je svaki dan pokriven tačno jednom, i **cena se kuca kao `89,50`, ne kao `8950`** (postojeća forma nosi natpis „u najmanjoj jedinici valute ugovora" — unutrašnji format baze koji je procureo na ekran). Kapaciteta na ovom ekranu nema (vlasnikova odluka — ide po sopstvenim datumima). Peti ekran: **izmena cenovnika rečima** (M3 §4.8), gde „ništa još nije primenjeno" stoji iznad spiska, a rečenica koja je izmenu tražila ostaje uz rezultat. Model i odluke: M3 §2.11. Mockup: `04-MOCKUP-UNOS-CENOVNIKA-MREZA.html`.
 
 **Verzija:** 2.73 — **ekran „Uvoz cenovnika (AI)"** (9.9.2026, na vlasnikovo pitanje gde se cene unose uz pomoć AI agenta). Novo poglavlje **6c**. Backend tok je postojao, ali ekrana nije bilo nigde — pretraga po „pricelist" kroz ceo panel davala je nula pogodaka, a stavke nije bilo ni u navigaciji. Dva ekrana: spisak uvoza sa statusom i **razlogom neuspeha odmah u redu**, i pregled redova sa iznosom, periodom i **ocenom poklapanja hotela u procentima**. Tri pravila koja ekran sprovodi: „ništa još nije upisano" stoji pre redova; red bez poklopljenog hotela ili bez prepoznate osnove cene se ne može potvrditi (dugme onemogućeno, uz razlog); izvorni tekst stoji uz rezultat, jer je bez njega nemoguće utvrditi da li je AI pogrešio ili je tako pisalo. Uvoz i ekstrakcija su namerno **dva poziva**, pa neuspeh modela ostavlja zapis sa razlogom i mogućnost ponovnog pokušaja nad istim tekstom.
@@ -514,7 +516,7 @@ Drugi deo istog nalaza: _„ne dopada mi se da nije sve na jednom mestu od kreir
 
 **Odluka: ekran ima dva stanja, i oba su radna.**
 
-**1) Radni spisak (početno stanje, bez pretrage).** Samo ono što traži pažnju danas — prekoračeni kapaciteti, blokade kojima ističe rok, stop-sale koji se sutra otvara, rokovi povrata koji dolaze, tipovi soba sa 0–2 preostale jedinice u narednih 30 dana. To je posao koji operativa radi ujutru, i obično je 10–30 redova. Podaci: `GET /contracting/capacity/work-queue` (M3 §6).
+**1) Radni spisak (početno stanje, bez pretrage).** Samo ono što traži pažnju danas — prekoračeni kapaciteti, blokade kojima ističe rok, stop-sale koji se sutra otvara, rokovi povrata koji dolaze, tipovi soba sa 0–2 preostale jedinice u narednih 30 dana, i **akcije kojima ističe rok za rezervaciju** (rani buking, 7=6, popust — M3 §4.9, prag 15 dana): red kaže hotel, vrstu akcije i „ističe 30.9. (za 12 dana)", nudi „video" (nestaje sa spiska) i „otvori cenovnik" (M17 §6d, da se produžena akcija unese kao nova stavka). To je posao koji operativa radi ujutru, i obično je 10–30 redova. Podaci: `GET /contracting/capacity/work-queue` (M3 §6).
 
 Prazan radni spisak je **dobra vest i mora tako da izgleda** — ispisuje se rečenicom („Ništa ne traži pažnju danas"), ne praznim ekranom koji se čita kao kvar (zamka 7.2).
 
@@ -870,6 +872,16 @@ Pošto M17 raste sa fazama, izlazni kriterijum je vezan za svaku fazu, ne za jed
 - [ ] Glasovni upit preko mikrofona daje identičan rezultat kao isti tekst otkucan ručno, sa naglas pročitanim odgovorom (poglavlje 5.5, M15 poglavlje 6.6). **Čeka M15** — isti razlog kao stavka iznad, nije implementirano u ovom prolazu.
 
 ---
+
+## 7a. Nacrt objave nastao iz akcije pred istek (dopuna v2.75, 14.9.2026)
+
+Ekran `/marketing/:id` je isti kao za svaki drugi nacrt (Faza 6, poglavlje 7), sa tri razlike kad je `ContentPiece.source_offer_id` popunjen (M12 §3d):
+
+1. **Na vrhu, pre teksta:** traka „Akcija ističe **30.9.2026** — objava posle tog datuma neće izaći" — rok kao datum, nikad kao „za N dana" (M3 §4.9.3). Ako je rok već prošao, traka je crvena i dugme „Odobri" je ugašeno sa tim razlogom.
+2. **Prekidač publike subagenata** uz kanal `B2B_SUBAGENTS`: „samo subagenti kojima je hotel dodeljen" / „svi aktivni subagenti" (`b2b_audience`, pravilo i podrazumevana vrednost M7 §5b.1), sa brojem primalaca uživo (`GET /b2b/notice-recipients`) — čovek vidi „ide na 4 partnera" pre nego što klikne. Ovo je jedina odluka koju sistem ne može da donese sam (vlasnik: „zavisi od vrste akcije"), pa stoji odmah ispod trake sa rokom, ne u dnu.
+3. **`EMAIL` gostima nije uključen** podrazumevano (M12 §3d) — prekidač postoji, ali je isključen, sa napomenom zašto.
+
+Odobravanje ostaje isto dugme i ista dozvola (`M12/content/APPROVE_PUBLISH`).
 
 ## 8. Otvoreno za dalje
 

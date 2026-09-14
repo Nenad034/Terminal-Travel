@@ -42,6 +42,16 @@ Kad krajnji B2C gost kupuje direktno, može imati popust zbog programa lojalnost
 - **AI agent koji sam razgovara sa subagentom i rezerviše u njegovo ime** (poglavlje 2.0.4 specifikacije) — ovo čeka M15 (AI agentska orkestracija), modul koji još nije napravljen. Kad dođe na red, subagent će moći kroz razgovor da traži ponude i rezerviše, uz dva nivoa provere (subagent uvek mora sam da potvrdi, a veće iznose dodatno pregleda vaš tim).
 - **Univerzalna pretraga** (kucanje pitanja umesto klikanja kroz meni) — isto čeka M15.
 
+## Prvi put agencija nešto šalje subagentu (dodato 14.9.2026, na vaš predlog — specifikacija, kod još nije napisan)
+
+Do sada je portal radio samo u jednom smeru: subagent dođe, traži, rezerviše. Nije postojao način da mu mi nešto javimo. Prvi takav slučaj je **akcija koja ističe** — kad ranom bukingu ili popustu ostane 7 dana, subagenti dobiju obaveštenje na portalu (sa brojem nepročitanih u gornjoj traci) i na mejl, a klik ih vodi pravo na pretragu tog hotela za taj period — obaveštenje bez puta do rezervacije bi bilo samo šum.
+
+**Kome ide — vi ste rekli „zavisi od vrste akcije".** Zato postoji prekidač sa dve vrednosti koji čovek bira kad odobrava objavu: **samo subagentima kojima je taj hotel dodeljen** (oni koji ga ionako vide u svojoj ponudi) ili **svima aktivnim** (kad je važno da se rasproda). Sistem predloži prvo ako hotel ima dodele, drugo ako nema — ali odluka je vaša, jednim klikom, uz prikaz „ide na 4 partnera" pre potvrde.
+
+**Šta subagent vidi u poruci:** vrstu akcije i popust („−15 %"), do kad se rezerviše, period boravka. **Šta nikad ne vidi:** našu nabavnu cenu, ime dobavljača, koliko soba imamo, ni to da su i drugi partneri dobili istu poruku. Cenu za sebe (posle svoje provizije) vidi tek kad klikne — jedan tekst za sve partnere ne može da nosi cenu koja je svakom drugačija.
+
+Mejl subagentu **ne traži pristanak za marketing** kao mejl gostu — ovo je poslovna poruka ugovornom partneru o robi koju on prodaje, ne reklama fizičkom licu. Ako neki partner ipak ne želi te mejlove, gasi mu se po nalogu; obaveštenje na portalu ostaje.
+
 ---
 
 _Za tehničke detalje (tačna imena polja, redosled provera, API pozivi) vidi `12-SPECIFIKACIJA-M7-B2B-SUBAGENTI.md` u istom folderu i `docs/api/M7-b2b-subagenti.md` — ovaj dokument je namerno pojednostavljen, ne zamenjuje ih._

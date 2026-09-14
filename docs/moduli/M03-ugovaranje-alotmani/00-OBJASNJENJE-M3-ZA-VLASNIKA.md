@@ -351,6 +351,19 @@ Broj i tekst se ne poklapaju nikad.
 
 **Šta ovo još ne radi.** Sama provera kapaciteta u prodaji **i dalje nije uključena** — funkcija postoji i testirana je, ali je niko ne poziva. Ovaj prolaz je napravio most bez kog ta provera ne bi mogla da radi ni kad se uključi. Uključivanje je sledeći korak.
 
+## Akcija koja ističe više ne prolazi neprimećeno (dodato 14.9.2026, na vaš predlog — specifikacija, kod još nije napisan)
+
+Do sada je sistem znao da rani buking važi „za rezervacije do 30.9." i od 9.9. je odbijao da tu cenu proda posle tog datuma. Ali niko nije gledao unapred — akcija bi tiho istekla, a sa njom i prilika da se proda još deset soba.
+
+Sad sistem svako jutro prođe kroz sve akcije koje donose nižu cenu (rani buking, „7 = 6", popust sa rokom, kao i običnu cenu koja posle nekog datuma prelazi u skuplju) i računa koliko je dana ostalo:
+
+- **Na 15 dana** se pojavi red u jutarnjem radnom spisku kapaciteta: „Hotel X, rani buking −15 %, ističe 30.9." — da ugovarač pozove hotel i pita da li produžava ili sledi drugi krug, **pre** nego što se bilo šta reklamira. Kad ga vidi, klikne „video" i red nestane.
+- **Na 7 dana** sistem sam napravi **nacrt objave** za Facebook/Instagram i obaveštenje subagentima (vidi M12 i M7 objašnjenja). Nacrt, ne objavu — objavljuje ga čovek, kad ga pročita i odobri. Ovo ste sami odredili: „AI nacrt — čovek odobrava".
+
+Tri stvari sistem **neće** uraditi: neće najaviti akciju za hotel koji nije objavljen u katalogu, neće je najaviti ako je period već rasprodat (reklama za nešto što ne može da se kupi je gore nego nikakva), i neće je najaviti dvaput — jednom po akciji, i gotovo. Ako hotel produži akciju, to je nova stavka sa novim rokom i dobiće svoje obaveštenje kad dođe red.
+
+Pragovi od 15 i 7 dana su upisani kao podešavanje, ne ukucani u kod, ali ekran za njihovu izmenu nije pravljen — vi ste dali fiksne brojeve, i dok se ne pokaže potreba da se menjaju, ekran bi bio višak.
+
 ---
 
 _Za tehničke detalje (tačna imena polja, redosled provera, API pozivi) vidi `04-SPECIFIKACIJA-M3-UGOVARANJE-ALOTMANI.md` u istom folderu i `docs/api/M3-ugovaranje-alotmani.md` — ovaj dokument je namerno pojednostavljen, ne zamenjuje ih._

@@ -187,6 +187,7 @@ _(§9, `docs/moduli/M02-katalog-proizvoda/03-SPECIFIKACIJA-M2-KATALOG-PROIZVODA.
 
 _(§8, `docs/moduli/M03-ugovaranje-alotmani/04-SPECIFIKACIJA-M3-UGOVARANJE-ALOTMANI.md`)_
 
+- **Akcija pred istek — dva praga, dve publike** (M3 §4.9, v1.43, 14.9.2026, vlasnikov predlog) — specifikovano, **čeka kod**: 15 dana → radni spisak, 7 dana → `pricelist.offer.expiring` za M12 §3d i M7 §5b. Otvoreno u §8: ekran za pragove (nema ga namerno), prag po vrsti akcije (last minute sa kratkim rokom).
 - **Da li `SupplierPriority`/`HotelSourcePreference` treba da čitaju M2 `ProductSupplierLink.is_enabled`** (§2.10h, 11.9.2026, M3 v1.42) — M2 od v1.29 dozvoljava više ugovora na jednom proizvodu; ovo poglavlje već poredi ponude više dobavljača za isti hotel, ali bez te pretpostavke. Vidi M2 §9.
 - **Šta znači „1. dete“ — `child_counting_basis` i `child_order`** (§2.4a, 10.9.2026) — dva polja na `ContractPeriod` specificirana sa potvrđenim podrazumevanim vrednostima („sva deca zajedno“, „starije prvo“), nisu implementirana. Do tada redni broj deteta dolazi iz redosleda kojim su godine ukucane, pa ista porodica može dobiti dve cene.
 - ~~Panel ekran za pojedinačan ugovor/period ne postoji~~ — **rešeno 29.8.2026**: `ugovori/[id]/page.tsx` (detalj ugovora + unos perioda, uključujući `age_policy_override`) i `ugovori/[id]/periods/[periodId]/page.tsx` (`RateLine`/`CancellationRule`). Napomena: backend `PUT .../rates` i `.../cancellation-rules` uvek KREIRAJU novu stavku (nema izmene/brisanja postojeće po ID-ju) — panel prati isti oblik, izmena/brisanje pojedinačne stavke ostaje otvoreno ako se pokaže potreba. `age_pricing[]` po redu cenovnika (§2.4a) ostaje API-only.
@@ -319,6 +320,7 @@ _(§11, `docs/moduli/M06-crm/09-SPECIFIKACIJA-M6-CRM.md`)_
 
 _(§13, `docs/moduli/M07-b2b-subagenti/12-SPECIFIKACIJA-M7-B2B-SUBAGENTI.md`)_
 
+- **Obaveštenje subagentima o akciji pred istek** (M7 §5b, v1.13, 14.9.2026) — specifikovano, **čeka kod** (zajedno sa M3 §4.9 i M12 §3d): ruta `/b2b/obavestenja`, `GET /notices`, `GET /notice-recipients`, `Subagent.offer_notices_by_email`.
 - **Ugovor za subagenta u dve varijante** (9.9.2026, uz M3 v1.27) — sa prikazanom provizijom (za subagenta) i bez nje (za njegovog kupca). Vlasnik potvrdio: razlika je **samo u izostavljenoj proviziji**, dakle jedan šablon sa dva ispisa.
 - **Da li subagent vidi da na nekoj stavci provizije nema** (9.9.2026, M3 §2.11i) — **obračun je od 9.9.2026. povezan** (M5 `QuotesService.create` primenjuje izuzetak po stavci, M3 v1.31 / M5 v2.33), pa subagent dobija tačan iznos; ostaje otvoreno **prikazivanje obrazloženja** — `Provizija.izvor` (koji domet je odlučio) postoji u obračunu, ali se nigde ne prikazuje, pa subagent vidi samo krajnji iznos. Čeka portal frontend.
 - Da li agencija treba mogućnost direktne intervencije u proviziji sub-subagenta u sporovima.
@@ -395,6 +397,7 @@ _(§7, `docs/moduli/M11-compliance/08-SPECIFIKACIJA-M11-COMPLIANCE.md`)_
 
 _(§9, `docs/moduli/M12-marketing/15-SPECIFIKACIJA-M12-MARKETING.md`)_
 
+- **Akcija pred istek → nacrt objave, kanal `B2B_SUBAGENTS`** (M12 §3d, v1.7, 14.9.2026) — specifikovano, **čeka kod**: drugi okidač pored `product.published`; nova polja `offer_booking_to`/`source_offer_id`/`b2b_audience`, status `EXPIRED`; M17 §7a za ekran.
 - Ožičiti `ContentTranslation` na deljeni M15 `TranslationService` (M15 spec poglavlje 6.7, dodato 18.8.2026) — polje `translation_source=AI_GENERATED` već postoji, mehanizam koji ga stvarno puni za nove jezike još ne. M23 je prvi stvaran potrošač (poglavlje 4e tog dokumenta); M12 čeka da se taj obrazac uživo proveri.
 - Tačan izbor društvenih mreža/kanala za lansiranje — potvrditi pre implementacije adaptera.
 - Ako se pronađe raniji "Content Engine" predlog pomenut u Master dokumentu, uporediti i uskladiti.

@@ -50,6 +50,17 @@ U praksi to znači: ako neko označi da objava sadrži AI-generisanu sliku (za r
 - **Prava Facebook/Instagram konekcija** — trenutno je to "probna verzija" koja samo beleži šta bi bilo objavljeno; treba odlučiti tačno koje mreže i sa kojim nalogom pre nego što krene stvarna objava.
 - **Merenje uspešnosti objava** (koliko je ljudi videlo/kliknulo na Facebook-u, koliko je mejlova otvoreno) — namerno van obima za sad; ono što M12 danas radi je samo "da li je rezervacija stigla od ove objave", ne "koliko je objava bila popularna".
 
+## Drugi okidač: akcija koja ističe (dodato 14.9.2026, na vaš predlog — specifikacija, kod još nije napisan)
+
+Do sada je sistem sam pravio nacrt objave u jednom slučaju — kad se nov proizvod objavi u katalogu. Sad postoji i drugi: kad ranom bukingu, „7 = 6" ili popustu ostane **7 dana** do isteka, M3 (ugovaranje) javi marketingu i AI napravi nacrt: „Poslednja prilika za rani buking u hotelu X, −15 %, rezervacije do 30.9." Nacrt čeka u kalendaru kao i svaki drugi — čovek ga pročita, po potrebi prepravi, i odobri.
+
+Nekoliko sitnica koje su namerno tako postavljene:
+
+- **U tekstu uvek stoji datum, nikad „još 7 dana"** — nacrt se odobrava možda dva dana kasnije, i „još 7 dana" bi tad bila laž.
+- **Podrazumevano ide na Facebook, Instagram i subagentima.** Mejl gostima nije uključen sam od sebe — kad bi svaki istek akcije išao gostima na mejl, za mesec dana bi to bio spam. Čovek ga uključi kad proceni da vredi.
+- **Ako akcija istekne pre zakazane objave, objava ne izlazi.** Sistem to proveri u poslednjem trenutku i stavi sadržaj na stranu, umesto da objavi reklamu za nešto čega više nema.
+- **Jedan poziv AI modela po akciji**, za sve jezike i kanale odjednom — ne troši se budžet po kanalu.
+
 ---
 
 _Za tehničke detalje (tačna imena polja, redosled provera, API pozivi) vidi `15-SPECIFIKACIJA-M12-MARKETING.md` u istom folderu i `docs/api/M12-marketing.md` — ovaj dokument je namerno pojednostavljen, ne zamenjuje ih._
