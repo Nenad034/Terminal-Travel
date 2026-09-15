@@ -20,7 +20,7 @@ M4 ima dve odvojene grupe endpointa, sa vrlo različitim posledicama:
 
 **Verzija podataka u primerima:** oblici odgovora su izvedeni iz koda adaptera i modela podataka. Za razliku od M1/M2/M3, ovde **nijedan odgovor nije uhvaćen stvarnim pozivom** — u bazi nema nijedne konfiguracije provajdera (`GET /providers` vraća `[]`), a pozivanje pravih provajdera zahteva kredencijale kojih nema. To je izričito označeno umesto da se izmisli primer.
 
-> **Dopuna 15.9.2026 — Travelgate.** Vlasnik je proveo Olympic Travel kroz zvaničnu TravelgateX HotelX sertifikaciju (`app.travelgate.com/onboarding-implementation`) i time dobio 27 **stvarnih, uživo snimljenih** GraphQL poziva (`docs/moduli/M04-integracije-api/referentni-materijal/travelgatex-certification-samples/`). To je prava šema koju TravelgateX stvarno vraća — ali **različita je** od šeme koju `travelgate.adapter.ts`/`travelgate.graphql.ts` danas pretpostavljaju (M4 spec §5, verzija 1.17: nedostaju `settings`/`filterSearch`/`rooms[]`, tražena su polja koja ne postoje, `cancellationPolicy` mapiranje se oslanja na podatak koji provajder ne vraća). Primeri ispod za `travelgate` zato **ostaju izvedeni iz koda, namerno nisu zamenjeni** stvarnim GraphQL primerima — to bi predstavilo neproveren, verovatno pogrešan REST oblik kao da je potvrđen. Za stvaran wire-format Travelgate poziva (dijagnostika adaptera, ne ovaj dokument) koristiti pomenuti folder direktno.
+> **Dopuna 15.9.2026 — Travelgate.** Vlasnik je proveo Olympic Travel kroz zvaničnu TravelgateX HotelX sertifikaciju (`app.travelgate.com/onboarding-implementation`) i time dobio 27 **stvarnih, uživo snimljenih** GraphQL poziva (`docs/moduli/M04-integracije-api/referentni-materijal/travelgatex-certification-samples/`). Poređenje sa kodom je prvo otkrilo da `travelgate.adapter.ts`/`travelgate.graphql.ts` ne odgovaraju toj šemi (M4 spec v1.17) — **adapter je otad revidiran (v1.18)** i sad govori istim jezikom kao stvarni TravelgateX (`settings`/`filterSearch` se šalju, polja se poklapaju, `optionRefId` se ispravno prenosi kroz search→quote→book). Primeri ispod za `travelgate` **i dalje ostaju izvedeni iz koda**, ne iz stvarnog poziva kroz M4 — jer nijedan `ProviderConfig` ne postoji u bazi (isti razlog kao za sva tri provajdera, red iznad), pa REST/normalizovan odgovor još nije snimljen. Za stvaran wire-format Travelgate GraphQL poziva (dijagnostika adaptera, ne ovaj dokument) koristiti pomenuti folder direktno.
 
 ---
 
@@ -44,7 +44,13 @@ Dozvola: `M4/provider-config/CREATE`.
   "displayName": "TravelgateX",
   "category": "HOTEL",
   "authStrategy": "API_KEY",
-  "authConfig": { "endpoint": "https://api.travelgate.example/graphql", "apiKey": "..." },
+  "authConfig": {
+    "endpoint": "https://api.travelgate.com",
+    "apiKey": "...",
+    "client": "...",
+    "testMode": false,
+    "accessIncludes": ["2"]
+  },
   "capabilitiesProfile": { "supportsChildAges": true },
   "timeoutSearchMs": 8000,
   "timeoutBookingMs": 20000,
@@ -60,7 +66,7 @@ Dozvola: `M4/provider-config/CREATE`.
 | `authStrategy` | `API_KEY`, `BASIC`, `OAUTH2_CLIENT_CREDENTIALS`, `REQUEST_SIGNING`, `SESSION_TOKEN` |
 | `status`       | `ACTIVE`, `INACTIVE`                                                                |
 
-`authConfig` je slobodan objekat čiji oblik zavisi od `authStrategy` — za `API_KEY` je `{endpoint, apiKey}`, za `BASIC` `{endpoint, login, password}`.
+`authConfig` je slobodan objekat čiji oblik zavisi od `authStrategy` — za `API_KEY` je `{endpoint, apiKey}`, za `BASIC` `{endpoint, login, password}`. Za `travelgate` konkretno (M4 spec §5, v1.18): `client` je obavezan (šalje se kao `settings.client` u svakom GraphQL pozivu, ne kao HTTP header — TravelgateX zahteva baš to); `testMode`/`accessIncludes` su opcioni, specifični za nalog kod TravelgateX-a (dobijaju se od njih, ne pretpostavljaju).
 
 **Dva vremenska ograničenja su odvojena namerno.** Pretraga sme da odustane brzo (gost čeka pred ekranom, a rezultat je samo jedan od više izvora). Potvrda rezervacije mora da čeka duže — prekinuti je na pola znači ne znati da li je rezervacija napravljena ili nije.
 
@@ -172,12 +178,12 @@ Otkazuje rezervaciju kod provajdera. `:ref` je broj rezervacije koji je provajde
 
 | Oznaka        | Protokol                | Stanje                                                                                                                                                                                       |
 | :------------ | :----------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `travelgate`  | GraphQL                 | adapter kompletan, testiran samo mokovano — **sertifikacija (15.9.2026) otkrila da mokovana šema ne odgovara stvarnoj**, adapter čeka reviziju pre live poziva (M4 spec §5/§9, verzija 1.17) |
+| `travelgate`  | GraphQL                 | adapter revidiran prema stvarnoj šemi (M4 spec §5, verzija 1.18) — testiran mokovano protiv TAČNE šeme, **još uvek nikad pozvan uživo** — nema aktivnih produkcionih kredencijala |
 | `solvex`      | SOAP (Master-Interlook) | adapter kompletan, **nikad pozvan uživo** — nema kredencijala (SOAP format uživo potvrđen ispravnim ranijim spike testom, test nalog trenutno odbijen)                                       |
 | `webhotelier` | REST                    | adapter kompletan, **nikad pozvan uživo** — nema kredencijala                                                                                                                                 |
 | `mock`        | —                       | lažni odgovori za razvoj                                                                                                                                                                      |
 
-> Sva tri adaptera su dokazana testovima sa lažiranim mrežnim odgovorima. **Nijedan nije proveren protiv pravog servisa provajdera.** Za Solvex/WebHotelier je uzrok nedostatak kredencijala. Za Travelgate je gore — kredencijali nisu jedini problem: kad je stvaran oblik poziva postao poznat (sertifikacija), pokazalo se da mokovana šema koju adapter i test dele nije ista kao stvarna TravelgateX šema. Konkretan primer zašto "prošlo je test" nije isto što i "radiće uživo" — vidi `docs/analize/33-ZAMKE-I-OBAVEZNE-PROVERE.md` zamka 8.13.
+> Sva tri adaptera su dokazana testovima sa lažiranim mrežnim odgovorima. **Nijedan nije proveren protiv pravog servisa provajdera** — za sva tri je uzrok isti: nema aktivnih produkcionih kredencijala. Za Travelgate je taj mok bar sad izgrađen nad **stvarnom, sertifikacijom potvrđenom šemom** (M4 spec v1.18), ne nad izmišljenom kao ranije (v1.17 nalaz) — vidi `docs/analize/33-ZAMKE-I-OBAVEZNE-PROVERE.md` zamka 8.13 za pouku koja je do te ispravke dovela. I dalje važi: mokovan test, ma koliko tačan, ne dokazuje da će live poziv proći — prvi stvaran poziv i dalje može otkriti nešto što 27 primera nisu pokrila.
 
 ---
 

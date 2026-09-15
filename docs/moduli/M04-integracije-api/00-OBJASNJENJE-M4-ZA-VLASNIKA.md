@@ -74,7 +74,14 @@ Postoji i ugrađen „lažni provajder" koji vraća izmišljene rezultate. Koris
 
 **Zašto se ovo nije videlo ranije.** Test koji smo napisali za Travelgate je prolazio — ali test i kod je pisao isti (moj) pretpostavljen opis kako TravelgateX radi, jer nismo imali ništa stvarno sa čim da uporedimo. To je kao da neko sastavi i pitanje i tačan odgovor na ispitu — naravno da prođe. Tek kad je stigao **stvaran** primer (tvoja sertifikacija), moglo je da se vidi da je pretpostavka bila pogrešna.
 
-**Šta ovo znači praktično:** Travelgate adapter treba prepravku pre nego što se prvi put stvarno pozove — inače bi verovatno pukao na prvom pravom pozivu, uprkos tome što „prolazi sve testove". Prava, stvarna dokumentacija (27 snimljenih poziva iz tvoje sertifikacije) sada postoji kao oslonac za tu prepravku. Nisam menjao kod u ovom prolazu — ovo je nalaz, čeka tvoju odluku o prioritetu.
+**Šta ovo znači praktično:** Travelgate adapter je trebalo prepravku pre nego što se prvi put stvarno pozove — inače bi verovatno pukao na prvom pravom pozivu, uprkos tome što „prolazi sve testove". Prepravka je urađena (isti dan): kod sad govori tačno onim jezikom koji je tvoja sertifikacija dokazala da TravelgateX stvarno razume. Sve postojeće provere (105 automatskih testova) i dalje prolaze, sad protiv tačnog, a ne izmišljenog opisa.
+
+**Dve stvari koje sam pri popravci morao da rešim na brzinu, poštenja radi:**
+
+1. **TravelgateX ne vraća detaljan raspored otkazivanja** (npr. "do 30 dana pre dolaska 100%, posle toga 50%") — samo prosto DA/NE ("može li se ovo otkazati bez penala"). Naš sistem inače pamti detaljniji raspored (isto kao za hotele sa kojima imaš direktan ugovor). Za Travelgate sam to sveo na dva jednostavna slučaja: ili potpuno besplatno otkazivanje do dolaska, ili nikakav povraćaj. Ako TravelgateX ikad počne da vraća detaljniji podatak, ovo se lako proširi.
+2. **Rezervacija kod TravelgateX-a traži ime i prezime SVAKOG gosta u sobi**, a naš sistem trenutno prosleđuje samo jedno ime (onog ko rezerviše). Popunio sam privremeno — svi gosti u sobi trenutno "nose" isto ime kao nosilac rezervacije, dok sistem za rezervacije (M5) ne bude znao pravu listu gostiju po sobi. Ovo nije nešto što bi trebalo da ide u produkciju bez ispravke — zapisano je kao otvorena stavka.
+
+Ono što NISAM mogao da popravim, jer nemam osnov: sadržajni poziv (opis hotela, slike) TravelgateX-u nije bio deo tvoje sertifikacije, pa ne znam njegov stvaran oblik. Ostao je kako je bio — pretpostavljen, neproveren.
 
 ---
 

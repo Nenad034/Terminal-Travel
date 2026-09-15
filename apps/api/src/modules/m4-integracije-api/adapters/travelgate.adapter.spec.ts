@@ -2,13 +2,21 @@ import { ApiKeyStrategy } from '../auth-strategies/api-key.strategy';
 import { ProviderError } from '../provider-adapter.interface';
 import { TravelgateAdapter } from './travelgate.adapter';
 
-describe('TravelgateAdapter (M4 spec §5)', () => {
+// M4 spec §5/v1.17 — mokovani odgovori ovde su prepisani iz stvarnih, uživo snimljenih
+// TravelgateX poziva (docs/moduli/M04-integracije-api/referentni-materijal/
+// travelgatex-certification-samples/), ne izmišljeni kao pre 15.9.2026 (zamka 8.13,
+// docs/analize/33-ZAMKE-I-OBAVEZNE-PROVERE.md) — mock i dalje ne dokazuje live poziv,
+// ali barem više ne dokazuje samo unutrašnju doslednost koda sa samim sobom.
+describe('TravelgateAdapter (M4 spec §5, ispravljeno prema TravelgateX sertifikaciji)', () => {
   function makeAdapter(fetchMock: jest.Mock) {
     return new TravelgateAdapter(
       'travelgate',
       'https://api.travelgate.com/',
-      new ApiKeyStrategy('kljuc'),
+      new ApiKeyStrategy('Apikey kljuc', 'Authorization'),
       8000,
+      'client_demo',
+      true,
+      ['2'],
       fetchMock as any,
     );
   }
@@ -18,21 +26,24 @@ describe('TravelgateAdapter (M4 spec §5)', () => {
   }
 
   describe('search', () => {
-    it('mapira Travelgate opcije u NormalizedSearchResult (tanak oblik, M4 spec §2.1)', async () => {
+    it('mapira Travelgate opcije u NormalizedSearchResult — externalId je optionRefId, ne hotelCode', async () => {
       const fetchMock = jest.fn().mockResolvedValue(
         jsonResponse(200, {
           data: {
             hotelX: {
               search: {
+                errors: null,
                 options: [
                   {
-                    hotelCode: 'HTL1',
-                    hotelName: 'Hotel Test',
-                    status: 'CONFIRM',
-                    totalStayPrice: { currency: 'EUR', gross: 120.5 },
+                    id: '33!~a0!~b261210!~...OPTION-REF-ID',
+                    hotelCode: 'ES284122',
+                    boardCode: '14',
+                    status: 'OK',
+                    paymentType: 'DIRECT',
+                    cancelPolicy: { refundable: true },
+                    price: { net: 79, currency: 'USD' },
                   },
                 ],
-                errors: [],
               },
             },
           },
@@ -41,25 +52,35 @@ describe('TravelgateAdapter (M4 spec §5)', () => {
       const adapter = makeAdapter(fetchMock);
 
       const results = await adapter.search({
-        stayFrom: '2027-07-01',
-        stayTo: '2027-07-08',
+        stayFrom: '2026-12-10',
+        stayTo: '2026-12-11',
         adults: 2,
       });
 
       expect(results).toEqual([
         {
-          externalId: 'HTL1',
+          externalId: '33!~a0!~b261210!~...OPTION-REF-ID',
           providerCode: 'travelgate',
           category: 'HOTEL',
-          name: 'Hotel Test',
-          locationSummary: 'Hotel Test',
-          priceFrom: 12050,
-          currency: 'EUR',
+          name: 'ES284122',
+          locationSummary: 'ES284122',
+          priceFrom: 7900,
+          currency: 'USD',
           thumbnailUrl: null,
           starRating: null,
           quotaStatus: 'AVAILABLE',
         },
       ]);
+
+      // §5 sertifikacija — settings.client/filterSearch.access moraju biti poslati.
+      const sentBody = JSON.parse(fetchMock.mock.calls[0][1].body);
+      expect(sentBody.variables.settings).toEqual({
+        client: 'client_demo',
+        timeout: 8000,
+        testMode: true,
+      });
+      expect(sentBody.variables.filterSearch).toEqual({ access: { includes: ['2'] } });
+      expect(fetchMock.mock.calls[0][1].headers.Authorization).toBe('Apikey kljuc');
     });
 
     it('mapira status ON_REQUEST u quotaStatus=ON_REQUEST', async () => {
@@ -68,15 +89,17 @@ describe('TravelgateAdapter (M4 spec §5)', () => {
           data: {
             hotelX: {
               search: {
+                errors: null,
                 options: [
                   {
+                    id: 'opt-1',
                     hotelCode: 'H1',
-                    hotelName: 'H',
+                    boardCode: '1',
                     status: 'ON_REQUEST',
-                    totalStayPrice: { currency: 'EUR', gross: 10 },
+                    cancelPolicy: { refundable: false },
+                    price: { net: 10, currency: 'EUR' },
                   },
                 ],
-                errors: [],
               },
             },
           },
@@ -158,18 +181,21 @@ describe('TravelgateAdapter (M4 spec §5)', () => {
     });
   });
 
-  describe('checkAvailabilityAndPrice — cancellationPolicy isti oblik kao M3 CancellationRule (§2.1)', () => {
-    it('mapira cancelPenalties u {days_before_stay, refund_percentage}', async () => {
+  describe('checkAvailabilityAndPrice — cancellationPolicy izvedena iz refundable boolean-a (§2.1, sertifikacija)', () => {
+    it('refundable=true mapira u potpuno besplatno otkazivanje', async () => {
       const fetchMock = jest.fn().mockResolvedValue(
         jsonResponse(200, {
           data: {
             hotelX: {
               quote: {
+                errors: null,
                 optionQuote: {
-                  price: { currency: 'EUR', gross: 200 },
-                  cancelPolicy: {
-                    cancelPenalties: [{ hoursBefore: 720, penaltyType: 'PERCENT', value: 0 }],
-                  },
+                  optionRefId: 'opt-1',
+                  hotelCode: 'ES284122',
+                  boardCode: '14',
+                  status: 'OK',
+                  cancelPolicy: { refundable: true },
+                  price: { net: 200, currency: 'EUR' },
                 },
               },
             },
@@ -178,24 +204,57 @@ describe('TravelgateAdapter (M4 spec §5)', () => {
       );
       const adapter = makeAdapter(fetchMock);
 
-      const quote = await adapter.checkAvailabilityAndPrice('HTL1', {
+      const quote = await adapter.checkAvailabilityAndPrice('opt-1', {
         stayFrom: '2027-07-01',
         stayTo: '2027-07-08',
         adults: 2,
       });
 
-      expect(quote.cancellationPolicy).toEqual([{ days_before_stay: 30, refund_percentage: 100 }]);
+      expect(quote.cancellationPolicy).toEqual([{ days_before_stay: 0, refund_percentage: 100 }]);
       expect(quote.priceAmount).toBe(20000);
       expect(typeof quote.quoteExpiresAt).toBe('string');
+
+      // §5 sertifikacija — criteriaQuote nosi ISKLJUČIVO optionRefId.
+      const sentBody = JSON.parse(fetchMock.mock.calls[0][1].body);
+      expect(sentBody.variables.criteriaQuote).toEqual({ optionRefId: 'opt-1' });
+    });
+
+    it('refundable=false mapira u nikakav povraćaj', async () => {
+      const fetchMock = jest.fn().mockResolvedValue(
+        jsonResponse(200, {
+          data: {
+            hotelX: {
+              quote: {
+                errors: null,
+                optionQuote: {
+                  optionRefId: 'opt-1',
+                  status: 'OK',
+                  cancelPolicy: { refundable: false },
+                  price: { net: 50, currency: 'EUR' },
+                },
+              },
+            },
+          },
+        }),
+      );
+      const adapter = makeAdapter(fetchMock);
+      const quote = await adapter.checkAvailabilityAndPrice('opt-1', {
+        stayFrom: '2027-07-01',
+        stayTo: '2027-07-08',
+        adults: 2,
+      });
+      expect(quote.cancellationPolicy).toEqual([{ days_before_stay: 0, refund_percentage: 0 }]);
     });
 
     it('baca ProviderError(NO_AVAILABILITY) kad nema optionQuote', async () => {
-      const fetchMock = jest
-        .fn()
-        .mockResolvedValue(jsonResponse(200, { data: { hotelX: { quote: {} } } }));
+      const fetchMock = jest.fn().mockResolvedValue(
+        jsonResponse(200, {
+          data: { hotelX: { quote: { errors: null, optionQuote: null } } },
+        }),
+      );
       const adapter = makeAdapter(fetchMock);
       await expect(
-        adapter.checkAvailabilityAndPrice('HTL1', {
+        adapter.checkAvailabilityAndPrice('opt-1', {
           stayFrom: '2027-07-01',
           stayTo: '2027-07-08',
           adults: 2,
@@ -205,16 +264,18 @@ describe('TravelgateAdapter (M4 spec §5)', () => {
   });
 
   describe('confirmBooking', () => {
-    it('mapira ON_REQUEST status u PENDING_SUPPLIER_CONFIRMATION (isti kao Solvex QuotaType=0, M4 spec §2.1)', async () => {
+    it('mapira status OK u CONFIRMED, čita bookingID iz reference (§5 sertifikacija)', async () => {
       const fetchMock = jest.fn().mockResolvedValue(
         jsonResponse(200, {
           data: {
             hotelX: {
               book: {
+                errors: null,
                 booking: {
-                  supplierReference: 'SUP-1',
-                  status: 'ON_REQUEST',
-                  price: { gross: 100 },
+                  status: 'OK',
+                  reference: { bookingID: 'n1@1[...]' },
+                  hotel: { hotelCode: 'ES284122', boardCode: '14' },
+                  cancelPolicy: { refundable: true },
                 },
               },
             },
@@ -223,35 +284,77 @@ describe('TravelgateAdapter (M4 spec §5)', () => {
       );
       const adapter = makeAdapter(fetchMock);
 
-      const confirmation = await adapter.confirmBooking('HTL1', {
+      const confirmation = await adapter.confirmBooking('opt-1', {
         stay: { stayFrom: '2027-07-01', stayTo: '2027-07-08', adults: 2 },
         guestName: 'Petar Petrović',
         idempotencyKey: 'idem-1',
       });
 
-      expect(confirmation.status).toBe('PENDING_SUPPLIER_CONFIRMATION');
-      expect(confirmation.providerBookingReference).toBe('SUP-1');
+      expect(confirmation.status).toBe('CONFIRMED');
+      expect(confirmation.providerBookingReference).toBe('n1@1[...]');
+      expect(confirmation.confirmedPrice).toBeNull();
+
+      // §9 — holder/rooms/paxes se popunjavaju iz jedinog raspoloživog imena gosta.
+      const sentBody = JSON.parse(fetchMock.mock.calls[0][1].body);
+      expect(sentBody.variables.input.holder).toEqual({ name: 'Petar', surname: 'Petrović' });
+      expect(sentBody.variables.input.rooms).toEqual([
+        {
+          occupancyRefId: 1,
+          paxes: [
+            { name: 'Petar', surname: 'Petrović', age: 30 },
+            { name: 'Petar', surname: 'Petrović', age: 30 },
+          ],
+        },
+      ]);
     });
 
-    it('CONFIRM status mapira u CONFIRMED', async () => {
+    it('mapira status ON_REQUEST u PENDING_SUPPLIER_CONFIRMATION', async () => {
       const fetchMock = jest.fn().mockResolvedValue(
         jsonResponse(200, {
           data: {
             hotelX: {
               book: {
-                booking: { supplierReference: 'SUP-2', status: 'CONFIRM', price: { gross: 100 } },
+                errors: null,
+                booking: {
+                  status: 'ON_REQUEST',
+                  reference: { bookingID: 'ref-1' },
+                },
               },
             },
           },
         }),
       );
       const adapter = makeAdapter(fetchMock);
-      const confirmation = await adapter.confirmBooking('HTL1', {
-        stay: { stayFrom: '2027-07-01', stayTo: '2027-07-08', adults: 2 },
+
+      const confirmation = await adapter.confirmBooking('opt-1', {
+        stay: { stayFrom: '2027-07-01', stayTo: '2027-07-08', adults: 1 },
         guestName: 'X',
         idempotencyKey: 'idem-2',
       });
-      expect(confirmation.status).toBe('CONFIRMED');
+      expect(confirmation.status).toBe('PENDING_SUPPLIER_CONFIRMATION');
+    });
+  });
+
+  describe('cancelBooking', () => {
+    it('status CANCELLED → cancelled=true (§5 sertifikacija)', async () => {
+      const fetchMock = jest.fn().mockResolvedValue(
+        jsonResponse(200, {
+          data: {
+            hotelX: {
+              cancel: {
+                errors: null,
+                cancellation: { status: 'CANCELLED' },
+              },
+            },
+          },
+        }),
+      );
+      const adapter = makeAdapter(fetchMock);
+      const result = await adapter.cancelBooking('n1@1[...]');
+      expect(result).toEqual({ cancelled: true, providerBookingReference: 'n1@1[...]' });
+
+      const sentBody = JSON.parse(fetchMock.mock.calls[0][1].body);
+      expect(sentBody.variables.input).toEqual({ bookingID: 'n1@1[...]' });
     });
   });
 });

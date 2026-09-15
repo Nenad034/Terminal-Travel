@@ -39,7 +39,11 @@ describe('ProviderRegistryService (M4 spec §2/§9 — use_mock formalizacija)',
   it('vraća TravelgateAdapter za provider_code=travelgate kad useMock=false', () => {
     const registry = makeRegistry();
     const authConfig = encryptSecret(
-      JSON.stringify({ endpoint: 'https://api.travelgate.com/', apiKey: 'kljuc' }),
+      JSON.stringify({
+        endpoint: 'https://api.travelgate.com/',
+        apiKey: 'kljuc',
+        client: 'client_demo',
+      }),
     );
     const adapter = registry.getAdapter({
       providerCode: 'travelgate',

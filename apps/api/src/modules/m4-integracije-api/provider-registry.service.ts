@@ -13,6 +13,11 @@ import { WebHotelierAdapter } from './adapters/webhotelier.adapter';
 interface TravelgateAuthConfig {
   endpoint: string;
   apiKey: string;
+  // §5 sertifikacija (15.9.2026) — `client` je obavezan (settings.client u svakom
+  // GraphQL pozivu, M4 spec §5); `testMode`/`accessIncludes` su opcioni, nalog-specifični.
+  client: string;
+  testMode?: boolean;
+  accessIncludes?: string[];
 }
 
 interface SolvexAuthConfig {
@@ -77,8 +82,13 @@ export class ProviderRegistryService {
         return new TravelgateAdapter(
           config.providerCode,
           cfg.endpoint,
-          new ApiKeyStrategy(cfg.apiKey, 'TGX-Auth-API-Key'),
+          // §5 sertifikacija — stvaran header je `Authorization: Apikey <ključ>`, ne
+          // proizvoljan `TGX-Auth-API-Key` (raniji, neproveren kod).
+          new ApiKeyStrategy(`Apikey ${cfg.apiKey}`, 'Authorization'),
           timeoutMs,
+          cfg.client,
+          cfg.testMode ?? false,
+          cfg.accessIncludes,
         );
       }
       case 'solvex': {
