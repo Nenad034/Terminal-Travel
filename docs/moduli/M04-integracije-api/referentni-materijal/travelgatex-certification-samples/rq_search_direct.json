@@ -1,0 +1,43 @@
+{
+  "query": "query ($criteriaSearch: HotelCriteriaSearchInput, $settings: HotelSettingsInput, $filterSearch: HotelXFilterSearchInput) {\n  hotelX {\n    search(criteria: $criteriaSearch, settings: $settings, filterSearch: $filterSearch) {\n      errors { code type description }\n      options {\n        id\n        hotelCode\n        boardCode\n        status\n        paymentType\n        cancelPolicy { refundable }\n        price { net currency }\n      }\n    }\n  }\n}",
+  "variables": {
+    "criteriaSearch": {
+      "checkIn": "2026-12-10",
+      "checkOut": "2026-12-11",
+      "occupancies": [
+        {
+          "paxes": [
+            {
+              "age": 30
+            },
+            {
+              "age": 30
+            }
+          ]
+        }
+      ],
+      "hotels": [
+        "BR1518",
+        "ES284122"
+      ],
+      "currency": "EUR",
+      "markets": [
+        "ES"
+      ],
+      "language": "en",
+      "nationality": "ES"
+    },
+    "settings": {
+      "client": "client_demo",
+      "timeout": 15000,
+      "testMode": true
+    },
+    "filterSearch": {
+      "access": {
+        "includes": [
+          "2"
+        ]
+      }
+    }
+  }
+}

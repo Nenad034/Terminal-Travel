@@ -1,0 +1,13 @@
+{
+  "query": "query ($criteria: HotelCriteriaBookingInput!, $settings: HotelSettingsInput) {\n  hotelX {\n    booking(criteria: $criteria, settings: $settings) {\n      errors { code type description }\n      bookings {\n        status\n        reference { bookingID }\n        hotel { hotelCode boardCode }\n      }\n    }\n  }\n}",
+  "variables": {
+    "criteria": {
+      "bookingID": "n1@1[261210[261211[260915[101930[en[EUR[2[TTA-CERT-RF-1789468800091[6039345["
+    },
+    "settings": {
+      "client": "client_demo",
+      "timeout": 15000,
+      "testMode": true
+    }
+  }
+}

@@ -1,0 +1,49 @@
+{
+  "query": "mutation ($input: HotelBookInput!, $settings: HotelSettingsInput, $filter: HotelXFilterInput) {\n  hotelX {\n    book(input: $input, settings: $settings, filter: $filter) {\n      errors { code type description }\n      booking {\n        status\n        reference { bookingID }\n        hotel { hotelCode boardCode }\n        cancelPolicy { refundable }\n      }\n    }\n  }\n}",
+  "variables": {
+    "input": {
+      "optionRefId": "31[a1[b261210[c261211[d1[e14[f1[gES[hES[ien[jEUR[k0[l2[mES284122[n14[nTGX[o0[p1[x15091115[M79[N0[Ofalse[PUSD[Q[R0[S[T[z1|30#30|1|2026-12-10|1|5747340|5747342|14|11|0[A2269[Bstr----d--[C30|30[EStandard Double Room[FDouble Standard[G1[U96[V2[WUSD[X79[Y2026-12-05T10:00:00Z[Z1[U72[V2[WUSD[X158[Y2026-12-06T10:00:00Z[Z1[H1[I1|30#30|1|2026-12-10|1|5747340|5747342|14|11|0[J1[K1[L1[H2[IES[J0[K1[L0[H20[I79[J0[K1[L0[H21[I79[J0[K1[L0[H701[I71f5849d-339d-4b4f-9e3b-2de2a5b81288[J0[K0[L0[H704[IClRSAAgBEiYIYBjIBiEAAAAAAMBTQCoUMjAyNi0xMi0wNVQxMDowMDowMFowARImCEgYyAYhAAAAAADAY0AqFDIwMjYtMTItMDZUMTA6MDA6MDBaMAESCwjUr/bRlcnJPxAFIhcIyAYZAAAAAADAU0AhAAAAAADAU0AoAQ==[J0[K1[L0[tOK[uConnectors[v0[w[yPACKAGE[q[q0[y[",
+      "clientReference": "TTA-CERT-DIRECT-1789471005304",
+      "holder": {
+        "name": "Nenad",
+        "surname": "Tomic"
+      },
+      "paymentCard": {
+        "type": "VI",
+        "holder": {
+          "name": "Nenad",
+          "surname": "Tomic"
+        },
+        "number": "4111111111111111",
+        "CVC": "123",
+        "expire": {
+          "month": 12,
+          "year": 2027
+        }
+      },
+      "rooms": [
+        {
+          "occupancyRefId": 1,
+          "paxes": [
+            {
+              "name": "Nenad",
+              "surname": "Tomic",
+              "age": 30
+            },
+            {
+              "name": "Ana",
+              "surname": "Tomic",
+              "age": 30
+            }
+          ]
+        }
+      ]
+    },
+    "settings": {
+      "client": "client_demo",
+      "timeout": 15000,
+      "testMode": true
+    },
+    "filter": {}
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "query": "mutation ($input: HotelCancelInput!, $settings: HotelSettingsInput) {\n  hotelX {\n    cancel(input: $input, settings: $settings) {\n      errors { code type description }\n      cancellation {\n        status\n        reference { bookingID client supplier hotel }\n      }\n    }\n  }\n}",
+  "variables": {
+    "input": {
+      "bookingID": "n1@1[261220[261221[260915[101930[en[EUR[2[TTA-CERT-RF3-1789469181821[6039393["
+    },
+    "settings": {
+      "client": "client_demo",
+      "timeout": 15000,
+      "testMode": true
+    }
+  }
+}

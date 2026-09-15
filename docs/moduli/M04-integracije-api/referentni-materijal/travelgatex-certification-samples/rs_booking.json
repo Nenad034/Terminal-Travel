@@ -1,0 +1,21 @@
+{
+  "data": {
+    "hotelX": {
+      "booking": {
+        "errors": null,
+        "bookings": [
+          {
+            "status": "OK",
+            "reference": {
+              "bookingID": "n1@1[261210[261211[260915[101930[en[EUR[2[TTA-CERT-RF-1789468800091[6039345["
+            },
+            "hotel": {
+              "hotelCode": "BR1518",
+              "boardCode": "19"
+            }
+          }
+        ]
+      }
+    }
+  }
+}

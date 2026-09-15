@@ -1,0 +1,25 @@
+{
+  "data": {
+    "hotelX": {
+      "search": {
+        "errors": null,
+        "options": [
+          {
+            "id": "33!~|a0!~|b261210!~|c261211!~|d1!~|e14!~|f1!~|gES!~|hES!~|ien!~|jEUR!~|k0!~|l2!~|mES284122!~|n14!~|nTGX!~|o0!~|p1!~|x15091114!~|r!~|sBAR_USD!~|M79!~|N0!~|Ofalse!~|PUSD!~|Q!~|R0!~|S!~|T!~|z1|30#30|1|2026-12-10|1|5747340|5747342|14|11|0!~|A2269!~|Bstr----d--!~|C30|30!~|EStandard Double Room!~|FDouble Standard!~|G1!~|U2,79,1796464800|2,158,1796551200!~|H1!~|I1|30#30|1|2026-12-10|1|5747340|5747342|14|11|0!~|J1!~|K1!~|L1!~|H2!~|IES!~|J1!~|K0!~|L1!~|H703!~|I1#3@#!~|J0!~|K1!~|L0!~|H710!~|I158!~|J0!~|K0!~|L0!~|H708!~|If13c1a41-ad0e-4d9c-b7c4-438d3f3428fb!~|J0!~|K0!~|L0!~|tOK!~|uConnectors!~|v0!~|w!~|yPACKAGE!~|q!~|q0!~|y!~|",
+            "hotelCode": "ES284122",
+            "boardCode": "14",
+            "status": "OK",
+            "paymentType": "DIRECT",
+            "cancelPolicy": {
+              "refundable": true
+            },
+            "price": {
+              "net": 79,
+              "currency": "USD"
+            }
+          }
+        ]
+      }
+    }
+  }
+}

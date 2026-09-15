@@ -1,0 +1,18 @@
+{
+  "data": {
+    "hotelX": {
+      "cancel": {
+        "errors": null,
+        "cancellation": {
+          "status": "CANCELLED",
+          "reference": {
+            "bookingID": "",
+            "client": "TTA-CERT-DIRECT-1789471005304",
+            "supplier": "6039592",
+            "hotel": null
+          }
+        }
+      }
+    }
+  }
+}

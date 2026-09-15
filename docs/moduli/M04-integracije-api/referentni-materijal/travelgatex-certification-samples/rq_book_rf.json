@@ -1,0 +1,76 @@
+{
+  "query": "mutation ($input: HotelBookInput!, $settings: HotelSettingsInput, $filter: HotelXFilterInput) {\n  hotelX {\n    book(input: $input, settings: $settings, filter: $filter) {\n      errors { code type description }\n      booking {\n        status\n        reference { bookingID }\n        hotel { hotelCode boardCode }\n        cancelPolicy { refundable }\n      }\n    }\n  }\n}",
+  "variables": {
+    "input": {
+      "optionRefId": "31[a1[b261210[c261211[d101930[e3[f0[gES[hES[ien[jEUR[k0[l2[mBR1518[n19[nTGX[o0[p1[x15091037[M300[N0[Ofalse[PEUR[Q[R0[S[T[z3|30#30#30/30#30#5/30#30|101930|2026-12-10|1|7556761|17879705|3|11|0[A3210[Bstr----t--[C30|30[EStandard Triple Room[FTriple Room[G3[z1|30#30#30/30#30#5/30#30|101930|2026-12-10|1|7556761|17879705|3|11|0[A3210[Bstr----t--[C30|30|30[EStandard Triple Room[FTriple Room[G1[z2|30#30#30/30#30#5/30#30|101930|2026-12-10|1|7556761|17879705|3|11|0[A3210[Bstr----t--[C30|30|5[EStandard Triple Room[FTriple Room[G2[U48[V2[WEUR[X300[Y2026-12-07T10:00:00Z[Z1[H1[I3|30#30#30/30#30#5/30#30|101930|2026-12-10|1|7556761|17879705|3|11|0[J1[K1[L3[H1[I1|30#30#30/30#30#5/30#30|101930|2026-12-10|1|7556761|17879705|3|11|0[J1[K1[L1[H1[I2|30#30#30/30#30#5/30#30|101930|2026-12-10|1|7556761|17879705|3|11|0[J1[K1[L2[H2[IES[J0[K1[L0[H20[I300[J0[K1[L0[H21[I300[J0[K1[L0[H701[I159a45e0-997c-47df-9403-a766de5e5b39[J0[K0[L0[H704[ICixSAAgBEiYIMBjSByEAAAAAAMByQCoUMjAyNi0xMi0wN1QxMDowMDowMFowARILCPjx1/ntx8k/EAUiFwjSBxkAAAAAAMByQCEAAAAAAMByQCgB[J0[K1[L0[tOK[uConnectors[v0[w[yPACKAGE[q[q0[y[",
+      "clientReference": "TTA-CERT-RF-1789468800091",
+      "holder": {
+        "name": "Nenad",
+        "surname": "Tomic"
+      },
+      "rooms": [
+        {
+          "occupancyRefId": 1,
+          "paxes": [
+            {
+              "name": "Nenad",
+              "surname": "Tomic",
+              "age": 30
+            },
+            {
+              "name": "Ana",
+              "surname": "Tomic",
+              "age": 30
+            },
+            {
+              "name": "Marko",
+              "surname": "Tomic",
+              "age": 30
+            }
+          ]
+        },
+        {
+          "occupancyRefId": 2,
+          "paxes": [
+            {
+              "name": "Petar",
+              "surname": "Peric",
+              "age": 30
+            },
+            {
+              "name": "Jelena",
+              "surname": "Peric",
+              "age": 30
+            },
+            {
+              "name": "Mia",
+              "surname": "Peric",
+              "age": 5
+            }
+          ]
+        },
+        {
+          "occupancyRefId": 3,
+          "paxes": [
+            {
+              "name": "Ivan",
+              "surname": "Ivic",
+              "age": 30
+            },
+            {
+              "name": "Maja",
+              "surname": "Ivic",
+              "age": 30
+            }
+          ]
+        }
+      ]
+    },
+    "settings": {
+      "client": "client_demo",
+      "timeout": 15000,
+      "testMode": true
+    },
+    "filter": {}
+  }
+}

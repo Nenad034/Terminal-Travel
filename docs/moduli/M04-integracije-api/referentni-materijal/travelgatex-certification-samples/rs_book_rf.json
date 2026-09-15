@@ -1,0 +1,22 @@
+{
+  "data": {
+    "hotelX": {
+      "book": {
+        "errors": null,
+        "booking": {
+          "status": "OK",
+          "reference": {
+            "bookingID": "n1@1[261210[261211[260915[101930[en[EUR[2[TTA-CERT-RF-1789468800091[6039345["
+          },
+          "hotel": {
+            "hotelCode": "101930",
+            "boardCode": "3"
+          },
+          "cancelPolicy": {
+            "refundable": true
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "data": {
+    "hotelX": {
+      "hotels": {
+        "token": null,
+        "count": 1,
+        "edges": [
+          {
+            "node": {
+              "createdAt": "2026-08-18T10:23:30.4598697Z",
+              "updatedAt": "2026-08-18T10:23:30.4598698Z",
+              "hotelData": {
+                "hotelCode": "150248",
+                "hotelName": "Park Regis Business Bay Hotel"
+              }
+            }
+          }
+        ]
+      }
+    }
+  }
+}
