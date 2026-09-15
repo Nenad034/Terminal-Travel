@@ -20,6 +20,8 @@ M4 ima dve odvojene grupe endpointa, sa vrlo različitim posledicama:
 
 **Verzija podataka u primerima:** oblici odgovora su izvedeni iz koda adaptera i modela podataka. Za razliku od M1/M2/M3, ovde **nijedan odgovor nije uhvaćen stvarnim pozivom** — u bazi nema nijedne konfiguracije provajdera (`GET /providers` vraća `[]`), a pozivanje pravih provajdera zahteva kredencijale kojih nema. To je izričito označeno umesto da se izmisli primer.
 
+> **Dopuna 15.9.2026 — Travelgate.** Vlasnik je proveo Olympic Travel kroz zvaničnu TravelgateX HotelX sertifikaciju (`app.travelgate.com/onboarding-implementation`) i time dobio 27 **stvarnih, uživo snimljenih** GraphQL poziva (`docs/moduli/M04-integracije-api/referentni-materijal/travelgatex-certification-samples/`). To je prava šema koju TravelgateX stvarno vraća — ali **različita je** od šeme koju `travelgate.adapter.ts`/`travelgate.graphql.ts` danas pretpostavljaju (M4 spec §5, verzija 1.17: nedostaju `settings`/`filterSearch`/`rooms[]`, tražena su polja koja ne postoje, `cancellationPolicy` mapiranje se oslanja na podatak koji provajder ne vraća). Primeri ispod za `travelgate` zato **ostaju izvedeni iz koda, namerno nisu zamenjeni** stvarnim GraphQL primerima — to bi predstavilo neproveren, verovatno pogrešan REST oblik kao da je potvrđen. Za stvaran wire-format Travelgate poziva (dijagnostika adaptera, ne ovaj dokument) koristiti pomenuti folder direktno.
+
 ---
 
 ## Administrativni deo
@@ -168,14 +170,14 @@ Otkazuje rezervaciju kod provajdera. `:ref` je broj rezervacije koji je provajde
 
 ## Provajderi koji postoje u kodu
 
-| Oznaka        | Protokol                | Stanje                                                        |
-| :------------ | :---------------------- | :------------------------------------------------------------ |
-| `travelgate`  | GraphQL                 | adapter kompletan, **nikad pozvan uživo** — nema kredencijala |
-| `solvex`      | SOAP (Master-Interlook) | adapter kompletan, isto                                       |
-| `webhotelier` | REST                    | adapter kompletan, isto                                       |
-| `mock`        | —                       | lažni odgovori za razvoj                                      |
+| Oznaka        | Protokol                | Stanje                                                                                                                                                                                       |
+| :------------ | :----------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `travelgate`  | GraphQL                 | adapter kompletan, testiran samo mokovano — **sertifikacija (15.9.2026) otkrila da mokovana šema ne odgovara stvarnoj**, adapter čeka reviziju pre live poziva (M4 spec §5/§9, verzija 1.17) |
+| `solvex`      | SOAP (Master-Interlook) | adapter kompletan, **nikad pozvan uživo** — nema kredencijala (SOAP format uživo potvrđen ispravnim ranijim spike testom, test nalog trenutno odbijen)                                       |
+| `webhotelier` | REST                    | adapter kompletan, **nikad pozvan uživo** — nema kredencijala                                                                                                                                 |
+| `mock`        | —                       | lažni odgovori za razvoj                                                                                                                                                                      |
 
-> Sva tri adaptera su dokazana testovima sa lažiranim mrežnim odgovorima. **Nijedan nije proveren protiv pravog servisa provajdera**, jer pristupni podaci nisu pribavljeni. Prvi stvaran poziv može otkriti razlike koje test sa lažiranim odgovorom ne vidi (drukčija polja, drukčije greške, ograničenja učestalosti).
+> Sva tri adaptera su dokazana testovima sa lažiranim mrežnim odgovorima. **Nijedan nije proveren protiv pravog servisa provajdera.** Za Solvex/WebHotelier je uzrok nedostatak kredencijala. Za Travelgate je gore — kredencijali nisu jedini problem: kad je stvaran oblik poziva postao poznat (sertifikacija), pokazalo se da mokovana šema koju adapter i test dele nije ista kao stvarna TravelgateX šema. Konkretan primer zašto "prošlo je test" nije isto što i "radiće uživo" — vidi `docs/analize/33-ZAMKE-I-OBAVEZNE-PROVERE.md` zamka 8.13.
 
 ---
 

@@ -66,6 +66,18 @@ Postoji i ugrađen „lažni provajder" koji vraća izmišljene rezultate. Koris
 
 ---
 
+## Sertifikacija sa TravelgateX — dobra vest i ozbiljan nalaz, 15.9.2026
+
+**Dobra vest:** proveo si Olympic Travel kroz zvaničnu TravelgateX sertifikaciju i sve si prošao — sve faze, 100%. Njihova platforma je potvrdila da je nalog spreman za produkciju. To je stvaran, uživo dokazan korak, ne test.
+
+**Ozbiljan nalaz koji je taj uspeh otkrio:** kad sam uporedio prave pozive iz tvoje sertifikacije sa kodom koji smo mi napisali za Travelgate (pre nego što je sertifikacija postojala), pokazalo se da **naš kod govori pogrešnim „jezikom"**. Ne nedostaju samo pristupni podaci (poglavlje iznad) — sam oblik poziva koji naš kod šalje TravelgateX-u ne odgovara onome što TravelgateX stvarno očekuje i vraća. Konkretno: naš kod traži podatke koje TravelgateX uopšte ne vraća, ne šalje neka polja koja TravelgateX zahteva, i način na koji smo planirali da pročitamo pravila otkazivanja rezervacije se oslanja na podatak koji TravelgateX ne daje u tom obliku.
+
+**Zašto se ovo nije videlo ranije.** Test koji smo napisali za Travelgate je prolazio — ali test i kod je pisao isti (moj) pretpostavljen opis kako TravelgateX radi, jer nismo imali ništa stvarno sa čim da uporedimo. To je kao da neko sastavi i pitanje i tačan odgovor na ispitu — naravno da prođe. Tek kad je stigao **stvaran** primer (tvoja sertifikacija), moglo je da se vidi da je pretpostavka bila pogrešna.
+
+**Šta ovo znači praktično:** Travelgate adapter treba prepravku pre nego što se prvi put stvarno pozove — inače bi verovatno pukao na prvom pravom pozivu, uprkos tome što „prolazi sve testove". Prava, stvarna dokumentacija (27 snimljenih poziva iz tvoje sertifikacije) sada postoji kao oslonac za tu prepravku. Nisam menjao kod u ovom prolazu — ovo je nalaz, čeka tvoju odluku o prioritetu.
+
+---
+
 ## Dve stvari koje sam našao dok sam pisao dokumentaciju 3.9.2026
 
 ### Prva, i ozbiljnija: operativni pozivi nisu bili zaključani — **ispravljeno istog dana**
