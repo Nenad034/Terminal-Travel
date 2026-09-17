@@ -5,6 +5,7 @@ import ConfirmQuoteForm from './ConfirmQuoteForm';
 interface QuoteItem {
   id: string;
   productId: string;
+  productName?: string | null;
   finalPrice: number;
   finalPriceCurrency: string;
 }
@@ -46,7 +47,9 @@ export default async function QuoteDetailPage(props: { params: Promise<{ id: str
                 key={item.id}
                 className="flex items-center justify-between border-b border-border bg-panel px-4 py-3 text-sm last:border-b-0"
               >
-                <span className="text-ink-faint">proizvod {item.productId.slice(0, 8)}…</span>
+                <span className="text-ink-faint">
+                  {item.productName ?? `proizvod ${item.productId.slice(0, 8)}…`}
+                </span>
                 <span className="font-mono font-semibold text-ink">
                   {(item.finalPrice / 100).toLocaleString('sr-RS', { minimumFractionDigits: 2 })}{' '}
                   {item.finalPriceCurrency}

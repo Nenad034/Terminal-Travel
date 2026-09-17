@@ -19,6 +19,7 @@ import {
   TipNastupanja,
 } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
+import { assertPricesNotSwapped, createManualProduct } from '../common/manual-product';
 import { AuditLogService } from '../../m1-core-identitet/audit-log/audit-log.service';
 import { EventBusService } from '../../../common/events/event-bus.service';
 import { ContractPeriodsService } from '../../m3-ugovaranje-alotmani/contract-periods/contract-periods.service';
@@ -551,6 +552,22 @@ export class BookingsService {
               to: item.stayTo,
             })
             .then(() => undefined),
+      };
+    }
+
+    // §3.0f.5 / §3.0j.3 — MANUAL stavka: nema šta da se rezerviše kod M3/M4, dobavljač je
+    // dogovoren van sistema; ide direktno u CONFIRMED. Nabavna 0 = agent je nije dopunio.
+    if (item.sourceType === 'MANUAL') {
+      if (item.baseCost <= 0) {
+        throw new BadRequestException(
+          'Ručna stavka nema nabavnu cenu — unesite je pre potvrde (M5 spec §3.0j.7).',
+        );
+      }
+      return {
+        quoteItemId: item.id,
+        itemStatus: 'CONFIRMED',
+        supplierReference: '',
+        releaseHandle: async () => undefined,
       };
     }
 
@@ -2092,55 +2109,24 @@ export class BookingsService {
     if (booking.status === 'CANCELLED')
       throw new BadRequestException('Na otkazanu rezervaciju se ne dodaje usluga (M5 spec §6.7).');
 
-    const supplier = await this.prisma.supplier.findUnique({ where: { id: dto.supplierId } });
-    if (!supplier) throw new NotFoundException(`Dobavljač ${dto.supplierId} nije pronađen.`);
-    if (dto.finalPrice < dto.baseCost) {
-      // Nije zabrana prodaje ispod nabavne cene nego zaštita od zamenjenih polja: agent koji
-      // greškom upiše izlaznu u polje nabavne pravi negativnu maržu na celoj rezervaciji.
-      throw new BadRequestException(
-        'Izlazna cena ne sme biti manja od nabavne — proverite da polja nisu zamenjena (M5 spec §6.7b).',
-      );
-    }
+    // §6.7b — zaštita od zamenjenih polja i DRAFT proizvod: zajednički kod sa ponudom (§3.0j).
+    assertPricesNotSwapped(dto.baseCost, dto.finalPrice);
     const stayFrom = new Date(dto.stayFrom);
     const stayTo = new Date(dto.stayTo);
     if (stayTo <= stayFrom)
       throw new BadRequestException('Datum završetka mora biti posle datuma početka.');
 
-    const product = await this.prisma.product.create({
-      data: {
-        type: dto.productType,
-        sourceType: 'MANUAL',
-        supplierId: supplier.id,
-        destinationCountry: dto.destinationCountry,
-        destinationCity: dto.destinationCity,
-        // §6.7b — jednokratna usluga NE ulazi u katalog: `DRAFT` je ne prikazuje ni pretrazi
-        // (`GET /search` traži ACTIVE), ni sajtu, ni B2B portalu.
-        status: dto.saveToCatalog ? 'ACTIVE' : 'DRAFT',
-        visibleChannels: dto.saveToCatalog ? ['B2C_SITE', 'B2B_PORTAL'] : [],
-        createdBy: actor.userId,
-        translations: {
-          // `description`/`slug` su obavezni u M2 modelu; ručna usluga često nema opis, pa se
-          // upisuje prazan string, ne izmišljen tekst. Slug nosi vreme unosa da dva istoimena
-          // jednokratna unosa („Transfer kombijem") ne bi imala isti — jedinstvenost je
-          // svojstvo sluga, i ne sme zavisiti od toga koliko je agent bio maštovit.
-          create: [
-            {
-              languageCode: 'sr' as const,
-              name: dto.name,
-              description: dto.description ?? '',
-              slug: `${
-                dto.name
-                  .toLowerCase()
-                  .normalize('NFD')
-                  .replace(/[̀-ͯ]/g, '')
-                  .replace(/[^a-z0-9]+/g, '-')
-                  .replace(/^-|-$/g, '') || 'usluga'
-              }-${Date.now().toString(36)}`,
-            },
-          ],
-        },
-      },
+    const product = await createManualProduct(this.prisma, {
+      productType: dto.productType,
+      name: dto.name,
+      description: dto.description,
+      supplierId: dto.supplierId,
+      destinationCountry: dto.destinationCountry,
+      destinationCity: dto.destinationCity,
+      saveToCatalog: dto.saveToCatalog,
+      createdBy: actor.userId,
     });
+    const supplier = { id: product.supplierId as string };
 
     const item = await this.prisma.bookingItem.create({
       data: {

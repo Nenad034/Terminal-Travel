@@ -13,6 +13,9 @@ import { SubagentBridgeService } from '../common/subagent-bridge.service';
 import { SubagentsModule } from '../../m7-b2b-subagenti/subagents/subagents.module';
 import { CommissionModule } from '../../m7-b2b-subagenti/commission/commission.module';
 import { AuditLogModule } from '../../m1-core-identitet/audit-log/audit-log.module';
+import { TextIntakeService } from './text-intake.service';
+import { AnthropicClientService } from '../../m15-ai-orkestracija/anthropic/anthropic-client.service';
+import { M18OperativniNadzorModule } from '../../m18-operativni-nadzor/m18-operativni-nadzor.module';
 
 @Module({
   imports: [
@@ -25,9 +28,19 @@ import { AuditLogModule } from '../../m1-core-identitet/audit-log/audit-log.modu
     SubagentsModule,
     CommissionModule,
     AuditLogModule,
+    // §3.0j — beleženje poziva modelu (M18 budžet), isti obrazac kao M3 PricelistModule.
+    M18OperativniNadzorModule,
   ],
   controllers: [QuotesController],
-  providers: [QuotesService, QuoteItemBuilderService, LoyaltyBridgeService, SubagentBridgeService],
+  providers: [
+    QuotesService,
+    QuoteItemBuilderService,
+    LoyaltyBridgeService,
+    SubagentBridgeService,
+    TextIntakeService,
+    // Nije izvezen iz M15 modula; zavisi samo od ConfigService — isto kao u M3 PricelistModule.
+    AnthropicClientService,
+  ],
   exports: [QuoteItemBuilderService, QuotesService],
 })
 export class QuotesModule {}

@@ -161,6 +161,16 @@ export const NAV_ITEMS: NavItem[] = [
     implemented: true,
   },
   {
+    // M5 spec §3.0j (17.9.2026) — nalepljen mejl dobavljača / zahtev klijenta → nacrt ponude.
+    id: 'ponuda-iz-teksta',
+    label: 'Ponuda iz teksta',
+    icon: 'mail',
+    href: '/rezervacije/ponude/nova-iz-teksta',
+    permission: { module: 'M5', resource: 'quote', action: 'CREATE' },
+    phase: 1,
+    implemented: true,
+  },
+  {
     id: 'kalendar',
     label: 'Kalendar rezervacija',
     icon: 'calendar',
@@ -368,7 +378,13 @@ export const NAV_GROUPS: NavGroup[] = [
     id: 'prodaja',
     label: 'Prodaja',
     icon: 'euro',
-    itemIds: ['pretraga', 'kalendar', 'rezervacije-lista', 'rezervacije-najave'],
+    itemIds: [
+      'pretraga',
+      'ponuda-iz-teksta',
+      'kalendar',
+      'rezervacije-lista',
+      'rezervacije-najave',
+    ],
   },
   {
     id: 'katalog-nabavka',

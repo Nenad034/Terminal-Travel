@@ -24,6 +24,8 @@ export interface RawQuoteItem {
   providerQuoteReference: string | null;
   unitCount: number;
   cancellationPolicySnapshot: unknown;
+  /** Naziv iz M2 prevoda (sr) — javni podatak, sme svima. */
+  productName?: string | null;
   [key: string]: unknown;
 }
 
@@ -34,6 +36,7 @@ export function toPublicQuoteItem(item: RawQuoteItem) {
   return {
     id: item.id,
     productId: item.productId,
+    productName: item.productName ?? null,
     sourceType: item.sourceType,
     stayFrom: item.stayFrom,
     stayTo: item.stayTo,

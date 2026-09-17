@@ -1761,6 +1761,9 @@ model Quote {
   clientAccountId         String?     @map("client_account_id") // buduće M6 Nalogodavac
   channel                 M5Channel
   status                  QuoteStatus @default(DRAFT)
+  // M5 §3.0j.2 (v2.53) — nalepljen mejl/zahtev iz kog je AI izvukao nacrt; „odakle ova cena"
+  // mora imati odgovor. Popunjeno = nacrt nastao kroz tekstualni ulaz.
+  intakeSourceText        String?     @map("intake_source_text")
   expiresAt               DateTime    @map("expires_at")
   itineraryId             String?     @map("itinerary_id")
   contractTermsAccepted   Boolean     @default(false) @map("contract_terms_accepted")
@@ -1798,7 +1801,8 @@ model QuoteItem {
   baseCost                   Int               @map("base_cost")
   baseCostCurrency           String            @map("base_cost_currency")
   rateLineId                 String?           @map("rate_line_id")
-  markupRuleId               String            @map("markup_rule_id")
+  // M5 §3.0j.3 (v2.53) — MANUAL stavka ponude nema pravilo marže (ista izmena kao BookingItem u v2.25).
+  markupRuleId               String?           @map("markup_rule_id")
   finalPrice                 Int               @map("final_price")
   finalPriceCurrency         String            @map("final_price_currency")
   providerQuoteReference     String?           @map("provider_quote_reference")
@@ -1812,10 +1816,10 @@ model QuoteItem {
   // CancellationRule uživo preko rate_line_id, nema potrebe za snimkom).
   cancellationPolicySnapshot Json?             @map("cancellation_policy_snapshot")
 
-  quote      Quote      @relation(fields: [quoteId], references: [id], onDelete: Cascade)
-  product    Product    @relation(fields: [productId], references: [id])
-  rateLine   RateLine?  @relation(fields: [rateLineId], references: [id])
-  markupRule MarkupRule @relation(fields: [markupRuleId], references: [id])
+  quote      Quote       @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  product    Product     @relation(fields: [productId], references: [id])
+  rateLine   RateLine?   @relation(fields: [rateLineId], references: [id])
+  markupRule MarkupRule? @relation(fields: [markupRuleId], references: [id])
 
   // Indeksi na stranim ključevima (5.9.2026, dok. 39 nalaz 2.1). Postgres ih NE pravi sam:
   // pravi ih samo na strani na koju se pokazuje (PK), ne i na koloni koja pokazuje. Bez njih

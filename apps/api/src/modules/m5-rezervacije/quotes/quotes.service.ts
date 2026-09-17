@@ -9,6 +9,8 @@ import { resolveApiContext, type M5CallerContext } from '../common/resolve-api-c
 import { serializeQuote, type RawQuote } from './quote-visibility';
 import { findDateMismatches } from '../common/date-mismatch';
 import { AuditLogService } from '../../m1-core-identitet/audit-log/audit-log.service';
+import { assertPricesNotSwapped, createManualProduct } from '../common/manual-product';
+import type { BuiltQuoteItemData } from './quote-item-builder.service';
 import {
   nadjiIzuzetak,
   obracunajProviziju,
@@ -62,21 +64,67 @@ export class QuotesService {
 
     // M5 spec §3.0d.6a — build() vraća niz po stavci zahteva (PACKAGE gradi više QuoteItem-a
     // odjednom iz included_products[]); .flat() spaja sve u jedan ravan niz stavki Ponude.
+    // §3.0j.3 — ručne stavke: DRAFT proizvod + stavka bez pravila marže, mimo builder-a
+    // (nema cenovnika iz kog bi se cena izvela). Nabavna sme biti prazna (budžet klijenta) —
+    // tada se u bazu upisuje 0 i agent je dopunjava pre potvrde.
+    const manualBuilt: (BuiltQuoteItemData & { sourceType: 'MANUAL' })[] = [];
+    for (const item of dto.items) {
+      if (!item.manual) continue;
+      const m = item.manual;
+      assertPricesNotSwapped(m.baseCost ?? null, m.finalPrice);
+      const product = await createManualProduct(this.prisma, {
+        productType: m.productType,
+        name: m.name,
+        description: m.description,
+        supplierId: m.supplierId,
+        destinationCountry: m.destinationCountry,
+        destinationCity: m.destinationCity,
+        saveToCatalog: m.saveToCatalog,
+        attributes: m.attributes ?? null,
+        createdBy: actor?.userId ?? null,
+      });
+      manualBuilt.push({
+        productId: product.id,
+        type: m.productType,
+        sourceType: 'MANUAL',
+        stayFrom: new Date(item.stayFrom),
+        stayTo: new Date(item.stayTo),
+        occupancy: item.occupancy,
+        baseCost: m.baseCost ?? 0,
+        baseCostCurrency: m.currency,
+        rateLineId: null,
+        contractId: null,
+        seasonId: null,
+        contractPeriodId: null,
+        markupRuleId: null as unknown as string,
+        finalPrice: m.finalPrice,
+        finalPriceCurrency: m.currency,
+        providerQuoteReference: null,
+        quoteExpiresAt: null,
+        unitCount: Math.max(1, item.occupancy.roomConfig?.length ?? 1),
+        cancellationPolicySnapshot: m.notes ? { summary: m.notes } : null,
+      } as BuiltQuoteItemData & { sourceType: 'MANUAL' });
+    }
+
     const built = (
       await Promise.all(
-        dto.items.map((item) =>
-          this.builder.build({
-            productId: item.productId,
-            stayFrom: item.stayFrom,
-            stayTo: item.stayTo,
-            occupancy: item.occupancy,
-            rateLineId: item.rateLineId ?? null,
-            providerQuoteReference: item.providerQuoteReference ?? null,
-            selectedOfferQuoteExpiresAt: item.selectedOfferQuoteExpiresAt ?? null,
-          }),
-        ),
+        dto.items
+          .filter((item) => !item.manual)
+          .map((item) =>
+            this.builder.build({
+              productId: item.productId as string,
+              stayFrom: item.stayFrom,
+              stayTo: item.stayTo,
+              occupancy: item.occupancy,
+              rateLineId: item.rateLineId ?? null,
+              providerQuoteReference: item.providerQuoteReference ?? null,
+              selectedOfferQuoteExpiresAt: item.selectedOfferQuoteExpiresAt ?? null,
+            }),
+          ),
       )
-    ).flat();
+    )
+      .flat()
+      .concat(manualBuilt as BuiltQuoteItemData[]);
 
     // M5 spec §3.0e.3a (dopuna 29.8.2026) — server je jedini pravi oslonac (klijentska provera
     // u RightPanel.tsx je samo brža povratna informacija). Bez `date_mismatch_acknowledged`,
@@ -157,6 +205,7 @@ export class QuotesService {
         contractTermsAcceptedAt: dto.contractTermsAccepted ? new Date() : null,
         createdBy: actor?.userId ?? null,
         referralTrackingCode: dto.referralTrackingCode,
+        intakeSourceText: dto.intakeSourceText ?? null,
         items: {
           create: built.map((b) => ({
             productId: b.productId,
@@ -167,7 +216,7 @@ export class QuotesService {
             baseCost: b.baseCost,
             baseCostCurrency: b.baseCostCurrency,
             rateLineId: b.rateLineId,
-            markupRuleId: b.markupRuleId,
+            markupRuleId: b.markupRuleId ?? null,
             finalPrice: primeniPopust(b),
             finalPriceCurrency: b.finalPriceCurrency,
             providerQuoteReference: b.providerQuoteReference,
@@ -210,8 +259,28 @@ export class QuotesService {
   // ka B2C/B2B/MCP kanalima). Sad deli isti `resolveApiContext`/whitelist obrazac kao
   // `BookingsService` — isti bag klase koju je deljena funkcija upravo trebalo da spreči.
   async findOne(id: string, actorUserId?: string) {
-    const quote = await this.prisma.quote.findUnique({ where: { id }, include: { items: true } });
+    const quote = await this.prisma.quote.findUnique({
+      where: { id },
+      include: {
+        items: {
+          include: {
+            // Naziv proizvoda za prikaz (§3.0j — ručna stavka bez naziva je samo UUID na ekranu).
+            // Sadržaj je javni katalog (M2 §5.1: naziv), ništa nabavno.
+            product: {
+              select: {
+                translations: { where: { languageCode: 'sr' }, select: { name: true }, take: 1 },
+              },
+            },
+          },
+        },
+      },
+    });
     if (!quote) throw new NotFoundException(`Ponuda ${id} nije pronađena.`);
+    const items = quote.items.map(({ product, ...item }) => ({
+      ...item,
+      productName: product?.translations[0]?.name ?? null,
+    }));
+    const quoteForSerialization = { ...quote, items };
 
     let context: M5CallerContext = 'INTERNAL_PANEL';
     if (actorUserId) {
@@ -222,7 +291,7 @@ export class QuotesService {
       }
     }
 
-    const serialized = serializeQuote(quote as unknown as RawQuote, context);
+    const serialized = serializeQuote(quoteForSerialization as unknown as RawQuote, context);
     return {
       ...serialized,
       isExpired: quote.status === 'DRAFT' && quote.expiresAt.getTime() < Date.now(),

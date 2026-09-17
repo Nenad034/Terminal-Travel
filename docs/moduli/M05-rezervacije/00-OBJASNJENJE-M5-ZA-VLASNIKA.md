@@ -126,6 +126,16 @@ Sada se pri sastavljanju ponude proveravaju tri stvari: staje li grupa u kapacit
 - **Rezervacija ne razlikuje odrasle od dece.** Ponuda tu razliku ima, rezervacija je nikad nije imala — čuva se samo spisak imena putnika. Posledica: ako je u ugovoru doplata ograničena na „najviše dvoje dece do 7 godina", ta granica se pri dodavanju na rezervaciju **ne može proveriti** (svi putnici se broje kao odrasli). Sam obračun i granica ukupnog broja osoba rade ispravno. Rešenje traži tvoju odluku, jer dotiče i mobilnu aplikaciju (prijava gostiju na terenu).
 - **Ručna usluga na PONUDI** još ide starom, nikad napravljenom zamisli sa posebnim zapisom. Na rezervaciji je rešena bez toga (usluga je „nacrt" proizvoda), pa kad ponuda dođe na red treba odlučiti prelazi li i ona na isti obrazac. Dok se ne počne, odluka ništa ne košta.
 
+## Ponuda iz nalepljenog teksta (17.9.2026)
+
+Vi ste pitali za Planis — evo šta smo od toga napravili, unutar postojećih modula, bez novog proizvoda. U meniju „Prodaja" stoji **„Ponuda iz teksta"**: agent nalepi mejl hotela („za 20–27.6, 2+2, polupansion, 1.240 €") ili poruku klijenta („tražim Rim, 7 noći, do 1.500 €"). AI **samo pročita** tekst i popuni polja — ne računa, ne pogađa, ne upisuje; ako fali datum ili broj osoba, postavi jedno pitanje. Sistem onda **sam** proveri da li taj hotel već imamo u katalogu (po nazivu **i mestu**, da se dva istoimena ne pomešaju) i ko je dobavljač. Agent vidi predlog sa oznakom odakle je svako polje, ispravi šta treba i klikne „Napravi nacrt ponude" — tek to je upis.
+
+Tri vaše odluke koje su ugrađene: klijentov budžet postaje **predlog izlazne cene**; subagent u nacrtu vidi **svoju i bruto cenu** (nikad nabavnu — to ostaje pravilo M7; njihova varijanta čeka portal); kad hotela nema u katalogu, agent nalepi link sajta, AI **predloži** opis/adresu/kategoriju, a agent ga **odobri** pre upisa.
+
+Ako hotel jeste u katalogu i ima ugovor za taj period, u nacrt ide **naša ugovorena cena** — mejl je povod, ne izvor cene. Ako hotela nema, pravi se nacrt-proizvod nevidljiv pretrazi i sajtu (isto kao ručna usluga na rezervaciji), sa nabavnom iz mejla i izlaznom koju agent unese.
+
+**Šta još nije:** merenje na 20 vaših stvarnih mejlova (dajte uzorke pa ćemo proveriti gde greši) i slike sa sajta hotela.
+
 Neki delovi sistema koji su spomenuti u ovom modulu (garancija putovanja, kreditni limit B2B partnera, ugovor sa klijentom, zajedničko sanduče za mejlove ka dobavljačima) **još nisu izgrađeni kao posebni moduli** — kad M5 treba da ih pita nešto, trenutno dobija unapred dogovoren, bezopasan odgovor ("da, prođi") umesto da blokira ceo tok. Ovo je namerno privremeno rešenje, jasno obeleženo u kodu, koje će biti zamenjeno pravom logikom čim ti moduli dođu na red po faznom planu — ne slučajna rupa koja je "ispala".
 
 ---

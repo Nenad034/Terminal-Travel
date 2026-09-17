@@ -9,9 +9,10 @@ import {
   IsOptional,
   IsString,
   Min,
+  ValidateIf,
   ValidateNested,
 } from 'class-validator';
-import { M5Channel } from '@prisma/client';
+import { M5Channel, ProductType } from '@prisma/client';
 
 // M5 spec §3.2a — room_config[] po sobi.
 export class RoomConfigInputDto {
@@ -49,10 +50,65 @@ export class OccupancyInputDto {
   roomConfig?: RoomConfigInputDto[];
 }
 
+// M5 spec §3.0j.3/§3.0j.4 (v2.53) — ručna stavka ponude: proizvod kog nema u katalogu (ili nema
+// cenu za period). Pravi DRAFT proizvod (§6.7b) + MANUAL stavku bez pravila marže.
+export class ManualQuoteItemDto {
+  @IsEnum(ProductType)
+  productType!: ProductType;
+
+  @IsString()
+  name!: string;
+
+  @IsString()
+  @IsOptional()
+  description?: string;
+
+  @IsString()
+  supplierId!: string;
+
+  @IsString()
+  destinationCountry!: string;
+
+  @IsString()
+  destinationCity!: string;
+
+  /** Najmanja jedinica valute; null kad još nije dogovorena (budžet klijenta, §3.0j.7 t. 1). */
+  @IsInt()
+  @Min(0)
+  @IsOptional()
+  baseCost?: number | null;
+
+  @IsInt()
+  @Min(0)
+  finalPrice!: number;
+
+  @IsString()
+  currency!: string;
+
+  @IsBoolean()
+  @IsOptional()
+  saveToCatalog?: boolean;
+
+  /** §3.0j.7 t. 3 — odobren predlog sa zvaničnog sajta (opis/adresa/kategorija/sadržaji). */
+  @IsOptional()
+  attributes?: Record<string, unknown> | null;
+
+  @IsString()
+  @IsOptional()
+  notes?: string;
+}
+
 // M5 spec §3.0b.3 — polja se prepisuju iz izabranog SearchResultOffer, jedna stavka Ponude.
 export class CreateQuoteItemDto {
+  /** Prazno samo uz `manual` (§3.0j) — inače obavezno. */
+  @ValidateIf((o: CreateQuoteItemDto) => !o.manual)
   @IsString()
-  productId!: string;
+  productId?: string;
+
+  @ValidateNested()
+  @Type(() => ManualQuoteItemDto)
+  @IsOptional()
+  manual?: ManualQuoteItemDto;
 
   @IsString()
   @IsOptional()
@@ -106,4 +162,9 @@ export class CreateQuoteDto {
   @IsBoolean()
   @IsOptional()
   dateMismatchAcknowledged?: boolean;
+
+  /** §3.0j.2 — nalepljen mejl/zahtev iz kog je nacrt nastao; čuva se uz ponudu. */
+  @IsString()
+  @IsOptional()
+  intakeSourceText?: string;
 }

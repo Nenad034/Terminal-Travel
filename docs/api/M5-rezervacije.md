@@ -1077,6 +1077,80 @@ Dopuna v1.16 — isto kao gore, ali obim je više rezervacija odjednom. `booking
 
 ---
 
+## Ponuda iz nalepljenog teksta (spec §3.0j, v2.53)
+
+### POST /sales/quotes/text-intake/extract
+
+Dozvola `M5/quote/CREATE`. Model **samo čita** tekst; kod izvodi iznos/datume, upari objekat (naziv + mesto),
+dobavljača i proveri da li objekat ima ugovorenu cenu za period. Ništa se ne upisuje.
+
+```http
+POST /api/v1/sales/quotes/text-intake/extract
+{ "text": "Postovani, za Hotel Sun Resort 4* u Herceg Novom: 20.06.2027-27.06.2027, 1 x dvokrevetna, 2 odrasla + 2 dece (5 i 9), polupansion, cena 1.240,00 EUR ukupno. Ponuda vazi do 30.09.2026. Sun Resort d.o.o.",
+  "answers": [] }
+```
+
+```json
+{
+  "extraction": {
+    "kind": "SUPPLIER_OFFER", "property_name": "Hotel Sun Resort 4*", "city": "Herceg Novi", "country": null,
+    "supplier_name": "Sun Resort d.o.o.", "stay_from": "2027-06-20", "stay_to": "2027-06-27", "nights": 7, "board": "HB",
+    "rooms": [{ "room_type_text": "dvokrevetna soba", "adults": 2, "children_ages": [5, 9] }],
+    "price": { "amount_text": "1.240,00", "currency": "EUR", "basis": "PER_ROOM", "per": "STAY" },
+    "valid_until": "2026-09-30", "notes": null, "questions": [], "confidence": "HIGH"
+  },
+  "derived": { "amountMinor": 124000, "currency": "EUR", "stayFrom": "2027-06-20", "stayTo": "2027-06-27", "adults": 2, "children": 2, "priceRole": "BASE_COST" },
+  "match": { "productId": "mock-cap-product-1", "productName": "Hotel Sun Resort", "matchScore": 100, "productStatus": "ACTIVE",
+             "contractId": "fb335cd3-…", "hasPriceForPeriod": false, "supplierId": "b09ef260-…", "supplierName": "Hotel Sun Resort d.o.o.", "supplierCandidates": [ … ] },
+  "warnings": []
+}
+```
+
+`priceRole`: `BASE_COST` (mejl dobavljača) ili `FINAL_PRICE` (budžet klijenta, §3.0j.7 t. 1). Kad tekstu fali objekat,
+period ili putnici, `extraction.questions` nosi jedno pitanje — odgovor se šalje u `answers` (najviše dva kruga).
+
+### POST /sales/quotes/text-intake/site-preview
+
+`{ "url": "https://…" }` → `{ url, description, address, stars, amenities[], warnings[] }` — predlog sa zvaničnog sajta
+(SSRF ograda `safeFetchText`), čovek odobrava na ekranu pre nego što uđe u proizvod (§3.0j.7 t. 3).
+
+### POST /sales/quotes — ručna stavka (`items[].manual`)
+
+```json
+{
+  "channel": "INTERNAL_PANEL",
+  "intakeSourceText": "…ceo nalepljen tekst…",
+  "items": [
+    {
+      "stayFrom": "2027-07-10",
+      "stayTo": "2027-07-17",
+      "occupancy": {
+        "adults": 2,
+        "children": 0,
+        "roomConfig": [{ "adults": 2, "children": 0, "childrenAges": [] }]
+      },
+      "manual": {
+        "productType": "ACCOMMODATION",
+        "name": "Villa Aurora Boutique",
+        "supplierId": "…",
+        "destinationCountry": "Croatia",
+        "destinationCity": "Rovinj",
+        "baseCost": 98000,
+        "finalPrice": 118000,
+        "currency": "EUR",
+        "saveToCatalog": false,
+        "attributes": null,
+        "notes": "Free cancellation until 30 days"
+      }
+    }
+  ]
+}
+```
+
+Pravi `DRAFT` proizvod (`source_type = MANUAL`, bez kanala) + `QuoteItem` `MANUAL` sa `markupRuleId = null`;
+`finalPrice < baseCost` → 400; `baseCost` sme biti prazan (0) do potvrde — `POST /quotes/:id/confirm` ga tada odbija.
+`GET /quotes/:id` od v2.53 vraća i `items[].productName`.
+
 ## Greške — zajednički oblik
 
 Sve greške vraćaju standardan NestJS oblik:
