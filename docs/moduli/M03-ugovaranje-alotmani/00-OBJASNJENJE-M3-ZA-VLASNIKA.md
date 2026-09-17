@@ -362,6 +362,8 @@ Sad sistem svako jutro prođe kroz sve akcije koje donose nižu cenu (rani bukin
 
 Tri stvari sistem **neće** uraditi: neće najaviti akciju za hotel koji nije objavljen u katalogu, neće je najaviti ako je period već rasprodat (reklama za nešto što ne može da se kupi je gore nego nikakva), i neće je najaviti dvaput — jednom po akciji, i gotovo. Ako hotel produži akciju, to je nova stavka sa novim rokom i dobiće svoje obaveštenje kad dođe red.
 
+**Od 17.9.2026 ovo radi.** Na ekranu „Kapaciteti" se, čim nečemu ostane 15 dana ili manje, na vrhu pojavi blok „Akcije kojima ističe rok": hotel, mesto, vrsta akcije, koliki popust, boravak i „ističe 24.9. (za 7 dana)". Dva dugmeta: „otvori cenovnik" (da se produžena akcija unese kao nova stavka) i „video" (red nestane). Kad nema ničega, bloka nema. Usput je otkriveno da se blokade sa rokom (koje ste tražili 8.9.) nikad nisu same vraćale u prodaju — posao koji to radi je postojao, ali ga ništa nije pokretalo; sad i on ide svako jutro u 6.
+
 Pragovi od 15 i 7 dana su upisani kao podešavanje, ne ukucani u kod, ali ekran za njihovu izmenu nije pravljen — vi ste dali fiksne brojeve, i dok se ne pokaže potreba da se menjaju, ekran bi bio višak.
 
 ---

@@ -4,6 +4,7 @@ import RegisterTab from '@/components/RegisterTab';
 import Icon from '@/components/Icon';
 import Link from 'next/link';
 import CapacityScreen from './CapacityScreen';
+import ExpiringOffers, { type ExpiryNoticeRow } from './ExpiringOffers';
 import type { CapacityGridRow } from './CapacityGrid';
 
 // M17 spec §4b — ekran „Kapaciteti": mreža po danima nad M3 §2.8.
@@ -70,6 +71,9 @@ export default async function KapacitetiPage(props: {
   const canCloseSale = hasPermission(me, 'M3', 'capacity', 'CLOSE_SALE');
   const canBlock = hasPermission(me, 'M3', 'capacity', 'BLOCK');
   const canEditCapacity = hasPermission(me, 'M3', 'contract-period', 'EDIT');
+  // M3 §4.9 — akcije pred istek na radnom spisku (M17 §4b.0, stanje 1). Ista dozvola kao ugovor.
+  const canSeeExpiry = hasPermission(me, 'M3', 'contract', 'VIEW');
+  const canAckExpiry = hasPermission(me, 'M3', 'contract', 'EDIT');
 
   if (!canView) {
     return (
@@ -104,6 +108,18 @@ export default async function KapacitetiPage(props: {
 
   const dani = grid.rows[0]?.days.map((d) => d.date) ?? [];
 
+  let expiring: ExpiryNoticeRow[] = [];
+  if (canSeeExpiry) {
+    try {
+      expiring = await apiFetch<ExpiryNoticeRow[]>(
+        '/contracting/pricelist/expiry-notices?threshold=INTERNAL&acknowledged=false',
+      );
+    } catch {
+      expiring = []; // greška ovde ne sme da obori mrežu — spisak je dopuna, ne uslov
+    }
+  }
+  const danas = new Date().toISOString().slice(0, 10);
+
   return (
     <div className="flex flex-col gap-4 p-6">
       <RegisterTab label="Kapaciteti" />
@@ -126,6 +142,8 @@ export default async function KapacitetiPage(props: {
           </p>
         </div>
       </div>
+
+      <ExpiringOffers rows={expiring} danas={danas} canAcknowledge={canAckExpiry} />
 
       {error ? (
         <p className="rounded-lg border border-border bg-panel p-4 text-center text-xs text-danger">

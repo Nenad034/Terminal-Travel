@@ -8,6 +8,7 @@ import ActorLabel from '@/components/ActorLabel';
 import TranslationsPanel from './TranslationsPanel';
 import ApproveContentButton from './ApproveContentButton';
 import MediaGallery from './MediaGallery';
+import OfferExpiryPanel from './OfferExpiryPanel';
 
 interface ContentPiece {
   id: string;
@@ -23,6 +24,10 @@ interface ContentPiece {
   approvedBy: string | null;
   publishedAt: string | null;
   status: string;
+  // M12 §3d — nacrt iz akcije pred istek (M3 §4.9).
+  offerBookingTo: string | null;
+  sourceOfferId: string | null;
+  b2bAudience: 'ASSIGNED_ONLY' | 'ALL_ACTIVE' | null;
   translations: { languageCode: string; title: string; body: string; isReviewed: boolean }[];
   media: { id: string; mediaType: 'IMAGE' | 'VIDEO'; fileName: string; sizeBytes: number }[];
 }
@@ -43,8 +48,30 @@ export default async function ContentDetailPage(props: { params: Promise<{ id: s
     notFound();
   }
 
+  // M17 §7a — nacrt iz akcije pred istek: rok kao datum, broj primalaca uživo iz M7, i ugašeno
+  // odobrenje kad je rok prošao (objava bi ionako završila kao EXPIRED, M12 §3d).
+  const danas = new Date().toISOString().slice(0, 10);
+  const offerExpired = !!content.offerBookingTo && content.offerBookingTo.slice(0, 10) < danas;
+  let recipientCount: number | null = null;
+  if (
+    content.offerBookingTo &&
+    content.productId &&
+    content.targetChannels.includes('B2B_SUBAGENTS')
+  ) {
+    try {
+      const r = await apiFetch<unknown[]>(
+        `/b2b/notice-recipients?productId=${content.productId}&audience=${content.b2bAudience ?? 'ALL_ACTIVE'}`,
+      );
+      recipientCount = r.length;
+    } catch {
+      recipientCount = null; // M7 nedostupan — panel to kaže, ne pogađa broj
+    }
+  }
+
   const canApproveNow =
-    canApprove && (content.status === 'DRAFT' || content.status === 'PENDING_APPROVAL');
+    canApprove &&
+    (content.status === 'DRAFT' || content.status === 'PENDING_APPROVAL') &&
+    !offerExpired;
 
   return (
     <div className="p-6">
@@ -92,6 +119,28 @@ export default async function ContentDetailPage(props: { params: Promise<{ id: s
         <Info label="odobrio" value={content.approvedBy ?? '—'} />
       </div>
 
+      {content.offerBookingTo && (
+        <OfferExpiryPanel
+          id={content.id}
+          offerBookingTo={content.offerBookingTo}
+          targetChannels={content.targetChannels}
+          b2bAudience={content.b2bAudience}
+          editable={
+            canEdit && (content.status === 'DRAFT' || content.status === 'PENDING_APPROVAL')
+          }
+          danas={danas}
+          recipientCount={recipientCount}
+        />
+      )}
+
+      {offerExpired && (content.status === 'DRAFT' || content.status === 'PENDING_APPROVAL') && (
+        <p className="mb-4 rounded-lg border border-danger bg-danger-bg p-3 text-xs text-danger">
+          Rok rezervacije ove akcije je prošao — odobrenje je ugašeno, objava ne bi izašla (M12
+          §3d). Ako je hotel produžio akciju, produžena stavka u cenovniku dobija sopstveno
+          obaveštenje i nov nacrt.
+        </p>
+      )}
+
       {content.containsAiGeneratedMedia && (
         <p className="mb-4 rounded-lg border border-warn bg-warn-bg p-3 text-xs text-warn">
           <Icon name="warning" /> Sadrži sintetički AI-generisan vizual (YUTA preporuka, M12 spec
@@ -133,8 +182,10 @@ function StatusBadge({ status }: { status: string }) {
   const tone =
     status === 'PUBLISHED'
       ? 'text-ok bg-ok-bg'
-      : status === 'APPROVED'
-        ? 'text-accent-strong bg-accent-soft'
-        : 'text-warn bg-warn-bg';
+      : status === 'EXPIRED'
+        ? 'text-danger bg-danger-bg'
+        : status === 'APPROVED'
+          ? 'text-accent-strong bg-accent-soft'
+          : 'text-warn bg-warn-bg';
   return <span className={`rounded px-2 py-0.5 text-[11px] font-medium ${tone}`}>{status}</span>;
 }

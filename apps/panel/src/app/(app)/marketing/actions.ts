@@ -205,3 +205,29 @@ export async function updateChannel(
   revalidatePath('/marketing/kanali');
   return { error: null };
 }
+
+// M12 spec §3d / M17 §7a — nacrt iz akcije pred istek: pre odobrenja čovek bira kanale i krug
+// subagenata (`b2bAudience`). Sopstvena radnja, ne `updateContent`: ona šalje i
+// `containsAiGeneratedMedia` iz checkbox-a koji ova forma nema, pa bi ga tiho vratila na false.
+export async function updateOfferDraft(
+  id: string,
+  _prev: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  try {
+    await apiFetch(`/marketing/content/${id}`, {
+      method: 'PATCH',
+      body: {
+        targetChannels: formData.getAll('targetChannels'),
+        b2bAudience: strOrUndef(formData, 'b2bAudience'),
+      },
+    });
+  } catch (err) {
+    return {
+      error: err instanceof ApiError ? extractMessage(err) : 'Izmena nacrta nije uspela.',
+    };
+  }
+  revalidatePath(`/marketing/${id}`);
+  revalidatePath('/marketing');
+  return { error: null };
+}

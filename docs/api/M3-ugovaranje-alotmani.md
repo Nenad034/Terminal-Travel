@@ -1519,6 +1519,93 @@ Primena se **odbija** kad je među potvrđenim razlikama tip sobe koji katalog n
 Prolazi uz `"dozvoliNepoklopljeneTipoveSoba": true` u telu — dobavljač sme imati tip van kataloga, ali to mora
 biti izbor, ne propuštanje.
 
+## Akcije pred istek (spec §4.9, v1.44)
+
+Dnevni posao (6:00, `M3DailyJobsService`) prolazi kroz sve aktivne stavke koje donose nižu cenu i imaju rok
+(rani buking, gratis noći, popust sa `bookingTo`, cena prve tranše sa skupljom naslednicom). Na **15 dana**
+pravi `INTERNAL` zapis (radni spisak), na **7 dana** `MARKETING` zapis i emituje `M3 pricelist.offer.expiring`
+na Event Bus (M12 pravi nacrt objave, M7 dobija primaoce). Jednom po stavci i pragu.
+
+### GET /contracting/pricelist/expiry-notices
+
+Dozvola `M3/contract/VIEW`. Upit: `threshold=INTERNAL|MARKETING`, `acknowledged=true|false`.
+
+```http
+GET /api/v1/contracting/pricelist/expiry-notices?threshold=INTERNAL&acknowledged=false
+```
+
+```json
+[
+  {
+    "id": "82d2ad2a-c79f-4902-aa43-e3fa576d5ee5",
+    "sourceType": "PRICELIST_OFFER",
+    "sourceId": "2c75f4cf-d1d3-4b8b-8e95-0633387fad0c",
+    "threshold": "INTERNAL",
+    "daysLeftAtEmit": 7,
+    "emittedAt": "2026-09-17T07:52:10.412Z",
+    "acknowledgedBy": null,
+    "acknowledgedAt": null,
+    "contractId": "d8519a56-7fac-4ff2-ae99-2518413ef96c",
+    "contractPeriodId": "00af8134-ba2b-4a91-8f74-7feb574d2355",
+    "productId": "6e827ccf-8861-4091-95e1-297597d38f53",
+    "productName": "Kemer Pine Bay 5*",
+    "destinationCountry": "Turska",
+    "destinationCity": "Kemer",
+    "offerKind": "EARLY_BOOKING",
+    "discountSummary": "−15 %",
+    "bookingTo": "2026-09-24T00:00:00.000Z",
+    "stayFrom": "2027-04-01T00:00:00.000Z",
+    "stayTo": "2027-10-31T00:00:00.000Z"
+  }
+]
+```
+
+`bookingTo` je efektivan istek (`min(booking_to, deposit_deadline)`); `discountSummary` je čitljiv sažetak
+(„−15 %", „7=6", „−10 % (Popust za penzionere)", „−20 % do roka (80 EUR → 100 EUR)").
+
+### POST /contracting/pricelist/expiry-notices/:id/acknowledge
+
+Dozvola `M3/contract/EDIT`. Ugovarač potvrđuje da je video — red nestaje iz radnog spiska. Idempotentno.
+Vraća isti zapis sa popunjenim `acknowledgedBy/acknowledgedAt`.
+
+### POST /contracting/pricelist/expiry-notices/run
+
+Dozvola `M3/contract/EDIT`. Ručno pokretanje dnevnog posla (provera na živom sistemu, dan kad server nije
+radio). Drugi poziv istog dana ne pravi ništa novo.
+
+```json
+{ "scanned": 3, "emitted": { "INTERNAL": 1, "MARKETING": 1 }, "withheld": 0 }
+```
+
+`withheld` = `MARKETING` kandidati zadržani na ogradi (proizvod nije `ACTIVE` u M2, ili nijedan dan sa
+`zaProdaju ≥ 1`) — bez zapisa, sutra se gledaju ponovo.
+
+### Događaj `M3 pricelist.offer.expiring` (Event Bus, ne HTTP)
+
+```json
+{
+  "notice_id": "…",
+  "source_type": "PRICELIST_OFFER",
+  "source_id": "…",
+  "contract_id": "…",
+  "contract_period_id": "…",
+  "product_id": "…",
+  "supplier_id": "…",
+  "product_name": "Kemer Pine Bay 5*",
+  "destination_country": "Turska",
+  "destination_city": "Kemer",
+  "offer_kind": "EARLY_BOOKING",
+  "discount_summary": "−15 %",
+  "booking_to": "2026-09-24",
+  "days_left": 7,
+  "stay_from": "2027-04-01",
+  "stay_to": "2027-10-31",
+  "has_subagent_allocations": false
+}
+```
+
+Konfiguracija: `M3_OFFER_EXPIRY_DAYS_INTERNAL` (15), `M3_OFFER_EXPIRY_DAYS_MARKETING` (7).
+
 ## Greške — zajednički oblik
 
 Sve greške imaju isti oblik (NestJS standard):

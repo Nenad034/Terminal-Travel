@@ -3,6 +3,7 @@
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M12) i poglavlje 8 (Faza 6)
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Implementirano (avgust 2026) — vidi poglavlje 8 za tačan obim; API dokumentacija u `docs/api/M12-marketing.md`, objašnjenje za vlasnika u `00-OBJASNJENJE-M12-ZA-VLASNIKA.md` (isti folder)
+**Verzija:** 1.8 — **§3d implementirano** (17.9.2026, isti prolaz kao M3 v1.44 / M7 v1.14 / M17 v2.77). `M12EventSubscribersService` sluša `M3 pricelist.offer.expiring` → `generateOfferExpiryDraft` (šablon, **bez poziva modelu** — sve činjenice su u događaju, tekst je deterministički; rok kao datum „do 24.9.2026.") → `ContentService.createAiDraft` sa `FACEBOOK/INSTAGRAM/B2B_SUBAGENTS`, `offer_booking_to`, `source_offer_id`, `b2b_audience` (`ALL_ACTIVE` kad nema dodela), `scheduled_publish_at` sutra 9:00. Druga brava: `findLiveDraftForOffer` (živ nacrt za isti `source_id` → ponovljen događaj ignorisan). `publish()` pre adaptera proverava `offer_booking_to` — prošao → `EXPIRED` + audit `content.expired`, nijedan adapter. `B2B_SUBAGENTS` kanal u `DistributionService.publishB2bSubagents`: ograda nad tekstom (`B2bSubagentsAdapter.forbiddenContentReason` — ime dobavljača iz M3 liste, nabavna/neto cena, broj jedinica), primaoci iz M7 `SubagentNoticesService.findRecipients`, red na portalu (`SubagentNotice`) + mejl kroz `MailerService` onima sa `offer_notices_by_email`. `PATCH /content/:id` prima `b2bAudience`. Panel `/marketing/:id`: blok „Akcija pred istek" (rok kao datum, kanali, krug subagenata) iznad odobrenja (M17 §7a). Dokaz: `offer-expiry-draft.spec.ts` (13 testova) + uživo lanac 17.9.2026 (nacrt → PATCH publike → odobrenje → PUBLISHED → 1 obaveštenje subagentu, mejl u mock logu). Izlazni kriterijumi §3d zatvoreni.
 **Verzija:** 1.7 — **akcija pred istek → nacrt objave, kanal `B2B_SUBAGENTS`** (14.9.2026, na predlog vlasnika; izvor M3 v1.43 §4.9). Novo poglavlje **3d**: drugi okidač pored `product.published` — M3 događaj `pricelist.offer.expiring` (7 dana do isteka ranog bukinga/7=6/popusta) → AI nacrt `PENDING_APPROVAL`, čovek odobrava; podrazumevani kanali `FACEBOOK`, `INSTAGRAM`, `B2B_SUBAGENTS` (nov kanal — subagenti, publika po M7 §5b), `EMAIL` gostima nije podrazumevan. Nova polja `ContentPiece.offer_booking_to`, `source_offer_id`, `b2b_audience`; nov status `EXPIRED` (zakazana objava za akciju koja je u međuvremenu istekla se ne objavljuje). Specifikacija bez koda.
 
 **Verzija:** 1.6 — Straničenje na `GET /marketing/content` (8.9.2026, dok. 27 nastavak nalaza 2.2 iz dok. 39) — raste sa svakim novim sadržajem (AI nacrt ili ručan unos); ekran `/marketing` je pozivan bez ikakve granice. Sad `{ data, total, page, limit, pageCount, hasMore }`, postojeći `type`/`status`/`channel`/`slug` filteri nepromenjeni. **Provera:** nov `content.service.spec.ts` (ranije nije postojao), `tsc --noEmit` čist, puna jest suita prolazi, `m12-exit-criteria.e2e-spec.ts` (bez izmene, ne dodiruje ovu rutu).
@@ -129,7 +130,7 @@ Drugi okidač pored `product.published` (poglavlje 3), isti tok od koraka 2 nada
 
 - Ne pravi se nov nacrt ako za isti `product_id` već postoji `PENDING_APPROVAL`/`APPROVED` nacrt nastao iz istog `source_id` (M3 `OfferExpiryNotice` garantuje jedan događaj po stavci, ovo je druga brava za slučaj ponovljene isporuke događaja).
 - Ne objavljuje se ništa ako je u trenutku zakazane objave `booking_to` već prošao — `ContentPublishSchedulerService` (poglavlje 8) pre objave proverava `offer_booking_to` na nacrtu i, ako je istekao, prebacuje sadržaj u nov status `EXPIRED` (nova vrednost `ContentPieceStatus`, sa razlogom u audit logu), umesto da objavi reklamu za akciju koje nema. Datum se zato čuva na `ContentPiece.offer_booking_to` (poglavlje 2.1).
-- AI budžet (M18): jedan poziv modela po događaju, za sve jezike i kanale odjednom — ne poziv po kanalu.
+- AI budžet (M18): jedan poziv modela po događaju, za sve jezike i kanale odjednom — ne poziv po kanalu. **Implementacija (v1.8) ide korak dalje: nula poziva** — nacrt je šablon (`generateOfferExpiryDraft`), jer događaj već nosi svaku činjenicu koju tekst treba; model bi trošio budžet da kaže isto (M15 princip „kod radi posao, model samo za jezik"). Kad vlasnik poželi življi tekst, isto mesto poziva model sa istim ulazom.
 
 ## 4. Distribucioni adapteri
 
@@ -219,9 +220,9 @@ Prefiks: `/api/v1/marketing`
 
 ---
 
-- [ ] **Akcija pred istek (3d):** `pricelist.offer.expiring` pravi tačno jedan `PENDING_APPROVAL` nacrt sa `FACEBOOK`/`INSTAGRAM`/`B2B_SUBAGENTS`, tekst sadrži `booking_to` kao datum; drugi isti događaj ne pravi drugi nacrt.
-- [ ] **Istekla akcija se ne objavljuje (3d):** odobren sadržaj sa `offer_booking_to` u prošlosti u trenutku zakazane objave prelazi u `EXPIRED`, nijedan adapter nije pozvan.
-- [ ] **`B2B_SUBAGENTS` (4, M7 §5b):** primaoci dolaze iz M7; nacrt čiji tekst sadrži ime dobavljača se odbija pri objavi na taj kanal.
+- [x] **Akcija pred istek (3d):** `pricelist.offer.expiring` pravi tačno jedan `PENDING_APPROVAL` nacrt sa `FACEBOOK`/`INSTAGRAM`/`B2B_SUBAGENTS`, tekst sadrži `booking_to` kao datum; drugi isti događaj ne pravi drugi nacrt. (`offer-expiry-draft.spec.ts`; uživo 17.9.2026.)
+- [x] **Istekla akcija se ne objavljuje (3d):** odobren sadržaj sa `offer_booking_to` u prošlosti u trenutku zakazane objave prelazi u `EXPIRED`, nijedan adapter nije pozvan. (isti spec — `publish` sa rokom 2026-01-01 → `EXPIRED`, `distribution.publish` nije pozvan.)
+- [x] **`B2B_SUBAGENTS` (4, M7 §5b):** primaoci dolaze iz M7; nacrt čiji tekst sadrži ime dobavljača se odbija pri objavi na taj kanal. (`B2bSubagentsAdapter.forbiddenContentReason`, isti spec; uživo: primalac iz `GET /b2b/notice-recipients`.)
 
 ## 9. Otvoreno za dalje
 

@@ -7,6 +7,7 @@ import {
 import { unlink } from 'fs/promises';
 import { join, relative } from 'path';
 import {
+  B2bAudience,
   ContentChannel,
   ContentPieceStatus,
   ContentPieceType,
@@ -31,6 +32,11 @@ import { CONTENT_MEDIA_UPLOAD_ROOT, resolveContentMediaType } from './content-me
 const DEFAULT_LANGUAGE: LanguageCode = 'sr';
 const SLUG_REQUIRED_TYPES: ContentPieceType[] = ['STATIC_PAGE', 'BLOG_POST'];
 const MAX_TRACKING_CODE_ATTEMPTS = 10;
+
+/** UTC ponoć današnjeg dana — `offer_booking_to` je `@db.Date`, poredi se dan sa danom. */
+function todayUtc(): Date {
+  return new Date(new Date().toISOString().slice(0, 10));
+}
 
 function resolveContentTranslation<T extends { languageCode: LanguageCode }>(
   translations: T[],
@@ -125,6 +131,12 @@ export class ContentService {
     languageCode: LanguageCode;
     type?: ContentPieceType;
     targetChannels?: ContentChannel[];
+    /** §3d — nacrt iz akcije pred istek; `trigger` ide u audit kontekst. */
+    trigger?: string;
+    offerBookingTo?: Date;
+    sourceOfferId?: string;
+    b2bAudience?: B2bAudience;
+    scheduledPublishAt?: Date;
   }) {
     const trackingCode = await this.createUniqueTrackingCode();
     const content = await this.prisma.contentPiece.create({
@@ -135,6 +147,10 @@ export class ContentService {
         targetChannels: params.targetChannels ?? ['M8_SITE', 'FACEBOOK', 'INSTAGRAM'],
         status: 'PENDING_APPROVAL',
         generatedBy: 'AI',
+        offerBookingTo: params.offerBookingTo,
+        sourceOfferId: params.sourceOfferId,
+        b2bAudience: params.b2bAudience,
+        scheduledPublishAt: params.scheduledPublishAt,
         translations: {
           create: {
             languageCode: params.languageCode,
@@ -155,9 +171,25 @@ export class ContentService {
       resourceType: 'ContentPiece',
       resourceId: content.id,
       afterState: content,
-      context: { trigger: 'product.published', productId: params.productId },
+      context: {
+        trigger: params.trigger ?? 'product.published',
+        productId: params.productId,
+        sourceOfferId: params.sourceOfferId ?? null,
+      },
     });
     return content;
+  }
+
+  /**
+   * §3d — druga brava uz M3 `OfferExpiryNotice`: za istu akciju (`source_id`) sme da postoji
+   * najviše jedan živ nacrt (`PENDING_APPROVAL`/`APPROVED`). Ponovljena isporuka istog
+   * događaja (LISTEN/NOTIFY ne garantuje tačno-jednom) ne sme da napravi drugi.
+   */
+  async findLiveDraftForOffer(sourceOfferId: string) {
+    return this.prisma.contentPiece.findFirst({
+      where: { sourceOfferId, status: { in: ['PENDING_APPROVAL', 'APPROVED'] } },
+      select: { id: true, status: true },
+    });
   }
 
   // ==========================================================================
@@ -291,6 +323,7 @@ export class ContentService {
         containsAiGeneratedMedia: dto.containsAiGeneratedMedia,
         scheduledPublishAt:
           dto.scheduledPublishAt !== undefined ? new Date(dto.scheduledPublishAt) : undefined,
+        b2bAudience: dto.b2bAudience,
       },
       include: { translations: true },
     });
@@ -381,6 +414,31 @@ export class ContentService {
       throw new BadRequestException(
         `Samo APPROVED sadržaj se može objaviti (trenutni status: ${content.status}).`,
       );
+    }
+
+    // §3d — akcija čiji je rok rezervacije prošao pre zakazane objave se NE objavljuje:
+    // reklama za akciju koje nema. Nijedan adapter se ne poziva; razlog u audit logu.
+    if (content.offerBookingTo && content.offerBookingTo < todayUtc()) {
+      const expired = await this.prisma.contentPiece.update({
+        where: { id },
+        data: { status: 'EXPIRED' },
+        include: { translations: true },
+      });
+      await this.auditLog.write({
+        actorType: 'SYSTEM',
+        actorId: null,
+        module: 'M12',
+        action: 'content.expired',
+        resourceType: 'ContentPiece',
+        resourceId: id,
+        beforeState: content,
+        afterState: expired,
+        context: {
+          reason: 'rok rezervacije akcije (offer_booking_to) prošao pre objave',
+          offerBookingTo: content.offerBookingTo.toISOString().slice(0, 10),
+        },
+      });
+      return expired;
     }
 
     await this.distribution.publish(content);

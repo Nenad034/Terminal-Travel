@@ -1,11 +1,4 @@
-import {
-  IsBooleanString,
-  IsDateString,
-  IsEnum,
-  IsOptional,
-  IsString,
-  IsUUID,
-} from 'class-validator';
+import { IsBoolean, IsDateString, IsEnum, IsOptional, IsString, IsUUID } from 'class-validator';
 import { Transform } from 'class-transformer';
 import { AllotmentMode, ProductType } from '@prisma/client';
 
@@ -66,7 +59,9 @@ export class CapacityGridQueryDto {
   productType?: ProductType[];
 
   /** Podrazumevano se prikazuju samo ACTIVE ugovori — nacrti nisu prodajni. */
-  @IsBooleanString()
+  // `@IsBooleanString` + `@Transform` u boolean = uvek 400 (validacija ide POSLE transformacije,
+  // pa vidi `false`, ne `'false'`) — zamka 8.17. Zato `@IsBoolean` nad već pretvorenom vrednošću.
+  @IsBoolean()
   @IsOptional()
   @Transform(({ value }) => value === 'true' || value === true)
   includeDraftContracts?: boolean;

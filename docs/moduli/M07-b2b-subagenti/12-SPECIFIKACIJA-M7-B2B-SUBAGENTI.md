@@ -3,6 +3,7 @@
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M7) i poglavlje 8 (Faza 4)
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Implementirano (avgust 2026) — poglavlja 2.1/3/3.1/3.2/4/5/6/7/8/9/10 i deo 11 (backend API); poglavlja 2.0.1–2.0.4 (portal frontend, omnisearch, AI chat) čekaju izgradnju portal frontend-a (sad M17-obrazac, ne M8, poglavlje 2.0.6) i M15, vidi poglavlje 12
+**Verzija:** 1.15 — **§5b implementirano na strani API-ja** (17.9.2026, isti prolaz kao M3 v1.44 / M12 v1.8). `SubagentNoticesService`/`SubagentNoticesController`: `GET /b2b/notice-recipients` (5b.1), `GET /b2b/notices` (aktivne pa istekle, `unreadCount`), `POST /b2b/notices/:contentId/read`; `Subagent.offer_notices_by_email` (i u `PATCH /b2b/subagents/:id`). **Nov entitet `SubagentNotice`** (§2.1a — obaveštenje na portalu: jedan red po sadržaj × subagent, `delivered_at`, `emailed_at`, `read_at`) — 5b.2 ga je podrazumevalo („adapter upisuje sadržaj kao obaveštenje na portalu"), a nije imalo gde da ga upiše. **Dva svesna ograničenja:** (1) `ASSIGNED_ONLY` danas daje isti skup kao `ALL_ACTIVE` — §5a `SubagentCapacityAllocation` nema tabelu, pa svaki subagent „nema nijednu dodelu" i po 5a.2 vidi punu raspoloživost (komentar u kodu, presek se dodaje kad §5a dobije kod); (2) ruta `/b2b/obavestenja` i brojač u traci **čekaju portal frontend** (2.0.1), kao i sve ostale portal rute — API je spreman. Osoblje sme `GET /b2b/notices?subagentId=…` radi provere šta je partner dobio. Uživo 17.9.2026: objava M12 nacrta → 1 red u `subagent_notices`, mejl u mock logu (SMTP nije podešen), `read` → `unreadCount 0`.
 **Verzija:** 1.14 — §2.0.3: uput na M15 §6.5.4.6, potpitanje pri pretrazi rečima (17.9.2026). Bez promene koda.
 
 **Verzija:** 1.13 — **obaveštenje subagentima o akciji pred istek** (14.9.2026, na predlog vlasnika; izvor M3 v1.43 §4.9, M12 v1.7 §3d). Novo poglavlje **5b** — prvi kanal kojim agencija nešto _šalje_ subagentu: M12 `ContentPiece` sa kanalom `B2B_SUBAGENTS`, AI nacrt, čovek odobrava. Publika `b2b_audience`: `ASSIGNED_ONLY` (oni koji proizvod stvarno vide po 5a) ili `ALL_ACTIVE` — vlasnik: _„zavisi od vrste akcije, ako je važno za last minute onda ide svima"_; podrazumevano po tome da li proizvod ima dodele, čovek menja pri odobravanju. Nova ruta `/b2b/obavestenja`, `GET /b2b/notices`, `GET /b2b/notice-recipients`, `Subagent.offer_notices_by_email`. Mejl je poslovna komunikacija sa partnerom (`TRANSACTIONAL`), ne prolazi `marketing_consent`. Specifikacija bez koda.
@@ -386,6 +387,16 @@ Podrazumevana vrednost je **predlog** koji AI upiše u nacrt; čovek je pri odob
 
 **`SUSPENDED` i `PENDING_APPROVAL` subagenti nikad ne dobijaju** — suspendovanom se ne nudi roba.
 
+### 5b.1a Entitet `SubagentNotice` (v1.15)
+
+| Polje                          | Tip                                     | Napomena                                                                                         |
+| :----------------------------- | :-------------------------------------- | :----------------------------------------------------------------------------------------------- |
+| id                             | UUID (PK)                               |                                                                                                  |
+| content_piece_id / subagent_id | UUID (FK → M12 ContentPiece / Subagent) | jedinstven par — ponovljena objava (cron ponovo pokušao) ne pravi drugi red niti briše `read_at` |
+| delivered_at                   | timestamp                               | kad je M12 adapter upisao red                                                                    |
+| emailed_at                     | timestamp, nullable                     | `null` = subagent isključio mejl (`offer_notices_by_email = false`) ili pošta nije prošla        |
+| read_at                        | timestamp, nullable                     | brojač nepročitanih u traci portala                                                              |
+
 ### 5b.2 Kuda stiže
 
 1. **Portal** — nova ruta `/b2b/obavestenja` (poglavlje 2.0.1): lista objavljenih `B2B_SUBAGENTS` sadržaja za koje je ovaj subagent u krugu primalaca, najnovije prvo, sa brojem nepročitanih u gornjoj traci portala. Klik vodi na `/b2b/pretraga` sa unapred popunjenim hotelom i periodom boravka iz sadržaja — obaveštenje bez puta do rezervacije je samo šum. Nestaje sa vrha (ostaje u istoriji) kad `offer_booking_to` prođe. Podaci: `GET /b2b/notices` (poglavlje 11).
@@ -520,6 +531,7 @@ sopstvenim identitetom) i dalje nije građen — ovo je isključivo strana koju 
 
 ## 13. Otvoreno za dalje
 
+- **Presek `ASSIGNED_ONLY` sa dodelama (5b.1)** — čeka tabelu §5a `SubagentCapacityAllocation`; do tada oba kruga daju iste primaoce (v1.15). Portal ruta `/b2b/obavestenja` čeka portal frontend (2.0.1).
 - **Ugovor za subagenta u dve varijante** (dodato 9.9.2026, vlasnikov zahtev uz M3 v1.27): jedan ispis **sa prikazanom provizijom** — interni, za samog subagenta — i drugi **bez nje**, za njegovog kupca, koji tu informaciju ne treba da vidi. Vlasnik je na izričito pitanje potvrdio da je **razlika samo u izostavljenoj proviziji**, dakle jedan šablon sa dva ispisa, ne dva različita dokumenta. Nije M3 posao (tamo se provizija samo obračunava, M3 §2.11i) nego M7, jer je reč o dokumentu koji subagent dobija. Ulazi u spec kad se M7 sledeći put dopunjuje.
 - **Provizija subagenta isključena na pojedinačnoj stavci** (dodato 9.9.2026, M3 §2.11i): nov `SubagentCommissionOverride` dozvoljava vrednost „bez provizije" za stavke poput boravišne takse ili doplate koja se plaća u hotelu. Otvoreno pitanje za vlasnika: **da li subagent na svojoj ponudi vidi da na toj stavci provizije nema**, ili vidi samo krajnji iznos.
 - Da li agencija treba mogućnost da direktno vidi/interveniše u proviziji sub-subagenta u izuzetnim slučajevima (spor između subagenata) — trenutno agencija ima samo uvid (`VIEW`), ne i izmenu tuđe kaskadne provizije; dodaje se kao pojedinačni izuzetak (M1 `UserPermissionOverride`) ako se pokaže potreba.

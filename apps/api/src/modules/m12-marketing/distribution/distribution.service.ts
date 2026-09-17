@@ -1,9 +1,14 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ContentPiece, ContentTranslation, LanguageCode } from '@prisma/client';
+import { BadRequestException } from '@nestjs/common';
 import { ClientAccountsService } from '../../m6-crm/client-accounts/client-accounts.service';
+import { SubagentNoticesService } from '../../m7-b2b-subagenti/subagents/subagent-notices.service';
+import { SuppliersService } from '../../m3-ugovaranje-alotmani/suppliers/suppliers.service';
+import { MailerService } from '../../../common/mail/mailer.service';
 import { SocialMockAdapter } from './adapters/social-mock.adapter';
 import { EmailMockAdapter } from './adapters/email.adapter';
 import { MobilePushStubAdapter } from './adapters/mobile-push.adapter';
+import { B2bSubagentsAdapter } from './adapters/b2b-subagents.adapter';
 import { NormalizedContentPiece } from './distribution-channel-adapter.interface';
 
 const DEFAULT_LANGUAGE: LanguageCode = 'sr';
@@ -28,8 +33,14 @@ export class DistributionService {
   private readonly instagramAdapter = new SocialMockAdapter('INSTAGRAM');
   private readonly emailAdapter = new EmailMockAdapter();
   private readonly mobilePushAdapter = new MobilePushStubAdapter();
+  private readonly b2bAdapter = new B2bSubagentsAdapter();
 
-  constructor(private readonly clientAccounts: ClientAccountsService) {}
+  constructor(
+    private readonly clientAccounts: ClientAccountsService,
+    private readonly subagentNotices: SubagentNoticesService,
+    private readonly suppliers: SuppliersService,
+    private readonly mailer: MailerService,
+  ) {}
 
   private toNormalized(content: PublishableContent): NormalizedContentPiece {
     const translation = resolvePrimaryTranslation(content.translations);
@@ -68,6 +79,9 @@ export class DistributionService {
         case 'MOBILE_PUSH':
           await this.mobilePushAdapter.publish(this.toNormalized(content));
           break;
+        case 'B2B_SUBAGENTS':
+          await this.publishB2bSubagents(content);
+          break;
         default:
           this.logger.warn(`Nepoznat distribucioni kanal: ${channel}`);
       }
@@ -86,5 +100,62 @@ export class DistributionService {
       .filter((r) => !!r.email)
       .map((r) => ({ id: r.id, email: r.email as string }));
     await this.emailAdapter.publish(this.toNormalized(content));
+  }
+
+  /**
+   * M12 spec §4 / M7 §5b — `B2B_SUBAGENTS`: (1) ograda nad tekstom (ime dobavljača, nabavna
+   * cena, broj jedinica — §5b.3), (2) primaoci iz M7 po `b2b_audience` (§5b.1), (3) red na
+   * portalu za svakog (`SubagentNotice`), (4) mejl onima koji ga nisu isključili — poslovna
+   * komunikacija sa partnerom (`TRANSACTIONAL`), ne prolazi `marketing_consent` (§5b.2).
+   * Mejl koji ne prođe ne obara objavu: portal je primarni kanal, mejl je kopija.
+   */
+  private async publishB2bSubagents(content: PublishableContent): Promise<void> {
+    if (!content.productId) {
+      throw new BadRequestException(
+        'B2B_SUBAGENTS kanal traži sadržaj vezan za proizvod — subagent mora imati na šta da klikne (M7 §5b.2).',
+      );
+    }
+    const normalized = this.toNormalized(content);
+    const supplierPage = await this.suppliers.findAll({ page: 1, limit: 200 });
+    this.b2bAdapter.forbiddenSupplierNames = supplierPage.data.map((s) => s.name);
+    const reason = this.b2bAdapter.forbiddenContentReason(normalized);
+    if (reason) {
+      throw new BadRequestException(
+        `Objava na B2B_SUBAGENTS odbijena: ${reason} (M7 §5b.3 — subagent nikad ne vidi nabavnu cenu, dobavljača ni broj jedinica).`,
+      );
+    }
+    await this.b2bAdapter.publish(normalized);
+
+    const audience = content.b2bAudience ?? 'ALL_ACTIVE';
+    const recipients = await this.subagentNotices.findRecipients(content.productId, audience);
+    const rokTekst = content.offerBookingTo
+      ? ` (rezervacije do ${content.offerBookingTo.toISOString().slice(0, 10).split('-').reverse().join('.')}.)`
+      : '';
+    const deliveries: { subagentId: string; emailedAt: Date | null }[] = [];
+    for (const r of recipients) {
+      let emailedAt: Date | null = null;
+      if (r.offerNoticesByEmail && r.email) {
+        const sent = await this.mailer.send({
+          to: r.email,
+          subject: `${normalized.title}${rokTekst}`,
+          text:
+            `${normalized.body}
+
+` +
+            `Ovo obaveštenje je poslato partnerskoj agenciji ${r.name} kao ugovornom partneru. ` +
+            'Uslove i svoju cenu vidite na B2B portalu.',
+        });
+        if (sent.delivered) emailedAt = new Date();
+        else
+          this.logger.warn(
+            `B2B_SUBAGENTS: mejl subagentu ${r.subagentId} nije otišao (${sent.error ?? 'bez razloga'}) — portal obaveštenje ostaje.`,
+          );
+      }
+      deliveries.push({ subagentId: r.subagentId, emailedAt });
+    }
+    const created = await this.subagentNotices.deliver(content.id, deliveries);
+    this.logger.log(
+      `B2B_SUBAGENTS: sadržaj ${content.id} → ${recipients.length} primalaca (${audience}), ${created} novih obaveštenja na portalu, ${deliveries.filter((d) => d.emailedAt).length} mejlova.`,
+    );
   }
 }

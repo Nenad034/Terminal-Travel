@@ -315,6 +315,7 @@ export class SubagentsService {
         creditLimit: dto.creditLimit ?? undefined,
         creditLimitCurrency: dto.creditLimitCurrency ?? undefined,
         status: dto.status ?? undefined,
+        offerNoticesByEmail: dto.offerNoticesByEmail ?? undefined,
       },
     });
 

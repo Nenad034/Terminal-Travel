@@ -50,6 +50,8 @@ Do sada je portal radio samo u jednom smeru: subagent dođe, traži, rezerviše.
 
 **Šta subagent vidi u poruci:** vrstu akcije i popust („−15 %"), do kad se rezerviše, period boravka. **Šta nikad ne vidi:** našu nabavnu cenu, ime dobavljača, koliko soba imamo, ni to da su i drugi partneri dobili istu poruku. Cenu za sebe (posle svoje provizije) vidi tek kad klikne — jedan tekst za sve partnere ne može da nosi cenu koja je svakom drugačija.
 
+**Stanje 17.9.2026:** pozadina radi kraj-do-kraja — kad se objava odobri, svaki aktivan subagent dobije red „obaveštenje" (sa pamćenjem da li ga je pročitao) i mejl ako ga nije isključio; provereno na probnom subagentu. Ono što još ne postoji je **sam portal za subagente** (stranica „Obaveštenja" i brojač u traci) — kao ni ostale portal stranice, čeka izgradnju portala. Do tada osoblje može da vidi šta je koji partner dobio. I još jedno ograničenje: razlika „samo dodeljeni" naspram „svi" postaje stvarna tek kad se uradi dodela kapaciteta po subagentu (tražena 8.9.) — dok toga nema, oba izbora daju iste primaoce.
+
 Mejl subagentu **ne traži pristanak za marketing** kao mejl gostu — ovo je poslovna poruka ugovornom partneru o robi koju on prodaje, ne reklama fizičkom licu. Ako neki partner ipak ne želi te mejlove, gasi mu se po nalogu; obaveštenje na portalu ostaje.
 
 ---

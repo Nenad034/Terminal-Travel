@@ -1284,6 +1284,58 @@ enum AncillaryPayable {
   ON_SITE
 }
 
+// M3 spec §4.9 (v1.43/v1.44, 17.9.2026) — akcija pred istek: jedan zapis po (stavka, prag),
+// da se obaveštenje emituje TAČNO jednom, a ne svaki dan dok stavka stoji ispod praga.
+// Posao gleda „manje ili jednako pragu" — ako server jedan dan nije radio, obaveštenje ne sme
+// da propadne; jedinstvenost ispod je ono što ga sprečava da se ponovi.
+enum OfferExpirySourceType {
+  PRICELIST_OFFER
+  ANCILLARY_SERVICE
+  RATE_LINE
+}
+
+enum OfferExpiryThreshold {
+  INTERNAL // 15 dana — ugovarač zove hotel (red u radnom spisku kapaciteta)
+  MARKETING // 7 dana — događaj `pricelist.offer.expiring` za M12 i M7
+}
+
+/// Vrsta akcije koja donosi nižu cenu (§4.9.1) — nosi je i događaj i zapis ispod.
+enum OfferKind {
+  EARLY_BOOKING
+  FREE_NIGHTS
+  DISCOUNT
+  FIRST_TRANCHE
+}
+
+model OfferExpiryNotice {
+  id             String                @id @default(uuid())
+  sourceType     OfferExpirySourceType @map("source_type")
+  sourceId       String                @map("source_id")
+  threshold      OfferExpiryThreshold
+  daysLeftAtEmit Int                   @map("days_left_at_emit")
+  emittedAt      DateTime              @default(now()) @map("emitted_at")
+  acknowledgedBy String?               @map("acknowledged_by") // weak ref → M1 User
+  acknowledgedAt DateTime?             @map("acknowledged_at")
+
+  // Snimak stavke u trenutku emisije (v1.44) — radni spisak čita JEDNU tabelu, ne tri izvora
+  // sa različitim oblikom. Izvor istine za cenu ostaje stavka; ovo je samo ono što red kaže.
+  contractId         String    @map("contract_id")
+  contractPeriodId   String?   @map("contract_period_id")
+  productId          String?   @map("product_id") // weak ref → M2 Product (preko Contract.sourceContractId)
+  productName        String?   @map("product_name")
+  destinationCountry String?   @map("destination_country")
+  destinationCity    String?   @map("destination_city")
+  offerKind          OfferKind @map("offer_kind")
+  discountSummary    String    @map("discount_summary") // „−15 %", „7=6", „−20 EUR po sobi"
+  bookingTo          DateTime  @map("booking_to") @db.Date // efektivan istek (§4.9.1)
+  stayFrom           DateTime? @map("stay_from") @db.Date
+  stayTo             DateTime? @map("stay_to") @db.Date
+
+  @@unique([sourceType, sourceId, threshold])
+  @@index([threshold, acknowledgedAt])
+  @@map("offer_expiry_notices")
+}
+
 // §2.7 `TouristTaxInfo` — isključivo informativan podatak, jedan po periodu (1:1); dopuna v1.12.
 // Ograda §2.7: nijedan M3/M10/M11 endpoint ne sme ovo koristiti kao osnovu za fakturisanje/prijavu.
 model TouristTaxInfo {
@@ -2922,6 +2974,9 @@ model Subagent {
   creditLimitCurrency  String?                @map("credit_limit_currency")
   approvedBy           String?                @map("approved_by")
   approvedAt           DateTime?              @map("approved_at")
+  // M7 spec §5b.2 (v1.13) — da li subagent prima MEJL o akcijama pred istek; obaveštenje na
+  // portalu ostaje uvek. Poslovna komunikacija sa partnerom, ne prolazi `marketing_consent`.
+  offerNoticesByEmail  Boolean                @default(true) @map("offer_notices_by_email")
   createdAt            DateTime               @default(now()) @map("created_at")
   updatedAt            DateTime               @updatedAt @map("updated_at")
 
@@ -2931,12 +2986,33 @@ model Subagent {
   volumeTiers  CommissionVolumeTier[]
   volumeStatus SubagentVolumeStatus?
   rebates      CommissionRebate[]
+  notices      SubagentNotice[] // M7 §5b.2
 
   // Indeksi na stranim ključevima (5.9.2026, dok. 39 nalaz 2.1). Postgres ih NE pravi sam:
   // pravi ih samo na strani na koju se pokazuje (PK), ne i na koloni koja pokazuje. Bez njih
   // svaki JOIN i svaka provera pri brisanju roditelja čita celu tabelu.
   @@index([parentSubagentId])
   @@map("subagents")
+}
+
+// M7 spec §5b.2 (v1.14) — obaveštenje na portalu: jedan red po (sadržaj, subagent). Piše ga M12
+// `B2B_SUBAGENTS` adapter pri objavi, čita `GET /b2b/notices`. `readAt` hrani brojač
+// nepročitanih u gornjoj traci portala; `emailedAt` kaže da li je isti tekst otišao i mejlom
+// (null kad je subagent to isključio, `offerNoticesByEmail = false`, ili kad pošta nije prošla).
+model SubagentNotice {
+  id             String    @id @default(uuid())
+  contentPieceId String    @map("content_piece_id")
+  subagentId     String    @map("subagent_id")
+  deliveredAt    DateTime  @default(now()) @map("delivered_at")
+  emailedAt      DateTime? @map("emailed_at")
+  readAt         DateTime? @map("read_at")
+
+  subagent     Subagent     @relation(fields: [subagentId], references: [id], onDelete: Cascade)
+  contentPiece ContentPiece @relation(fields: [contentPieceId], references: [id], onDelete: Cascade)
+
+  @@unique([contentPieceId, subagentId])
+  @@index([subagentId, readAt])
+  @@map("subagent_notices")
 }
 
 enum CommissionVolumeMetric {
@@ -3239,6 +3315,14 @@ enum ContentChannel {
   INSTAGRAM
   EMAIL
   MOBILE_PUSH
+  // §3d/§4 (v1.7) — obaveštenje subagentima na B2B portalu + mejl; primaoce daje M7 (§5b).
+  B2B_SUBAGENTS
+}
+
+// M12 §2.1 (v1.7) — krug subagenata za `B2B_SUBAGENTS` kanal; pravilo u M7 §5b.1.
+enum B2bAudience {
+  ASSIGNED_ONLY
+  ALL_ACTIVE
 }
 
 // §3 — DRAFT je rezervisan isključivo za sadržaj koji ručno unosi čovek i još ga ne smatra
@@ -3249,6 +3333,9 @@ enum ContentPieceStatus {
   PENDING_APPROVAL
   APPROVED
   PUBLISHED
+  // §3d (v1.7) — odobren sadržaj vezan za akciju čiji je rok (`offerBookingTo`) prošao pre
+  // zakazane objave: umesto da se objavi reklama za akciju koje nema, prelazi ovde.
+  EXPIRED
 }
 
 enum ContentGeneratedBy {
@@ -3270,6 +3357,10 @@ model ContentPiece {
   // sa sajta dobavljača (M2 media.source=AI_IMPORTED, koja NE podleže ovom pravilu).
   containsAiGeneratedMedia Boolean            @default(false) @map("contains_ai_generated_media")
   scheduledPublishAt       DateTime?          @map("scheduled_publish_at") // kalendar = sort po ovom polju, bez posebnog entiteta
+  // §3d (v1.7, 17.9.2026) — sadržaj nastao iz M3 događaja `pricelist.offer.expiring`.
+  offerBookingTo           DateTime?          @map("offer_booking_to") @db.Date // rok rezervacije akcije; posle njega se NE objavljuje (EXPIRED)
+  sourceOfferId            String?            @map("source_offer_id") // M3 `source_id` — brava protiv dva nacrta za istu akciju
+  b2bAudience              B2bAudience?       @map("b2b_audience") // samo uz B2B_SUBAGENTS; podrazumevano po M7 §5b.1, čovek menja pri odobravanju
   status                   ContentPieceStatus @default(DRAFT)
   generatedBy              ContentGeneratedBy @map("generated_by")
   approvedBy               String?            @map("approved_by") // weak ref → M1 User; obavezno pre PUBLISHED, nikad AI
@@ -3277,9 +3368,12 @@ model ContentPiece {
   createdAt                DateTime           @default(now()) @map("created_at")
   updatedAt                DateTime           @updatedAt @map("updated_at")
 
-  translations ContentTranslation[]
-  media        ContentMedia[]
+  translations    ContentTranslation[]
+  media           ContentMedia[]
+  // M7 §5b.2 — kome je `B2B_SUBAGENTS` obaveštenje isporučeno.
+  subagentNotices SubagentNotice[]
 
+  @@index([sourceOfferId])
   @@map("content_pieces")
 }
 

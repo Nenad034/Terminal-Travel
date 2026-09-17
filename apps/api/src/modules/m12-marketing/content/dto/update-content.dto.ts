@@ -1,5 +1,5 @@
 import { IsArray, IsBoolean, IsEnum, IsOptional, IsString } from 'class-validator';
-import { ContentChannel } from '@prisma/client';
+import { B2bAudience, ContentChannel } from '@prisma/client';
 
 // M12 spec §7 — PATCH /content/:id. status/approved_by/published_at nikad ovde — imaju
 // sopstvene puteve (POST /content/:id/approve, cron za scheduled_publish_at), isti princip
@@ -26,4 +26,9 @@ export class UpdateContentDto {
   @IsString()
   @IsOptional()
   scheduledPublishAt?: string;
+
+  /** §3d / M7 §5b.1 — krug subagenata za B2B_SUBAGENTS kanal; čovek menja pri odobravanju. */
+  @IsEnum(B2bAudience)
+  @IsOptional()
+  b2bAudience?: B2bAudience;
 }

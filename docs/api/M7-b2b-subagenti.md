@@ -216,6 +216,61 @@ Prevodi `DRAFT` → `REJECTED`, razlog se upisuje u audit log (append-only trag,
 
 ---
 
+## Obaveštenja subagentima o akciji pred istek (spec §5b, v1.15)
+
+Sadržaj pravi i odobrava M12 (`B2B_SUBAGENTS` kanal); M7 daje primaoce i mesto na portalu.
+
+### GET /b2b/notice-recipients?productId=…&audience=ASSIGNED_ONLY|ALL_ACTIVE
+
+Dozvola `M7/subagent/VIEW`. Interni poziv M12 adaptera, izložen radi provere. Vraća `ACTIVE` subagente kad je
+proizvod vidljiv na portalu (`visibleChannels` sadrži `B2B_PORTAL`); inače prazan niz. Dok §5a dodele nemaju
+tabelu, oba kruga daju isti skup.
+
+```json
+[
+  {
+    "subagentId": "2ecc3348-…",
+    "clientAccountId": "7731c51d-…",
+    "name": "M5 Subagent …",
+    "email": "subagent-…@tt-test.rs",
+    "offerNoticesByEmail": true
+  }
+]
+```
+
+### GET /b2b/notices
+
+Dozvola `M7/subagent/VIEW`. Subagent vidi sopstvena; osoblje mora dati `?subagentId=…`. `?unread=true` samo
+nepročitana. Aktivna (rok nije prošao) prva, istekla ostaju u istoriji.
+
+```json
+{
+  "subagentId": "2ecc3348-…",
+  "unreadCount": 1,
+  "items": [
+    {
+      "contentId": "ba794fe7-…",
+      "productId": "6e827ccf-…",
+      "title": "Rani buking −15 % — Kemer Pine Bay 5*, Kemer, Turska",
+      "body": "…",
+      "offerBookingTo": "2026-09-24T00:00:00.000Z",
+      "publishedAt": "2026-09-17T07:58:42.127Z",
+      "deliveredAt": "2026-09-17T07:58:42.124Z",
+      "readAt": null,
+      "expired": false
+    }
+  ]
+}
+```
+
+### POST /b2b/notices/:contentId/read
+
+Označava pročitano (brojač u traci portala). `400` ako obaveštenje nije upućeno tom subagentu.
+
+### PATCH /b2b/subagents/:id — novo polje
+
+`offerNoticesByEmail: false` gasi mejl o akcijama (portal obaveštenje ostaje).
+
 ## Kako M7 utiče na M5 tok rezervacije
 
 Ovo nisu M7 endpoint-i, ali su direktna posledica M7 pravila i vidljivi su kroz M5 API:

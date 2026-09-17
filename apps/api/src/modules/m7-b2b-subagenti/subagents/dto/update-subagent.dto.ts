@@ -1,4 +1,4 @@
-import { IsIn, IsNumber, IsOptional, IsString, Min } from 'class-validator';
+import { IsBoolean, IsIn, IsNumber, IsOptional, IsString, Min } from 'class-validator';
 
 // M7 spec §10 (M7/subagent/EDIT) — izmena kreditnog limita/statusa od strane Vlasnik/Direktor.
 // commission_percentage se NAMERNO ne menja ovde — Tier 1 provizija se postavlja pri approve(),
@@ -16,4 +16,9 @@ export class UpdateSubagentDto {
   @IsOptional()
   @IsIn(['ACTIVE', 'SUSPENDED'])
   status?: 'ACTIVE' | 'SUSPENDED';
+
+  /** §5b.2 — subagent gasi mejl o akcijama pred istek; portal obaveštenje ostaje uvek. */
+  @IsOptional()
+  @IsBoolean()
+  offerNoticesByEmail?: boolean;
 }

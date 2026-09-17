@@ -156,3 +156,19 @@ export async function setCapacityOverride(
     return { error: poruka(err, 'Izmena kapaciteta nije uspela.'), ok: null };
   }
 }
+
+/** M3 spec §4.9.2 — ugovarač potvrđuje da je video akciju pred istek; red nestaje iz spiska. */
+export async function acknowledgeExpiryNotice(
+  _prev: CapacityFormState,
+  formData: FormData,
+): Promise<CapacityFormState> {
+  try {
+    await apiFetch(`/contracting/pricelist/expiry-notices/${formData.get('id')}/acknowledge`, {
+      method: 'POST',
+    });
+    revalidatePath('/kapaciteti');
+    return { error: null, ok: 'Označeno kao viđeno.' };
+  } catch (err) {
+    return { error: poruka(err, 'Potvrda nije uspela.'), ok: null };
+  }
+}

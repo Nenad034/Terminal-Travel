@@ -149,6 +149,39 @@ Kad se sadržaj objavi (`publish`), svaki kanal iz `targetChannels` se obrađuje
 - **FACEBOOK / INSTAGRAM** — mock adapter (loguje objavu; tačan izbor mreža/pravi API čeka potvrdu, spec poglavlje 9).
 - **EMAIL** — šalje se preko M6 `ClientAccountsService.findMarketingRecipients` isključivo `ClientAccount` zapisima sa `marketingConsent: true`; ako je `targetTags` popunjeno, skup se dodatno suzi (nikad ne proširi).
 - **MOBILE_PUSH** — stub, čeka M9 (mobilna aplikacija), samo loguje.
+- **B2B_SUBAGENTS** (spec §3d/§4, v1.8) — ne ide na spoljnu platformu. Redom: (1) ograda nad tekstom — ime bilo kog M3 dobavljača, „nabavna/neto cena", „još N soba" → `400` i objava staje; (2) primaoci iz M7 `GET /b2b/notice-recipients?productId=…&audience=<b2bAudience>`; (3) red na B2B portalu (M7 `SubagentNotice`) za svakog; (4) mejl kroz `MailerService` onima sa `offerNoticesByEmail = true` (mejl koji ne prođe ne obara objavu). Traži `productId` na sadržaju.
+
+## Nacrt iz akcije pred istek (spec §3d, v1.8)
+
+M3 emituje `pricelist.offer.expiring` na 7 dana do roka (M3 §4.9). M12 od toga pravi nacrt bez poziva modelu
+(šablon iz činjenica u događaju), `PENDING_APPROVAL`, kanali `FACEBOOK`+`INSTAGRAM`+`B2B_SUBAGENTS`, zakazan
+sutradan u 9:00. Ponovljen događaj za isti `source_id` dok postoji živ nacrt ne pravi drugi.
+
+```json
+{
+  "id": "3d78e9e6-…",
+  "productId": "f9ec932d-…",
+  "type": "SOCIAL_POST",
+  "status": "PENDING_APPROVAL",
+  "generatedBy": "AI",
+  "targetChannels": ["FACEBOOK", "INSTAGRAM", "B2B_SUBAGENTS"],
+  "offerBookingTo": "2026-09-22T00:00:00.000Z",
+  "sourceOfferId": "18c30e49-…",
+  "b2bAudience": "ALL_ACTIVE",
+  "scheduledPublishAt": "2026-09-18T07:00:00.000Z",
+  "translations": [
+    {
+      "languageCode": "sr",
+      "title": "Gratis noći 7=6 — Sofia City Center 4*, Sofija, Bugarska",
+      "body": "Sofia City Center 4* (Sofija, Bugarska): gratis noći 7=6 za boravak od 1.4.2026. do 31.10.2026.\n\nRezervacije po ovim uslovima primamo do 22.9.2026. Posle tog datuma važe redovne cene.\n\nJavite nam se za ponudu i raspoložive termine."
+    }
+  ]
+}
+```
+
+`PATCH /marketing/content/:id` prima i `b2bAudience` (`ASSIGNED_ONLY` | `ALL_ACTIVE`) — krug subagenata, čovek
+bira pre odobrenja. **Istekla akcija:** ako je `offerBookingTo` prošao u trenutku objave (cron ili odobrenje),
+sadržaj prelazi u nov status `EXPIRED` (audit `content.expired`), nijedan kanal se ne poziva.
 
 ## Automatika
 

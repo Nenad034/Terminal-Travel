@@ -59,7 +59,9 @@ Nekoliko sitnica koje su namerno tako postavljene:
 - **U tekstu uvek stoji datum, nikad „još 7 dana"** — nacrt se odobrava možda dva dana kasnije, i „još 7 dana" bi tad bila laž.
 - **Podrazumevano ide na Facebook, Instagram i subagentima.** Mejl gostima nije uključen sam od sebe — kad bi svaki istek akcije išao gostima na mejl, za mesec dana bi to bio spam. Čovek ga uključi kad proceni da vredi.
 - **Ako akcija istekne pre zakazane objave, objava ne izlazi.** Sistem to proveri u poslednjem trenutku i stavi sadržaj na stranu, umesto da objavi reklamu za nešto čega više nema.
-- **Jedan poziv AI modela po akciji**, za sve jezike i kanale odjednom — ne troši se budžet po kanalu.
+- **Jedan poziv AI modela po akciji**, za sve jezike i kanale odjednom — ne troši se budžet po kanalu. **U praksi (od 17.9.2026) — nula poziva:** sve što tekst treba (hotel, mesto, vrsta akcije, popust, boravak, rok) već stiže od M3, pa se nacrt sklapa kao šablon. Isti princip kao svuda: kod radi posao, model se zove samo kad je zaista potreban jezik. Ako budete želeli „življi" tekst, na istom mestu se uključuje model.
+
+**Šta vidite na ekranu (od 17.9.2026):** otvorite nacrt u „Marketing" — na vrhu stoji „Akcija pred istek · rezervacije do 22.9.2026.", ispod kvadratići za kanale i izbor „samo dodeljeni / svi aktivni subagenti" sa brojem partnera na koje ide („ide na 1 partnera"). Sačuvate izbor, pa „odobri". Ako je rok već prošao, dugme za odobrenje se ne nudi — objava ionako ne bi izašla.
 
 ---
 
