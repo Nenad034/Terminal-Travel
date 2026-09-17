@@ -29,14 +29,9 @@
           ]
         }
       ],
-      "hotels": [
-        "BR1518",
-        "ES284122"
-      ],
+      "hotels": ["BR1518", "ES284122"],
       "currency": "EUR",
-      "markets": [
-        "ES"
-      ],
+      "markets": ["ES"],
       "language": "en",
       "nationality": "ES"
     },
@@ -47,9 +42,7 @@
     },
     "filterSearch": {
       "access": {
-        "includes": [
-          "2"
-        ]
+        "includes": ["2"]
       }
     }
   }

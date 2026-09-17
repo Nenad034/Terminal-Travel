@@ -176,12 +176,12 @@ Otkazuje rezervaciju kod provajdera. `:ref` je broj rezervacije koji je provajde
 
 ## Provajderi koji postoje u kodu
 
-| Oznaka        | Protokol                | Stanje                                                                                                                                                                                       |
-| :------------ | :----------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Oznaka        | Protokol                | Stanje                                                                                                                                                                            |
+| :------------ | :---------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `travelgate`  | GraphQL                 | adapter revidiran prema stvarnoj šemi (M4 spec §5, verzija 1.18) — testiran mokovano protiv TAČNE šeme, **još uvek nikad pozvan uživo** — nema aktivnih produkcionih kredencijala |
-| `solvex`      | SOAP (Master-Interlook) | adapter kompletan, **nikad pozvan uživo** — nema kredencijala (SOAP format uživo potvrđen ispravnim ranijim spike testom, test nalog trenutno odbijen)                                       |
-| `webhotelier` | REST                    | adapter kompletan, **nikad pozvan uživo** — nema kredencijala                                                                                                                                 |
-| `mock`        | —                       | lažni odgovori za razvoj                                                                                                                                                                      |
+| `solvex`      | SOAP (Master-Interlook) | adapter kompletan, **nikad pozvan uživo** — nema kredencijala (SOAP format uživo potvrđen ispravnim ranijim spike testom, test nalog trenutno odbijen)                            |
+| `webhotelier` | REST                    | adapter kompletan, **nikad pozvan uživo** — nema kredencijala                                                                                                                     |
+| `mock`        | —                       | lažni odgovori za razvoj                                                                                                                                                          |
 
 > Sva tri adaptera su dokazana testovima sa lažiranim mrežnim odgovorima. **Nijedan nije proveren protiv pravog servisa provajdera** — za sva tri je uzrok isti: nema aktivnih produkcionih kredencijala. Za Travelgate je taj mok bar sad izgrađen nad **stvarnom, sertifikacijom potvrđenom šemom** (M4 spec v1.18), ne nad izmišljenom kao ranije (v1.17 nalaz) — vidi `docs/analize/33-ZAMKE-I-OBAVEZNE-PROVERE.md` zamka 8.13 za pouku koja je do te ispravke dovela. I dalje važi: mokovan test, ma koliko tačan, ne dokazuje da će live poziv proći — prvi stvaran poziv i dalje može otkriti nešto što 27 primera nisu pokrila.
 
