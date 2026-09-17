@@ -24,8 +24,8 @@
    KONTRAST: `node tools/check-contrast.js --app web` — prolazi. */
 :root {
   --bg: #e8eef6;
-  --panel: #f9fbfd;
-  --panel-2: #dde6f1;
+  --panel: #dfe6ef; /* 17.9.2026 — za nijansu TAMNIJA od --bg (vlasnik: "bljesak" jedne jako svetle boje); pre: #f9fbfd */
+  --panel-2: #d7e0eb; /* 17.9.2026 — trake ostaju tamnije od sadrzaja; pre: #dde6f1 */
   --border: #6c7a90;
   --text: #232636;
   --text-dim: #333645;

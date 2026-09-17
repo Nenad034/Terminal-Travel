@@ -99,7 +99,7 @@
      protiv SVE ČETIRI pozadine (bg/panel/sunken/panel-2 — zamka 1.9), isti princip kao ranije
      palete. */
   --bg: #e8eef6;
-  --panel: #f9fbfd;
+  --panel: #dfe6ef; /* 17.9.2026 — za nijansu TAMNIJA od --bg (vlasnik: "bljesak" jedne jako svetle boje); pre: #f9fbfd */
   /* "Utonula" površina (2.9.2026, na zahtev vlasnika: "sektori — naslovni deo tamnija nijansa a
      sadržaj ispod svetlija"). ČETVRTA nijansa, pored --bg / --panel / --panel-2.
 
@@ -111,9 +111,9 @@
      `--sunken` je zato UVEK tamniji od `--panel`. Koristi ga traka naslova sekcije i sažetak na
      vrhu kartice Pregled (dizajn dok. §6h). `--panel-2` ostaje nepromenjen i dalje služi bočnim
      panelima i zaglavljima tabela — dve različite uloge, dve boje. */
-  --sunken: #dbe4ef;
-  --panel-2: #dde6f1;
-  --bar: #dde6f1;
+  --sunken: #d2dbe7; /* 17.9.2026 — spusten zajedno sa --panel, i dalje UVEK tamniji od njega; pre: #dbe4ef */
+  --panel-2: #d7e0eb; /* 17.9.2026 — trake ostaju tamnije od sadrzaja; pre: #dde6f1 */
+  --bar: #d7e0eb; /* 17.9.2026 — isto kao --panel-2; pre: #dde6f1 */
   /* Ivica potamnjena zajedno sa podlogom, iz istog razloga kao 21.8.2026/2.9.2026 ispravke ispod
      — plavlja podloga bi inače podigla kontrast ivice iznad prethodno izmerene vrednosti dovoljno
      da izgleda drugačije nego što je namerno, ali ne i dovoljno bez ponovnog merenja (zamka 1.9).
@@ -252,10 +252,10 @@
 
 :root[data-theme='light'] {
   --bg: #e8eef6;
-  --panel: #f9fbfd;
-  --sunken: #dbe4ef;
-  --panel-2: #dde6f1;
-  --bar: #dde6f1;
+  --panel: #dfe6ef; /* 17.9.2026 — za nijansu TAMNIJA od --bg (vlasnik: "bljesak" jedne jako svetle boje); pre: #f9fbfd */
+  --sunken: #d2dbe7; /* 17.9.2026 — spusten zajedno sa --panel, i dalje UVEK tamniji od njega; pre: #dbe4ef */
+  --panel-2: #d7e0eb; /* 17.9.2026 — trake ostaju tamnije od sadrzaja; pre: #dde6f1 */
+  --bar: #d7e0eb; /* 17.9.2026 — isto kao --panel-2; pre: #dde6f1 */
   /* Mora ostati identično bloku `:root` iznad (zamka 1.7). Obrazloženje: komentar uz `--border`
      u tom bloku. */
   --border: #6c7a90;
