@@ -36,8 +36,11 @@ export default function CapacityScreen({
   canBlock,
   canEditCapacity,
   podrazumevaniRokBlokade,
+  suzeno,
 }: {
   rows: CapacityGridRow[];
+  /** §4b.0 — mreža se prikazuje SAMO kad je izabran hotel ili filter sužava („nikad svih 2000"). */
+  suzeno: boolean;
   dani: string[];
   from: string;
   to: string;
@@ -54,13 +57,21 @@ export default function CapacityScreen({
     <div className="flex flex-col gap-3">
       <CapacityFilterBar from={from} to={to} brojRedova={rows.length} brojDana={dani.length} />
 
-      <CapacityGrid
-        rows={rows}
-        dani={dani}
-        onIzaberiDan={(red, datum) => setIzabran({ red, datum })}
-      />
-
-      <CapacityLegend />
+      {suzeno ? (
+        <>
+          <CapacityGrid
+            rows={rows}
+            dani={dani}
+            onIzaberiDan={(red, datum) => setIzabran({ red, datum })}
+          />
+          <CapacityLegend />
+        </>
+      ) : (
+        <p className="rounded-lg border border-dashed border-border bg-panel p-6 text-center text-sm text-ink-dim">
+          Izaberite hotel u pretrazi iznad, ili suzite mrežu po državi/mestu — mreža za sve objekte
+          odjednom se ne prikazuje (M17 §4b.0).
+        </p>
+      )}
 
       {izabran && (
         <DanPanel

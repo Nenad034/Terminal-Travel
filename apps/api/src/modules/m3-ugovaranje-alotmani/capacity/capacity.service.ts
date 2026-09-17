@@ -45,6 +45,22 @@ export interface CapacityGridRow {
   days: CapacityDayState[];
 }
 
+/** §6 `/capacity/search-hotels` — jedan pogodak prediktivne pretrage (M17 §4b.0a). */
+export interface HotelSearchHit {
+  productId: string;
+  name: string;
+  type: string;
+  status: string;
+  stars: number | null;
+  destinationCity: string | null;
+  destinationCountry: string | null;
+  /** M3 ugovor iz kog proizvod potiče; null = „nema izvora" → ponuditi „napravi ugovor". */
+  contractId: string | null;
+  contractStatus: string | null;
+  contractNumber: string | null;
+  apiProvider: string | null;
+}
+
 const MS_DAY = 24 * 60 * 60 * 1000;
 
 /**
@@ -606,6 +622,58 @@ export class CapacityService {
     }
 
     return { released: expired.length, expiring: expiring.length };
+  }
+
+  // ── Pretraga hotela (§6 `/capacity/search-hotels`, M17 §4b.0a) ──────────
+
+  /**
+   * Prediktivna pretraga objekta za ekran kapaciteta. Uz naziv OBAVEZNO mesto i država — hoteli
+   * istog imena postoje u više zemalja (§2.9f). Čita M2 katalog preko istog Prisma modela kao
+   * `grid()` (naziv/destinacija), ne duplira ga. Broj izvora: ugovor iz `sourceContractId` i,
+   * za API proizvode, provajder — `ProductSupplierLink` (M2 §2.1, više dobavljača) je još nacrt.
+   */
+  async searchHotels(q: string, limit = 10): Promise<HotelSearchHit[]> {
+    const term = q.trim();
+    if (term.length < 2) return [];
+    const products = await this.prisma.product.findMany({
+      where: {
+        status: { in: ['ACTIVE', 'DRAFT'] },
+        translations: { some: { name: { contains: term, mode: 'insensitive' } } },
+      },
+      select: {
+        id: true,
+        type: true,
+        status: true,
+        sourceType: true,
+        sourceProvider: true,
+        sourceContractId: true,
+        destinationCountry: true,
+        destinationCity: true,
+        attributes: true,
+        translations: { where: { languageCode: 'sr' }, select: { name: true }, take: 1 },
+        sourceContract: { select: { id: true, status: true, contractNumber: true } },
+      },
+      take: limit,
+      orderBy: { updatedAt: 'desc' },
+    });
+    return products.map((p) => {
+      const attrs = (p.attributes ?? {}) as { stars?: number | string | null };
+      const stars =
+        attrs.stars != null && Number.isFinite(Number(attrs.stars)) ? Number(attrs.stars) : null;
+      return {
+        productId: p.id,
+        name: p.translations[0]?.name ?? '(bez naziva)',
+        type: p.type,
+        status: p.status,
+        stars,
+        destinationCity: p.destinationCity,
+        destinationCountry: p.destinationCountry,
+        contractId: p.sourceContract?.id ?? null,
+        contractStatus: p.sourceContract?.status ?? null,
+        contractNumber: p.sourceContract?.contractNumber ?? null,
+        apiProvider: p.sourceType === 'API' ? p.sourceProvider : null,
+      };
+    });
   }
 
   // ── Zajedničko ───────────────────────────────────────────────────────────

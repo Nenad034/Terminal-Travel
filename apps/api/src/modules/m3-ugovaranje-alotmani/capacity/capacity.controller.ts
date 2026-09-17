@@ -40,6 +40,13 @@ export class CapacityController {
     return this.workQueueService.build();
   }
 
+  /** §6 — prediktivna pretraga hotela za ekran (M17 §4b.0a): naziv + kategorija + mesto + država. */
+  @Get('search-hotels')
+  @RequirePermission('M3', 'capacity', 'VIEW')
+  searchHotels(@Query('q') q?: string) {
+    return this.capacity.searchHotels(q ?? '');
+  }
+
   @Get('grid')
   @RequirePermission('M3', 'capacity', 'VIEW')
   grid(@Query() query: CapacityGridQueryDto) {

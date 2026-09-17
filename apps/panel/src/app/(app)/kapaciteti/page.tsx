@@ -5,6 +5,7 @@ import Icon from '@/components/Icon';
 import Link from 'next/link';
 import CapacityScreen from './CapacityScreen';
 import WorkQueue, { type WorkQueueItem } from './WorkQueue';
+import HotelSearch from './HotelSearch';
 import type { CapacityGridRow } from './CapacityGrid';
 
 // M17 spec §4b — ekran „Kapaciteti": mreža po danima nad M3 §2.8.
@@ -100,12 +101,24 @@ export default async function KapacitetiPage(props: {
   if (searchParams?.productName) qs.set('productName', searchParams.productName);
   for (const t of toArray(searchParams?.productType)) qs.append('productType', t);
 
+  // §4b.0 — „nikad svih 2000 odjednom": mreža se čita samo kad je izabran objekat/ugovor ili kad
+  // filter sam po sebi sužava (dobavljač, destinacija, naziv). Vrsta ugovora/proizvoda ne sužava.
+  const suzeno = Boolean(
+    searchParams?.contractId ||
+    searchParams?.supplierId ||
+    searchParams?.destinationCountry ||
+    searchParams?.destinationCity ||
+    searchParams?.productName,
+  );
+
   let grid: GridResponse = { from, to, rows: [] };
   let error: string | null = null;
-  try {
-    grid = await apiFetch<GridResponse>(`/contracting/capacity/grid?${qs.toString()}`);
-  } catch {
-    error = 'Mreža kapaciteta trenutno nije dostupna (M3 API).';
+  if (suzeno) {
+    try {
+      grid = await apiFetch<GridResponse>(`/contracting/capacity/grid?${qs.toString()}`);
+    } catch {
+      error = 'Mreža kapaciteta trenutno nije dostupna (M3 API).';
+    }
   }
 
   const dani = grid.rows[0]?.days.map((d) => d.date) ?? [];
@@ -151,12 +164,16 @@ export default async function KapacitetiPage(props: {
         <WorkQueue items={workQueue} danas={danas} canAcknowledge={canAckExpiry} />
       )}
 
+      {/* §4b.0a — prediktivna pretraga hotela: naziv + kategorija + mesto + država. */}
+      <HotelSearch from={from} to={to} />
+
       {error ? (
         <p className="rounded-lg border border-border bg-panel p-4 text-center text-xs text-danger">
           {error}
         </p>
       ) : (
         <CapacityScreen
+          suzeno={suzeno}
           rows={grid.rows}
           dani={dani}
           from={from}

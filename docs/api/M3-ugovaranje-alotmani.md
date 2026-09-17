@@ -1519,6 +1519,32 @@ Primena se **odbija** kad je među potvrđenim razlikama tip sobe koji katalog n
 Prolazi uz `"dozvoliNepoklopljeneTipoveSoba": true` u telu — dobavljač sme imati tip van kataloga, ali to mora
 biti izbor, ne propuštanje.
 
+## Pretraga hotela za ekran kapaciteta (spec §6, v1.46)
+
+### GET /contracting/capacity/search-hotels?q=sun
+
+Dozvola `M3/capacity/VIEW`. Najmanje 2 znaka, do 10 pogodaka; naziv, kategorija, mesto, država i izvori.
+
+```json
+[
+  {
+    "productId": "…",
+    "name": "Hotel Sun Resort",
+    "type": "ACCOMMODATION",
+    "status": "ACTIVE",
+    "stars": 4,
+    "destinationCity": "Herceg Novi",
+    "destinationCountry": "Crna Gora",
+    "contractId": "fb335cd3-…",
+    "contractStatus": "ACTIVE",
+    "contractNumber": "TT-MOCK-CAP-01",
+    "apiProvider": null
+  }
+]
+```
+
+`contractId: null` = hotel bez izvora (panel nudi „napravi ugovor").
+
 ## Radni spisak kapaciteta (spec §6, v1.45)
 
 ### GET /contracting/capacity/work-queue

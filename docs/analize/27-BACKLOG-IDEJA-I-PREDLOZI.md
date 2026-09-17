@@ -458,6 +458,7 @@ _(§10, `docs/moduli/M16-mcp-distribucija/17-SPECIFIKACIJA-M16-MCP-DISTRIBUCIJA.
 
 _(§8, `docs/moduli/M17-interni-panel/11-SPECIFIKACIJA-M17-INTERNI-PANEL.md`)_
 
+- **„Napravi ugovor za ovaj hotel" bez preizbora objekta** (M17 §8, 17.9.2026, v2.79): pretraga kapaciteta nudi vezu za hotel bez ugovora, ali `/ugovori/novi` ne prima `productId` — vezano za M3 §2.10h / M2 `ProductSupplierLink` (isto pitanje: kako ugovor pri nastanku dobija objekat).
 - **Ekran pretrage — nov raspored** (M5 §3.0g, dizajn dok. §6d.1, 2.9.2026): ikonice u centralnom panelu, forma po vrsti proizvoda, levi panel samo filteri, skupljen red sa vidljivim kriterijumima, "Poništi pretragu"/"Osveži podatke", stanje se pamti po vrsti, `prefetch`. **Specifikacija upisana, kod nije pisan** — čeka potvrdu vlasnika.
 - Razmotriti zaseban modul za notifikacije/podsetnike ako agregacija upozorenja postane nedovoljna.
 - ~~Obeležavanje autora radnje (§3.1)~~ **Rešeno (17.8.2026)** — `ActorLabel` na osam ekrana, live-provera dovršena u oba moda; usput ispravljen pad kontrasta AI bedža i "Invalid Date" u audit logu.
