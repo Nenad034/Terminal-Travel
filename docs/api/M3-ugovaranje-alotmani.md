@@ -1519,6 +1519,54 @@ Primena se **odbija** kad je među potvrđenim razlikama tip sobe koji katalog n
 Prolazi uz `"dozvoliNepoklopljeneTipoveSoba": true` u telu — dobavljač sme imati tip van kataloga, ali to mora
 biti izbor, ne propuštanje.
 
+## Radni spisak kapaciteta (spec §6, v1.45)
+
+### GET /contracting/capacity/work-queue
+
+Dozvola `M3/capacity/VIEW`. Bez parametara — „šta traži pažnju danas". Prozori u spec §6a.
+
+```json
+{
+  "generatedFor": "2026-09-17",
+  "items": [
+    {
+      "kind": "BLOCK_EXPIRING",
+      "date": "2026-09-15",
+      "contractId": "fb335cd3-…",
+      "contractPeriodId": "…",
+      "productName": "Hotel Sun Resort",
+      "supplierName": "Sun Resort d.o.o.",
+      "destinationCity": "Herceg Novi",
+      "destinationCountry": "Crna Gora",
+      "roomType": "DBL",
+      "detail": "blokada 4 jedinice (Grupa OŠ Vuk Karadžić — čeka odluku škole) istekla 15.9.2026. — potvrdi grupu ili pusti",
+      "value": 4,
+      "noticeId": null
+    },
+    {
+      "kind": "RELEASE_DUE",
+      "date": "2026-09-17",
+      "detail": "rok povrata 17.9.2026. (14 dana pre 1.10.2026.) — neprodato 25 od 25",
+      "value": 25,
+      "noticeId": null,
+      "…": "…"
+    },
+    {
+      "kind": "OFFER_EXPIRING",
+      "date": "2026-09-24",
+      "detail": "rani buking −15 %, boravak 1.4.2027.–31.10.2027., ističe 24.9.2026.",
+      "value": null,
+      "noticeId": "82d2ad2a-…",
+      "…": "…"
+    }
+  ]
+}
+```
+
+`kind` ∈ `OVERBOOKED | BLOCK_EXPIRING | STOP_SALE_ENDING | RELEASE_DUE | LOW_UNITS | OFFER_EXPIRING`; `value` je broj
+koji red nosi (prekoračenje, jedinice u blokadi, neprodato, preostale jedinice); `noticeId` samo za akcije
+(`POST /pricelist/expiry-notices/:id/acknowledge`).
+
 ## Akcije pred istek (spec §4.9, v1.44)
 
 Dnevni posao (6:00, `M3DailyJobsService`) prolazi kroz sve aktivne stavke koje donose nižu cenu i imaju rok

@@ -4,7 +4,7 @@ import RegisterTab from '@/components/RegisterTab';
 import Icon from '@/components/Icon';
 import Link from 'next/link';
 import CapacityScreen from './CapacityScreen';
-import ExpiringOffers, { type ExpiryNoticeRow } from './ExpiringOffers';
+import WorkQueue, { type WorkQueueItem } from './WorkQueue';
 import type { CapacityGridRow } from './CapacityGrid';
 
 // M17 spec §4b — ekran „Kapaciteti": mreža po danima nad M3 §2.8.
@@ -54,6 +54,8 @@ export default async function KapacitetiPage(props: {
   searchParams: Promise<{
     from?: string;
     to?: string;
+    /** Radni spisak (§4b.0) vodi na mrežu JEDNOG ugovora — prosleđuje se M3 §6 nepromenjen. */
+    contractId?: string;
     supplierId?: string;
     allotmentMode?: string;
     // §4b.3 (dopuna 9.9.2026) — filteri nad proizvodom, prosleđuju se M3 §6 nepromenjeni.
@@ -71,8 +73,7 @@ export default async function KapacitetiPage(props: {
   const canCloseSale = hasPermission(me, 'M3', 'capacity', 'CLOSE_SALE');
   const canBlock = hasPermission(me, 'M3', 'capacity', 'BLOCK');
   const canEditCapacity = hasPermission(me, 'M3', 'contract-period', 'EDIT');
-  // M3 §4.9 — akcije pred istek na radnom spisku (M17 §4b.0, stanje 1). Ista dozvola kao ugovor.
-  const canSeeExpiry = hasPermission(me, 'M3', 'contract', 'VIEW');
+  // M3 §4.9 — „video" na akciji pred istek traži pravo nad ugovorom.
   const canAckExpiry = hasPermission(me, 'M3', 'contract', 'EDIT');
 
   if (!canView) {
@@ -90,6 +91,7 @@ export default async function KapacitetiPage(props: {
   const to = searchParams?.to ?? poslednjiDanMeseca();
 
   const qs = new URLSearchParams({ from, to });
+  if (searchParams?.contractId) qs.set('contractId', searchParams.contractId);
   if (searchParams?.supplierId) qs.set('supplierId', searchParams.supplierId);
   if (searchParams?.allotmentMode) qs.set('allotmentMode', searchParams.allotmentMode);
   if (searchParams?.destinationCountry)
@@ -108,15 +110,13 @@ export default async function KapacitetiPage(props: {
 
   const dani = grid.rows[0]?.days.map((d) => d.date) ?? [];
 
-  let expiring: ExpiryNoticeRow[] = [];
-  if (canSeeExpiry) {
-    try {
-      expiring = await apiFetch<ExpiryNoticeRow[]>(
-        '/contracting/pricelist/expiry-notices?threshold=INTERNAL&acknowledged=false',
-      );
-    } catch {
-      expiring = []; // greška ovde ne sme da obori mrežu — spisak je dopuna, ne uslov
-    }
+  // M17 §4b.0 stanje 1 — radni spisak. Greška ovde ne sme da obori mrežu: prikaže se poruka.
+  let workQueue: WorkQueueItem[] | null = null;
+  try {
+    workQueue = (await apiFetch<{ items: WorkQueueItem[] }>('/contracting/capacity/work-queue'))
+      .items;
+  } catch {
+    workQueue = null;
   }
   const danas = new Date().toISOString().slice(0, 10);
 
@@ -143,7 +143,13 @@ export default async function KapacitetiPage(props: {
         </div>
       </div>
 
-      <ExpiringOffers rows={expiring} danas={danas} canAcknowledge={canAckExpiry} />
+      {workQueue === null ? (
+        <p className="rounded-xl border border-border bg-panel p-4 text-xs text-danger">
+          Radni spisak trenutno nije dostupan (M3 API).
+        </p>
+      ) : (
+        <WorkQueue items={workQueue} danas={danas} canAcknowledge={canAckExpiry} />
+      )}
 
       {error ? (
         <p className="rounded-lg border border-border bg-panel p-4 text-center text-xs text-danger">

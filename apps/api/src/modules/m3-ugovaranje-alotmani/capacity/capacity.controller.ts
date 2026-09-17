@@ -19,6 +19,7 @@ import { CreateCapacityBlockDto } from './dto/create-capacity-block.dto';
 import { JwtAuthGuard } from '../../m1-core-identitet/auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../../common/guards/permissions.guard';
 import { RequirePermission } from '../../../common/decorators/require-permission.decorator';
+import { WorkQueueService } from './work-queue.service';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 
 // M3 spec §6 (dopuna v1.15) — mreža kapaciteta, stop-sale i blokade. Prefiks /api/v1/contracting.
@@ -27,7 +28,17 @@ import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 @Controller('contracting/capacity')
 export class CapacityController {
-  constructor(private readonly capacity: CapacityService) {}
+  constructor(
+    private readonly capacity: CapacityService,
+    private readonly workQueueService: WorkQueueService,
+  ) {}
+
+  /** §6 — radni spisak (M17 §4b.0, stanje 1): ono što traži pažnju danas, bez pretrage. */
+  @Get('work-queue')
+  @RequirePermission('M3', 'capacity', 'VIEW')
+  workQueue() {
+    return this.workQueueService.build();
+  }
 
   @Get('grid')
   @RequirePermission('M3', 'capacity', 'VIEW')
