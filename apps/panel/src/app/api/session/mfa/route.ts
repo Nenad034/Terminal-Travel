@@ -6,7 +6,7 @@ import { setSession } from '@/lib/session';
 // 2FA za sve interne uloge" — ovaj korak je uvek deo prijave na panel (za razliku od M8
 // gde je opciona za Gosta i ostavljena van obima prvog prolaza).
 export async function POST(req: NextRequest) {
-  const { mfaToken, code } = await req.json();
+  const { mfaToken, code, remember } = await req.json();
 
   try {
     const result = await apiFetch<{ accessToken: string; refreshToken: string }>(
@@ -25,6 +25,7 @@ export async function POST(req: NextRequest) {
       accessToken: result.accessToken,
       refreshToken: result.refreshToken,
       userId: payload.sub,
+      remember: remember === true,
     });
 
     return NextResponse.json({ ok: true });

@@ -4,6 +4,9 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
+// Izgled: dizajn dok. 29 §6i / M17 §3.0 (17.9.2026) — kartica u sredini „naslovne strane radnog
+// dana" (LoginStage.tsx); sva tri koraka žive u ISTOJ kartici na istoj ruti, naslov iznad
+// kartice prati korak. Tok je nepromenjen:
 // M1 spec §5, M17 spec §3 — prijava je za interne uloge uvek višekoračna (obavezna 2FA).
 // Korak 1: email+lozinka -> /api/session/login. Ako nalog ima MFA (uvek za STAFF), server
 // vraća {requiresMfa, mfaToken} umesto tokena; korak 2 šalje 6-cifreni kod ka
@@ -21,6 +24,9 @@ export default function LoginForm() {
   const [recoveryCodes, setRecoveryCodes] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  // Dizajn dok. §6i — „Zapamti me na ovom uređaju": podrazumevano isključeno (sesijski kolačić).
+  const [remember, setRemember] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   async function onCredentialsSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -63,7 +69,7 @@ export default function LoginForm() {
 
     const res = await fetch('/api/session/mfa', {
       method: 'POST',
-      body: JSON.stringify({ mfaToken, code: form.get('code') }),
+      body: JSON.stringify({ mfaToken, code: form.get('code'), remember }),
       headers: { 'Content-Type': 'application/json' },
     });
     const body = await res.json();
@@ -103,7 +109,7 @@ export default function LoginForm() {
 
     const res = await fetch('/api/session/mfa-setup', {
       method: 'POST',
-      body: JSON.stringify({ action: 'confirm', setupToken, code: form.get('code') }),
+      body: JSON.stringify({ action: 'confirm', setupToken, code: form.get('code'), remember }),
       headers: { 'Content-Type': 'application/json' },
     });
     const body = await res.json();
@@ -123,153 +129,220 @@ export default function LoginForm() {
     ? new URLSearchParams(otpauthUrl.split('?')[1] ?? '').get('secret')
     : null;
 
-  if (step === 'mfa-setup') {
-    return (
-      <form onSubmit={onMfaSetupSubmit} className="flex flex-col gap-3">
-        <h1 className="font-mono text-lg">&gt; 2fa --setup</h1>
-        <p className="text-xs text-ink-dim">
-          Ovaj nalog još nema podešenu dvofaktorsku prijavu, a ona je obavezna za interne uloge.
-          Podesite je sada — traje jednom.
+  const headline =
+    step === 'mfa-setup' ? (
+      <>
+        <h1>Podesite dvofaktorsku prijavu.</h1>
+        <p className="lede">
+          Ovaj nalog još nema 2FA, a ona je obavezna za interne uloge. Traje jednom.
         </p>
-        {error && <p className="rounded bg-danger-bg p-3 text-sm text-danger">{error}</p>}
+      </>
+    ) : step === 'mfa' ? (
+      <>
+        <h1>Još jedan korak.</h1>
+        <p className="lede">
+          6-cifreni kod iz autentifikator aplikacije. Obavezno za interne uloge.
+        </p>
+      </>
+    ) : (
+      <>
+        <h1>
+          Današnje rezervacije <em>su već tu.</em>
+        </h1>
+        <p className="lede">
+          Provizije, marže i noćne brojke, spremne pre nego što ste stigli. Prijavite se i
+          pogledajte šta se promenilo od juče.
+        </p>
+      </>
+    );
 
+  let card: React.ReactNode;
+
+  if (step === 'mfa-setup') {
+    card = (
+      <form onSubmit={onMfaSetupSubmit} className="setup">
+        {error && <p className="error">{error}</p>}
         {manualSecret && (
-          <div className="rounded border border-border bg-panel-2 p-3">
-            <p className="text-xs text-ink-faint">
-              1. skenirajte QR kod autentifikator aplikacijom
-            </p>
+          <div>
+            <label>1. skenirajte QR kod autentifikator aplikacijom</label>
             {qrDataUrl && (
               // Beli okvir je namerno fiksan, ne tematski — čitači QR koda traže svetlu
-              // podlogu i tamne module; na tamnoj temi bi kod bez ovoga postao nečitljiv.
-              <div className="mt-2 flex justify-center rounded bg-white p-3">
+              // podlogu i tamne module; na tamnoj pozadini bi kod bez ovoga postao nečitljiv.
+              <div className="qr">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={qrDataUrl}
                   alt="QR kod za podešavanje dvofaktorske prijave"
-                  width={220}
-                  height={220}
+                  width={200}
+                  height={200}
                 />
               </div>
             )}
-            <a
-              href={otpauthUrl}
-              className="mt-2 block break-all font-mono text-xs text-accent underline"
-            >
+            <a href={otpauthUrl} className="under" style={{ display: 'block', marginTop: 6 }}>
               ili otvorite direktno u aplikaciji (na telefonu)
             </a>
-            <p className="mt-2 text-xs text-ink-faint">ili unesite ključ ručno:</p>
-            <code className="mt-1 block select-all break-all rounded bg-bg px-2 py-1 font-mono text-sm tracking-widest text-ink">
-              {manualSecret}
-            </code>
+            <label style={{ marginTop: 8 }}>ili unesite ključ ručno</label>
+            <code>{manualSecret}</code>
           </div>
         )}
-
         {recoveryCodes.length > 0 && (
-          <div className="rounded border border-warn bg-warn-bg p-3">
-            <p className="text-xs font-semibold text-ink">
-              2. sačuvajte rezervne kodove — prikazuju se SAMO sada
-            </p>
-            <p className="text-xs text-ink-dim">Svaki važi jednom, za slučaj gubitka telefona.</p>
-            <div className="mt-2 grid grid-cols-2 gap-1 font-mono text-xs text-ink">
+          <div className="warn">
+            <label>2. sačuvajte rezervne kodove — prikazuju se SAMO sada</label>
+            <p style={{ margin: '4px 0 8px' }}>Svaki važi jednom, za slučaj gubitka telefona.</p>
+            <div className="codes">
               {recoveryCodes.map((c) => (
-                <code key={c} className="select-all rounded bg-bg px-2 py-1">
-                  {c}
-                </code>
+                <code key={c}>{c}</code>
               ))}
             </div>
           </div>
         )}
-
-        <label className="text-xs text-ink-faint">
-          3. unesite prvi 6-cifreni kod iz aplikacije
-          <input
-            name="code"
-            required
-            maxLength={6}
-            autoFocus
-            placeholder="000000"
-            className="mt-1 w-full rounded border border-border bg-bg px-3 py-2 text-center font-mono text-lg tracking-[0.4em] text-ink"
-          />
-        </label>
-        <button
-          type="submit"
-          disabled={pending || !manualSecret}
-          className="rounded bg-accent px-4 py-2 font-mono font-semibold text-accent-ink hover:bg-accent-strong disabled:opacity-50"
-        >
-          ./aktiviraj_2fa
+        <div>
+          <label htmlFor="mfa-setup-code">3. unesite prvi 6-cifreni kod iz aplikacije</label>
+          <div className="field">
+            <input
+              id="mfa-setup-code"
+              name="code"
+              required
+              maxLength={6}
+              autoFocus
+              inputMode="numeric"
+              placeholder="000000"
+              className="code"
+            />
+          </div>
+        </div>
+        <button type="submit" className="btn" disabled={pending || !manualSecret}>
+          Aktiviraj 2FA <span aria-hidden="true">→</span>
         </button>
       </form>
     );
-  }
-
-  if (step === 'mfa') {
-    return (
-      <form onSubmit={onMfaSubmit} className="flex flex-col gap-3">
-        <h1 className="font-mono text-lg">&gt; 2fa --verify</h1>
-        <p className="text-xs text-ink-dim">
-          6-cifreni kod iz autentifikator aplikacije. Obavezno za interne uloge.
-        </p>
-        {error && <p className="rounded bg-danger-bg p-3 text-sm text-danger">{error}</p>}
-        <input
-          name="code"
-          required
-          maxLength={6}
-          autoFocus
-          placeholder="000000"
-          className="w-full rounded border border-border bg-bg px-3 py-2 text-center font-mono text-lg tracking-[0.4em] text-ink"
-        />
-        <button
-          type="submit"
-          disabled={pending}
-          className="rounded bg-accent px-4 py-2 font-mono font-semibold text-accent-ink hover:bg-accent-strong disabled:opacity-50"
-        >
-          ./potvrdi
+  } else if (step === 'mfa') {
+    card = (
+      <form onSubmit={onMfaSubmit}>
+        {error && <p className="error">{error}</p>}
+        <div>
+          <label htmlFor="mfa-code">Kod iz aplikacije</label>
+          <div className="field">
+            <input
+              id="mfa-code"
+              name="code"
+              required
+              maxLength={6}
+              autoFocus
+              inputMode="numeric"
+              placeholder="000000"
+              className="code"
+            />
+          </div>
+        </div>
+        <button type="submit" className="btn" disabled={pending}>
+          Potvrdi <span aria-hidden="true">→</span>
         </button>
+      </form>
+    );
+  } else {
+    card = (
+      <form onSubmit={onCredentialsSubmit}>
+        {error && <p className="error">{error}</p>}
+        <div>
+          <label htmlFor="login-email">Email</label>
+          <div className="field">
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.6"
+              aria-hidden
+            >
+              <rect x="3" y="5" width="18" height="14" rx="2" />
+              <path d="m3 7 9 6 9-6" />
+            </svg>
+            <input
+              id="login-email"
+              type="email"
+              name="email"
+              required
+              autoFocus
+              autoComplete="username"
+            />
+          </div>
+        </div>
+        <div>
+          <label htmlFor="login-password">Lozinka</label>
+          <div className="field">
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.6"
+              aria-hidden
+            >
+              <rect x="4" y="10" width="16" height="10" rx="2" />
+              <path d="M8 10V7a4 4 0 0 1 8 0v3" />
+            </svg>
+            <input
+              id="login-password"
+              type={showPassword ? 'text' : 'password'}
+              name="password"
+              required
+              autoComplete="current-password"
+            />
+            <button
+              type="button"
+              className="eye"
+              onClick={() => setShowPassword((v) => !v)}
+              aria-label={showPassword ? 'Sakrij lozinku' : 'Prikaži lozinku'}
+              aria-pressed={showPassword}
+            >
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.6"
+                aria-hidden
+              >
+                <path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12Z" />
+                <circle cx="12" cy="12" r="3" />
+              </svg>
+            </button>
+          </div>
+        </div>
+        <div className="row">
+          <label htmlFor="login-remember">
+            <input
+              id="login-remember"
+              type="checkbox"
+              checked={remember}
+              onChange={(e) => setRemember(e.target.checked)}
+            />{' '}
+            Zapamti me na ovom uređaju
+          </label>
+          <span className="twofa">
+            <i />
+            2FA · sledeći korak
+          </span>
+        </div>
+        <button type="submit" className="btn" disabled={pending}>
+          Otvori panel <span aria-hidden="true">→</span>
+        </button>
+        <div className="under">
+          Zaključani ste? <Link href="/zaboravljena-lozinka">Zaboravljena lozinka</Link> · ili
+          javite Vlasniku
+        </div>
       </form>
     );
   }
 
   return (
-    <form onSubmit={onCredentialsSubmit} className="flex flex-col gap-3">
-      <h1 className="font-mono text-lg">&gt; prijava --panel</h1>
-      <p className="text-xs text-ink-dim">
-        Interni tim agencije. Unesite email i lozinku vašeg naloga.
-      </p>
-      {error && <p className="rounded bg-danger-bg p-3 text-sm text-danger">{error}</p>}
-      <label className="text-xs text-ink-faint">
-        email
-        <input
-          type="email"
-          name="email"
-          required
-          autoFocus
-          className="mt-1 w-full rounded border border-border bg-bg px-3 py-2 text-sm text-ink"
-        />
-      </label>
-      <label className="text-xs text-ink-faint">
-        lozinka
-        <input
-          type="password"
-          name="password"
-          required
-          className="mt-1 w-full rounded border border-border bg-bg px-3 py-2 text-sm text-ink"
-        />
-      </label>
-      <button
-        type="submit"
-        disabled={pending}
-        className="mt-1 rounded bg-accent px-4 py-2 font-mono font-semibold text-accent-ink hover:bg-accent-strong disabled:opacity-50"
-      >
-        ./prijavi_se
-      </button>
-      {/* M1 spec §5 — dok slanje pošte nije bilo povezano, ovaj put nije imao smisla; od
-          4.9.2026 link stvarno stiže na email, pa ekran postoji. */}
-      <Link
-        href="/zaboravljena-lozinka"
-        className="text-center text-xs text-ink-faint hover:text-ink"
-      >
-        zaboravljena lozinka?
-      </Link>
-    </form>
+    <div className="left">
+      <div>{headline}</div>
+      <div className="card">{card}</div>
+    </div>
   );
 }

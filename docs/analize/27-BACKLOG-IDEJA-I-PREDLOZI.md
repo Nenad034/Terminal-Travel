@@ -552,6 +552,8 @@ _(§7, `docs/moduli/M24-ljudski-resursi/43-SPECIFIKACIJA-M24-LJUDSKI-RESURSI.md`
 
 ## Dizajn sistem UI (cross-modularno)
 
+- **Citat o destinaciji na ekranu prijave iz M23** i **ekran prijave B2B portala istim obrascem** (dizajn dok. §6i/§8, 17.9.2026) — čekaju M23 javan sažetak i M7 portal frontend.
+
 _(§8, `docs/analize/29-DIZAJN-SISTEM-UI.md`)_
 
 - Tačne HEX vrednosti palete (za oba moda) — biraju se pri izradi prvog stvarnog ekrana, obavezno u skladu sa pravilom kontrasta (§2a — WCAG AA minimum).

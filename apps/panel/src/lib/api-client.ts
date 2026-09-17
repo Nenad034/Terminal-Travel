@@ -54,18 +54,21 @@ interface ApiFetchOptions {
 // `next dev` jedan Node proces — mapa u memoriji je deljena između svih paralelnih zahteva.
 const inFlightRefreshes = new Map<string, Promise<SessionData | null>>();
 
-async function refreshSession(refreshToken: string): Promise<SessionData | null> {
+async function refreshSession(
+  refreshToken: string,
+  remember?: boolean,
+): Promise<SessionData | null> {
   const existing = inFlightRefreshes.get(refreshToken);
   if (existing) return existing;
 
-  const promise = doRefresh(refreshToken).finally(() => {
+  const promise = doRefresh(refreshToken, remember).finally(() => {
     inFlightRefreshes.delete(refreshToken);
   });
   inFlightRefreshes.set(refreshToken, promise);
   return promise;
 }
 
-async function doRefresh(refreshToken: string): Promise<SessionData | null> {
+async function doRefresh(refreshToken: string, remember?: boolean): Promise<SessionData | null> {
   try {
     const res = await fetch(`${API_BASE_URL}/iam/auth/refresh`, {
       method: 'POST',
@@ -81,7 +84,14 @@ async function doRefresh(refreshToken: string): Promise<SessionData | null> {
     const payload = JSON.parse(
       Buffer.from(accessToken.split('.')[1], 'base64url').toString('utf8'),
     );
-    const next: SessionData = { accessToken, refreshToken: newRefreshToken, userId: payload.sub };
+    // `remember` se prenosi iz stare sesije — inače bi osvežavanje tokena tiho pretvorilo
+    // sesijski kolačić u 7-dnevni (dizajn dok. §6i).
+    const next: SessionData = {
+      accessToken,
+      refreshToken: newRefreshToken,
+      userId: payload.sub,
+      ...(remember === undefined ? {} : { remember }),
+    };
     try {
       await setSession(next);
     } catch {
@@ -128,7 +138,7 @@ export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): 
   }
 
   if (res.status === 401 && session) {
-    const refreshed = await refreshSession(session.refreshToken);
+    const refreshed = await refreshSession(session.refreshToken, session.remember);
     if (refreshed) {
       session = refreshed;
       try {
@@ -187,7 +197,7 @@ export async function apiFetchMultipart<T>(path: string, formData: FormData): Pr
 
   // Isti istekao-token popravak kao apiFetch iznad — vidi komentar tamo.
   if (res.status === 401 && session) {
-    const refreshed = await refreshSession(session.refreshToken);
+    const refreshed = await refreshSession(session.refreshToken, session.remember);
     if (refreshed) {
       session = refreshed;
       try {

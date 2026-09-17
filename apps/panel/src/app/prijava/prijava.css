@@ -1,0 +1,520 @@
+/* Ekran prijave — dizajn dokument 29 §6i / M17 §3.0 (17.9.2026). Prenet iz mockupa
+   docs/moduli/M17-interni-panel/11-MOCKUP-PRIJAVA-DVE-VARIJANTE.html (klasa .new → .lp).
+   Namerno UVEK taman (fotografija + veo), nezavisno od moda panela — mod se bira posle prijave.
+   Literalne vrednosti su tamni blok tokena iz globals.css; jedina boja van palete je #f4c98a
+   (topli naglasak drugog reda naslova, izveden iz fotografije, ne nov UI token). */
+.lp {
+  --lp-brand: #f97316;
+  --lp-ok: #4ade80;
+  --lp-accent-strong: #a5b4fc;
+  --lp-mono: ui-monospace, 'Cascadia Code', Consolas, monospace;
+}
+/* ---------- NOVA: naslovna strana radnog dana ---------- */
+.lp {
+  position: relative;
+  min-height: 100vh;
+  overflow: hidden;
+  color: #f4f2ee;
+}
+.lp canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  opacity: 0;
+  transition: opacity 1.6s ease;
+}
+.lp canvas.on {
+  opacity: 1;
+}
+.lp .right > * {
+  transition: opacity 0.6s ease;
+}
+.lp .right.fading > * {
+  opacity: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  .lp canvas,
+  .lp .right > * {
+    transition: none;
+  }
+}
+.lp .grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.045) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.9), rgba(0, 0, 0, 0.3));
+}
+.lp .veil {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    rgba(9, 9, 11, 0.92) 0%,
+    rgba(9, 9, 11, 0.78) 34%,
+    rgba(9, 9, 11, 0.35) 62%,
+    rgba(9, 9, 11, 0.55) 100%
+  );
+}
+.lp .layout {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-template-rows: auto 1fr auto; /* traka gore, podnožje dole, sredina centrirana */
+  gap: 28px;
+  padding: 28px 44px 28px;
+  min-height: 100vh;
+}
+.lp .top {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.lp .wordmark {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.lp .wordmark svg {
+  display: block;
+}
+.lp .wordmark span {
+  font-family: var(--font-brand, 'Chakra Petch', sans-serif);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--lp-brand);
+  font-size: 20px;
+}
+.lp .date {
+  font-family: var(--lp-mono);
+  font-size: 12px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: #cfcbc2;
+}
+.lp .clock {
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(9, 9, 11, 0.55);
+  backdrop-filter: blur(8px);
+  border-radius: 8px;
+  padding: 10px 14px;
+  min-width: 190px;
+}
+.lp .clock small {
+  display: block;
+  font-family: var(--lp-mono);
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: #a8a49b;
+}
+.lp .clock b {
+  display: block;
+  font-family: var(--lp-mono);
+  font-size: 26px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+.lp .clock b i {
+  font-style: normal;
+  font-size: 11px;
+  color: #a8a49b;
+  margin-left: 8px;
+  letter-spacing: 0.12em;
+}
+
+/* Sredina: naslov + kartica + katalog kao JEDNA celina, vertikalno centrirana u prostoru
+     između gornje trake i podnožja, sa istim razmakom između delova (vlasnik 17.9.2026:
+     „sve po celinama, vertikalno simetrično"). */
+.lp .middle {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 36px;
+}
+.lp .left {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  gap: 36px;
+  width: 100%;
+  max-width: 460px;
+  margin: 0 auto;
+}
+.lp .left .card {
+  width: 100%;
+}
+.lp h1 {
+  margin: 0;
+  font-size: clamp(30px, 3.4vw, 42px);
+  line-height: 1.08;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+}
+.lp h1 em {
+  font-style: normal;
+  color: #f4c98a;
+}
+.lp .lede {
+  margin: 0;
+  max-width: 52ch;
+  font-size: 14.5px;
+  line-height: 1.55;
+  color: #cfcbc2;
+}
+.lp .card {
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(24, 24, 27, 0.62);
+  backdrop-filter: blur(14px);
+  border-radius: 12px;
+  padding: 22px 22px 18px;
+  box-shadow: 0 30px 60px -20px rgba(0, 0, 0, 0.7);
+}
+.lp .card form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.lp label {
+  display: block;
+  font-family: var(--lp-mono);
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: #b6b2a9;
+}
+.lp .field {
+  margin-top: 6px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(9, 9, 11, 0.55);
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+.lp .field:focus-within {
+  border-color: var(--lp-accent-strong);
+  box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.25);
+}
+.lp .field svg {
+  flex: none;
+  opacity: 0.7;
+}
+.lp .field input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  color: #f4f2ee;
+  font: inherit;
+  font-size: 14px;
+  outline: none;
+}
+.lp .row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+  color: #cfcbc2;
+}
+.lp .row label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-transform: none;
+  letter-spacing: 0;
+  font-family: inherit;
+  font-size: 13px;
+  color: #cfcbc2;
+}
+.lp .twofa {
+  font-family: var(--lp-mono);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: #a8a49b;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.lp .twofa i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--lp-ok);
+  display: inline-block;
+}
+.lp .btn {
+  margin-top: 2px;
+  border: 0;
+  border-radius: 8px;
+  padding: 12px 16px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  background: #f4f2ee;
+  color: #111114;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.lp .btn:hover {
+  background: #fff;
+}
+.lp .btn:focus-visible,
+.lp .field input:focus-visible {
+  outline: none;
+}
+.lp .under {
+  font-size: 12px;
+  color: #a8a49b;
+  text-align: center;
+}
+.lp .under a {
+  color: #cfcbc2;
+  text-decoration: underline dotted;
+}
+
+.lp .right {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 8px;
+  max-width: 640px;
+  margin: 0 auto;
+}
+.lp .eyebrow::after {
+  content: '';
+  width: 40px;
+  height: 1px;
+  background: var(--lp-brand);
+}
+.lp .eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-family: var(--lp-mono);
+  font-size: 11px;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: #cfcbc2;
+}
+.lp .eyebrow::before {
+  content: '';
+  width: 40px;
+  height: 1px;
+  background: var(--lp-brand);
+}
+.lp .place {
+  margin: 0;
+  font-size: clamp(36px, 4.6vw, 58px);
+  line-height: 1;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+}
+.lp .meta {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 14px;
+  font-size: 13px;
+  color: #cfcbc2;
+}
+.lp .meta b {
+  color: #f4f2ee;
+  font-weight: 500;
+}
+.lp .meta code {
+  font-family: var(--lp-mono);
+  color: #a8a49b;
+}
+.lp blockquote {
+  margin: 6px auto 0;
+  font-size: 17px;
+  font-style: italic;
+  color: #f4f2ee;
+  max-width: 48ch;
+}
+.lp blockquote small {
+  display: block;
+  margin-top: 6px;
+  font-style: normal;
+  font-family: var(--lp-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: #a8a49b;
+}
+.lp .dots {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--lp-mono);
+  font-size: 11px;
+  color: #a8a49b;
+  margin-top: 8px;
+}
+.lp .dots i {
+  width: 48px;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.35);
+}
+.lp .dots i.on {
+  background: var(--lp-brand);
+}
+.lp .foot {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  text-align: center;
+  gap: 6px 22px;
+  align-items: baseline;
+  font-family: var(--lp-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: #a8a49b;
+}
+.lp .foot em {
+  font-family: inherit;
+  font-style: italic;
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 13px;
+  color: #cfcbc2;
+}
+
+@media (max-width: 860px) {
+  .lp .layout {
+    grid-template-columns: 1fr;
+    padding: 20px 16px 28px;
+  }
+  .lp .clock {
+    min-width: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .lp .btn {
+    transition: none;
+  }
+}
+
+.lp .photo {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 1.6s ease;
+}
+.lp .photo.on {
+  opacity: 1;
+}
+.lp .error {
+  border-radius: 8px;
+  background: rgba(185, 28, 28, 0.25);
+  border: 1px solid rgba(248, 113, 113, 0.5);
+  color: #fecaca;
+  padding: 10px 12px;
+  font-size: 13px;
+  text-align: left;
+}
+.lp .code {
+  text-align: center;
+  font-family: var(--lp-mono);
+  font-size: 22px;
+  letter-spacing: 0.4em;
+}
+.lp .setup {
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  font-size: 13px;
+  color: #cfcbc2;
+}
+.lp .setup .qr {
+  display: flex;
+  justify-content: center;
+  border-radius: 8px;
+  background: #fff;
+  padding: 10px;
+}
+.lp .setup code {
+  display: block;
+  user-select: all;
+  word-break: break-all;
+  border-radius: 6px;
+  background: rgba(9, 9, 11, 0.6);
+  padding: 6px 8px;
+  font-family: var(--lp-mono);
+  letter-spacing: 0.12em;
+  color: #f4f2ee;
+}
+.lp .setup .codes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+}
+.lp .setup .codes code {
+  letter-spacing: 0.04em;
+  font-size: 12px;
+}
+.lp .setup .warn {
+  border-radius: 8px;
+  border: 1px solid rgba(251, 191, 36, 0.45);
+  background: rgba(36, 26, 6, 0.6);
+  padding: 10px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .lp .photo {
+    transition: none;
+  }
+}
+.lp .eye {
+  border: 0;
+  background: transparent;
+  color: #f4f2ee;
+  opacity: 0.7;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+}
+.lp .eye:hover,
+.lp .eye:focus-visible {
+  opacity: 1;
+  outline: none;
+}
+/* Chrome autofill nameće svetlu pozadinu i tamna slova u polju (vlasnik 17.9.2026: „ispravite
+     belu pozadinu u poljima"). Jedini pouzdan način: unutrašnja senka preko cele pozadine +
+     -webkit-text-fill-color; `background` sam po sebi Chrome ignoriše. Boja = pozadina .field. */
+.lp .field input:-webkit-autofill,
+.lp .field input:-webkit-autofill:hover,
+.lp .field input:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0 1000px #0c0c0f inset;
+  box-shadow: 0 0 0 1000px #0c0c0f inset;
+  -webkit-text-fill-color: #f4f2ee;
+  caret-color: #f4f2ee;
+  border-radius: 6px;
+  transition: background-color 9999s ease-out 0s;
+}

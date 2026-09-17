@@ -15,6 +15,13 @@ export interface SessionData {
   accessToken: string;
   refreshToken: string;
   userId: string;
+  /**
+   * Dizajn dok. §6i / M17 §3.0 (17.9.2026) — „Zapamti me na ovom uređaju". `true` → kolačić
+   * traje 7 dana (M1 §3.7 refresh token); `false` → sesijski kolačić, gasi se zatvaranjem
+   * pregledača. Pamti se u samom kolačiću da ga osvežavanje tokena ne pregazi. Nedefinisano
+   * (kolačići od pre ove dopune) = `true` — niko se ne odjavljuje zbog dopune.
+   */
+  remember?: boolean;
 }
 
 function encryptionKey(): Buffer {
@@ -63,7 +70,8 @@ export async function setSession(data: SessionData): Promise<void> {
     sameSite: 'lax',
     path: '/',
     // M1 spec §3.7 — refresh token traje 7 dana; kolačić prati taj rok, ne access token TTL.
-    maxAge: 7 * 24 * 60 * 60,
+    // Bez „Zapamti me" (dizajn dok. §6i) kolačić nema `maxAge` = sesijski, do zatvaranja pregledača.
+    ...(data.remember === false ? {} : { maxAge: 7 * 24 * 60 * 60 }),
   });
 }
 

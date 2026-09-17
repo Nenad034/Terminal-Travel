@@ -82,3 +82,15 @@ Dva modula odjednom, jer spec plan predviđa da idu zajedno kao Faza 5.
 - **Instaliranje na telefon kao aplikacija (PWA)** — dodaje se kad bude više ekrana da to ima smisla testirati na pravom uređaju.
 
 Ništa od ovoga nije propust — to su svesne odluke da se gradi po delovima koji stvarno mogu da se provere, ne "sve odjednom".
+
+## Nova strana prijave — „naslovna strana radnog dana" (17.9.2026, Vaša odluka)
+
+Do sada je prijava bila mala kartica na praznoj tamnoj pozadini. Od danas je to strana preko celog ekrana, po uzoru na TCT stranu koju ste poslali, ali sa našim sadržajem: gore logotip, datum i sat; u sredini naslov („Današnje rezervacije su već tu."), kartica sa emailom i lozinkom, i ispod nje blok „Iz kataloga" — hotel i destinacija koju stvarno prodajemo, sa tri fotografije koje se smenjuju na 8 sekundi. Sve tri celine su raspoređene tako da je sredina uvek centrirana, sa jednakim prostorom iznad i ispod, na svakom ekranu.
+
+Tri stvari koje treba da znate:
+
+- **Fotografije dolaze iz našeg kataloga** (M2), i to samo one koje vidi i gost na sajtu. Danas u probnoj bazi nijedan proizvod nema sliku, pa strana pokazuje nacrtan pejzaž i bez bloka „Iz kataloga" — čim se hotelima dodaju slike, pojaviće se same. Bolje bez bloka nego blok sa izmišljenim mestom.
+- **„Zapamti me na ovom uređaju" nije ukras.** Ako je uključeno, prijava traje 7 dana kao i do sada; ako nije (podrazumevano), prijava se gasi kad zatvorite pregledač. 2FA korak ostaje obavezan i ide na istoj strani.
+- **Šta namerno nismo preuzeli** sa TCT strane: njihova polja „Agency/Operator" (mi imamo email + lozinka + 2FA), natpis „SSO-ready" (nemamo), vremensku prognozu (spoljni servis, malo vredi) i tuđe fotografije.
+
+Provereno u pravom pregledaču: dve visine ekrana (razmaci jednaki na obe), ceo tok prijave do panela, i slučaj bez slika — bez ijedne greške.

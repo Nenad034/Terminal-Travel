@@ -9,7 +9,7 @@ import { toDataURL } from 'qrcode';
 // kodove, confirm = potvrdi prvi kod). Sesijski kolačić se upisuje ISKLJUČIVO na uspešan
 // `confirm`, isti obrazac kao ../mfa/route.ts — nijedan drugi put ovde ne sme upisati sesiju.
 export async function POST(req: NextRequest) {
-  const { action, setupToken, code } = await req.json();
+  const { action, setupToken, code, remember } = await req.json();
 
   try {
     if (action === 'start') {
@@ -36,6 +36,7 @@ export async function POST(req: NextRequest) {
       accessToken: result.accessToken,
       refreshToken: result.refreshToken,
       userId: payload.sub,
+      remember: remember === true,
     });
 
     return NextResponse.json({ ok: true });
