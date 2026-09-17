@@ -4,7 +4,12 @@ import { cn } from '@/lib/cn';
 
 const Table = React.forwardRef<HTMLTableElement, React.HTMLAttributes<HTMLTableElement>>(
   ({ className, ...props }, ref) => (
-    <div className="w-full overflow-x-auto">
+    // `rounded-[inherit]` (17.9.2026, vlasnikov nalaz na listi rezervacija: „pogledajte ćoškove") —
+    // omotač uvek stoji u zaobljenom okviru (`rounded-lg border bg-panel`), a `<thead>` nosi
+    // tamniju podlogu (`bg-panel-2`) sa pravim uglovima; bez ovoga su ti uglovi virili preko
+    // zaobljenja okvira. Nasleđen radijus + `overflow-x-auto` (koji već seče) rešava sve tabele
+    // odjednom, bez izmene po ekranu.
+    <div className="w-full overflow-x-auto rounded-[inherit]">
       <table ref={ref} className={cn('w-full caption-bottom text-sm', className)} {...props} />
     </div>
   ),
