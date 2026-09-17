@@ -77,8 +77,8 @@ export default function OfferExpiryPanel({
         </fieldset>
         <fieldset disabled={!editable} className="flex flex-wrap gap-4">
           <legend className="mb-1 text-[11px] text-ink-faint">
-            krug subagenata (kanal &bdquo;Subagenti&ldquo;) — <Icon name="info" /> zavisi od akcije: last minute
-            koji mora da se proda ide svima
+            krug subagenata (kanal &bdquo;Subagenti&ldquo;) — <Icon name="info" /> zavisi od akcije:
+            last minute koji mora da se proda ide svima
             {recipientCount !== null && (
               <span className="ml-2 font-semibold text-ink">
                 · ide na {recipientCount} partnera
