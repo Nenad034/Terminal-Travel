@@ -1,0 +1,815 @@
+<title>Prijava u Terminal</title>
+<meta charset="utf-8" />
+<link
+  rel="stylesheet"
+  href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap"
+/>
+<style>
+  /* Mockup 17.9.2026 — dve varijante ekrana prijave internog panela (M17 §3), za odluku vlasnika.
+     Tokeni su TAČNO panelovi (apps/panel/src/app/globals.css, tamni mod): --bg, --panel, --border,
+     --accent (indigo), --brand (narandžasta), Chakra Petch samo za wordmark. Ništa ovde nije
+     nov token — ako se nova varijanta usvoji, ekran se pravi od postojećih. */
+  :root {
+    --bg: #09090b;
+    --panel: #18181b;
+    --sunken: #131316;
+    --bar: #27272a;
+    --border: #748088;
+    --text: #fafafa;
+    --text-dim: #d4d4d8;
+    --text-faint: #a1a1aa;
+    --accent: #818cf8;
+    --accent-strong: #a5b4fc;
+    --accent-ink: #0b0b0f;
+    --brand: #f97316;
+    --ok: #4ade80;
+    --sans: 'IBM Plex Sans', system-ui, sans-serif;
+    --mono: 'IBM Plex Mono', ui-monospace, Consolas, monospace;
+    --brandfont: 'Chakra Petch', 'IBM Plex Sans', sans-serif;
+  }
+  * {
+    box-sizing: border-box;
+  }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+  }
+  .switch {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    background: var(--bar);
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+  }
+  .switch b {
+    font-family: var(--mono);
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+  }
+  .switch button {
+    font: inherit;
+    padding: 6px 14px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--panel);
+    color: var(--text);
+    cursor: pointer;
+  }
+  .switch button[aria-pressed='true'] {
+    background: var(--accent);
+    color: var(--accent-ink);
+    border-color: var(--accent);
+  }
+  .switch button:focus-visible {
+    outline: 2px solid var(--accent-strong);
+    outline-offset: 2px;
+  }
+  .switch .note {
+    color: var(--text-faint);
+    margin-left: auto;
+  }
+  .stage {
+    min-height: calc(100vh - 44px);
+  }
+  [hidden] {
+    display: none !important;
+  }
+
+  /* ---------- STARA: ono što danas stoji na /prijava (page.tsx + LoginForm.tsx) ---------- */
+  .old {
+    min-height: inherit;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .old .card {
+    width: 100%;
+    max-width: 24rem;
+    border: 1px solid var(--border);
+    background: var(--panel);
+    border-radius: 8px;
+    padding: 32px;
+    box-shadow:
+      0 20px 25px -5px rgb(0 0 0 / 0.4),
+      0 8px 10px -6px rgb(0 0 0 / 0.4);
+  }
+  .old .logo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 24px;
+  }
+  .old .logo .t {
+    width: 32px;
+    height: 32px;
+    display: grid;
+    place-items: center;
+    border-radius: 4px;
+    background: var(--accent);
+    color: var(--accent-ink);
+    font-family: var(--mono);
+    font-weight: 700;
+  }
+  .old .logo b {
+    font-family: var(--mono);
+    letter-spacing: 0.08em;
+    font-weight: 700;
+  }
+  .old form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .old p {
+    margin: 0;
+    font-size: 13px;
+    color: var(--text-dim);
+  }
+  .old label {
+    font-size: 12px;
+    color: var(--text-faint);
+    display: block;
+  }
+  .old input {
+    margin-top: 4px;
+    width: 100%;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    padding: 8px 12px;
+    font: inherit;
+    font-size: 14px;
+    color: var(--text);
+  }
+  .old .btn {
+    margin-top: 4px;
+    border: 0;
+    border-radius: 4px;
+    background: var(--accent);
+    color: var(--accent-ink);
+    font-family: var(--mono);
+    font-weight: 600;
+    padding: 8px 16px;
+    cursor: pointer;
+  }
+  .old a {
+    text-align: center;
+    font-size: 12px;
+    color: var(--text-faint);
+    text-decoration: none;
+  }
+
+  /* ---------- NOVA: naslovna strana radnog dana ---------- */
+  .new {
+    position: relative;
+    min-height: inherit;
+    overflow: hidden;
+    color: #f4f2ee;
+  }
+  .new canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+  .new .grid {
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(255, 255, 255, 0.045) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.045) 1px, transparent 1px);
+    background-size: 48px 48px;
+    mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.9), rgba(0, 0, 0, 0.3));
+  }
+  .new .veil {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      90deg,
+      rgba(9, 9, 11, 0.92) 0%,
+      rgba(9, 9, 11, 0.78) 34%,
+      rgba(9, 9, 11, 0.35) 62%,
+      rgba(9, 9, 11, 0.55) 100%
+    );
+  }
+  .new .layout {
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(300px, 460px) 1fr;
+    gap: 40px;
+    padding: 28px 44px 36px;
+    min-height: inherit;
+  }
+  .new .top {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .new .wordmark {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .new .wordmark svg {
+    display: block;
+  }
+  .new .wordmark span {
+    font-family: var(--brandfont);
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: var(--brand);
+    font-size: 20px;
+  }
+  .new .date {
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: #cfcbc2;
+  }
+  .new .clock {
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    background: rgba(9, 9, 11, 0.55);
+    backdrop-filter: blur(8px);
+    border-radius: 8px;
+    padding: 10px 14px;
+    min-width: 190px;
+  }
+  .new .clock small {
+    display: block;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: #a8a49b;
+  }
+  .new .clock b {
+    display: block;
+    font-family: var(--mono);
+    font-size: 26px;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.2;
+  }
+  .new .clock b i {
+    font-style: normal;
+    font-size: 11px;
+    color: #a8a49b;
+    margin-left: 8px;
+    letter-spacing: 0.12em;
+  }
+
+  .new .left {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 22px;
+  }
+  .new h1 {
+    margin: 0;
+    font-size: clamp(30px, 3.4vw, 42px);
+    line-height: 1.08;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    text-wrap: balance;
+  }
+  .new h1 em {
+    font-style: normal;
+    color: #f4c98a;
+  }
+  .new .lede {
+    margin: 0;
+    max-width: 52ch;
+    font-size: 14.5px;
+    line-height: 1.55;
+    color: #cfcbc2;
+  }
+  .new .card {
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    background: rgba(24, 24, 27, 0.62);
+    backdrop-filter: blur(14px);
+    border-radius: 12px;
+    padding: 22px 22px 18px;
+    box-shadow: 0 30px 60px -20px rgba(0, 0, 0, 0.7);
+  }
+  .new .card form {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .new label {
+    display: block;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: #b6b2a9;
+  }
+  .new .field {
+    margin-top: 6px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    background: rgba(9, 9, 11, 0.55);
+    border-radius: 8px;
+    padding: 10px 12px;
+  }
+  .new .field:focus-within {
+    border-color: var(--accent-strong);
+    box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.25);
+  }
+  .new .field svg {
+    flex: none;
+    opacity: 0.7;
+  }
+  .new .field input {
+    flex: 1;
+    min-width: 0;
+    border: 0;
+    background: transparent;
+    color: #f4f2ee;
+    font: inherit;
+    font-size: 14px;
+    outline: none;
+  }
+  .new .row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    font-size: 13px;
+    color: #cfcbc2;
+  }
+  .new .row label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    text-transform: none;
+    letter-spacing: 0;
+    font-family: var(--sans);
+    font-size: 13px;
+    color: #cfcbc2;
+  }
+  .new .twofa {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    color: #a8a49b;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .new .twofa i {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--ok);
+    display: inline-block;
+  }
+  .new .btn {
+    margin-top: 2px;
+    border: 0;
+    border-radius: 8px;
+    padding: 12px 16px;
+    font: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    background: #f4f2ee;
+    color: #111114;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+  .new .btn:hover {
+    background: #fff;
+  }
+  .new .btn:focus-visible,
+  .new .field input:focus-visible {
+    outline: none;
+  }
+  .new .under {
+    font-size: 12px;
+    color: #a8a49b;
+    text-align: center;
+  }
+  .new .under a {
+    color: #cfcbc2;
+    text-decoration: underline dotted;
+  }
+
+  .new .right {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    gap: 10px;
+    padding-bottom: 8px;
+  }
+  .new .eyebrow {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: #cfcbc2;
+  }
+  .new .eyebrow::before {
+    content: '';
+    width: 40px;
+    height: 1px;
+    background: var(--brand);
+  }
+  .new .place {
+    margin: 0;
+    font-size: clamp(48px, 7.5vw, 104px);
+    line-height: 0.95;
+    font-weight: 600;
+    letter-spacing: -0.03em;
+  }
+  .new .meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    font-size: 13px;
+    color: #cfcbc2;
+  }
+  .new .meta b {
+    color: #f4f2ee;
+    font-weight: 500;
+  }
+  .new .meta code {
+    font-family: var(--mono);
+    color: #a8a49b;
+  }
+  .new blockquote {
+    margin: 10px 0 0;
+    font-size: 17px;
+    font-style: italic;
+    color: #f4f2ee;
+    max-width: 48ch;
+  }
+  .new blockquote small {
+    display: block;
+    margin-top: 6px;
+    font-style: normal;
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: #a8a49b;
+  }
+  .new .dots {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: #a8a49b;
+    margin-top: 8px;
+  }
+  .new .dots i {
+    width: 48px;
+    height: 1px;
+    background: rgba(255, 255, 255, 0.35);
+  }
+  .new .dots i.on {
+    background: var(--brand);
+  }
+  .new .foot {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 22px;
+    align-items: baseline;
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: #a8a49b;
+  }
+  .new .foot em {
+    font-family: var(--sans);
+    font-style: italic;
+    text-transform: none;
+    letter-spacing: 0;
+    font-size: 13px;
+    color: #cfcbc2;
+  }
+
+  @media (max-width: 860px) {
+    .new .layout {
+      grid-template-columns: 1fr;
+      padding: 20px 16px 28px;
+    }
+    .new .right {
+      padding-top: 24px;
+    }
+    .new .clock {
+      min-width: 0;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .new .btn {
+      transition: none;
+    }
+  }
+</style>
+
+<div class="switch" role="tablist" aria-label="Varijanta ekrana prijave">
+  <b>Prijava · varijanta</b>
+  <button id="btn-old" role="tab" aria-pressed="true" onclick="show('old')">
+    Stara (danas na /prijava)
+  </button>
+  <button id="btn-new" role="tab" aria-pressed="false" onclick="show('new')">
+    Nova — naslovna strana radnog dana
+  </button>
+  <span class="note">Obe u tamnom modu panela, isti tokeni · 17.9.2026</span>
+</div>
+
+<div class="stage">
+  <!-- ============ STARA ============ -->
+  <section id="v-old" class="old" aria-label="Stara varijanta">
+    <div class="card">
+      <div class="logo">
+        <div class="t">T</div>
+        <b>TERMINAL</b>
+      </div>
+      <form onsubmit="return false;">
+        <p>Interni tim agencije. Unesite email i lozinku vašeg naloga.</p>
+        <label
+          >email<input id="old-email" type="email" value="marko.petrovic@terminal-travel.rs"
+        /></label>
+        <label>lozinka<input id="old-pass" type="password" value="••••••••••" /></label>
+        <button class="btn" type="submit">./prijavi_se</button>
+        <a href="#">zaboravljena lozinka?</a>
+      </form>
+    </div>
+  </section>
+
+  <!-- ============ NOVA ============ -->
+  <section id="v-new" class="new" aria-label="Nova varijanta" hidden>
+    <canvas id="scene" aria-hidden="true"></canvas>
+    <div class="grid" aria-hidden="true"></div>
+    <div class="veil" aria-hidden="true"></div>
+    <div class="layout">
+      <div class="top">
+        <div class="wordmark" aria-label="Terminal Travel">
+          <svg width="15" height="26" viewBox="-32 -55 64 110">
+            <rect x="-32" y="-55" width="64" height="10" fill="#f97316" />
+            <rect x="-4" y="-55" width="8" height="48" fill="#f97316" />
+            <rect x="-4" y="7" width="8" height="48" fill="#f97316" />
+            <rect x="-32" y="45" width="64" height="10" fill="#f97316" /></svg
+          ><span>erminal</span>
+          <svg width="15" height="26" viewBox="-32 -55 64 110" style="margin-left: 6px">
+            <rect x="-32" y="-55" width="64" height="10" fill="#f97316" />
+            <rect x="-4" y="-55" width="8" height="48" fill="#f97316" />
+            <rect x="-4" y="7" width="8" height="48" fill="#f97316" />
+            <rect x="-32" y="45" width="64" height="10" fill="#f97316" /></svg
+          ><span>ravel</span>
+        </div>
+        <div class="date" id="date">četvrtak · 17. septembar</div>
+        <div class="clock">
+          <small>Lokalno vreme</small><b><span id="clock">07:06:57</span><i>BEG</i></b>
+        </div>
+      </div>
+
+      <div class="left">
+        <div>
+          <h1>Današnje rezervacije <em>su već tu.</em></h1>
+          <p class="lede">
+            Provizije, marže i noćne brojke, spremne pre nego što ste stigli. Prijavite se i
+            pogledajte šta se promenilo od juče.
+          </p>
+        </div>
+        <div class="card">
+          <form onsubmit="return false;">
+            <div>
+              <label for="new-email">Email</label>
+              <div class="field">
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#f4f2ee"
+                  stroke-width="1.6"
+                >
+                  <rect x="3" y="5" width="18" height="14" rx="2" />
+                  <path d="m3 7 9 6 9-6" />
+                </svg>
+                <input
+                  id="new-email"
+                  type="email"
+                  value="marko.petrovic@terminal-travel.rs"
+                  autocomplete="username"
+                />
+              </div>
+            </div>
+            <div>
+              <label for="new-pass">Lozinka</label>
+              <div class="field">
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#f4f2ee"
+                  stroke-width="1.6"
+                >
+                  <rect x="4" y="10" width="16" height="10" rx="2" />
+                  <path d="M8 10V7a4 4 0 0 1 8 0v3" />
+                </svg>
+                <input
+                  id="new-pass"
+                  type="password"
+                  value="••••••••••"
+                  autocomplete="current-password"
+                />
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#f4f2ee"
+                  stroke-width="1.6"
+                >
+                  <path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12Z" />
+                  <circle cx="12" cy="12" r="3" />
+                </svg>
+              </div>
+            </div>
+            <div class="row">
+              <label for="new-remember"
+                ><input id="new-remember" type="checkbox" /> Zapamti me na ovom uređaju</label
+              >
+              <span class="twofa"><i></i>2FA · sledeći korak</span>
+            </div>
+            <button class="btn" type="submit">
+              Otvori panel <span aria-hidden="true">→</span>
+            </button>
+            <div class="under">
+              Zaključani ste? <a href="#">Zaboravljena lozinka</a> · ili javite Vlasniku
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <div class="right">
+        <div class="eyebrow">Iz kataloga · Halkidiki</div>
+        <h2 class="place">Kasandra</h2>
+        <div class="meta">
+          <b>Aegean Breeze Resort 4*</b><span>Grčka</span><code>40.0192° N · 23.4109° E</code>
+        </div>
+        <blockquote>
+          „Zaliv gde se sezona ne završava kad kalendar kaže — septembar je najtiši i najtopliji
+          mesec.“<small>— Znanje · Halkidiki, osveženo 11.9.2026</small>
+        </blockquote>
+        <div class="dots">
+          <i class="on"></i><i></i><i></i><i></i><span>01 / 04 · rani buking ističe 30.9.</span>
+        </div>
+      </div>
+
+      <div class="foot">
+        <span>Terminal · interni panel · v0.9</span>
+        <em>Radna sveska agencije</em>
+        <span>Beograd, Srbija</span>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script>
+  function show(which) {
+    document.getElementById('v-old').hidden = which !== 'old';
+    document.getElementById('v-new').hidden = which !== 'new';
+    document.getElementById('btn-old').setAttribute('aria-pressed', String(which === 'old'));
+    document.getElementById('btn-new').setAttribute('aria-pressed', String(which === 'new'));
+    if (which === 'new') paint();
+  }
+  // Sat — samo lokalno vreme (prognoza namerno izostavljena: spoljni API van steka).
+  function tick() {
+    const d = new Date();
+    document.getElementById('clock').textContent = d.toLocaleTimeString('sr-RS', { hour12: false });
+    const dani = ['nedelja', 'ponedeljak', 'utorak', 'sreda', 'četvrtak', 'petak', 'subota'];
+    const meseci = [
+      'januar',
+      'februar',
+      'mart',
+      'april',
+      'maj',
+      'jun',
+      'jul',
+      'avgust',
+      'septembar',
+      'oktobar',
+      'novembar',
+      'decembar',
+    ];
+    document.getElementById('date').textContent =
+      `${dani[d.getDay()]} · ${d.getDate()}. ${meseci[d.getMonth()]}`;
+  }
+  tick();
+  setInterval(tick, 1000);
+
+  // Pozadina: na pravom ekranu ovde stoji FOTOGRAFIJA hotela/destinacije iz kataloga (M2 media).
+  // U mockupu se crta generativni pejzaž (zaliv u kasno popodne) da se vidi kompozicija bez
+  // tuđe fotografije — dovoljno da se oceni raspored, ne fotografija sama.
+  let painted = false;
+  function paint() {
+    const c = document.getElementById('scene');
+    if (!c || painted) return;
+    painted = true;
+    const W = (c.width = c.offsetWidth * devicePixelRatio),
+      H = (c.height = c.offsetHeight * devicePixelRatio);
+    const g = c.getContext('2d');
+    const sky = g.createLinearGradient(0, 0, 0, H * 0.58);
+    sky.addColorStop(0, '#1b2340');
+    sky.addColorStop(0.55, '#3a3f66');
+    sky.addColorStop(1, '#c9885a');
+    g.fillStyle = sky;
+    g.fillRect(0, 0, W, H * 0.58);
+    const sea = g.createLinearGradient(0, H * 0.58, 0, H);
+    sea.addColorStop(0, '#5a6f8c');
+    sea.addColorStop(0.5, '#1f3348');
+    sea.addColorStop(1, '#0d1620');
+    g.fillStyle = sea;
+    g.fillRect(0, H * 0.58, W, H * 0.42);
+    // sunce i odsjaj
+    const sx = W * 0.68,
+      sy = H * 0.55;
+    const glow = g.createRadialGradient(sx, sy, 0, sx, sy, W * 0.28);
+    glow.addColorStop(0, 'rgba(255,214,150,.85)');
+    glow.addColorStop(0.25, 'rgba(255,170,90,.35)');
+    glow.addColorStop(1, 'rgba(255,170,90,0)');
+    g.fillStyle = glow;
+    g.fillRect(0, 0, W, H);
+    for (let i = 0; i < 90; i++) {
+      g.fillStyle = `rgba(255,200,130,${0.05 + Math.random() * 0.12})`;
+      const y = H * 0.59 + Math.random() * H * 0.3;
+      const w = 6 + Math.random() * 40 * devicePixelRatio;
+      g.fillRect(
+        sx - w / 2 + (Math.random() - 0.5) * 60 * devicePixelRatio,
+        y,
+        w,
+        1.5 * devicePixelRatio,
+      );
+    }
+    // brda / poluostrvo
+    const hill = (yBase, amp, color, seed) => {
+      g.fillStyle = color;
+      g.beginPath();
+      g.moveTo(0, H);
+      g.lineTo(0, yBase);
+      for (let x = 0; x <= W; x += 12) {
+        const y =
+          yBase +
+          Math.sin(x / (240 * devicePixelRatio) + seed) * amp +
+          Math.sin(x / (61 * devicePixelRatio) + seed * 2) * amp * 0.35;
+        g.lineTo(x, y);
+      }
+      g.lineTo(W, H);
+      g.closePath();
+      g.fill();
+    };
+    hill(H * 0.5, 26 * devicePixelRatio, '#2a3352', 1.2);
+    hill(H * 0.555, 16 * devicePixelRatio, '#151b2e', 3.1);
+    // niz svetala u zalivu
+    for (let i = 0; i < 46; i++) {
+      const x = W * 0.05 + (i / 46) * W * 0.9 + Math.sin(i) * 8;
+      const y = H * 0.565 + Math.sin(i * 1.7) * 6;
+      g.fillStyle = i % 5 === 0 ? 'rgba(255,190,110,.9)' : 'rgba(255,225,180,.55)';
+      g.beginPath();
+      g.arc(x, y, (i % 5 === 0 ? 2.2 : 1.3) * devicePixelRatio, 0, Math.PI * 2);
+      g.fill();
+    }
+    // zrno
+    for (let i = 0; i < (W * H) / 900; i++) {
+      g.fillStyle = `rgba(255,255,255,${Math.random() * 0.05})`;
+      g.fillRect(Math.random() * W, Math.random() * H, 1, 1);
+    }
+  }
+  window.addEventListener('resize', () => {
+    painted = false;
+    if (!document.getElementById('v-new').hidden) paint();
+  });
+</script>
