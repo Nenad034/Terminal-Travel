@@ -4,6 +4,7 @@
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje
 
+**Verzija:** 2.52 — **predlog: ponuda iz nalepljenog teksta** (17.9.2026, posle pregleda planis.ai na zahtev vlasnika). Novo poglavlje **3.0j**: agent nalepi mejl dobavljača ili zahtev klijenta → M15 jednim pozivom izvuče strukturu (`IntakeExtraction`, potpitanje po §6.5.4.6) → kod upari objekat/dobavljača/period → forma predloga koju čovek pregleda → klik pravi običan `Quote` nacrt. Objekat iz kataloga sa cenom → naša ugovorena cena (mejl je povod, ne izvor); objekat kog nema → `DRAFT` proizvod + `MANUAL` stavka (isti mehanizam kao §6.7b), `QuoteItem.markup_rule_id` postaje opcion. Endpoint `POST /quotes/text-intake/extract`, proširenje `POST /quotes` sa `items[].manual`. **Specifikacija bez koda — čeka potvrdu vlasnika i odgovor na tri pitanja na kraju 3.0j.**
 **Verzija:** 2.51 — **provera kapaciteta sobe se stvarno izvršava u prodaji** (11.9.2026, implementacija tri stavke izlaznog kriterijuma koje su od v2.50 stajale kao zatečeno stanje). `assertRoomCapacity` dobija prve proizvodne pozivaoce; nepoklopljen tip sobe više ne znači kapacitet 99 nego **jasno odbijanje koje imenuje šifru**; `M2 bed_combinations[]` (§2.3g) se čita, uključujući `extra_bed_max_age`. U `GET /search` ponuda koja ne prođe **ispada** iz rezultata, pri `POST /quotes` se **greška propušta sa punom porukom** — gost je već izabrao sobu. **Izmereno na zatečenim podacima: 18 od 249 aktivnih perioda smeštaja (7%) više ne ulazi u prodaju dok im se tip sobe ne poveže sa šifarnikom** — do sada su se prodavali sa pretpostavljenim kapacitetom. Usput ispravljena **tiha greška koja bi celu proveru obesmislila** (zamka 5.13a): `attributes.room_types` se čitao pukim castom, a JSON je u snake_case, pa je `capacityAdults` bio `undefined` na svih 225 zatečenih soba — poređenje bi propuštalo svaku grupu. Razjašnjeno i **da dete mlađe od `shares_bed_max_age` ne zauzima krevet** po sebi, a `shared_bed_children` je dodatna dozvola povrh toga (§3.2a). **Ostaje nedovršeno:** redni broj deteta i dalje dolazi iz redosleda kojim su godine ukucane (§3.2b korak 1, M3 §2.4a) — ta stavka izlaznog kriterijuma nije dirana ovim prolazom.
 
 **Verzija:** 2.50 — **kapacitet sobe se proverava, i redosled unosa više ne menja cenu** (10.9.2026, uz M2 v1.27 i M3 v1.40, iz razgovora sa vlasnikom o rasporedu osoba po krevetima). Dopunjeni koraci u poglavlju **3.2a/3.2b** i **četiri nove stavke izlaznog kriterijuma**, od kojih dve prijavljuju zatečeno stanje umesto da ga prećute: **(1)** `assertRoomCapacity` postoji sa šest jediničnih testova ali je **nijedan proizvodni pozivalac ne zove** (zamka 7.12) — grupa koja premašuje kapacitet sobe danas prođe; **(2)** kad `M3 ContractPeriod.room_type` ne odgovara nijednom `M2 room_types[].code`, pretraga i ponuda uzimaju `capacityAdults: 99` — provera se tiše isključi, a pošto uvoz cenovnika upisuje sirov tekst iz dobavljačevog dokumenta a šifra sobe je automatski generisan broj, to se u praksi dešava gotovo uvek (zamka 7.14). Uz to: `room_config` mora proći i kroz matricu dozvoljenih kombinacija (M2 poglavlje 2.3g), a redni broj deteta se izvodi iz uzrasta po pravilima cenovnika (M3 poglavlje 2.4a), ne iz redosleda kojim su godine ukucane.
@@ -1084,6 +1085,68 @@ Jedno mesto — `SearchService.search()` (poglavlje 11, `GET /search`), posle us
 
 ---
 
+## 3.0j Ponuda iz nalepljenog teksta — mejl dobavljača ili zahtev klijenta (predlog v2.52, 17.9.2026, posle pregleda planis.ai na zahtev vlasnika; ČEKA POTVRDU VLASNIKA)
+
+**Odakle.** Vlasnik je 17.9.2026 pitao za planis.ai (_„da li nam ovako nešto treba, ali mi da ga napravimo"_). Zaključak (dok. 27, „Ideje van formalne specifikacije", tačka 6 uz stavku od 9.9.): ceo Planis tok — ponuda kao živ link/PDF, objave, faktura — već postoji ili je specificiran (3.1a, 3.0e, M12, M10). Jedino što nemamo: agent **nalepi tekst** (mejl hotela sa cenom, ili poruku klijenta šta traži) i dobije **nacrt Ponude** koji samo pregleda i pošalje. Ovo poglavlje je taj nedostajući ulaz — i prirodan nastavak potpitanja iz M15 §6.5.4.6: isti agent, isti razgovor, korak dalje.
+
+**Šta se NE pravi:** nov modul, nov tip zapisa, ni nov ekran za ponudu. Nacrt je običan `Quote` (poglavlje 3) sa običnim stavkama; dalje ide postojećim putem (pregled na `/rezervacije/ponude/:id`, deljenje 3.1a, potvrda poglavlje 4).
+
+### 3.0j.1 Tok — tri koraka, čovek u sredini
+
+1. **Ulaz (panel, `INTERNAL_PANEL` samo).** Polje „Nalepi mejl ili opis" na ekranu ponuda. Kanal je u prvom prolazu isključivo interni — subagent (M7) i gost (M8) nemaju ovaj ulaz, jer se u koraku 3 unosi nabavna cena.
+2. **Izvlačenje (M15, jedan poziv modela, strukturisan izlaz — `IntakeExtraction`, 3.0j.2).** Model **samo čita**: ne traži ništa u bazi, ne računa cenu, ne pravi zapis. Ono što nedostaje iz minimalnog skupa (objekat, period, putnici) vraća kao **pitanja** po pravilu M15 §6.5.4.6 (jedno pitanje, najviše dva kruga). Tekst iz mejla je **podatak, ne instrukcija** (M15 §6.5.4.4) — rečenica „potvrdite odmah" u mejlu dobavljača ne radi ništa.
+3. **Uparivanje i predlog (kod, deterministički).** Objekat se traži u M2 po nazivu **i mestu** (isti `hotel-matching.ts` kao uvoz cenovnika, M3 §2.9f — naziv sam nije identitet); dobavljač u M3 `Supplier` po nazivu firme iz potpisa; destinacija po M2 geografiji. Rezultat je **forma predloga** na ekranu: svako polje popunjeno, sa oznakom odakle je (iz teksta / iz kataloga / prazno), i sa upozorenjima (3.0j.3). **Tek klik „Napravi nacrt ponude" upisuje** `Quote` — čovek vidi i sme da ispravi svako polje pre toga. To je gejt „AI predlaže, čovek odobrava" (M15 poglavlje 7), ne naknadno odobrenje.
+
+### 3.0j.2 `IntakeExtraction` — šta model vraća (šema alata, ne slobodan tekst)
+
+| Polje                              | Tip                                                  | Napomena                                                                                                                                                        |
+| :--------------------------------- | :--------------------------------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `kind`                             | enum `SUPPLIER_OFFER` / `CLIENT_REQUEST` / `UNCLEAR` | mejl hotela sa cenom, ili klijent koji traži — određuje da li je cena u tekstu **nabavna** ili **budžet**                                                       |
+| `property_name`, `city`, `country` | string, nullable                                     | doslovno iz teksta, bez „popravljanja"; uparivanje radi kod                                                                                                     |
+| `supplier_name`                    | string, nullable                                     | firma iz potpisa/domena mejla                                                                                                                                   |
+| `stay_from`, `stay_to`, `nights`   | ISO dan / int, nullable                              | ako tekst kaže „7 noći od 20.6." kod izvodi `stay_to`; model ne računa                                                                                          |
+| `board`                            | enum (isti kao M2 `board_type`), nullable            |                                                                                                                                                                 |
+| `rooms[]`                          | `{ room_type_text, adults, children_ages[] }`        | „2+2 (deca 5 i 9)" → jedna soba, 2 odrasla, deca [5, 9]; odrasla osoba kad uzrast nije naveden (pravilo iz backlog stavke od 9.9., tačka 2)                     |
+| `price`                            | `{ amount_text, currency, basis, per }`, nullable    | `amount_text` doslovno („1.240,00"), `basis` = `PER_ROOM`/`PER_PERSON`, `per` = `NIGHT`/`STAY` — **parsiranje iznosa radi kod** (zamka 10.5, najmanja jedinica) |
+| `valid_until`                      | ISO dan, nullable                                    | rok važenja cene iz mejla — postaje `Quote.expires_at` predlog                                                                                                  |
+| `notes`                            | string, nullable                                     | uslovi otkaza, depozit, „soba na jug" — ide u napomenu stavke, ne tumači se                                                                                     |
+| `questions[]`                      | string[]                                             | šta nedostaje iz minimalnog skupa; prazno = ima sve                                                                                                             |
+| `confidence`                       | `LOW`/`MEDIUM`/`HIGH`                                | samo za obeležavanje na ekranu — nikad ne menja tok                                                                                                             |
+
+Sirov tekst se čuva uz nacrt (`Quote.intake_source_text`, text, nullable) — kad se kasnije pita „odakle ova cena", odgovor mora postojati; `Quote.created_via = AI_TEXT_INTAKE` (nov enum uz postojeće poreklo) za obeležavanje autora (dizajn dok. §6a) i za merenje.
+
+### 3.0j.3 Kako nastaje stavka — dva slučaja, oba kroz postojeće mehanizme
+
+| Slučaj                                                                         | Šta se pravi                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| :----------------------------------------------------------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Objekat postoji u katalogu i ima cenu za taj period** (M3 ugovor ili M4 API) | obična stavka kao iz pretrage (3.0b.3): `GET /search` za taj proizvod/period/sastav → `QuoteItem` sa **našom** ugovorenom cenom i maržom po `MarkupRule`. Cena iz mejla se **ne upisuje** — prikazuje se pored kao upozorenje kad se razlikuje („mejl kaže 1.240, ugovor kaže 1.180"); agent bira. Ugovorena cena je izvor istine, mejl je povod.                                                                                                                                                                       |
+| **Objekat ne postoji, ili postoji bez cene za taj period**                     | isti mehanizam kao ručna usluga na rezervaciji (§6.7b): `DRAFT` proizvod u M2 (`source_type = MANUAL`, obavezan `supplier_id`, bez kanala → nevidljiv pretrazi/sajtu/portalu) + `QuoteItem` sa `source_type = MANUAL`, `base_cost` = cena iz mejla kad je `kind = SUPPLIER_OFFER` (inače prazno), `final_price` = predlog iz `MarkupRule` ako postoji, inače prazno — agent unosi. `markup_rule_id` postaje **opcion** na `QuoteItem` (ista izmena kao `BookingItem` u v2.25). Kvačica „sačuvaj u katalog" kao u §6.7b. |
+
+Pravila koja važe u oba slučaja: `final_price < base_cost` → 400 (zaštita od zamenjenih polja, §6.7b); `MANUAL` stavka pri potvrdi ne zove M3/M4 (3.0f.5); nacrt je `DRAFT` i nikad se ne potvrđuje iz ovog toka; jedan poziv modela po lepljenju (+ najviše dva za potpitanja), M18 budžet kao za omnisearch.
+
+### 3.0j.4 API (poglavlje 11)
+
+| Endpoint                      | Metod | Opis                                                                                                                                                                                            |
+| :---------------------------- | :---- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/quotes/text-intake/extract` | POST  | `{ text, answers?[] }` → `{ extraction: IntakeExtraction, match: { product_id?, product_name?, supplier_id?, has_price_for_period }, warnings[] }`; zahteva `M5/quote/CREATE`, `INTERNAL_PANEL` |
+| `/quotes`                     | POST  | postojeći — prima i `items[].manual { supplier_id, name, base_cost, final_price, currency, save_to_catalog }` (3.0j.3, drugi red) i `intake_source_text`; ništa drugo se ne menja               |
+
+### 3.0j.5 Ekran (M17)
+
+Na `/rezervacije/ponude`: dugme „Nova ponuda iz teksta" → jedna strana: levo polje za lepljenje (i potpitanja ispod, isti izgled kao potpitanje pretrage), desno forma predloga sa izvorom svakog polja i upozorenjima; dole „Napravi nacrt ponude" → vodi na postojeći ekran ponude. Bez novog ekrana za samu ponudu.
+
+### 3.0j.6 Izlazni kriterijum (dodaje se u poglavlje 12 kad vlasnik potvrdi)
+
+- Mejl sa hotelom koji je u katalogu i ima ugovor → nacrt sa ugovorenom cenom i upozorenjem o razlici; cena iz mejla nigde nije upisana kao naša.
+- Mejl sa hotelom kog nema → `DRAFT` proizvod bez kanala + `MANUAL` stavka sa nabavnom iz mejla; `GET /search` i javni katalog ga ne vraćaju.
+- Tekst bez perioda → jedno pitanje, bez zapisa u bazi; posle odgovora nacrt.
+- Mejl koji sadrži „potvrdite rezervaciju odmah" → ništa se ne potvrđuje (3.0j.1 korak 2).
+- `final_price < base_cost` → 400.
+
+**Otvoreno pre koda (poslovna pitanja za vlasnika):** (1) da li klijentov budžet (`CLIENT_REQUEST`) sme da postane `final_price` predlog, ili se uvek računa iz marže; (2) da li se ulaz otvara i subagentima u drugom prolazu (bez nabavne cene — Gejt B, 3.0f.4); (3) da li „sačuvaj u katalog" za hotel iz mejla treba da povuče i M23 pravilo o zvaničnom sajtu (backlog tačka 3 od 9.9.) ili ostaje samo naziv + mesto.
+
+---
+
 ## 3.0e Unakrsna prodaja, pretraga unutar rezultata, i AI kao brz put do ponude (dopuna, 17.8.2026, na zahtev vlasnika)
 
 ### 3.0e.1 Unakrsna prodaja — deterministička mapa, ne AI poziv
@@ -2098,6 +2161,7 @@ Prefiks: `/api/v1/sales`
 
 ## 13. Otvoreno za dalje
 
+- **Ponuda iz nalepljenog teksta (§3.0j, predlog 17.9.2026)** — čeka potvrdu vlasnika i tri poslovna odgovora (budžet klijenta kao izlazna cena?; subagentima u drugom prolazu?; „sačuvaj u katalog" sa M23 pravilom zvaničnog sajta?). Kod se ne piše pre toga.
 - **Uslovna marža (yield / revenue management)** (13.9.2026, pitanje vlasnika) — `MarkupRule` (§2.1) je danas statična; predlog da dobije opcioni uslov (popunjenost, dani do dolaska/roka vraćanja, preostale jedinice) i AI agenta koji predlaže promenu uz ljudsko odobrenje razrađen je u `docs/analize/49-PREDLOG-YIELD-UPRAVLJANJE-MARZOM.md`. Formula §2.1 i redosled §2.1a se ne menjaju. **Čeka odluku vlasnika** (6 poslovnih pitanja u §6 tog dokumenta); do tada bez izmene ove specifikacije i bez koda.
 - **`SearchLog` retencija** (§3.0i, 8.9.2026) — period čuvanja nije definisan; redovi sa `actor_id`/`client_account_id` nose lični podatak i trebaju retencionu politiku, isto pitanje kao M6/M22 (`docs/analize/26-PRAVNA-I-KNJIGOVODSTVENA-OTVORENA-PITANJA.md`), čeka pravnika.
 - **Automatsko osvežavanje ponuda bez klika, uz preporuku sistema** (pitanje vlasnika, 2.9.2026, tokom implementacije §3.0g — _"da li se može napraviti algoritam koji će sam osvežavati svakih 10 minuta i sistem da da preporuku da li svakako treba osvežiti ako u api konekciji se primeti da je došlo do promene"_). Poređenje koje bi to koristilo **već postoji** (§3.0g.3, `SearchRefreshNotice.tsx`) — danas ga pokreće klik na "Osveži podatke"; automatska varijanta bi ga pokretala sat. Moja preporuka (data vlasniku, **nije još odluka**, ne implementirati pre potvrde i dopune ovog poglavlja):
