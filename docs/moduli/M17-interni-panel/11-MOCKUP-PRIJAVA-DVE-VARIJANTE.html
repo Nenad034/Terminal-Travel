@@ -208,8 +208,8 @@
     position: relative;
     display: grid;
     grid-template-columns: 1fr;
-    grid-template-rows: auto 1fr auto auto;
-    gap: 28px;
+    grid-template-rows: auto auto auto 1fr;
+    gap: 36px; /* isti razmak: naslov→kartica, kartica→katalog (vlasnik 17.9.2026) */
     padding: 28px 44px 28px;
     min-height: inherit;
   }
@@ -282,7 +282,7 @@
     justify-content: center;
     align-items: center;
     text-align: center;
-    gap: 22px;
+    gap: 36px;
     width: 100%;
     max-width: 460px;
     margin: 0 auto;
@@ -516,6 +516,7 @@
   }
   .new .foot {
     grid-column: 1 / -1;
+    align-self: end;
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
