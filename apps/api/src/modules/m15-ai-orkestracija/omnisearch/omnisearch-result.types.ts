@@ -18,4 +18,11 @@ export interface OmnisearchResponse {
   matchedRoutes: MatchedRoute[];
   entityResults: EntityResult[];
   aiAnswer?: string;
+  /**
+   * M15 spec §6.5.4.6 (17.9.2026) — `true` kad je `aiAnswer` POTPITANJE (agentu je falila
+   * destinacija/period/sastav putnika za pretragu raspoloživosti), ne odgovor. Kanal na to
+   * zadržava fokus u polju za unos i vraća turu kao `history[].clarification = true`, da server
+   * može da izbroji krugove (najviše dva) bez trajne memorije razgovora.
+   */
+  clarification?: boolean;
 }

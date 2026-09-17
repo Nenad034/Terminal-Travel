@@ -425,7 +425,7 @@ _(§8, `docs/moduli/M14-helpdesk/14-SPECIFIKACIJA-M14-HELPDESK.md`)_
 
 _(§11, `docs/moduli/M15-ai-orkestracija/18-SPECIFIKACIJA-M15-AI-ORKESTRACIJA.md`)_
 
-- **Potpitanje kad upit za pretragu nema dovoljno podataka** (M15 §6.5.4.6, v1.56, 17.9.2026) — specifikovano, **čeka kod**: strukturirani parametri na `search_products`/nov `search_availability` ka M5 `/sales/search`, prompt sa minimalnim skupom, `clarification` zastavica u odgovoru, merenje na 20 stvarnih upita. Prvi korak ka M5 konverzacionoj rezervaciji (red iznad pod M5).
+- **Potpitanje kad upit za pretragu nema dovoljno podataka** (M15 §6.5.4.6, v1.57, 17.9.2026) — **implementirano i izmereno** isti dan (20 upita nad pravim modelom). Ostaje: ponoviti merenje nad stvarnim `AuditLogEntry omnisearch.query` zapisima kad sajt dobije posetioce; M7 portal kanal (`B2B_PORTAL`) i dalje nije u omnisearch-u (isti status kao ranije). Prvi korak ka M5 konverzacionoj rezervaciji (red iznad pod M5).
 - **`query_view` ne pokriva "hitne" notifikacije po rezervaciji** (24.8.2026, na zahtev vlasnika — "Ostavi za kasnije") — "hitno" postoji samo kao mock podatak na M5 panel listi, nema pravu tabelu; čeka i M5 pravu bazu i deterministička pravila za "hitno" nad stvarnim podacima pre nego što se doda `query_view` pogled.
 - Tačan raspored uvođenja agenata po modulu — zavisi od redosleda stabilizacije u produkciji.
 - Konkretan izbor LLM provajdera/modela po domenskom agentu.

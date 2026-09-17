@@ -39,7 +39,7 @@ Omnisearch (iznad) je bio prvi, uzak korak. Ovaj prolaz gradi **ogradu** za sve 
 
 Zamislite ovo kao ugradnju brave na vrata pre nego što ste uopšte kupili sef koji treba da čuva — sef (pravi AI agenti po modulima) dolazi kasnije, ali vrata su već zaključana i spremna.
 
-## Kad gost ne kaže dovoljno — agent pita, ali samo jednom (dodato 17.9.2026, na Vaše pitanje — specifikacija, kod još nije napisan)
+## Kad gost ne kaže dovoljno — agent pita, ali samo jednom (dodato 17.9.2026, na Vaše pitanje — istog dana i napravljeno i izmereno)
 
 Pitali ste da li agent postavi potpitanje kad nema dovoljno podataka za pretragu. Iskreno: nije bilo predviđeno. Agent na sajtu je do sada primao samo naziv ili destinaciju i tražio po katalogu kao po imeniku — nije ni mogao da iskoristi datum ili broj osoba, pa ni da ih pita.
 
@@ -49,7 +49,11 @@ Isto tako je važno šta agent **ne sme** da pita unapred: all inclusive ili pol
 
 Ono što se već zna, ne pita se ponovo: prijavljenom gostu koji je prošli put putovao kao porodica 2+2 agent to predloži u samom pitanju; subagentu koji je pre dve poruke rekao „avgust, dve osobe" to važi dok ne kaže drugačije. U internom panelu zaposleni koji ukuca „Grčka" i dalje dobija spisak hotela bez ijednog pitanja — on obično hoće katalog, ne razgovor.
 
-Pre nego što se proglasi gotovim, proveriće se na dvadeset stvarnih upita koje su ljudi zaista kucali (sistem ih već beleži) — koliko je dobilo pitanje, koliko je prošlo bez njega, i da li je agent ikad pitao nešto što nije smeo.
+**Kako je provereno (17.9.2026).** Dvadeset upita kakve ljudi zaista kucaju („Crna Gora", „nešto na moru u avgustu", „Krit 1-8.7.2027, 2 odrasla", „imate li nešto za Prag?") poslato je pravom AI modelu nad pravom bazom. Rezultat: 12 upita bez perioda ili broja putnika dobilo je jedno pitanje; 6 potpunih upita dobilo je odmah hotele sa cenama; za Prag agent je rekao da ga nemamo, a za četvoro ljudi da nema sobu za četvoro (umesto da ponudi tuđe sobe). Nijednom nije pitao za uslugu, budžet ni kategoriju. Isto je prošlo i na samom sajtu u pravom pregledaču: gost ukuca „hotel u Grčkoj za porodicu", dobije pitanje, dopiše „10–17. avgust 2027, dvoje odraslih i dete", dobije deset hotela.
+
+Merenje je otkrilo i tri stvari koje ne bi izašle iz testova: agent je ponekad pitao sam, bez „alata" koji je trebalo da ga natera (pa sistem nije znao da je to pitanje — ispravljeno); kad za četvoro nije bilo sobe, pokušao je da „nađe nešto" tako što je prećutao broj osoba (sada mu kod to zabranjuje); i cenu od 980,63 evra izgovorio je kao „98.063 evra", jer je dobio iznos u parama (ispravljeno). Sve tri su upisane u spisak zamki da se ne ponove.
+
+Ostaje da se isto merenje ponovi nad upitima **stvarnih posetilaca** kad sajt krene — sistem ih beleži.
 
 ## Šta još nije gotovo (namerno)
 

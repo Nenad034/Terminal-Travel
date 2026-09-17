@@ -110,6 +110,8 @@ interface OmnisearchResponse {
   matchedRoutes: { label: string; href: string }[];
   entityResults: { type: string; id: string; label: string; href: string }[];
   aiAnswer?: string;
+  // M15 spec §6.5.4.6 — odgovor je POTPITANJE (falio period/sastav za pretragu raspoloživosti).
+  clarification?: boolean;
 }
 
 interface Turn {
@@ -119,6 +121,8 @@ interface Turn {
   links: { label: string; href: string }[];
   loading: boolean;
   inactive: boolean;
+  /** §6.5.4.6 — vraća se serveru u `history[]` da izbroji krugove potpitanja (najviše dva). */
+  clarification?: boolean;
 }
 
 // Čitljiv naziv čipa za jednu kontekstnu stavku (dizajn dok. §6c.1a) — RECORD prikazuje samo
@@ -419,7 +423,11 @@ export default function AiChatBox({ fokus = false }: { fokus?: boolean }) {
     // odgovorom (ne učitavanje/neaktivno) ima šta da doprinese, server ionako seče na poslednjih 6.
     const history = turns
       .filter((t) => t.answer && !t.loading)
-      .map((t) => ({ question: t.question, answer: t.answer! }));
+      .map((t) => ({
+        question: t.question,
+        answer: t.answer!,
+        ...(t.clarification ? { clarification: true } : {}),
+      }));
     setInput('');
     clearContextItems();
     setTurns((t) => [
@@ -474,6 +482,7 @@ export default function AiChatBox({ fokus = false }: { fokus?: boolean }) {
           loading: false,
           answer: data.aiAnswer,
           links: [...data.matchedRoutes],
+          ...(data.clarification ? { clarification: true } : {}),
         };
         return next;
       });

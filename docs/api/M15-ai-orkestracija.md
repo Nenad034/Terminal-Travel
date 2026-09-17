@@ -177,6 +177,65 @@ Odgovor uvek vraća link/navigaciju, nikad ne izvršava radnju (M15 spec §6.5.4
 }
 ```
 
+### Slučaj 6 — pretraga ponude bez dovoljno podataka: potpitanje, pa odgovor sa istorijom (M15 spec §6.5.4.6, 17.9.2026)
+
+Kanal `B2C_SITE` radi anonimno (bez `Authorization`). Kad upitu za pretragu raspoloživosti fali period i/ili sastav putnika, agent **ne pretražuje** nego vrati jedno potpitanje i zastavicu `clarification: true`. Klijent vraća tu turu u `history[]` sa istom zastavicom — server po njoj broji krugove (najviše dva; posle toga pretražuje sa onim što ima i kaže šta je pretpostavio).
+
+**Zahtev 1 (stvarno izmereno 17.9.2026):**
+
+```json
+{ "query": "tražim hotel u Grčkoj za porodicu", "channel": "B2C_SITE" }
+```
+
+**Odgovor `200`:**
+
+```json
+{
+  "active": true,
+  "matchedRoutes": [],
+  "entityResults": [],
+  "aiAnswer": "Za koji period i za koliko osoba (odraslih i dece)?",
+  "clarification": true
+}
+```
+
+**Zahtev 2 — odgovor gosta, sa prethodnom turom u `history`:**
+
+```json
+{
+  "query": "od 10. do 17. avgusta 2027, dvoje odraslih i jedno dete",
+  "channel": "B2C_SITE",
+  "history": [
+    {
+      "question": "tražim hotel u Grčkoj za porodicu",
+      "answer": "Za koji period i za koliko osoba (odraslih i dece)?",
+      "clarification": true
+    }
+  ]
+}
+```
+
+**Odgovor `200`** (skraćeno — 10 stavki; alat `search_availability` je pozvao M5 `SearchService.search` sa `destinationCountry: "Grčka"`, `stayFrom/stayTo`, `occupancy: { adults: 2, children: 1 }`):
+
+```json
+{
+  "active": true,
+  "matchedRoutes": [{ "label": "Aegean Breeze Resort 4*", "href": "/smestaj/02467d72-..." }],
+  "entityResults": [
+    {
+      "type": "PRODUCT",
+      "id": "02467d72-...",
+      "label": "Aegean Breeze Resort 4*",
+      "href": "/smestaj/02467d72-...",
+      "media": null
+    }
+  ],
+  "aiAnswer": "Za period 10–17. avgusta 2027 za dvoje odraslih i jedno dete dostupno je 10 smeštaja u Grčkoj, npr. Aegean Breeze Resort 4* (Kasandra) od 3.302 EUR ukupno za boravak…"
+}
+```
+
+Šta agent **ne radi** (sprovedeno u kodu, ne samo promptom): ne pita za uslugu/budžet/kategoriju pre prvog rezultata; ne ponavlja pretragu sa manje uslova nego što je gost dao (odbija se, gost dobija „za te uslove nema ponude, probajte…"); nepoznata destinacija vraća „nije u ponudi" + spisak država koje nudimo, ne pretragu celog kataloga. `aiAnswer` uvek navodi datume kao datume. Cene u `aiAnswer` su ukupne za period i sve putnike, u valuti ugovora.
+
 **Greške:** `401` bez validnog tokena. Nema posebne M1 dozvole na ovom endpoint-u — vidljivost rezultata se sprovodi unutar servisa, po pojedinačnom pozivu M5/M2 servisa sa identitetom pozivaoca (isti obrazac kao `M5 GET /search` §6.2 dopuna).
 
 **Audit:** svaki poziv upisuje jedan `AuditLogEntry` sa `actor_type = AI_AGENT` (M15 spec §10).

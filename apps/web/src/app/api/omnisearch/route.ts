@@ -12,7 +12,9 @@ export async function POST(req: NextRequest) {
   try {
     const result = await apiFetch(`/ai-orchestration/omnisearch`, {
       method: 'POST',
-      body: { query: dto.query, channel: 'B2C_SITE', lang: dto.lang },
+      // `history` (M15 spec §6.5.4.6) — prethodne ture iz OVE sesije pregledača, da odgovor na
+      // potpitanje („za 2 osobe u avgustu") stigne agentu zajedno sa prvobitnim upitom.
+      body: { query: dto.query, channel: 'B2C_SITE', lang: dto.lang, history: dto.history },
     });
     return NextResponse.json(result);
   } catch (err) {

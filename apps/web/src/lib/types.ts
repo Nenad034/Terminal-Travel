@@ -159,6 +159,15 @@ export interface OmnisearchResult {
   matchedRoutes: OmnisearchMatchedRoute[];
   entityResults: OmnisearchEntityResult[];
   aiAnswer?: string;
+  /** M15 spec §6.5.4.6 — `aiAnswer` je potpitanje agenta (fali period/sastav), ne odgovor. */
+  clarification?: boolean;
+}
+
+/** M15 spec §6.5.4.6 — jedna tura razgovora koju sajt vraća serveru kao `history[]`. */
+export interface OmnisearchHistoryTurn {
+  question: string;
+  answer: string;
+  clarification?: boolean;
 }
 
 // Oblik odgovora M23 `GET /knowledge/public/:shareToken` (public-knowledge.controller.ts,

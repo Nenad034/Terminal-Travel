@@ -1,6 +1,7 @@
 import {
   ArrayMaxSize,
   IsArray,
+  IsBoolean,
   IsIn,
   IsInt,
   IsObject,
@@ -25,6 +26,12 @@ export class OmnisearchHistoryTurnDto {
 
   @IsString()
   answer!: string;
+
+  // M15 spec §6.5.4.6 — `true` kad je ova tura bila POTPITANJE agenta (falio period/sastav),
+  // vraćeno kako je stiglo u `OmnisearchResponse.clarification`; server po tome broji krugove.
+  @IsOptional()
+  @IsBoolean()
+  clarification?: boolean;
 }
 
 // M15 spec §6.5.4, §9 — POST /ai-orchestration/omnisearch. `channel` je prošireno (dopuna

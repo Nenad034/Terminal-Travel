@@ -2,7 +2,7 @@
 
 import { useRef, useState } from 'react';
 import Link from 'next/link';
-import type { OmnisearchResult } from '@/lib/types';
+import type { OmnisearchHistoryTurn, OmnisearchResult } from '@/lib/types';
 
 // M8 spec §3a, M15 spec §6.5.5 — omnisearch traka za B2C_SITE kanal. Prazan upit + Enter/fokus
 // prikazuje statičnu, ulogom filtriranu navigaciju BEZ poziva ka M15 (§6.5.3 — "ne ide kroz
@@ -30,7 +30,12 @@ export default function OmnisearchBar({
   const [open, setOpen] = useState(false);
   const [pending, setPending] = useState(false);
   const [result, setResult] = useState<OmnisearchResult | null>(null);
+  // M15 spec §6.5.4.6 — ture ove sesije trake (pitanje + odgovor + da li je bio potpitanje).
+  // Bez ovoga bi odgovor gosta na „Za kada i za koliko osoba?" stigao serveru bez prvobitnog
+  // upita, pa potpitanje ne bi imalo smisla. Server seče na poslednjih 6; ovde isto.
+  const [history, setHistory] = useState<OmnisearchHistoryTurn[]>([]);
   const containerRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   async function runSearch(q: string) {
     setPending(true);
@@ -39,10 +44,21 @@ export default function OmnisearchBar({
       const res = await fetch('/api/omnisearch', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: q, lang: locale }),
+        body: JSON.stringify({ query: q, lang: locale, history: history.slice(-6) }),
       });
       const body = (await res.json()) as OmnisearchResult;
       setResult(body);
+      if (body.aiAnswer) {
+        setHistory((h) => [
+          ...h,
+          { question: q, answer: body.aiAnswer!, clarification: body.clarification === true },
+        ]);
+      }
+      if (body.clarification) {
+        // Potpitanje: polje se prazni i ostaje u fokusu — gost samo dopiše odgovor.
+        setQuery('');
+        inputRef.current?.focus();
+      }
     } catch {
       setResult({ active: false, matchedRoutes: [], entityResults: [] });
     } finally {
@@ -70,6 +86,7 @@ export default function OmnisearchBar({
     <div ref={containerRef} className="relative w-full max-w-md">
       <form onSubmit={onSubmit}>
         <input
+          ref={inputRef}
           type="search"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
@@ -144,7 +161,15 @@ export default function OmnisearchBar({
               )}
 
               {result.aiAnswer && (
-                <p className="rounded bg-bg p-3 text-sm text-ink-dim">{result.aiAnswer}</p>
+                <p
+                  className={
+                    result.clarification
+                      ? 'rounded border border-accent bg-bg p-3 text-sm text-ink'
+                      : 'rounded bg-bg p-3 text-sm text-ink-dim'
+                  }
+                >
+                  {result.aiAnswer}
+                </p>
               )}
 
               {result.entityResults.length === 0 && !result.aiAnswer && (
@@ -157,7 +182,14 @@ export default function OmnisearchBar({
 
       {open && (
         // Klik van panela ga zatvara — prost overlay, bez dodatne biblioteke.
-        <div className="fixed inset-0 z-20" onClick={() => setOpen(false)} aria-hidden="true" />
+        <div
+          className="fixed inset-0 z-20"
+          onClick={() => {
+            setOpen(false);
+            setHistory([]); // zatvaranje trake = kraj razgovora, sledeći upit kreće od nule
+          }}
+          aria-hidden="true"
+        />
       )}
     </div>
   );

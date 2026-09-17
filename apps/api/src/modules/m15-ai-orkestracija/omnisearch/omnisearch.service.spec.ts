@@ -50,6 +50,12 @@ describe('OmnisearchService (M15 spec §6.5, §10)', () => {
     const agencySettings = {
       getSanitizedBrandName: jest.fn().mockResolvedValue('Terminal Travel'),
     };
+    // M15 spec §6.5.4.6 — prava M5 pretraga raspoloživosti (search_availability alat).
+    const searchService = {
+      search: jest.fn().mockResolvedValue([]),
+      resolveDestination: jest.fn().mockResolvedValue({ country: 'Grčka', city: null }),
+      suggestCountries: jest.fn().mockResolvedValue([{ country: 'Grčka', count: 3 }]),
+    };
 
     const service = new OmnisearchService(
       prisma as any,
@@ -61,6 +67,7 @@ describe('OmnisearchService (M15 spec §6.5, §10)', () => {
       invocationLog as any,
       helpAssistant as any,
       agencySettings as any,
+      searchService as any,
     );
     return {
       service,
@@ -73,6 +80,7 @@ describe('OmnisearchService (M15 spec §6.5, §10)', () => {
       invocationLog,
       helpAssistant,
       agencySettings,
+      searchService,
     };
   }
 
@@ -892,5 +900,294 @@ describe('OmnisearchService (M15 spec §6.5, §10)', () => {
     // Jedine dozvoljene M5/M2 pozive su read-only findAll.
     expect(source).toMatch(/this\.bookings\.findAll\(/);
     expect(source).toMatch(/this\.products\.findAll\(/);
+  });
+
+  // ---------------------------------------------------------------------------------------
+  // M15 spec §6.5.4.6 (17.9.2026) — potpitanje kad upit za pretragu ponude nema dovoljno podataka
+  // ---------------------------------------------------------------------------------------
+  function availabilityToolCall(input: Record<string, unknown>) {
+    return {
+      content: [{ type: 'tool_use', id: 'tu-av', name: 'search_availability', input }],
+      usage: { input_tokens: 10, output_tokens: 5 },
+      stop_reason: 'tool_use',
+    };
+  }
+  function textReply(text: string) {
+    return {
+      content: [{ type: 'text', text }],
+      usage: { input_tokens: 10, output_tokens: 5 },
+      stop_reason: 'end_turn',
+    };
+  }
+
+  it('§6.5.4.6 B2C: „hotel u Grčkoj" bez perioda i sastava → alat NE pretražuje, vraća šta fali, odgovor je potpitanje (clarification: true)', async () => {
+    const { service, anthropic, searchService } = makeService({ anthropicConfigured: true });
+    const create = jest
+      .fn()
+      .mockResolvedValueOnce(availabilityToolCall({ destination: 'Grčka' }))
+      .mockResolvedValueOnce(textReply('Za koji period i za koliko osoba?'));
+    (anthropic.getClient as jest.Mock).mockReturnValue({ messages: { create } });
+
+    const result = await service.search({
+      query: 'tražim hotel u Grčkoj za porodicu',
+      channel: 'B2C_SITE',
+      actorUserId: null,
+    });
+
+    expect(searchService.search).not.toHaveBeenCalled();
+    const toolResult = JSON.parse(create.mock.calls[1][0].messages.at(-1).content[0].content);
+    expect(toolResult.clarificationNeeded).toEqual(['period boravka', 'sastav putnika']);
+    expect(result.clarification).toBe(true);
+    expect(result.aiAnswer).toMatch(/period/);
+    expect(result.entityResults).toHaveLength(0);
+  });
+
+  it('§6.5.4.6 B2C: pun upit (destinacija + datumi + sastav) pretražuje ODMAH preko M5 SearchService sa strukturisanim parametrima, bez potpitanja', async () => {
+    const { service, anthropic, searchService } = makeService({ anthropicConfigured: true });
+    (searchService.resolveDestination as jest.Mock).mockResolvedValue({
+      country: 'Grčka',
+      city: 'Halkidiki',
+    });
+    (searchService.search as jest.Mock).mockResolvedValue([
+      {
+        productId: 'p1',
+        type: 'ACCOMMODATION',
+        name: 'Hotel Poseidon',
+        destinationCountry: 'Grčka',
+        destinationCity: 'Halkidiki',
+        stars: 4,
+        thumbnail: { url: '/x.jpg', category: 'EXTERIOR' },
+        offers: [
+          { finalPrice: 98000, finalPriceCurrency: 'EUR', availabilityStatus: 'AVAILABLE' },
+          { finalPrice: 85050, finalPriceCurrency: 'EUR', availabilityStatus: 'AVAILABLE' },
+        ],
+      },
+    ]);
+    const create = jest
+      .fn()
+      .mockResolvedValueOnce(
+        availabilityToolCall({
+          destination: 'Halkidiki',
+          stay_from: '2027-08-10',
+          stay_to: '2027-08-17',
+          adults: 2,
+          children: 1,
+        }),
+      )
+      .mockResolvedValueOnce(textReply('Hotel Poseidon, Halkidiki — od 850 EUR za 10–17.8.2027.'));
+    (anthropic.getClient as jest.Mock).mockReturnValue({ messages: { create } });
+
+    const result = await service.search({
+      query: 'hotel na Halkidikiju 10-17.8.2027 za 2 odrasla i dete',
+      channel: 'B2C_SITE',
+      actorUserId: null,
+    });
+
+    expect(searchService.search).toHaveBeenCalledWith(
+      expect.objectContaining({
+        channel: 'B2C_SITE',
+        destinationCountry: 'Grčka',
+        destinationCity: 'Halkidiki',
+        stayFrom: '2027-08-10',
+        stayTo: '2027-08-17',
+        occupancy: { adults: 2, children: 1 },
+      }),
+    );
+    const toolResult = JSON.parse(create.mock.calls[1][0].messages.at(-1).content[0].content);
+    expect(toolResult.results[0].fromPrice).toBe(850.5); // najjeftinija ponuda, ne prva; iz para u EUR
+    expect(toolResult.entities).toBeUndefined(); // interno polje ne ide modelu
+    expect(result.clarification).toBeUndefined();
+    expect(result.entityResults[0]).toMatchObject({ id: 'p1', href: '/smestaj/p1' });
+  });
+
+  it('§6.5.4.6: posle DVA kruga potpitanja alat pretražuje sa onim što ima i navodi pretpostavke', async () => {
+    const { service, anthropic, searchService } = makeService({ anthropicConfigured: true });
+    const create = jest
+      .fn()
+      .mockResolvedValueOnce(availabilityToolCall({ destination: 'Grčka' }))
+      .mockResolvedValueOnce(textReply('Evo šta ima u Grčkoj (bez datuma).'));
+    (anthropic.getClient as jest.Mock).mockReturnValue({ messages: { create } });
+
+    const result = await service.search({
+      query: 'ne znam još, samo mi pokaži',
+      channel: 'B2C_SITE',
+      actorUserId: null,
+      history: [
+        { question: 'hotel u Grčkoj', answer: 'Za kada i za koliko osoba?', clarification: true },
+        { question: 'nisam siguran', answer: 'Bar okvirno — koji mesec?', clarification: true },
+      ],
+    });
+
+    expect(searchService.search).toHaveBeenCalledWith(
+      expect.objectContaining({ destinationCountry: 'Grčka' }),
+    );
+    const toolResult = JSON.parse(create.mock.calls[1][0].messages.at(-1).content[0].content);
+    expect(toolResult.assumed).toEqual(expect.arrayContaining([expect.stringMatching(/period/)]));
+    expect(result.clarification).toBeUndefined();
+  });
+
+  it('§6.5.4.6: nepoznata destinacija vraća grešku + listu destinacija koje nudimo, ne pretražuje ceo katalog', async () => {
+    const { service, anthropic, searchService } = makeService({ anthropicConfigured: true });
+    (searchService.resolveDestination as jest.Mock).mockResolvedValue(null);
+    const create = jest
+      .fn()
+      .mockResolvedValueOnce(
+        availabilityToolCall({
+          destination: 'Atlantida',
+          stay_from: '2027-07-01',
+          stay_to: '2027-07-08',
+          adults: 2,
+        }),
+      )
+      .mockResolvedValueOnce(textReply('Atlantidu nemamo u ponudi; nudimo Grčku.'));
+    (anthropic.getClient as jest.Mock).mockReturnValue({ messages: { create } });
+
+    await service.search({
+      query: 'hotel u Atlantidi 1-8.7.2027 za dvoje',
+      channel: 'B2C_SITE',
+      actorUserId: null,
+    });
+
+    expect(searchService.search).not.toHaveBeenCalled();
+    const toolResult = JSON.parse(create.mock.calls[1][0].messages.at(-1).content[0].content);
+    expect(toolResult.error).toMatch(/Atlantida/);
+    expect(toolResult.availableDestinations).toEqual(['Grčka']);
+  });
+
+  it('§6.5.4.6 INTERNAL_PANEL: search_availability traži M5/booking/VIEW, isto kao SearchController', async () => {
+    const { service, anthropic, searchService, permissions } = makeService({
+      anthropicConfigured: true,
+    });
+    (permissions.hasPermission as jest.Mock).mockResolvedValue(false);
+    const create = jest
+      .fn()
+      .mockResolvedValueOnce(
+        availabilityToolCall({
+          destination: 'Grčka',
+          stay_from: '2027-07-01',
+          stay_to: '2027-07-08',
+          adults: 2,
+        }),
+      )
+      .mockResolvedValueOnce(textReply('Nemate dozvolu.'));
+    (anthropic.getClient as jest.Mock).mockReturnValue({ messages: { create } });
+
+    await service.search({
+      query: 'ima li nešto slobodno u Grčkoj 1-8.7.2027 za dvoje',
+      channel: 'INTERNAL_PANEL',
+      actorUserId: 'u1',
+    });
+
+    expect(permissions.hasPermission).toHaveBeenCalledWith('u1', 'M5', 'booking', 'VIEW');
+    expect(searchService.search).not.toHaveBeenCalled();
+  });
+
+  it('zamka 8.9: stop_reason = max_tokens vraća čitljivu poruku, ne prazan „nema rezultata"', async () => {
+    const { service, anthropic } = makeService({ anthropicConfigured: true });
+    const create = jest.fn().mockResolvedValueOnce({
+      content: [{ type: 'tool_use', id: 'tu1', name: 'search_availability', input: {} }],
+      usage: { input_tokens: 10, output_tokens: 512 },
+      stop_reason: 'max_tokens',
+    });
+    (anthropic.getClient as jest.Mock).mockReturnValue({ messages: { create } });
+
+    const result = await service.search({
+      query: 'napiši mi detaljan pregled svih hotela u Grčkoj sa svim sadržajima',
+      channel: 'B2C_SITE',
+      actorUserId: null,
+    });
+    expect(result.aiAnswer).toMatch(/presečen/);
+  });
+
+  it('zamka 7.8: product_type enum u šemi alata je IZVEDEN iz Prisma ProductType, ne prepisan', () => {
+    const source = fs.readFileSync(path.join(__dirname, 'omnisearch.service.ts'), 'utf8');
+    expect(source).toMatch(/enum: Object\.values\(ProductType\)/);
+  });
+
+  it('§6.5.4.6: model postavi potpitanje BEZ poziva alata (uživo nalaz 17.9.2026) → zastavica clarification ipak ide', async () => {
+    const { service, anthropic } = makeService({ anthropicConfigured: true });
+    const create = jest
+      .fn()
+      .mockResolvedValueOnce(textReply('Trebam još: **za koji period i za koliko osoba?**'));
+    (anthropic.getClient as jest.Mock).mockReturnValue({ messages: { create } });
+
+    const result = await service.search({
+      query: 'tražim hotel u Grčkoj za porodicu',
+      channel: 'B2C_SITE',
+      actorUserId: null,
+    });
+    expect(result.clarification).toBe(true);
+  });
+
+  it('§6.5.4.6: posle „fali podatak" model vrati PRAZAN tekst → potpitanje se sastavi deterministički', async () => {
+    const { service, anthropic } = makeService({ anthropicConfigured: true });
+    const create = jest
+      .fn()
+      .mockResolvedValueOnce(availabilityToolCall({ destination: 'Sitonija' }))
+      .mockResolvedValueOnce({
+        content: [],
+        usage: { input_tokens: 1, output_tokens: 0 },
+        stop_reason: 'end_turn',
+      });
+    (anthropic.getClient as jest.Mock).mockReturnValue({ messages: { create } });
+
+    const result = await service.search({
+      query: 'Sitonija 2027',
+      channel: 'B2C_SITE',
+      actorUserId: null,
+    });
+    expect(result.clarification).toBe(true);
+    expect(result.aiAnswer).toMatch(/period boravka i sastav putnika/);
+  });
+
+  it('§6.5.4.6 B2C: kratak upit („Crna Gora") ide modelu, ne vraća prazan odgovor; na INTERNAL_PANEL prag ostaje 12 znakova', async () => {
+    const { service, anthropic } = makeService({ anthropicConfigured: true });
+    const create = jest.fn().mockResolvedValue(textReply('Za koji period i za koliko osoba?'));
+    (anthropic.getClient as jest.Mock).mockReturnValue({ messages: { create } });
+
+    const b2c = await service.search({
+      query: 'Crna Gora',
+      channel: 'B2C_SITE',
+      actorUserId: null,
+    });
+    expect(create).toHaveBeenCalledTimes(1);
+    expect(b2c.clarification).toBe(true);
+
+    const internal = await service.search({
+      query: 'Crna Gora',
+      channel: 'INTERNAL_PANEL',
+      actorUserId: 'u1',
+    });
+    expect(create).toHaveBeenCalledTimes(1); // nije pozvan drugi put
+    expect(internal.aiAnswer).toBeUndefined();
+  });
+
+  it('§6.5.4.6: posle pretrage sa punim podacima koja vrati 0, ponovljen poziv BEZ sastava putnika se odbija (uživo nalaz 17.9.2026)', async () => {
+    const { service, anthropic, searchService } = makeService({ anthropicConfigured: true });
+    (searchService.search as jest.Mock).mockResolvedValue([]);
+    const full = {
+      destination: 'Grčka',
+      stay_from: '2027-06-20',
+      stay_to: '2027-06-27',
+      adults: 4,
+    };
+    const create = jest
+      .fn()
+      .mockResolvedValueOnce(availabilityToolCall(full))
+      .mockResolvedValueOnce(availabilityToolCall({ destination: 'Grčka' }))
+      .mockResolvedValueOnce(
+        textReply('Za 4 osobe u tom periodu nema ponude — probajte dve sobe.'),
+      );
+    (anthropic.getClient as jest.Mock).mockReturnValue({ messages: { create } });
+
+    const result = await service.search({
+      query: 'hotel u Grčkoj za 4 osobe 20-27.6.2027',
+      channel: 'B2C_SITE',
+      actorUserId: null,
+    });
+    expect(searchService.search).toHaveBeenCalledTimes(1);
+    const second = JSON.parse(create.mock.calls[2][0].messages.at(-1).content[0].content);
+    expect(second.error).toMatch(/ne uklanjaj/i);
+    expect(result.entityResults).toHaveLength(0);
   });
 });

@@ -160,6 +160,58 @@ export class SearchService {
   }
 
   /**
+   * M15 spec §6.5.4.6 (17.9.2026) — slobodan tekst destinacije iz razgovora ("Grčka", "Budva",
+   * "grcka") → tačna vrednost `destination_country`/`destination_city` kakva stoji u bazi, jer
+   * `search()` filtrira po JEDNAKOSTI, ne po sadržanju. Grad ima prednost nad državom (uži pojam)
+   * — "Budva" pogađa grad, "Crna Gora" državu. Vraća `null` kad ništa ne odgovara, i tada agent
+   * treba da kaže da destinaciju nema u ponudi, ne da pretražuje ceo katalog.
+   *
+   * Isti neispravljen skup vrednosti kao `suggestCountries` (ISO kod i naziv koegzistiraju) —
+   * ovde se NE normalizuje, iz istog razloga: vrednost mora da odgovara onome što `search()`
+   * stvarno poredi.
+   */
+  async resolveDestination(
+    q: string,
+    channel: SearchChannel,
+  ): Promise<{ country: string; city: string | null } | null> {
+    const term = q.trim();
+    if (!term) return null;
+    const visible = channel === 'INTERNAL_PANEL' ? {} : { visibleChannels: { has: channel } };
+
+    const cityHit = await this.prisma.product.findFirst({
+      where: {
+        status: 'ACTIVE',
+        ...visible,
+        destinationCity: { equals: term, mode: 'insensitive' },
+      },
+      select: { destinationCity: true, destinationCountry: true },
+    });
+    if (cityHit?.destinationCity) {
+      return { country: cityHit.destinationCountry, city: cityHit.destinationCity };
+    }
+
+    const countries = await this.suggestCountries(term, channel);
+    const exact = countries.find((c) => c.country.toLowerCase() === term.toLowerCase());
+    if (exact) return { country: exact.country, city: null };
+    if (countries.length === 1) return { country: countries[0].country, city: null };
+
+    // Delimično poklapanje grada ("Herceg" → "Herceg Novi") — tek posle države, da "Crna Gora"
+    // ne pogodi neki grad koji slučajno sadrži isti niz slova.
+    const cityPartial = await this.prisma.product.findFirst({
+      where: {
+        status: 'ACTIVE',
+        ...visible,
+        destinationCity: { contains: term, mode: 'insensitive' },
+      },
+      select: { destinationCity: true, destinationCountry: true },
+    });
+    if (cityPartial?.destinationCity) {
+      return { country: cityPartial.destinationCountry, city: cityPartial.destinationCity };
+    }
+    return null;
+  }
+
+  /**
    * M5 spec §3.0c.2, korak 2 — predlaganje destinacija za izabranu državu, uz prečicu na ime
    * proizvoda. Vraća mešovitu listu: gradove te države i proizvode čiji naziv odgovara upitu.
    *
