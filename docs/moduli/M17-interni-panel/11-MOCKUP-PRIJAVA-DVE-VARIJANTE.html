@@ -183,6 +183,23 @@
     width: 100%;
     height: 100%;
     display: block;
+    opacity: 0;
+    transition: opacity 1.6s ease;
+  }
+  .new canvas.on {
+    opacity: 1;
+  }
+  .new .right > * {
+    transition: opacity 0.6s ease;
+  }
+  .new .right.fading > * {
+    opacity: 0;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .new canvas,
+    .new .right > * {
+      transition: none;
+    }
   }
   .new .grid {
     position: absolute;
@@ -596,7 +613,9 @@
 
   <!-- ============ NOVA ============ -->
   <section id="v-new" class="new" aria-label="Nova varijanta" hidden>
-    <canvas id="scene" aria-hidden="true"></canvas>
+    <canvas class="scene" data-slide="0" aria-hidden="true"></canvas>
+    <canvas class="scene" data-slide="1" aria-hidden="true"></canvas>
+    <canvas class="scene" data-slide="2" aria-hidden="true"></canvas>
     <div class="grid" aria-hidden="true"></div>
     <div class="veil" aria-hidden="true"></div>
     <div class="layout">
@@ -704,17 +723,21 @@
         </div>
 
         <div class="right">
-          <div class="eyebrow">Iz kataloga · Halkidiki</div>
-          <h2 class="place">Kasandra</h2>
+          <div class="eyebrow" id="s-eyebrow">Iz kataloga · Halkidiki</div>
+          <h2 class="place" id="s-place">Kasandra</h2>
           <div class="meta">
-            <b>Aegean Breeze Resort 4*</b><span>Grčka</span><code>40.0192° N · 23.4109° E</code>
+            <b id="s-hotel">Aegean Breeze Resort 4*</b><span id="s-country">Grčka</span
+            ><code id="s-geo">40.0192° N · 23.4109° E</code>
           </div>
           <blockquote>
-            „Zaliv gde se sezona ne završava kad kalendar kaže — septembar je najtiši i najtopliji
-            mesec.“<small>— Znanje · Halkidiki, osveženo 11.9.2026</small>
+            <span id="s-quote"
+              >„Zaliv gde se sezona ne završava kad kalendar kaže — septembar je najtiši i
+              najtopliji mesec.“</span
+            ><small id="s-source">— Znanje · Halkidiki, osveženo 11.9.2026</small>
           </blockquote>
-          <div class="dots">
-            <i class="on"></i><i></i><i></i><i></i><span>01 / 04 · rani buking ističe 30.9.</span>
+          <div class="dots" id="s-dots">
+            <i class="on"></i><i></i><i></i
+            ><span id="s-counter">01 / 03 · rani buking ističe 30.9.</span>
           </div>
         </div>
       </div>
@@ -761,17 +784,72 @@
   tick();
   setInterval(tick, 1000);
 
-  // Pozadina: na pravom ekranu ovde stoji FOTOGRAFIJA hotela/destinacije iz kataloga (M2 media).
-  // U mockupu se crta generativni pejzaž (zaliv u kasno popodne) da se vidi kompozicija bez
-  // tuđe fotografije — dovoljno da se oceni raspored, ne fotografija sama.
+  // Pozadina: na pravom ekranu ovde stoje FOTOGRAFIJE hotela/destinacija iz kataloga (M2 media),
+  // tri koje se smenjuju (vlasnik 17.9.2026: „dodajte još 2 slike iza pa da se menjaju"). U mockupu
+  // se crtaju tri generativna pejzaža da se vidi kompozicija i smena bez tuđih fotografija.
+  const SLIDES = [
+    {
+      eyebrow: 'Iz kataloga · Halkidiki',
+      place: 'Kasandra',
+      hotel: 'Aegean Breeze Resort 4*',
+      country: 'Grčka',
+      geo: '40.0192° N · 23.4109° E',
+      quote:
+        '„Zaliv gde se sezona ne završava kad kalendar kaže — septembar je najtiši i najtopliji mesec.“',
+      source: '— Znanje · Halkidiki, osveženo 11.9.2026',
+      note: 'rani buking ističe 30.9.',
+    },
+    {
+      eyebrow: 'Iz kataloga · Boka Kotorska',
+      place: 'Kotor',
+      hotel: 'Kotor Old Town Rooms 3*',
+      country: 'Crna Gora',
+      geo: '42.4247° N · 18.7712° E',
+      quote:
+        '„Zaliv koji planina drži u šaci — ujutru miran kao jezero, uveče osvetljen kao pozornica.“',
+      source: '— Znanje · Boka, osveženo 9.9.2026',
+      note: '7 = 6 važi do 15.10.',
+    },
+    {
+      eyebrow: 'Iz kataloga · Egejska ostrva',
+      place: 'Rodos',
+      hotel: 'Rhodes Sun Village 5*',
+      country: 'Grčka',
+      geo: '36.4341° N · 28.2176° E',
+      quote:
+        '„Tri stotine sunčanih dana — i grad koji je stariji od svakog vodiča koji ga opisuje.“',
+      source: '— Znanje · Rodos, osveženo 12.9.2026',
+      note: 'nova sezona 2027 u prodaji',
+    },
+  ];
+  let current = 0;
   let painted = false;
-  function paint() {
-    const c = document.getElementById('scene');
-    if (!c || painted) return;
-    painted = true;
-    const W = (c.width = c.offsetWidth * devicePixelRatio),
-      H = (c.height = c.offsetHeight * devicePixelRatio);
-    const g = c.getContext('2d');
+  const R = () => devicePixelRatio;
+
+  function grain(g, W, H) {
+    for (let i = 0; i < (W * H) / 900; i++) {
+      g.fillStyle = `rgba(255,255,255,${Math.random() * 0.05})`;
+      g.fillRect(Math.random() * W, Math.random() * H, 1, 1);
+    }
+  }
+  function hills(g, W, H, yBase, amp, color, seed) {
+    g.fillStyle = color;
+    g.beginPath();
+    g.moveTo(0, H);
+    g.lineTo(0, yBase);
+    for (let x = 0; x <= W; x += 12) {
+      const y =
+        yBase +
+        Math.sin(x / (240 * R()) + seed) * amp +
+        Math.sin(x / (61 * R()) + seed * 2) * amp * 0.35;
+      g.lineTo(x, y);
+    }
+    g.lineTo(W, H);
+    g.closePath();
+    g.fill();
+  }
+  // 1 — zaliv u kasno popodne (Kasandra)
+  function sceneBay(g, W, H) {
     const sky = g.createLinearGradient(0, 0, 0, H * 0.58);
     sky.addColorStop(0, '#1b2340');
     sky.addColorStop(0.55, '#3a3f66');
@@ -784,7 +862,6 @@
     sea.addColorStop(1, '#0d1620');
     g.fillStyle = sea;
     g.fillRect(0, H * 0.58, W, H * 0.42);
-    // sunce i odsjaj
     const sx = W * 0.68,
       sy = H * 0.55;
     const glow = g.createRadialGradient(sx, sy, 0, sx, sy, W * 0.28);
@@ -795,49 +872,154 @@
     g.fillRect(0, 0, W, H);
     for (let i = 0; i < 90; i++) {
       g.fillStyle = `rgba(255,200,130,${0.05 + Math.random() * 0.12})`;
-      const y = H * 0.59 + Math.random() * H * 0.3;
-      const w = 6 + Math.random() * 40 * devicePixelRatio;
-      g.fillRect(
-        sx - w / 2 + (Math.random() - 0.5) * 60 * devicePixelRatio,
-        y,
-        w,
-        1.5 * devicePixelRatio,
-      );
+      const y = H * 0.59 + Math.random() * H * 0.3,
+        w = 6 + Math.random() * 40 * R();
+      g.fillRect(sx - w / 2 + (Math.random() - 0.5) * 60 * R(), y, w, 1.5 * R());
     }
-    // brda / poluostrvo
-    const hill = (yBase, amp, color, seed) => {
-      g.fillStyle = color;
-      g.beginPath();
-      g.moveTo(0, H);
-      g.lineTo(0, yBase);
-      for (let x = 0; x <= W; x += 12) {
-        const y =
-          yBase +
-          Math.sin(x / (240 * devicePixelRatio) + seed) * amp +
-          Math.sin(x / (61 * devicePixelRatio) + seed * 2) * amp * 0.35;
-        g.lineTo(x, y);
-      }
-      g.lineTo(W, H);
-      g.closePath();
-      g.fill();
-    };
-    hill(H * 0.5, 26 * devicePixelRatio, '#2a3352', 1.2);
-    hill(H * 0.555, 16 * devicePixelRatio, '#151b2e', 3.1);
-    // niz svetala u zalivu
+    hills(g, W, H, H * 0.5, 26 * R(), '#2a3352', 1.2);
+    hills(g, W, H, H * 0.555, 16 * R(), '#151b2e', 3.1);
     for (let i = 0; i < 46; i++) {
-      const x = W * 0.05 + (i / 46) * W * 0.9 + Math.sin(i) * 8;
-      const y = H * 0.565 + Math.sin(i * 1.7) * 6;
+      const x = W * 0.05 + (i / 46) * W * 0.9 + Math.sin(i) * 8,
+        y = H * 0.565 + Math.sin(i * 1.7) * 6;
       g.fillStyle = i % 5 === 0 ? 'rgba(255,190,110,.9)' : 'rgba(255,225,180,.55)';
       g.beginPath();
-      g.arc(x, y, (i % 5 === 0 ? 2.2 : 1.3) * devicePixelRatio, 0, Math.PI * 2);
+      g.arc(x, y, (i % 5 === 0 ? 2.2 : 1.3) * R(), 0, Math.PI * 2);
       g.fill();
     }
-    // zrno
-    for (let i = 0; i < (W * H) / 900; i++) {
-      g.fillStyle = `rgba(255,255,255,${Math.random() * 0.05})`;
-      g.fillRect(Math.random() * W, Math.random() * H, 1, 1);
+  }
+  // 2 — planinski zaliv u plavom satu, gradić osvetljen (Kotor)
+  function sceneFjord(g, W, H) {
+    const sky = g.createLinearGradient(0, 0, 0, H * 0.6);
+    sky.addColorStop(0, '#0b1424');
+    sky.addColorStop(0.7, '#1d3557');
+    sky.addColorStop(1, '#4a6e8f');
+    g.fillStyle = sky;
+    g.fillRect(0, 0, W, H * 0.6);
+    const sea = g.createLinearGradient(0, H * 0.6, 0, H);
+    sea.addColorStop(0, '#2b4a66');
+    sea.addColorStop(1, '#0a1118');
+    g.fillStyle = sea;
+    g.fillRect(0, H * 0.6, W, H * 0.4);
+    for (let i = 0; i < 140; i++) {
+      g.fillStyle = `rgba(255,255,255,${0.3 + Math.random() * 0.6})`;
+      g.fillRect(Math.random() * W, Math.random() * H * 0.45, R(), R());
+    }
+    // strme planine sa obe strane
+    g.fillStyle = '#0e1a2b';
+    g.beginPath();
+    g.moveTo(0, H);
+    g.lineTo(0, H * 0.18);
+    g.lineTo(W * 0.18, H * 0.34);
+    g.lineTo(W * 0.3, H * 0.28);
+    g.lineTo(W * 0.42, H * 0.6);
+    g.lineTo(0, H);
+    g.fill();
+    g.fillStyle = '#132238';
+    g.beginPath();
+    g.moveTo(W, H);
+    g.lineTo(W, H * 0.12);
+    g.lineTo(W * 0.84, H * 0.3);
+    g.lineTo(W * 0.7, H * 0.26);
+    g.lineTo(W * 0.56, H * 0.6);
+    g.lineTo(W, H);
+    g.fill();
+    hills(g, W, H, H * 0.58, 10 * R(), '#0a141f', 2.2);
+    // gradić na obali + odsjaj
+    for (let i = 0; i < 70; i++) {
+      const x = W * 0.3 + Math.random() * W * 0.4,
+        y = H * 0.545 + Math.random() * H * 0.05;
+      g.fillStyle = `rgba(255,${(180 + Math.random() * 50) | 0},120,${0.5 + Math.random() * 0.5})`;
+      g.fillRect(x, y, 1.6 * R(), 1.6 * R());
+      g.fillStyle = 'rgba(255,200,130,.12)';
+      g.fillRect(x - 3, y + 8 + Math.random() * 40 * R(), 6, 2);
     }
   }
+  // 3 — belo ostrvsko naselje u podne, tirkizno more (Rodos)
+  function sceneIsland(g, W, H) {
+    const sky = g.createLinearGradient(0, 0, 0, H * 0.55);
+    sky.addColorStop(0, '#1a4f8a');
+    sky.addColorStop(1, '#8fc3e8');
+    g.fillStyle = sky;
+    g.fillRect(0, 0, W, H * 0.55);
+    const sea = g.createLinearGradient(0, H * 0.55, 0, H);
+    sea.addColorStop(0, '#3fb3c9');
+    sea.addColorStop(0.45, '#12707f');
+    sea.addColorStop(1, '#0a2a33');
+    g.fillStyle = sea;
+    g.fillRect(0, H * 0.55, W, H * 0.45);
+    const sun = g.createRadialGradient(W * 0.2, H * 0.12, 0, W * 0.2, H * 0.12, W * 0.35);
+    sun.addColorStop(0, 'rgba(255,250,230,.9)');
+    sun.addColorStop(0.15, 'rgba(255,245,210,.35)');
+    sun.addColorStop(1, 'rgba(255,245,210,0)');
+    g.fillStyle = sun;
+    g.fillRect(0, 0, W, H);
+    // brdo sa belim kućama
+    hills(g, W, H, H * 0.42, 30 * R(), '#8a7a63', 0.6);
+    for (let i = 0; i < 120; i++) {
+      const x = W * 0.45 + Math.random() * W * 0.55,
+        y = H * 0.36 + Math.random() * H * 0.2;
+      const w = (4 + Math.random() * 10) * R(),
+        h = (3 + Math.random() * 7) * R();
+      g.fillStyle = `rgba(250,248,240,${0.7 + Math.random() * 0.3})`;
+      g.fillRect(x, y, w, h);
+      g.fillStyle = 'rgba(30,70,140,.85)';
+      g.fillRect(x, y - 1.5 * R(), w, 1.5 * R());
+    }
+    // svetlucanje mora
+    for (let i = 0; i < 160; i++) {
+      g.fillStyle = `rgba(255,255,255,${Math.random() * 0.35})`;
+      g.fillRect(
+        Math.random() * W,
+        H * 0.56 + Math.random() * H * 0.25,
+        (2 + Math.random() * 6) * R(),
+        R(),
+      );
+    }
+  }
+  const PAINTERS = [sceneBay, sceneFjord, sceneIsland];
+
+  function paint() {
+    if (painted) return;
+    painted = true;
+    document.querySelectorAll('#v-new canvas.scene').forEach((c, i) => {
+      const W = (c.width = c.offsetWidth * R()),
+        H = (c.height = c.offsetHeight * R());
+      const g = c.getContext('2d');
+      PAINTERS[i](g, W, H);
+      grain(g, W, H);
+      c.classList.toggle('on', i === current);
+    });
+    applySlide(current, true);
+  }
+  function applySlide(i, immediate) {
+    const d = SLIDES[i],
+      right = document.querySelector('#v-new .right');
+    const set = () => {
+      document.getElementById('s-eyebrow').textContent = d.eyebrow;
+      document.getElementById('s-place').textContent = d.place;
+      document.getElementById('s-hotel').textContent = d.hotel;
+      document.getElementById('s-country').textContent = d.country;
+      document.getElementById('s-geo').textContent = d.geo;
+      document.getElementById('s-quote').textContent = d.quote;
+      document.getElementById('s-source').textContent = d.source;
+      document.getElementById('s-counter').textContent =
+        `0${i + 1} / 0${SLIDES.length} · ${d.note}`;
+      document.querySelectorAll('#s-dots i').forEach((el, k) => el.classList.toggle('on', k === i));
+      right.classList.remove('fading');
+    };
+    if (immediate) return set();
+    right.classList.add('fading');
+    setTimeout(set, 600);
+  }
+  function next() {
+    if (document.getElementById('v-new').hidden) return;
+    current = (current + 1) % SLIDES.length;
+    document
+      .querySelectorAll('#v-new canvas.scene')
+      .forEach((c, i) => c.classList.toggle('on', i === current));
+    applySlide(current, false);
+  }
+  setInterval(next, 8000);
   window.addEventListener('resize', () => {
     painted = false;
     if (!document.getElementById('v-new').hidden) paint();
