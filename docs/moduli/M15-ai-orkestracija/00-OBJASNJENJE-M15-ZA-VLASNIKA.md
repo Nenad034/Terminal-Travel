@@ -39,6 +39,18 @@ Omnisearch (iznad) je bio prvi, uzak korak. Ovaj prolaz gradi **ogradu** za sve 
 
 Zamislite ovo kao ugradnju brave na vrata pre nego što ste uopšte kupili sef koji treba da čuva — sef (pravi AI agenti po modulima) dolazi kasnije, ali vrata su već zaključana i spremna.
 
+## Kad gost ne kaže dovoljno — agent pita, ali samo jednom (dodato 17.9.2026, na Vaše pitanje — specifikacija, kod još nije napisan)
+
+Pitali ste da li agent postavi potpitanje kad nema dovoljno podataka za pretragu. Iskreno: nije bilo predviđeno. Agent na sajtu je do sada primao samo naziv ili destinaciju i tražio po katalogu kao po imeniku — nije ni mogao da iskoristi datum ili broj osoba, pa ni da ih pita.
+
+Sad je upisano ovako. Za pretragu smeštaja agentu trebaju tri stvari: **gde**, **kad** (bar okvirno, „početak avgusta" je dovoljno) i **ko putuje** (koliko odraslih i dece). Ako gost napiše samo „hotel u Grčkoj", agent postavi **jedno** pitanje koje pokriva sve što fali — „Za koji period i za koliko osoba?" — ne tri pitanja u tri poruke. Kad gost odgovori, pretraga kreće.
+
+Isto tako je važno šta agent **ne sme** da pita unapred: all inclusive ili polupansion, budžet, zvezdice, bazen. To su stvari koje nudi tek uz rezultate („mogu da suzim na all inclusive ako želite"). Razlog je prost — svako dodatno pitanje pre prvog rezultata je mesto gde gost odustane, a ako hoće formular sa deset polja, sajt ga već ima.
+
+Ono što se već zna, ne pita se ponovo: prijavljenom gostu koji je prošli put putovao kao porodica 2+2 agent to predloži u samom pitanju; subagentu koji je pre dve poruke rekao „avgust, dve osobe" to važi dok ne kaže drugačije. U internom panelu zaposleni koji ukuca „Grčka" i dalje dobija spisak hotela bez ijednog pitanja — on obično hoće katalog, ne razgovor.
+
+Pre nego što se proglasi gotovim, proveriće se na dvadeset stvarnih upita koje su ljudi zaista kucali (sistem ih već beleži) — koliko je dobilo pitanje, koliko je prošlo bez njega, i da li je agent ikad pitao nešto što nije smeo.
+
 ## Šta još nije gotovo (namerno)
 
 - **Glasovni unos (mikrofon pored polja)** — čeka poseban, kasniji prolaz; ista logika (pitanje → isti tok → glasovni odgovor), samo dodatni sloj za snimanje/čitanje glasa.
