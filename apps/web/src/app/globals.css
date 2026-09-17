@@ -42,8 +42,8 @@
   --danger-bg: #fef2f2;
   /* Sekundarni akcent — panelov --accent2 (indigo), pod sajtovim postojećim imenom "šljiva" da
      se ne menja svaki pozivalac u komponentama (Tailwind klase `plum-*`) za samu ovu izmenu. */
-  --plum: #4f46e5;
-  --plum-soft: #4f46e51a;
+  --plum: #4338ca;
+  --plum-soft: #4338ca1a;
   --plum-ink: #ffffff;
   --brand: #f97316;
 }

@@ -143,10 +143,11 @@
   --accent-soft: #00686e33;
   --accent-ink: #ffffff;
   /* Sekundarni akcent (kalendar/katalog/audit log postojeći potrošači) — indigo, ranija glavna
-     brend boja pre 4.9.2026 (§ komentar uz `--accent` iznad). `#4f46e5`: 5,39 / 6,06 / 4,90 / 4,99
-     na bg/panel/sunken/panel-2 — belo na njemu 6,29:1. */
-  --accent2: #4f46e5;
-  --accent2-soft: #4f46e51a;
+     brend boja pre 4.9.2026 (§ komentar uz `--accent` iznad). Do 17.9.2026 `#4f46e5`; kad je
+     `--panel` potamneo (dizajn 1.98) par akcent-na-mekoj-podlozi pao je na 4,35:1 — CI checker
+     ga je uhvatio, pa je nijansa spuštena na indigo-700 `#4338ca` (isto u `apps/web` `--plum`). */
+  --accent2: #4338ca;
+  --accent2-soft: #4338ca1a;
   /* `--ok`/`--warn` potamnjeni sa plavljom podlogom (4.9.2026) — stare shadcn vrednosti
      (green-700/amber-700) padale su ispod 4,5:1 na `--sunken`/`--panel-2` posle prelaska na
      plavu paletu, ista vrsta provere kao svaki drugi token ovde. `--danger` ostaje nepromenjen,
@@ -269,8 +270,8 @@
   --accent-strong: #004c4c;
   --accent-soft: #00686e33;
   --accent-ink: #ffffff;
-  --accent2: #4f46e5;
-  --accent2-soft: #4f46e51a;
+  --accent2: #4338ca;
+  --accent2-soft: #4338ca1a;
   --ok: #166534;
   --ok-bg: #f0fdf4;
   --warn: #92400e;
