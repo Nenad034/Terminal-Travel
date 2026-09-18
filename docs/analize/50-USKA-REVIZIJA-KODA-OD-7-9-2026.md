@@ -114,7 +114,7 @@ Test pokriva `1.240,00`, `1,240.00`, `1240`, `1.240`, `980 EUR`, `1 500`, `12,5`
 
 **REŠENO 18.9.2026** (M5 spec v2.54): pravilo simetrično za oba razdvajača; `"2,500 EUR"` → 2.500,00, `"1,240,500"` → 1.240.500,00, `"12,5"` i dalje 12,50. Tabela testa 9 → 16 slučajeva, svi prolaze (21 testova u paketu).
 
-### 3.3 API dokumentacija zaostaje: 64 rute bez primera, M24 nema ni fajl
+### 3.3 API dokumentacija zaostaje: 76 ruta bez primera, M24 nema ni fajl — DELIMIČNO REŠENO 18.9.2026
 
 **Klasa dokaza: A (skripta nad kontrolerima × `docs/api/`).**
 
@@ -133,11 +133,13 @@ Skripta koja iz svakog `*.controller.ts` izvuče `@Controller` + `@Get/@Post/…
 | M6, M7, M9, M19                        |            |                                                                                                                                                                                                                     po 1 |
 | M10, M11, M14, M16, M18, M20, M21, M22 |            |                                                                                                                                                                                                                    **0** |
 
-**Ukupno 64 rute.** Spot-provera ručno (da skripta ne laže): `grep -c pricing-rules docs/api/M3-*.md` → 0; `grep -c handoff docs/api/M5-*.md` → 0. Nije sve nastalo od 7.9. (handoff je stariji), ali je provera nova.
+**Ukupno 76 ruta** — _vidljiva ispravka (dok. 40 §9): prva verzija ovog nalaza je pisala „64“; broj je bio sabran napamet iz tabele umesto pročitan iz izlaza skripte (3+4+3+6+1+5+3+10+15+5+18+1+1+1 = 76). Uhvaćeno kad je skripta ušla u CI i sama prebrojala: 66 posle M24. Isti rod greške kao zamka 8.4 — procena umesto merenja — u dokumentu koji baš to zabranjuje._ Spot-provera ručno (da skripta ne laže): `grep -c pricing-rules docs/api/M3-*.md` → 0; `grep -c handoff docs/api/M5-*.md` → 0. Nije sve nastalo od 7.9. (handoff je stariji), ali je provera nova.
 
 Uz to: `docs/moduli/M24-ljudski-resursi/` sadrži samo spec (43) — **nema `00-OBJASNJENJE-M24-ZA-VLASNIKA.md`**, koje CLAUDE.md traži „čim modul dobije kod". Postojeći red u `27-BACKLOG` (linija 289, od 3.9.2026) je zastareo: kaže da M1–M4 nemaju API dok — imaju; M24 nema, a nije naveden. Ispravljeno u istom prolazu.
 
 **Predlog:** (1) `docs/api/M24-ljudski-resursi.md` + objašnjenje za vlasnika — obavezna stavka izlaznog kriterijuma; (2) dopuna M3 i M5 dokumentacije za rute iznad; (3) skripta iz ove revizije kao `tools/provera-api-dok.mjs` u CI, da broj ne raste tiho — isti obrazac kao `provera-indeksa.mjs`. Procena: 1 dan za (1)+(2), sat za (3).
+
+**DELIMIČNO REŠENO 18.9.2026:** (1) `docs/api/M24-ljudski-resursi.md` (10 ruta, sa izmerenim `400` odgovorima iz nalaza 3.1) i `00-OBJASNJENJE-M24-ZA-VLASNIKA.md` — napisani. (3) `tools/provera-api-dok.mjs` u CI: pada za svaku novu nedokumentovanu rutu; zatečeni dug (66 ruta) stoji poimence u `tools/api-dok-poznati-nedostaci.txt` i sme samo da se smanjuje (skripta upozorava na redove koji su u međuvremenu dokumentovani). (2) M3/M5 i ostali — **ostaje dug od 66 ruta**, vidljiv u toj listi, ne u glavi.
 
 ### 3.4 Registar „mock ili pravo" (dok. 42) nije dopunjen nijednim novim ekranom
 

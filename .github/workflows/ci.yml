@@ -115,6 +115,12 @@ jobs:
         working-directory: apps/api
         run: node ../../tools/provera-indeksa.mjs
 
+      # Svaka REST ruta ima primer u docs/api/ (CLAUDE.md "API dokumentacija"; dok. 50 nalaz 3.3:
+      # 76 ruta bez primera dok niko nije merio). Zatečeni dug je poimence u
+      # tools/api-dok-poznati-nedostaci.txt i sme samo da se smanjuje.
+      - name: Provera — svaka API ruta ima primer u docs/api/
+        run: node tools/provera-api-dok.mjs
+
   panel-web:
     name: apps/panel i apps/web — tipovi, build i provere koje tsc ne hvata
     runs-on: ubuntu-latest
