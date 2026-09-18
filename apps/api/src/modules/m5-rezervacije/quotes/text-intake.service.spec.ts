@@ -15,6 +15,14 @@ describe('parseAmountMinor (zamka 10.5)', () => {
     ['980 EUR', 98000],
     ['1 500', 150000],
     ['12,5', 1250],
+    // dok. 50 nalaz 3.2 — engleski zarez hiljada (grčki/turski hoteli): ranije 2,50 umesto 2.500
+    ['2,500 EUR', 250000],
+    ['1,240', 124000],
+    ['12,500', 1250000],
+    ['1,240,500', 124050000],
+    ['1.240.500', 124050000],
+    ['12.5', 1250],
+    ['850,00 €', 85000],
     ['abc', null],
     [null, null],
   ])('%s → %s', (text, expected) => {

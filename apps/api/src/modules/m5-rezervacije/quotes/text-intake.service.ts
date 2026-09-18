@@ -88,20 +88,42 @@ export interface SitePreview {
 const BOARD_CODES = ['RO', 'BB', 'HB', 'FB', 'AI', 'UAI'];
 const MS_DAY = 24 * 60 * 60 * 1000;
 
-/** „1.240,00" / „1,240.00" / „1240" / „1 240" → najmanja jedinica (zamka 10.5). */
+/**
+ * „1.240,00" / „1,240.00" / „1240" / „1 240" / „2,500 EUR" → najmanja jedinica (zamka 10.5).
+ *
+ * Pravilo za razdvajač hiljada je SIMETRIČNO za tačku i zarez (dok. 50 nalaz 3.2, 18.9.2026): ako
+ * je poslednji razdvajač praćen tačno tri cifre i jedini je te vrste bez drugog razdvajača,
+ * to su hiljade, ne decimale — „1.240" → 1240 (srpski zapis) i „2,500" → 2500 (engleski zapis,
+ * kako pišu grčki/turski hoteli). Do ove ispravke je „2,500 EUR" davalo 2,50 EUR, jer je
+ * pravilo „tri cifre = hiljade" važilo samo za tačku. „12,5" i dalje daje 12,50 (dve cifre).
+ * Više istih razdvajača bez drugog („1,240,500") su uvek hiljade.
+ */
 export function parseAmountMinor(text: string | null | undefined): number | null {
   if (!text) return null;
   let t = text.replace(/[^\d.,]/g, '');
   if (!t) return null;
   const lastComma = t.lastIndexOf(',');
   const lastDot = t.lastIndexOf('.');
+  const commas = (t.match(/,/g) ?? []).length;
+  const dots = (t.match(/\./g) ?? []).length;
   if (lastComma > lastDot) {
-    // decimalni zarez: „1.240,50"
-    t = t.replace(/\./g, '').replace(',', '.');
+    const afterComma = t.length - lastComma - 1;
+    if (lastDot === -1 && (commas > 1 || afterComma === 3)) {
+      // zarez kao hiljade: „2,500" / „1,240,500"
+      t = t.replace(/,/g, '');
+    } else {
+      // decimalni zarez: „1.240,50" / „12,5"
+      t = t.replace(/\./g, '').replace(',', '.');
+    }
   } else if (lastDot > lastComma) {
-    // decimalna tačka ili hiljade tačkom bez decimala („1.240" → 1240, jer je grupa od 3)
     const afterDot = t.length - lastDot - 1;
-    t = afterDot === 3 && lastComma === -1 ? t.replace(/\./g, '') : t.replace(/,/g, '');
+    if (lastComma === -1 && (dots > 1 || afterDot === 3)) {
+      // tačka kao hiljade: „1.240" / „1.240.500"
+      t = t.replace(/\./g, '');
+    } else {
+      // decimalna tačka: „1,240.00" / „12.5"
+      t = t.replace(/,/g, '');
+    }
   }
   const n = Number(t);
   if (!Number.isFinite(n)) return null;

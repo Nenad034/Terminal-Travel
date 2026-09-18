@@ -91,7 +91,7 @@ HTTP 400 {"message":["property nepoznato should not exist"]}
 
 **Usput nađeno, NIJE rešeno — novi nalaz 3.6 ispod.**
 
-### 3.2 Ponuda iz teksta: iznos sa engleskim zarezom hiljada čita se hiljadu puta manji
+### 3.2 Ponuda iz teksta: iznos sa engleskim zarezom hiljada čita se hiljadu puta manji — REŠENO 18.9.2026
 
 **Klasa dokaza: A (izmereno nad funkcijom).**
 
@@ -111,6 +111,8 @@ Test pokriva `1.240,00`, `1,240.00`, `1240`, `1.240`, `980 EUR`, `1 500`, `12,5`
 **Zašto Srednje, ne Visoko:** iznos se prikazuje prodavcu u formi pre kreiranja nacrta (§3.0j — čovek potvrđuje), pa greška ne ide direktno u ponudu. Ali forma je **prepopunjena** pogrešnom vrednošću, a 2,50 umesto 2.500 je tačno greška koju oko preskoči kad je „polje već popunjeno". Zamka 10.5 postoji baš zbog ovoga.
 
 **Predlog:** isto pravilo za zarez kao za tačku — zarez praćen tačno 3 cifre bez druge interpunkcije = hiljade (`"1,240"` → 1240; `"12,5"` ostaje 12,50); `"1,240,500"` → ukloniti sve zareze. Dodati ovih 5 slučajeva u `it.each`. Procena: pola sata.
+
+**REŠENO 18.9.2026** (M5 spec v2.54): pravilo simetrično za oba razdvajača; `"2,500 EUR"` → 2.500,00, `"1,240,500"` → 1.240.500,00, `"12,5"` i dalje 12,50. Tabela testa 9 → 16 slučajeva, svi prolaze (21 testova u paketu).
 
 ### 3.3 API dokumentacija zaostaje: 64 rute bez primera, M24 nema ni fajl
 
