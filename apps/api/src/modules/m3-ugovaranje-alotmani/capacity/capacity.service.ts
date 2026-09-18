@@ -79,6 +79,14 @@ export const CAPACITY_HISTORY_ACTIONS = [
   'capacity_block.auto_released',
 ];
 
+/**
+ * §2.8a (v1.47) — najduži raspon jednog masovnog unosa (stop-sale / kapacitet po danu). Godina
+ * pokriva „do kraja sezone" i za celogodišnje ugovore; duži raspon je skoro sigurno greška u
+ * datumu (dok. 50 nalaz 2.1: raspon 2020–2030 je prolazio bez reči). Mreža ima svoju, kraću
+ * granicu (92 dana) jer se ona ČITA na ekranu; ovde se PIŠE, pa je granica šira.
+ */
+export const MAX_BULK_RANGE_DAYS = 366;
+
 /** Niz kalendarskih dana (UTC ponoć) od `from` do `to`, uključivo. */
 export function enumerateDays(from: Date, to: Date): Date[] {
   const days: Date[] = [];
@@ -389,32 +397,13 @@ export class CapacityService {
     const to = startOfDay(new Date(dto.dateTo));
     if (to < from) throw new BadRequestException('Datum „do" je pre datuma „od"');
 
-    let touched = 0;
-    for (const period of periods) {
-      for (const day of enumerateDays(from, to)) {
-        if (day < startOfDay(period.stayFrom) || day >= startOfDay(period.stayTo)) continue;
-        await this.prisma.capacityDay.upsert({
-          where: { contractPeriodId_date: { contractPeriodId: period.id, date: day } },
-          create: {
-            contractPeriodId: period.id,
-            date: day,
-            saleStatus: open ? 'OPEN' : 'STOP',
-            stopReason: open ? null : dto.reason,
-            stopSource: open ? null : (dto.source as CapacityStopSource),
-            stopSetBy: actorId,
-            stopSetAt: new Date(),
-          },
-          update: {
-            saleStatus: open ? 'OPEN' : 'STOP',
-            stopReason: open ? null : dto.reason,
-            stopSource: open ? null : (dto.source as CapacityStopSource),
-            stopSetBy: actorId,
-            stopSetAt: new Date(),
-          },
-        });
-        touched += 1;
-      }
-    }
+    const touched = await this.writeDays(periods, from, to, {
+      saleStatus: open ? 'OPEN' : 'STOP',
+      stopReason: open ? null : (dto.reason ?? null),
+      stopSource: open ? null : ((dto.source as CapacityStopSource | undefined) ?? null),
+      stopSetBy: actorId,
+      stopSetAt: new Date(),
+    });
 
     await this.auditLog.write({
       actorType: 'HUMAN',
@@ -455,18 +444,7 @@ export class CapacityService {
     const to = startOfDay(new Date(dto.dateTo));
     if (to < from) throw new BadRequestException('Datum „do" je pre datuma „od"');
 
-    let touched = 0;
-    for (const period of periods) {
-      for (const day of enumerateDays(from, to)) {
-        if (day < startOfDay(period.stayFrom) || day >= startOfDay(period.stayTo)) continue;
-        await this.prisma.capacityDay.upsert({
-          where: { contractPeriodId_date: { contractPeriodId: period.id, date: day } },
-          create: { contractPeriodId: period.id, date: day, capacityOverride: dto.capacity },
-          update: { capacityOverride: dto.capacity },
-        });
-        touched += 1;
-      }
-    }
+    const touched = await this.writeDays(periods, from, to, { capacityOverride: dto.capacity });
 
     await this.auditLog.write({
       actorType: 'HUMAN',
@@ -679,6 +657,55 @@ export class CapacityService {
   // ── Zajedničko ───────────────────────────────────────────────────────────
 
   /** §2.8a "šta" dimenzija: jedan period, ili svi periodi jednog ugovora. */
+  /**
+   * §2.8a — masovni unos po danu za skup perioda, ATOMIČNO (zamka 7.9, dok. 50 nalaz 2.1).
+   *
+   * Do 18.9.2026. ovo je bio `upsert` po danu po periodu, sekvencijalno i van transakcije:
+   * izmereno 36 ms po danu, pa „zatvori ceo objekat do kraja sezone" (6 tipova × 150 dana)
+   * = ~33 s u jednom zahtevu, a prekid na pola ostavljao je pola sezone zatvoreno bez
+   * revizijskog traga. Sada: jedna transakcija, po periodu jedan `createMany` (materijalizuje
+   * dane kojih još nema — lenja materijalizacija iz §2.8a ostaje: pišu se samo dani u rasponu)
+   * i jedan `updateMany` (isti podaci na sve dane raspona, i nove i postojeće). Dva upita po
+   * periodu umesto N; ili prođe sve, ili ništa.
+   *
+   * Vraća broj (period, dan) parova koji su upisani.
+   */
+  private async writeDays(
+    periods: { id: string; stayFrom: Date; stayTo: Date }[],
+    from: Date,
+    to: Date,
+    data: Omit<Prisma.CapacityDayCreateManyInput, 'id' | 'contractPeriodId' | 'date'>,
+  ): Promise<number> {
+    if ((to.getTime() - from.getTime()) / MS_DAY >= MAX_BULK_RANGE_DAYS) {
+      throw new BadRequestException(
+        `Raspon je ograničen na ${MAX_BULK_RANGE_DAYS} dana po jednom unosu — za duže, podelite na više unosa`,
+      );
+    }
+    const plan = periods
+      .map((period) => ({
+        period,
+        days: enumerateDays(from, to).filter(
+          (day) => day >= startOfDay(period.stayFrom) && day < startOfDay(period.stayTo),
+        ),
+      }))
+      .filter((p) => p.days.length > 0);
+    if (plan.length === 0) return 0;
+
+    await this.prisma.$transaction(async (tx) => {
+      for (const { period, days } of plan) {
+        await tx.capacityDay.createMany({
+          data: days.map((date) => ({ contractPeriodId: period.id, date, ...data })),
+          skipDuplicates: true,
+        });
+        await tx.capacityDay.updateMany({
+          where: { contractPeriodId: period.id, date: { in: days } },
+          data,
+        });
+      }
+    });
+    return plan.reduce((n, p) => n + p.days.length, 0);
+  }
+
   /**
    * §2.8a — tri vrednosti dimenzije „Šta" (v1.23): jedan tip sobe, IZABRANI tipovi soba, ili
    * ceo objekat. `contractPeriodId` i `contractPeriodIds` se spajaju u isti skup — ako stignu

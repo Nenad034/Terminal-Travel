@@ -29,7 +29,7 @@ _Prazno._ Nijedan nalaz ove klase nije nađen. Ovo je rezultat, ne propust (dok.
 
 ## 2. Visoko — radi danas, pada pod stvarnim opterećenjem ili propušta pogrešan podatak
 
-### 2.1 Stop-sale / kapacitet „za ceo objekat" upisuje dan po dan, bez transakcije i bez granice raspona
+### 2.1 Stop-sale / kapacitet „za ceo objekat" upisuje dan po dan, bez transakcije i bez granice raspona — REŠENO 18.9.2026
 
 **Klasa dokaza: A (izmereno) + C (pročitano).**
 
@@ -52,6 +52,8 @@ _Prazno._ Nijedan nalaz ove klase nije nađen. Ovo je rezultat, ne propust (dok.
 **Pokušaj obaranja:** (a) „možda panel nikad ne šalje više perioda odjednom" → ne: `obim === 'objekat'` šalje `contractId`, a `resolvePeriods` (`:687`) vraća sve ACTIVE periode ugovora. (b) „možda je Prisma pool paralelan pa je stvarno vreme kraće" → ne: `await` u telu `for` petlje je sekvencijalan po definiciji; merenje to potvrđuje (90 upisa = 3,2 s, ne 0,3 s). (c) „možda spec traži dan-po-dan zapis" → M3 §2.8a traži _zapis_ po danu (`CapacityDay`), ne _upit_ po danu — `createMany` + `updateMany` ili jedan `$transaction` daju isti zapis. → **Nalaz opstaje.**
 
 **Predlog:** (1) ceo upis u jedan `$transaction` (zamka 7.9 — već je pravilo za „više povezanih zapisa u jednom toku"); (2) unutar transakcije `createMany({ skipDuplicates })` + jedan `updateMany` po periodu umesto N `upsert`; (3) ista granica od 92 dana kao u `grid()`, ili eksplicitno veća (npr. 400 dana) ali **postojeća** — sad je nema. Procena: pola dana, uključujući merenje posle.
+
+**REŠENO 18.9.2026** (M3 spec v1.47): `writeDays` — jedna transakcija, po periodu `createMany` + `updateMany`, granica 366 dana. Izmereno na istom periodu, isti server: **3,21 s → 0,22 s** (90 dana); mreža posle potvrđuje 90 STOP, posle vraćanja 0; raspon 2020–2030 sad daje 400 sa porukom. 35 testova kapaciteta (2 nova: granica, „prekid ne ostavlja audit zapis").
 
 ---
 

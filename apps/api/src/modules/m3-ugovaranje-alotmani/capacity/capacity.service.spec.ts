@@ -37,7 +37,11 @@ describe('CapacityService', () => {
       },
       bookingItem: { findMany: jest.fn().mockResolvedValue(items) },
       product: { findMany: jest.fn().mockResolvedValue([]) },
-      capacityDay: { upsert: jest.fn() },
+      capacityDay: {
+        createMany: jest.fn().mockResolvedValue({ count: 0 }),
+        updateMany: jest.fn().mockResolvedValue({ count: 0 }),
+      },
+      $transaction: jest.fn(),
       // §2.8g — istorija cita postojece audit zapise i razresava imena aktera iz M1.
       auditLogEntry: { findMany: jest.fn().mockResolvedValue([]) },
       user: { findMany: jest.fn().mockResolvedValue([]) },
@@ -50,6 +54,8 @@ describe('CapacityService', () => {
     };
     const auditLog = { write: jest.fn() };
     const eventBus = { emit: jest.fn() };
+    // Transakcija prosleđuje ISTI mock kao `tx` — testovi broje pozive na `prisma.capacityDay.*`.
+    prisma.$transaction.mockImplementation((fn: (tx: unknown) => Promise<unknown>) => fn(prisma));
     const service = new CapacityService(prisma as any, auditLog as any, eventBus as any);
     return { service, prisma, auditLog, eventBus };
   }
@@ -260,7 +266,11 @@ describe('CapacityService', () => {
       );
 
       expect(rezultat).toEqual({ periods: 2, days: 6 }); // 2 perioda × 3 dana
-      expect(prisma.capacityDay.upsert).toHaveBeenCalledTimes(6);
+      // v1.47 — dva upita PO PERIODU (createMany + updateMany), ne po danu; sve u jednoj transakciji
+      expect(prisma.capacityDay.createMany).toHaveBeenCalledTimes(2);
+      expect(prisma.capacityDay.updateMany).toHaveBeenCalledTimes(2);
+      expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+      expect(prisma.capacityDay.createMany.mock.calls[0][0].data).toHaveLength(3);
     });
 
     it('ne upisuje dane van perioda', async () => {
@@ -286,15 +296,44 @@ describe('CapacityService', () => {
         true,
       );
 
-      expect(prisma.capacityDay.upsert).toHaveBeenCalledWith(
+      expect(prisma.capacityDay.updateMany).toHaveBeenCalledWith(
         expect.objectContaining({
-          update: expect.objectContaining({
+          data: expect.objectContaining({
             saleStatus: 'OPEN',
             stopReason: null,
             stopSource: null,
           }),
         }),
       );
+    });
+
+    it('odbija raspon od godinu dana i više — dok. 50 nalaz 2.1 (2020–2030 je prolazilo bez reči)', async () => {
+      const { service, prisma } = makeService();
+      await expect(
+        service.setStopSale(
+          { contractPeriodId: 'p1', dateFrom: '2027-01-01', dateTo: '2028-01-02' } as any,
+          'actor-1',
+        ),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(prisma.$transaction).not.toHaveBeenCalled();
+      expect(prisma.capacityDay.createMany).not.toHaveBeenCalled();
+    });
+
+    it('prekid na pola ne ostavlja ni audit zapis — sve ili ništa (zamka 7.9)', async () => {
+      const { service, prisma, auditLog } = makeService();
+      prisma.contractPeriod.findMany.mockResolvedValue([
+        { ...PERIOD, id: 'p1' },
+        { ...PERIOD, id: 'p2', roomType: 'SUITE' },
+      ]);
+      prisma.capacityDay.updateMany.mockRejectedValueOnce(new Error('veza pukla'));
+
+      await expect(
+        service.setStopSale(
+          { contractId: 'c1', dateFrom: '2027-07-12', dateTo: '2027-07-14' } as any,
+          'actor-1',
+        ),
+      ).rejects.toThrow('veza pukla');
+      expect(auditLog.write).not.toHaveBeenCalled();
     });
 
     it('zahtev bez ijednog obima se odbija', async () => {
@@ -392,7 +431,10 @@ describe('CapacityService', () => {
       );
 
       expect(rez).toEqual({ days: 2, periods: 2 });
-      expect(prisma.capacityDay.upsert).toHaveBeenCalledTimes(2);
+      expect(prisma.capacityDay.updateMany).toHaveBeenCalledTimes(2);
+      expect(prisma.capacityDay.updateMany.mock.calls[1][0]).toEqual(
+        expect.objectContaining({ where: expect.objectContaining({ contractPeriodId: 'p2' }) }),
+      );
       expect(auditLog.write).toHaveBeenCalledTimes(1);
     });
 
