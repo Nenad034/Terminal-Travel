@@ -49,6 +49,7 @@ describe('OfferExpiryService (§4.9)', () => {
           .mockResolvedValueOnce(opts.rateLines ?? []),
       },
       offerExpiryNotice: {
+        count: jest.fn().mockResolvedValue(0),
         findUnique: jest.fn().mockImplementation(({ where }: any) => {
           const k = where.sourceType_sourceId_threshold;
           const hit = [...existing, ...created].find(
@@ -340,5 +341,23 @@ describe('OfferExpiryService (§4.9)', () => {
     prisma.offerExpiryNotice.update.mockClear();
     await service.acknowledge('n1', 'u2');
     expect(prisma.offerExpiryNotice.update).not.toHaveBeenCalled();
+  });
+
+  describe('list — straničenje (dok. 50 nalaz 3.5)', () => {
+    it('ne seče tiho na 200 — vraća total i stranicu', async () => {
+      const { service, prisma } = makeService({});
+      prisma.offerExpiryNotice.findMany = jest.fn().mockResolvedValue([{ id: 'n1' }]);
+      prisma.offerExpiryNotice.count.mockResolvedValue(450);
+
+      const rez = await service.list({ threshold: 'INTERNAL', page: 2, limit: 200 });
+
+      expect(prisma.offerExpiryNotice.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ skip: 200, take: 200 }),
+      );
+      expect(prisma.offerExpiryNotice.count).toHaveBeenCalledWith({
+        where: { threshold: 'INTERNAL', acknowledgedAt: undefined },
+      });
+      expect(rez).toMatchObject({ total: 450, page: 2, pageCount: 3, hasMore: true });
+    });
   });
 });

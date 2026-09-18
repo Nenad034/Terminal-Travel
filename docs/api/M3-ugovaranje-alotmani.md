@@ -808,21 +808,34 @@ Tok: dobavljač pošalje cenovnik (PDF/Excel) → uvoz se registruje → AI izvu
 
 Dozvola: `M3/pricelist-import/VIEW`. `GET /:id` vraća i ugnežden `rows[]`.
 
+Lista je **straničena** (od 18.9.2026, dok. 50 nalaz 3.5 — do tada je vraćala sve uvoze ikad): `?page=` (od 1) i `?limit=` (1–200, podrazumevano 50); neispravna vrednost daje `400`, ne tiho svođenje. Isti oblik kao `GET /sales/bookings`.
+
+**Zahtev:** `GET /api/v1/contracting/pricelist-imports?limit=2` (izmereno 18.9.2026)
+
 **Odgovor `200`:**
 
 ```json
-[
-  {
-    "id": "f3651c7e-dd88-4a8a-9395-bc2965ff4630",
-    "supplierId": "f3788715-dfd5-40c7-8a57-6d903d122a65",
-    "sourceFileUrl": "https://example.com/x.pdf",
-    "sourceFormat": "PDF",
-    "status": "COMPLETED",
-    "createdBy": "1456e942-7042-4156-bd6d-f1b49b5a4004",
-    "createdAt": "2026-08-14T20:39:25.649Z"
-  }
-]
+{
+  "data": [
+    {
+      "id": "f3651c7e-dd88-4a8a-9395-bc2965ff4630",
+      "supplierId": "f3788715-dfd5-40c7-8a57-6d903d122a65",
+      "sourceFileUrl": "https://example.com/x.pdf",
+      "sourceFormat": "PDF",
+      "status": "COMPLETED",
+      "createdBy": "1456e942-7042-4156-bd6d-f1b49b5a4004",
+      "createdAt": "2026-08-14T20:39:25.649Z"
+    }
+  ],
+  "total": 2,
+  "page": 1,
+  "limit": 2,
+  "pageCount": 1,
+  "hasMore": false
+}
 ```
+
+`?limit=999` → `400 {"message":"\`limit\` ne sme biti veći od 200."}`. `GET /:id` vraća sam zapis (bez omotača).
 
 ### POST /pricelist-imports
 
@@ -1602,36 +1615,43 @@ na Event Bus (M12 pravi nacrt objave, M7 dobija primaoce). Jednom po stavci i pr
 
 ### GET /contracting/pricelist/expiry-notices
 
-Dozvola `M3/contract/VIEW`. Upit: `threshold=INTERNAL|MARKETING`, `acknowledged=true|false`.
+Dozvola `M3/contract/VIEW`. Upit: `threshold=INTERNAL|MARKETING`, `acknowledged=true|false`, plus straničenje `page`/`limit` (1–200, podrazumevano 50) — od 18.9.2026 (dok. 50 nalaz 3.5; do tada tiho odsecanje na 200 bez `total`). `?page=0` → `400 ["page must not be less than 1"]` (izmereno).
 
 ```http
-GET /api/v1/contracting/pricelist/expiry-notices?threshold=INTERNAL&acknowledged=false
+GET /api/v1/contracting/pricelist/expiry-notices?threshold=INTERNAL&acknowledged=false&page=1&limit=50
 ```
 
 ```json
-[
-  {
-    "id": "82d2ad2a-c79f-4902-aa43-e3fa576d5ee5",
-    "sourceType": "PRICELIST_OFFER",
-    "sourceId": "2c75f4cf-d1d3-4b8b-8e95-0633387fad0c",
-    "threshold": "INTERNAL",
-    "daysLeftAtEmit": 7,
-    "emittedAt": "2026-09-17T07:52:10.412Z",
-    "acknowledgedBy": null,
-    "acknowledgedAt": null,
-    "contractId": "d8519a56-7fac-4ff2-ae99-2518413ef96c",
-    "contractPeriodId": "00af8134-ba2b-4a91-8f74-7feb574d2355",
-    "productId": "6e827ccf-8861-4091-95e1-297597d38f53",
-    "productName": "Kemer Pine Bay 5*",
-    "destinationCountry": "Turska",
-    "destinationCity": "Kemer",
-    "offerKind": "EARLY_BOOKING",
-    "discountSummary": "−15 %",
-    "bookingTo": "2026-09-24T00:00:00.000Z",
-    "stayFrom": "2027-04-01T00:00:00.000Z",
-    "stayTo": "2027-10-31T00:00:00.000Z"
-  }
-]
+{
+  "data": [
+    {
+      "id": "82d2ad2a-c79f-4902-aa43-e3fa576d5ee5",
+      "sourceType": "PRICELIST_OFFER",
+      "sourceId": "2c75f4cf-d1d3-4b8b-8e95-0633387fad0c",
+      "threshold": "INTERNAL",
+      "daysLeftAtEmit": 7,
+      "emittedAt": "2026-09-17T07:52:10.412Z",
+      "acknowledgedBy": null,
+      "acknowledgedAt": null,
+      "contractId": "d8519a56-7fac-4ff2-ae99-2518413ef96c",
+      "contractPeriodId": "00af8134-ba2b-4a91-8f74-7feb574d2355",
+      "productId": "6e827ccf-8861-4091-95e1-297597d38f53",
+      "productName": "Kemer Pine Bay 5*",
+      "destinationCountry": "Turska",
+      "destinationCity": "Kemer",
+      "offerKind": "EARLY_BOOKING",
+      "discountSummary": "−15 %",
+      "bookingTo": "2026-09-24T00:00:00.000Z",
+      "stayFrom": "2027-04-01T00:00:00.000Z",
+      "stayTo": "2027-10-31T00:00:00.000Z"
+    }
+  ],
+  "total": 1,
+  "page": 1,
+  "limit": 50,
+  "pageCount": 1,
+  "hasMore": false
+}
 ```
 
 `bookingTo` je efektivan istek (`min(booking_to, deposit_deadline)`); `discountSummary` je čitljiv sažetak

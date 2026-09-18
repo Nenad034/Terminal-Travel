@@ -4,6 +4,7 @@ import { getMe, hasPermission } from '@/lib/me';
 import RegisterTab from '@/components/RegisterTab';
 import Icon from '@/components/Icon';
 import NewImportForm from './NewImportForm';
+import Pagination from '@/components/Pagination';
 
 // M3 spec §4.2/§4.2.6, M17 §6c (9.9.2026) — AI uvoz cenovnika.
 //
@@ -31,7 +32,10 @@ const STATUS_OPIS: Record<string, { tekst: string; klasa: string }> = {
   FAILED: { tekst: 'nije uspeo', klasa: 'bg-danger-bg text-danger' },
 };
 
-export default async function CenovniciPage() {
+export default async function CenovniciPage(props: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const searchParams = await props.searchParams;
   const me = await getMe();
   const canView = hasPermission(me, 'M3', 'pricelist-import', 'VIEW');
   const canCreate = hasPermission(me, 'M3', 'pricelist-import', 'CREATE');
@@ -47,12 +51,20 @@ export default async function CenovniciPage() {
     );
   }
 
-  const [uvozi, dobavljaci] = await Promise.all([
-    apiFetch<Uvoz[]>('/contracting/pricelist-imports').catch(() => [] as Uvoz[]),
+  // Straničeno (18.9.2026, dok. 50 nalaz 3.5) — API više ne vraća sve uvoze ikad, nego stranicu
+  // sa `total`; traka ispod uvek kaže koliko ih stvarno ima.
+  const qs = new URLSearchParams();
+  if (typeof searchParams?.page === 'string') qs.set('page', searchParams.page);
+  const prazno = { data: [] as Uvoz[], total: 0, page: 1, limit: 50, pageCount: 1 };
+  const [stranica, dobavljaci] = await Promise.all([
+    apiFetch<{ data: Uvoz[]; total: number; page: number; limit: number; pageCount: number }>(
+      `/contracting/pricelist-imports${qs.size ? `?${qs}` : ''}`,
+    ).catch(() => prazno),
     apiFetch<{ data: { id: string; name: string }[] }>('/contracting/suppliers?limit=200')
       .then((r) => r.data)
       .catch(() => []),
   ]);
+  const uvozi = stranica.data;
   const imeDobavljaca = new Map(dobavljaci.map((d) => [d.id, d.name]));
 
   return (
@@ -105,6 +117,17 @@ export default async function CenovniciPage() {
           );
         })}
       </div>
+
+      <Pagination
+        page={stranica.page}
+        pageCount={stranica.pageCount}
+        total={stranica.total}
+        shown={uvozi.length}
+        limit={stranica.limit}
+        basePath="/cenovnici"
+        searchParams={(searchParams ?? {}) as Record<string, string>}
+        itemLabel="uvoza"
+      />
     </div>
   );
 }

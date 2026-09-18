@@ -78,6 +78,8 @@ const EKRANI = [
   // jer je oblik odgovora tačan u tipovima a pogrešan u onome što server stvarno vrati.
   { kljuc: 'audit-log', naziv: 'Audit log', putanja: '/audit-log' },
   { kljuc: 'pitanja', naziv: 'Pitanja AI asistentu', putanja: '/pomoc/pitanja' },
+  // 18.9.2026 — isti prelaz (niz → `{ data, total, ... }`) za uvoze cenovnika (dok. 50 nalaz 3.5).
+  { kljuc: 'cenovnici', naziv: 'Uvoz cenovnika', putanja: '/cenovnici' },
   // Procesna mapa ne menja oblik odgovora nego GUBI polje (`capped`) — ekran koji ga i dalje
   // čita ne puca, samo tiho prikazuje pogrešno; zato je ovde, da se bar otvaranje potvrdi.
   { kljuc: 'procesne-mape', naziv: 'Procesne mape', putanja: '/nadzor/procesne-mape/m1-security' },

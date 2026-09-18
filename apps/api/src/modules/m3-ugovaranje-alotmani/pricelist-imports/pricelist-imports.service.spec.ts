@@ -41,6 +41,7 @@ describe('PricelistImportsService (M3 §4.2 / §4.2.10)', () => {
     const prisma = {
       pricelistImport: {
         findMany: jest.fn(),
+        count: jest.fn().mockResolvedValue(0),
         findUniqueOrThrow: jest.fn().mockResolvedValue({ id: 'imp-1', status: 'READY_FOR_REVIEW' }),
         create: jest.fn(),
         update: jest.fn(),
@@ -491,6 +492,22 @@ describe('PricelistImportsService (M3 §4.2 / §4.2.10)', () => {
       });
 
       await expect(service.odbijRed('imp-1', 'row-1', 'u1')).rejects.toThrow(BadRequestException);
+    });
+  });
+
+  describe('findAll — straničenje (dok. 50 nalaz 3.5)', () => {
+    it('vraća stranicu sa STVARNIM ukupnim brojem, ne sve uvoze ikad', async () => {
+      const { service, prisma } = makeService();
+      prisma.pricelistImport.findMany.mockResolvedValue([{ id: 'imp-9' }]);
+      prisma.pricelistImport.count.mockResolvedValue(131);
+
+      const rez = await service.findAll({ page: 3, limit: 50 });
+
+      expect(prisma.pricelistImport.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ skip: 100, take: 50 }),
+      );
+      expect(rez).toMatchObject({ total: 131, page: 3, limit: 50, pageCount: 3, hasMore: false });
+      expect(rez.data).toHaveLength(1);
     });
   });
 

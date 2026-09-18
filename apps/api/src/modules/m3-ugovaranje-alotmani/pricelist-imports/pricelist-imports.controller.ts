@@ -8,6 +8,7 @@ import {
   UploadedFile,
   UseGuards,
   UseInterceptors,
+  Query,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
@@ -19,6 +20,7 @@ import { PrimeniUvozDto } from './dto/primeni-uvoz.dto';
 import { PoklopiTipoveSobaDto } from './dto/poklopi-tipove-soba.dto';
 import { JwtAuthGuard } from '../../m1-core-identitet/auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../../common/guards/permissions.guard';
+import { parsePagination } from '../../../common/pagination/pagination';
 import { RequirePermission } from '../../../common/decorators/require-permission.decorator';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import { AgentActionGuard } from '../../../common/guards/agent-action.guard';
@@ -45,8 +47,8 @@ export class PricelistImportsController {
 
   @Get()
   @RequirePermission('M3', 'pricelist-import', 'VIEW')
-  findAll() {
-    return this.imports.findAll();
+  findAll(@Query('page') page: string | undefined, @Query('limit') limit: string | undefined) {
+    return this.imports.findAll(parsePagination(page, limit));
   }
 
   @Post()

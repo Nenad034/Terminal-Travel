@@ -7,6 +7,7 @@ import {
   OfferKind,
   Prisma,
 } from '@prisma/client';
+import { paginated, paginationArgs, type Paginated } from '../../../common/pagination/pagination';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { AuditLogService } from '../../m1-core-identitet/audit-log/audit-log.service';
 import { EventBusService } from '../../../common/events/event-bus.service';
@@ -439,16 +440,29 @@ export class OfferExpiryService {
 
   // ── Lista i potvrda (§6) ─────────────────────────────────────────────────
 
-  async list(query: { threshold?: OfferExpiryThreshold; acknowledged?: boolean }) {
-    return this.prisma.offerExpiryNotice.findMany({
-      where: {
-        threshold: query.threshold,
-        acknowledgedAt:
-          query.acknowledged === undefined ? undefined : query.acknowledged ? { not: null } : null,
-      },
-      orderBy: [{ bookingTo: 'asc' }, { emittedAt: 'asc' }],
-      take: 200,
-    });
+  /** Straničeno (18.9.2026, dok. 50 nalaz 3.5) — do tada tiho `take: 200` bez `total`. */
+  async list(query: {
+    threshold?: OfferExpiryThreshold;
+    acknowledged?: boolean;
+    page?: number;
+    limit?: number;
+  }): Promise<Paginated<OfferExpiryNotice>> {
+    const where = {
+      threshold: query.threshold,
+      acknowledgedAt:
+        query.acknowledged === undefined ? undefined : query.acknowledged ? { not: null } : null,
+    };
+    const { skip, take, page, limit } = paginationArgs(query);
+    const [data, total] = await Promise.all([
+      this.prisma.offerExpiryNotice.findMany({
+        where,
+        orderBy: [{ bookingTo: 'asc' }, { emittedAt: 'asc' }],
+        skip,
+        take,
+      }),
+      this.prisma.offerExpiryNotice.count({ where }),
+    ]);
+    return paginated(data, total, page, limit);
   }
 
   /** Ugovarač potvrđuje da je video — red nestaje iz radnog spiska. Idempotentno. */

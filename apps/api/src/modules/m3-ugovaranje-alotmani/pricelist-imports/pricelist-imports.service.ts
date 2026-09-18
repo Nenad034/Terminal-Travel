@@ -1,5 +1,11 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
-import { AgeCategory, AgePricingMode, PricelistImportRow } from '@prisma/client';
+import { AgeCategory, AgePricingMode, PricelistImport, PricelistImportRow } from '@prisma/client';
+import {
+  paginated,
+  paginationArgs,
+  type Paginated,
+  type PaginationQueryDto,
+} from '../../../common/pagination/pagination';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { AuditLogService } from '../../m1-core-identitet/audit-log/audit-log.service';
 import { CreatePricelistImportDto } from './dto/create-pricelist-import.dto';
@@ -110,8 +116,14 @@ export class PricelistImportsService {
     private readonly pricelist: PricelistService,
   ) {}
 
-  findAll() {
-    return this.prisma.pricelistImport.findMany({ orderBy: { createdAt: 'desc' } });
+  /** Straničeno (18.9.2026, dok. 50 nalaz 3.5) — do tada svi uvozi ikad, bez granice. */
+  async findAll(query?: PaginationQueryDto): Promise<Paginated<PricelistImport>> {
+    const { skip, take, page, limit } = paginationArgs(query);
+    const [data, total] = await Promise.all([
+      this.prisma.pricelistImport.findMany({ orderBy: { createdAt: 'desc' }, skip, take }),
+      this.prisma.pricelistImport.count(),
+    ]);
+    return paginated(data, total, page, limit);
   }
 
   findOne(id: string) {
@@ -125,10 +137,10 @@ export class PricelistImportsService {
     return this.prisma.pricelistImportRow.findMany({ where: { pricelistImportId: importId } });
   }
 
-  // M3 spec §4.2.1 — status ostaje PROCESSING: stvarna AI ekstrakcija (§4.2, korak
-  // "AI agent učitava dokument") zahteva odluku o AI provajderu koja još nije doneta
-  // (isti obrazac kao M1 email TODO, M2 §3.3 uvoz sadržaja hotela). Kad se poveže,
-  // ekstrakcija menja status u READY_FOR_REVIEW i kreira PricelistImportRow zapise.
+  // M3 spec §4.2.1 — nastaje kao PROCESSING; ekstrakciju radi ZASEBAN korak
+  // (`PricelistExtractionService`, `POST /pricelist-imports/:id/extract`), koji menja status u
+  // READY_FOR_REVIEW i kreira PricelistImportRow zapise. (Do 18.9.2026 je ovde stajalo da AI
+  // provajder „još nije izabran" — zastarelo od v1.26, dok. 50 nalaz 4.1.)
   async create(dto: CreatePricelistImportDto, actorId: string) {
     const importRecord = await this.prisma.pricelistImport.create({
       data: { ...dto, status: 'PROCESSING', createdBy: actorId },
