@@ -141,7 +141,7 @@ Uz to: `docs/moduli/M24-ljudski-resursi/` sadrži samo spec (43) — **nema `00-
 
 **DELIMIČNO REŠENO 18.9.2026:** (1) `docs/api/M24-ljudski-resursi.md` (10 ruta, sa izmerenim `400` odgovorima iz nalaza 3.1) i `00-OBJASNJENJE-M24-ZA-VLASNIKA.md` — napisani. (3) `tools/provera-api-dok.mjs` u CI: pada za svaku novu nedokumentovanu rutu; zatečeni dug (66 ruta) stoji poimence u `tools/api-dok-poznati-nedostaci.txt` i sme samo da se smanjuje (skripta upozorava na redove koji su u međuvremenu dokumentovani). (2) M3/M5 i ostali — **ostaje dug od 66 ruta**, vidljiv u toj listi, ne u glavi.
 
-### 3.4 Registar „mock ili pravo" (dok. 42) nije dopunjen nijednim novim ekranom
+### 3.4 Registar „mock ili pravo" (dok. 42) nije dopunjen nijednim novim ekranom — REŠENO 18.9.2026
 
 **Klasa dokaza: A.**
 
@@ -150,6 +150,8 @@ Uz to: `docs/moduli/M24-ljudski-resursi/` sadrži samo spec (43) — **nema `00-
 **Provereno da su svi pravi** (da ovo ne bude nalaz 1.1 u drugom ruhu): za svih 8, `grep -rl "mock|Mock|demo"` u folderu rute → 0 fajlova; svaki poziva `apiFetch`; svaki je u `nav.ts` (7 od 8; `/ugovori/[id]/cenovnik` nije u meniju ali ima 8 linkova iz drugih ekrana). Dakle registar zaostaje, ekrani ne.
 
 **Zašto je ovo nalaz, a ne sitnica:** dok. 42 je nastao kao **mehanizam** (dok. 39 nalaz 5.1) da se prelazak mock → pravo ne desi na pola. Mehanizam koji se ne održava posle prvog dana ne štiti ni od čega — a sledeći ekran koji se doda na pola neće imati gde da se vidi. Predlog: dodati u tabelu „Kratka lista pre posla" (dok. 33) red „Pravim ili menjam ekran" pokazivač na dok. 42 — upisano u istom prolazu. Procena dopune 8 redova: 20 minuta.
+
+**REŠENO 18.9.2026** — _uz vidljivu ispravku (dok. 40 §9): nalaz je rekao „8 novih ruta“, a `/podesavanja/podaci-agencije` je u dok. 42 od 7.9. (grep za nju nisam pokrenuo, već sam je dopisao iz `git diff --name-status` liste). Tačno je **7 od 8**._ Sedam redova dodato u dok. 42, svaki sa endpointima koje ekran stvarno zove (izvučeno grep-om po `apiFetch`), ne po nazivu fajla.
 
 ### 3.5 Dve nove liste bez straničenja, jedna sa tihim odsecanjem
 
