@@ -3,32 +3,9 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { AuditLogService } from '../m1-core-identitet/audit-log/audit-log.service';
 import { PermissionsService } from '../m1-core-identitet/permissions/permissions.service';
 
-export interface UpsertEmployeeRecordDto {
-  employmentType: 'PUNO_RADNO_VREME' | 'NEPUNO_RADNO_VREME' | 'UGOVOR_O_DELU';
-  contractBasis: 'NEODREDJENO' | 'ODREDJENO';
-  hireDate: string;
-  probationEndDate?: string | null;
-  contractEndDate?: string | null;
-  terminationDate?: string | null;
-  reportsToUserId?: string | null;
-}
-
-// M24 spec §2.2a (predlog v1.5) — dodeljeni dani godišnjeg odmora PO GODINI, zamenjuje raniji
-// flat EmployeeRecord.annualLeaveDaysEntitled. carriedOverDays je predložena/ručno potvrđena
-// vrednost (Zakon o radu RS: rok 30.6. naredne godine) — sistem je NE obračunava sam.
-export interface UpsertLeaveEntitlementDto {
-  daysEntitled: number;
-  carriedOverDays?: number | null;
-  carriedOverExpiresAt?: string | null;
-}
-
-export interface CreateLeaveRecordDto {
-  type: 'GODISNJI_ODMOR' | 'BOLOVANJE' | 'NEPLACENO_ODSUSTVO' | 'OSTALO';
-  startDate: string;
-  endDate: string;
-  daysCount: number;
-  note?: string | null;
-}
+import { UpsertEmployeeRecordDto } from './dto/upsert-employee-record.dto';
+import { UpsertLeaveEntitlementDto } from './dto/upsert-leave-entitlement.dto';
+import { CreateLeaveRecordDto } from './dto/create-leave-record.dto';
 
 const BLANKET_LEAVE_PERMISSION = ['M24', 'leave-record', 'CREATE'] as const;
 
@@ -184,6 +161,11 @@ export class HrService {
   async approveLeaveRecord(leaveId: string, actorId: string) {
     const leave = await this.loadLeaveForDecision(leaveId);
     await this.assertCanDecide(leave, actorId);
+    // Ista provera i na kapiji, ne samo na ulazu (dok. 50 nalaz 3.1): zapis nastao pre DTO-a, ili
+    // upisan mimo API-ja, ne sme odobrenjem da uveća stanje godišnjeg odmora.
+    if (leave.daysCount <= 0) {
+      throw new BadRequestException('Broj dana odsustva mora biti veći od nule da bi se odobrio.');
+    }
 
     const after = await this.prisma.leaveRecord.update({
       where: { id: leaveId },

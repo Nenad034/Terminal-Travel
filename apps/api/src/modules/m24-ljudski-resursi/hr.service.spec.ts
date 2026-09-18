@@ -86,9 +86,18 @@ describe('HrService', () => {
         status: 'PENDING',
         employeeRecordId: 'er-1',
         employeeRecord: { reportsToUserId: 'manager-1' },
+        daysCount: 3,
         ...overrides,
       };
     }
+
+    it('odbija odobrenje zapisa sa 0 ili negativnim brojem dana — kapija, ne samo ulaz (dok. 50 3.1)', async () => {
+      const { service, prisma } = makeService();
+      prisma.leaveRecord.findUniqueOrThrow.mockResolvedValue(pendingLeave({ daysCount: -50 }));
+
+      await expect(service.approveLeaveRecord('lv-1', 'manager-1')).rejects.toThrow('veći od nule');
+      expect(prisma.leaveRecord.update).not.toHaveBeenCalled();
+    });
 
     it('dozvoljava odobrenje neposrednom rukovodiocu (ownership, bez dozvole)', async () => {
       const { service, prisma, permissions } = makeService();

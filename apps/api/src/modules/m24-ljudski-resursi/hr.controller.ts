@@ -1,11 +1,9 @@
 import { Body, Controller, Get, Param, Patch, Post, Put, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import {
-  HrService,
-  type CreateLeaveRecordDto,
-  type UpsertEmployeeRecordDto,
-  type UpsertLeaveEntitlementDto,
-} from './hr.service';
+import { HrService } from './hr.service';
+import { CreateLeaveRecordDto } from './dto/create-leave-record.dto';
+import { UpsertEmployeeRecordDto } from './dto/upsert-employee-record.dto';
+import { UpsertLeaveEntitlementDto } from './dto/upsert-leave-entitlement.dto';
 import { JwtAuthGuard } from '../m1-core-identitet/auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import { RequirePermission } from '../../common/decorators/require-permission.decorator';

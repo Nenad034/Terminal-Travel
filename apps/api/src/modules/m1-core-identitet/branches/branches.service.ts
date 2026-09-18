@@ -2,16 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { AuditLogService } from '../audit-log/audit-log.service';
 
-export interface UpdateBranchDto {
-  name?: string;
-  active?: boolean;
-  address?: string | null;
-  phone?: string | null;
-  email?: string | null;
-  responsiblePersonName?: string | null;
-  taxId?: string | null;
-  licenseNumber?: string | null;
-}
+import { UpdateBranchDto } from './dto/update-branch.dto';
 
 // M1 spec dopuna (6.9.2026, vlasnikov zahtev: "TT moze da ima vise ili jednu poslovnicu i to
 // treba omoguciti podesavanjima na globalnom nivou aplikacije") — CRUD nad poslovnicama, isti

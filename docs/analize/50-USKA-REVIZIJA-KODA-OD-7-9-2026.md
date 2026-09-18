@@ -59,7 +59,7 @@ _Prazno._ Nijedan nalaz ove klase nije nađen. Ovo je rezultat, ne propust (dok.
 
 ## 3. Srednje — nije hitno, ali se plaća kasnije
 
-### 3.1 Četiri tela zahteva zaobilaze validaciju — M24 (HR) prima bilo kakav sadržaj
+### 3.1 Četiri tela zahteva zaobilaze validaciju — M24 (HR) prima bilo kakav sadržaj — REŠENO 18.9.2026
 
 **Klasa dokaza: A (izmereno, dva puta).**
 
@@ -86,6 +86,10 @@ HTTP 400 {"message":["property nepoznato should not exist"]}
 **Pokušaj obaranja:** (a) „možda `ValidationPipe` ipak validira `interface`" → ne, izmereno gore (isti pipe, dve rute, dva ishoda). (b) „možda Prisma odbije pogrešan tip pa je efekat samo ružna greška" → za `daysCount: "tri"` da (Prisma baca, filter prevede u grešku), ali za `daysCount: -50` **ne** — `Int` prima negativan broj. (c) „možda je `forbidNonWhitelisted` dovoljan" → nije primenjen jer metatip nije klasa. (d) „možda negativan broj ne stiže do stanja bez ljudskog odobrenja" → **tačno**, uvek `PENDING` pa `APPROVED` rukom — ovo je spustilo nalaz sa Visoko na Srednje. → **Nalaz opstaje kao Srednje.**
 
 **Predlog:** pretvoriti 4 interface-a u klase sa `class-validator` dekoratorima (`IsEnum`, `IsDateString`, `IsInt`, `Min(1)`, `MaxLength`), u `dto/` folderu po istom obrascu kao svaki drugi modul. Uz to jedan test koji **dokazuje odbijanje** (`daysCount: -1` → 400), po zamci 13.6. Uz to `approveLeaveRecord` da odbije `daysCount <= 0` (ista provera i na kapiji, ne samo na ulazu). Nova zamka **13.8** u dok. 33 upisana u istom prolazu. Procena: 2–3 sata.
+
+**REŠENO 18.9.2026:** četiri klase u `m24-ljudski-resursi/dto/` i `branches/dto/`, servisi ih uvoze (interface-i obrisani); `approveLeaveRecord` odbija `daysCount <= 0` i na kapiji. Živo, isti zahtev kao gore: `HTTP 400 ["property nepoznatoPolje should not exist", "daysCount must be an integer number", …]`; `daysCount: -50` → `400 daysCount must not be less than 1`; ispravan zahtev stiže do servisa. 12 novih testova kroz **istu** `ValidationPipe` konfiguraciju kao `main.ts` (zamka 13.6: dokaz da ograda odbija, i jedan da ne odbija ispravno). Ponovna provera skriptom: `@Body(dto: X)` 173, TS tip **0**. Panel forme šalju tačno ta polja (provereno `hr-actions.ts`, `poslovnice/actions.ts`) — bez izmene ekrana.
+
+**Usput nađeno, NIJE rešeno — novi nalaz 3.6 ispod.**
 
 ### 3.2 Ponuda iz teksta: iznos sa engleskim zarezom hiljada čita se hiljadu puta manji
 
@@ -153,6 +157,16 @@ Uz to: `docs/moduli/M24-ljudski-resursi/` sadrži samo spec (43) — **nema `00-
 
 Predlog: `PaginationQueryDto` obrazac iz nalaza 2.2 (pojedinačni `@Query('page')`, ne DTO nad celim query stringom — zamka iz dok. 39 §2.2). Procena: 2 sata za obe.
 
+### 3.6 Broj dana odsustva se unosi ručno, a spec kaže da se računa
+
+**Klasa dokaza: A (pročitano na oba mesta, uporedivo).**
+
+M24 spec §2.3, tabela `LeaveRecord`, red `days_count`: _„radni dani u periodu — **izračunato pri unosu** (bez vikenda/praznika), ne ručno prebrojano"_ (`43-SPECIFIKACIJA-M24…md:106`). Isti tekst stoji i kao komentar u `schema.prisma:4483`. Kod: `hr.service.ts` (`createLeaveRecord`) upisuje `dto.daysCount` kakav stigne; panel (`korisnici/[id]/hr-actions.ts:103-121`) ga čita iz polja forme koje zaposleni kuca. Nigde u `apps/api` nema funkcije koja broji radne dane (`grep -rn "radni dan\|workingDays\|praznik" src` → 0 pogodaka van komentara).
+
+Posledica: zahtev 1.10.–3.10. (četvrtak–subota) sa ukucanih „3" troši 3 dana odmora, po spec-u bi trebalo 2. Nije nastalo od 7.9. — zatečeno je pri pisanju DTO-a (3.1), zato je ovde.
+
+**Zašto nije rešeno u istom prolazu:** „bez praznika" traži **spisak državnih praznika RS** (Sretenje, Vidovdan, verski praznici koji zavise od kalendara zaposlenog) — to je poslovni podatak koji spec ne navodi, i pitanje za vlasnika: da li se praznici drže u podešavanjima agencije (M1 `AgencySettings`) ili hardkodovano po godini. Zabeleženo u `27-BACKLOG`, M24 sekcija. Do odluke: DTO bar garantuje ceo broj ≥ 1.
+
 ---
 
 ## 4. Nisko — sitno, vredno kad se ionako dira taj fajl
@@ -201,7 +215,7 @@ Da se razlikuje „nema problema" od „nije gledano":
 ## 8. Koliko je nalaza prošlo pun postupak (dok. 40 §8)
 
 - **Pun postupak** (klasa dokaza + odvojen uzrok + dokaz izvršavanja + prebrojan obim + pokušaj obaranja): **1 od 1 u poglavlju 2** (2.1) — nalaz 3.1 je prošao isti pun postupak i baš zbog njega spušten na Srednje.
-- **Klasa A bez pokušaja obaranja** (Srednje po pravilu, ne traži se): 3.2, 3.3, 3.4, 4.1, 4.2, 4.3.
+- **Klasa A bez pokušaja obaranja** (Srednje po pravilu, ne traži se): 3.2, 3.3, 3.4, 3.6, 4.1, 4.2, 4.3.
 - **Klasa C** (pročitano, nije izmereno): 3.5.
 - **Klasa D**: poglavlje 5.
 
