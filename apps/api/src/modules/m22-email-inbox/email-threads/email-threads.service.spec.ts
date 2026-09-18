@@ -165,6 +165,89 @@ describe('EmailThreadsService (M22 spec §2.2/§8)', () => {
     });
   });
 
+  describe('composeNewThread — nov razgovor proizvoljnom primaocu (§3.1b)', () => {
+    it('odbija bez REPLY pristupa na traženo sanduče', async () => {
+      const { service, mailboxes } = makeService();
+      mailboxes.findAccess.mockResolvedValue({ accessLevel: 'VIEW' });
+
+      await expect(
+        service.composeNewThread(
+          { mailboxId: 'mb-1', toAddresses: ['gost@primer.com'], subject: 's', body: 'b' },
+          'user-1',
+        ),
+      ).rejects.toThrow(ForbiddenException);
+    });
+
+    it('send:false (AI predlog) pravi AI_DRAFT sa sentBy:null, NE zove adapter.sendMessage', async () => {
+      const { service, prisma, mailboxes, providerFactory, auditLog } = makeService();
+      mailboxes.findAccess.mockResolvedValue({ accessLevel: 'REPLY' });
+      mailboxes.findOne.mockResolvedValue({ id: 'mb-1', address: 'rezervacije@tt.rs' });
+      prisma.emailThread.create.mockResolvedValue({ id: 'thread-1', mailboxId: 'mb-1' });
+      prisma.emailMessage.create.mockResolvedValue({ id: 'msg-1' });
+      const adapter = { sendMessage: jest.fn() };
+      providerFactory.getAdapter.mockReturnValue(adapter);
+
+      const result = await service.composeNewThread(
+        {
+          mailboxId: 'mb-1',
+          toAddresses: ['gost@primer.com'],
+          subject: 'Ponuda',
+          body: 'Zdravo',
+          send: false,
+        },
+        'user-1',
+      );
+
+      expect(adapter.sendMessage).not.toHaveBeenCalled();
+      expect(prisma.emailMessage.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            senderType: 'AI_DRAFT',
+            sentBy: null,
+            toAddresses: ['gost@primer.com'],
+          }),
+        }),
+      );
+      expect(auditLog.write).toHaveBeenCalledWith(
+        expect.objectContaining({ actorType: 'HUMAN', action: 'email_message.drafted' }),
+      );
+      expect(result.thread.id).toBe('thread-1');
+    });
+
+    it('send:true (ručan unos) šalje odmah sa STVARNIM toAddresses, sentBy popunjeno', async () => {
+      const { service, prisma, mailboxes, providerFactory } = makeService();
+      mailboxes.findAccess.mockResolvedValue({ accessLevel: 'REPLY' });
+      mailboxes.findOne.mockResolvedValue({ id: 'mb-1', address: 'rezervacije@tt.rs' });
+      prisma.emailThread.create.mockResolvedValue({ id: 'thread-1', mailboxId: 'mb-1' });
+      prisma.emailMessage.create.mockResolvedValue({ id: 'msg-1' });
+      const adapter = {
+        sendMessage: jest.fn().mockResolvedValue({ providerMessageId: 'pm-1', delivered: true }),
+      };
+      providerFactory.getAdapter.mockReturnValue(adapter);
+
+      await service.composeNewThread(
+        {
+          mailboxId: 'mb-1',
+          toAddresses: ['gost@primer.com'],
+          subject: 'Ponuda',
+          body: 'Zdravo',
+          send: true,
+        },
+        'user-1',
+      );
+
+      expect(adapter.sendMessage).toHaveBeenCalledWith(
+        expect.objectContaining({ address: 'rezervacije@tt.rs' }),
+        expect.objectContaining({ toAddresses: ['gost@primer.com'] }),
+      );
+      expect(prisma.emailMessage.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ senderType: 'STAFF', sentBy: 'user-1' }),
+        }),
+      );
+    });
+  });
+
   describe('linkSupplierAnnouncement — nikad ne dodiruje M5 potvrdu (§3.1a)', () => {
     it('upisuje SAMO relatedSupplierManifestId, ne poziva nijedan M5 confirm servis', async () => {
       const { service, prisma, mailboxes } = makeService();

@@ -51,6 +51,9 @@ import { AgencySettingsModule } from '../m1-core-identitet/agency-settings/agenc
   // M5 §8.8 (5.9.2026) — najava dobavljaču ide kroz jedinstveno M22 sanduče, pa M5
   // `SupplierMailboxService` treba ove tri stvari (in-process DI, isti hibridni obrazac kao
   // M22→M14 konverzija u tiket iznad).
-  exports: [MailboxesService, EmailProviderFactory],
+  // `EmailThreadsService` dodat u izvoz (18.9.2026, M15 spec §6.5.4.8) — M15 `OmnisearchService`
+  // poziva `composeNewThread()` iz `compose_email` predlog-pa-odobrenje toka, isti in-process DI
+  // obrazac kao M5 iznad, ne HTTP self-poziv.
+  exports: [MailboxesService, EmailThreadsService, EmailProviderFactory],
 })
 export class M22EmailInboxModule {}

@@ -84,22 +84,20 @@
 
 :root {
   /* svetli mod — podrazumevane vrednosti, važe i kad OS nema tamni mod uključen */
-  /* Paleta "Azur + Svetionik" (4.9.2026, na zahtev vlasnika: "bleštava bela zamara, hoću svetlo
-     plavu nijansu i tamnije ivice/trake" + poređenje sa mylighthouse.com/company/partnerships).
-     Zamenjuje raniju shadcn/ui zinc+indigo paletu (29.8.2026) SAMO u svetlom modu — tamni i dim
-     mod su nepromenjeni. Podloga (`--bg`/`--panel`/`--sunken`/`--panel-2`/`--bar`) je spuštena u
-     svetlo plavo (izvedeno, ne sa Lighthouse sajta — njihova podloga je krem, ne plava). Tekst i
-     akcent SU sa mylighthouse.com/company/partnerships (izvučeni direktno iz njihovog CSS-a,
-     `grep -oiE "#[0-9a-f]{6}"` nad skinutim `_next/static/css/*.css`): teget tekst `#333645`,
-     teal akcent `#00686e`. Ranija indigo boja (`#4f46e5`) NIJE napuštena — postaje `--accent2`
-     (sekundarni signal, kalendar/katalog/audit log), pošto je tu ulogu do sad nosio teal koji je
-     sada glavni akcent (§ komentar uz `--accent2` ispod). Vlasnik birao između tri predloga
-     (Azur / Svetionik / kombinacija) preko vizuelnog Artifact-a — ovo je izabrana treća varijanta.
+  /* Paleta "Biserna" (18.9.2026, na zahtev vlasnika: nova neutralna skala za CELU aplikaciju,
+     "isti postupak" kao 18.9.2026 posvetljavanje --panel [mešanje ka beloj], ali "prigušeno da ne
+     bljeska" — pouka iz istog dana: čisto mešanje ka beloj je --panel odvelo IZNAD --bg (bljesak),
+     pa ova paleta drži toplu, blago zasićenu bazu (bež/sedefasta, ne čisto siva) umesto daljeg
+     ka čistoj beloj. Zamenjuje raniju "Azur + Svetionik" (4.9.2026, plavkasta baza) SAMO u
+     svetlom modu — tamni i dim mod su nepromenjeni, akcentne boje (`--accent`/`--accent2`/
+     `--ok`/`--warn`/`--danger`) i `--icon-line` takođe nepromenjeni (nezavisna odluka, § komentar
+     uz `--icon-line` ispod). `--bg`>`--panel`>`--sunken` odnos (uvek tamnije ka dnu) namerno
+     vraćen — isti razlog kao 17.9.2026 ispravka ("bljesak jedne jako svetle boje").
      Sve vrednosti PROVERENE WCAG 2.1 AA kontrast-skriptom (4.5:1 tekst, veći/UI elementi 3:1),
      protiv SVE ČETIRI pozadine (bg/panel/sunken/panel-2 — zamka 1.9), isti princip kao ranije
      palete. */
-  --bg: #e8eef6;
-  --panel: #dfe6ef; /* 17.9.2026 — za nijansu TAMNIJA od --bg (vlasnik: "bljesak" jedne jako svetle boje); pre: #f9fbfd */
+  --bg: #efece3;
+  --panel: #eeebe3; /* 18.9.2026 — posvetljeno 30% ka beloj (vlasnikov zahtev), i dalje (za dlaku) tamnije od --bg da se ne vrati bljesak od 17.9.2026; pre: #e7e3d7 */
   /* "Utonula" površina (2.9.2026, na zahtev vlasnika: "sektori — naslovni deo tamnija nijansa a
      sadržaj ispod svetlija"). ČETVRTA nijansa, pored --bg / --panel / --panel-2.
 
@@ -111,29 +109,28 @@
      `--sunken` je zato UVEK tamniji od `--panel`. Koristi ga traka naslova sekcije i sažetak na
      vrhu kartice Pregled (dizajn dok. §6h). `--panel-2` ostaje nepromenjen i dalje služi bočnim
      panelima i zaglavljima tabela — dve različite uloge, dve boje. */
-  --sunken: #d2dbe7; /* 17.9.2026 — spusten zajedno sa --panel, i dalje UVEK tamniji od njega; pre: #dbe4ef */
-  --panel-2: #d7e0eb; /* 17.9.2026 — trake ostaju tamnije od sadrzaja; pre: #dde6f1 */
-  --bar: #d7e0eb; /* 17.9.2026 — isto kao --panel-2; pre: #dde6f1 */
-  /* Ivica potamnjena zajedno sa podlogom, iz istog razloga kao 21.8.2026/2.9.2026 ispravke ispod
-     — plavlja podloga bi inače podigla kontrast ivice iznad prethodno izmerene vrednosti dovoljno
-     da izgleda drugačije nego što je namerno, ali ne i dovoljno bez ponovnog merenja (zamka 1.9).
-     #6c7a90: 3.73 / 4.20 / 3.39 / 3.45 na bg/panel/sunken/panel-2 (4.9.2026) — prolazi na SVE
-     četiri, ne samo na najsvetliju. */
-  --border: #6c7a90;
-  --text: #232636;
-  /* `--text`/`--text-dim`/`--text-faint` (4.9.2026, "Azur + Svetionik") — teget skala sa
-     mylighthouse.com/company/partnerships, doslovno njihove izmerene vrednosti (§ komentar uz
-     `:root` iznad), NE zatamnjena verzija ranije shadcn zinc skale. Zamenjuje 2.9.2026 "×0,7"
-     ciljano zatamnjenje — ovaj prolaz menja paletu u celini, pa se stara procentualna izmena
-     više ne primenjuje na te vrednosti. `--icon-line` ostaje nepromenjeno navy `#1f3a5f` —
-     estetska, ne kontrastna odluka, ista kao 21.8.2026 (§ komentar iznad .codicon).
+  --sunken: #ddd7c5;
+  --panel-2: #e1ddd0;
+  --bar: #e1ddd0;
+  /* Ivica — topla siva-braon ("greige"), ista logika kao ranije palete: mora proći 3:1 na SVE
+     četiri pozadine, ne samo najsvetliju (zamka 1.9). #7d7660: 3.84 / 3.53 / 3.15 / 3.34 na
+     bg/panel/sunken/panel-2 (18.9.2026, izmereno tools/check-contrast.js formulom). */
+  --border: #7d7660;
+  --text: #33301f;
+  /* `--text`/`--text-dim`/`--text-faint` (18.9.2026, paleta "Biserna") — topla tamno-maslinasta
+     skala usklađena sa novom bež/sedefastom podlogom (§ komentar uz `:root` iznad), zamenjuje
+     tegetnu "Azur + Svetionik" skalu SAMO u svetlom modu. `--icon-line` ostaje nepromenjeno navy
+     `#1f3a5f` — estetska, ne kontrastna odluka, ista kao 21.8.2026 (§ komentar iznad .codicon),
+     namerno nezavisna od podloge (ostaje navy i na toploj bazi, kao ranije na plavoj).
      Izmereno protiv sve četiri podloge (bg/panel/sunken/panel-2), WCAG 2.1 AA:
-       --text       #232636 → 12,83 / 14,44 / 11,67 / 11,89
-       --text-dim   #333645 → 10,26 / 11,54 / 9,32 / 9,50
-       --text-faint #464e5d → 7,17 / 8,07 / 6,52 / 6,64
+       --text       #33301f → 11,23 / 10,34 / 9,22 / 9,76
+       --text-dim   #4c4730 → 7,90 / 7,27 / 6,49 / 6,86
+       --text-faint #615c44 → 5,69 / 5,24 / 4,68 / 4,95 (posebno biran nizom proba da prođe i na
+         najtamnijoj --sunken podlozi — prvobitna proba #656047 je tu padala na 4,40:1, ispod
+         praga)
      Sve iznad 4,5:1 praga na svakoj od četiri podloge, ne samo na najsvetlijoj (zamka 1.9). */
-  --text-dim: #333645;
-  --text-faint: #464e5d;
+  --text-dim: #4c4730;
+  --text-faint: #615c44;
   /* Glavni akcent postaje teal sa mylighthouse.com (4.9.2026) — ranija indigo (`#4f46e5`) SE NE
      napušta, seli se dole na `--accent2` (bila je rezervisana za teal kao sekundarni signal, pa
      zamena mesta čuva "dva različita tona" pravilo bez uvođenja treće boje). `#00686e`:
@@ -252,20 +249,20 @@
 }
 
 :root[data-theme='light'] {
-  --bg: #e8eef6;
-  --panel: #dfe6ef; /* 17.9.2026 — za nijansu TAMNIJA od --bg (vlasnik: "bljesak" jedne jako svetle boje); pre: #f9fbfd */
-  --sunken: #d2dbe7; /* 17.9.2026 — spusten zajedno sa --panel, i dalje UVEK tamniji od njega; pre: #dbe4ef */
-  --panel-2: #d7e0eb; /* 17.9.2026 — trake ostaju tamnije od sadrzaja; pre: #dde6f1 */
-  --bar: #d7e0eb; /* 17.9.2026 — isto kao --panel-2; pre: #dde6f1 */
-  /* Mora ostati identično bloku `:root` iznad (zamka 1.7). Obrazloženje: komentar uz `--border`
-     u tom bloku. */
-  --border: #6c7a90;
-  --text: #232636;
+  /* Paleta "Biserna" (18.9.2026) — mora ostati identično bloku `:root` iznad (zamka 1.7).
+     Obrazloženje svih vrednosti: komentar uz `:root` iznad. */
+  --bg: #efece3;
+  --panel: #eeebe3;
+  --sunken: #ddd7c5;
+  --panel-2: #e1ddd0;
+  --bar: #e1ddd0;
+  --border: #7d7660;
+  --text: #33301f;
   /* Mora ostati identično bloku `:root` iznad — ovo je ISTI svetli mod, samo izabran ručnim
      prekidačem umesto preko OS-a. Ako se ovde ne prepiše ista vrednost, promena boje važi samo
      kad je OS na svetloj temi, a nestane čim korisnik izabere svetlo dugmetom (2.9.2026). */
-  --text-dim: #333645;
-  --text-faint: #464e5d;
+  --text-dim: #4c4730;
+  --text-faint: #615c44;
   --accent: #00686e;
   --accent-strong: #004c4c;
   --accent-soft: #00686e33;

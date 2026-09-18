@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { forwardRef, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import Icon from './Icon';
 
 // Dopuna (29.8.2026, na zahtev vlasnika: "omogucite u svim poljima gde se bira datum da se
@@ -88,6 +89,15 @@ export default function DateField({
   const [digits, setDigits] = useState(() => isoToDigits(isControlled ? value : defaultValue));
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  // Kalendar se iscrtava kroz portal (vidi `popoverPos`/`createPortal` ispod) — posle toga NIJE
+  // više DOM potomak `containerRef`-a, pa klik NA NJEGA `containerRef.contains()` pogrešno vidi
+  // kao "klik van polja" i odmah ga zatvara. Drugi ref, ista provera na oba.
+  const popoverRef = useRef<HTMLDivElement>(null);
+  const [popoverPos, setPopoverPos] = useState<{
+    top: number;
+    left: number;
+    openUpward: boolean;
+  } | null>(null);
 
   useEffect(() => {
     if (isControlled) setDigits(isoToDigits(value));
@@ -97,10 +107,52 @@ export default function DateField({
   useEffect(() => {
     if (!open) return;
     function onOutside(ev: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(ev.target as Node)) setOpen(false);
+      const target = ev.target as Node;
+      if (containerRef.current?.contains(target)) return;
+      if (popoverRef.current?.contains(target)) return;
+      setOpen(false);
     }
     document.addEventListener('mousedown', onOutside);
     return () => document.removeEventListener('mousedown', onOutside);
+  }, [open]);
+
+  // Pozicija kalendara (18.9.2026, vlasnikov nalaz: "kada se klikne na neki kalendar da se ne
+  // preseče na pola") — `CalendarPopover` je do sad bio `position: absolute` UNUTAR polja, pa ga
+  // je svaki ugnježdeni `overflow-y-auto` predak (npr. `FilterModal` na listi rezervacija) sekao
+  // na svojoj ivici kad bi polje stajalo pri dnu. Portal u `document.body` + `position: fixed`
+  // računat od STVARNOG položaja polja na ekranu (`getBoundingClientRect`) potpuno zaobilazi
+  // svaki takav predak — isti razlog zašto se npr. padajući meniji u `CommandPalette.tsx` ne
+  // renderuju kao potomci uskih kontejnera. `openUpward` — kad nema dovoljno prostora ispod
+  // (procenjena visina kalendara ~360px), otvara se NAGORE umesto nadole (isti obrazac kao
+  // `NotificationBell.tsx`/`CustomizeLayoutButton.tsx` posle 18.9.2026 preseljenja u StatusBar).
+  const ESTIMATED_POPOVER_HEIGHT = 360;
+  const POPOVER_WIDTH = 288; // `w-72`
+  useLayoutEffect(() => {
+    if (!open) {
+      setPopoverPos(null);
+      return;
+    }
+    function reposition() {
+      const el = containerRef.current;
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
+      const roomBelow = window.innerHeight - rect.bottom;
+      const openUpward =
+        roomBelow < ESTIMATED_POPOVER_HEIGHT && rect.top > ESTIMATED_POPOVER_HEIGHT;
+      const left = Math.min(
+        rect.left,
+        Math.max(8, window.innerWidth - POPOVER_WIDTH - 8),
+      );
+      const top = openUpward ? rect.top - 6 : rect.bottom + 6;
+      setPopoverPos({ top, left, openUpward });
+    }
+    reposition();
+    window.addEventListener('scroll', reposition, true);
+    window.addEventListener('resize', reposition);
+    return () => {
+      window.removeEventListener('scroll', reposition, true);
+      window.removeEventListener('resize', reposition);
+    };
   }, [open]);
 
   function commit(nextDigits: string) {
@@ -149,20 +201,35 @@ export default function DateField({
         </button>
       </div>
       {name && <input type="hidden" name={name} value={iso} />}
-      {open && (
-        <CalendarPopover
-          iso={iso}
-          onSelect={(selectedIso) => {
-            commit(isoToDigits(selectedIso));
-            setOpen(false);
-          }}
-        />
-      )}
+      {open &&
+        popoverPos &&
+        createPortal(
+          <CalendarPopover
+            ref={popoverRef}
+            iso={iso}
+            style={{
+              position: 'fixed',
+              top: popoverPos.openUpward ? undefined : popoverPos.top,
+              bottom: popoverPos.openUpward
+                ? window.innerHeight - popoverPos.top
+                : undefined,
+              left: popoverPos.left,
+            }}
+            onSelect={(selectedIso) => {
+              commit(isoToDigits(selectedIso));
+              setOpen(false);
+            }}
+          />,
+          document.body,
+        )}
     </div>
   );
 }
 
-function CalendarPopover({ iso, onSelect }: { iso: string; onSelect: (iso: string) => void }) {
+const CalendarPopover = forwardRef<
+  HTMLDivElement,
+  { iso: string; onSelect: (iso: string) => void; style?: React.CSSProperties }
+>(function CalendarPopover({ iso, onSelect, style }, ref) {
   const today = new Date();
   const initial = iso ? new Date(`${iso}T00:00:00`) : today;
   const [viewYear, setViewYear] = useState(initial.getFullYear());
@@ -194,7 +261,13 @@ function CalendarPopover({ iso, onSelect }: { iso: string; onSelect: (iso: strin
   const todayIso = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
 
   return (
-    <div className="animate-in fade-in slide-in-from-top-1 absolute z-50 mt-1.5 w-72 rounded-xl border border-border bg-panel p-3 shadow-xl duration-150">
+    <div
+      ref={ref}
+      style={style}
+      // `absolute` → pozicija sad dolazi kroz `style` (fixed, računato od stvarnog položaja
+      // polja) — vidi komentar uz `popoverPos` u `DateField` iznad.
+      className="animate-in fade-in slide-in-from-top-1 z-50 w-72 rounded-xl border border-border bg-panel p-3 shadow-xl duration-150"
+    >
       <div className="mb-2 flex items-center justify-between">
         <button
           type="button"
@@ -260,4 +333,4 @@ function CalendarPopover({ iso, onSelect }: { iso: string; onSelect: (iso: strin
       </div>
     </div>
   );
-}
+});

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Icon from './Icon';
+import AiCapabilityIcons from './AiCapabilityIcons';
 import { useTabs } from './TabsContext';
 
 // AI asistent u DNU CENTRALNOG PANELA — druga moguća pozicija istog polja (M5 spec §3.0c.4,
@@ -105,10 +106,14 @@ export default function AiDockBottom({
         title={collapsed ? undefined : 'Prevuci za promenu visine'}
         className={`h-1.5 flex-shrink-0 border-t ${collapsed ? 'border-border' : `cursor-row-resize hover:border-accent ${dragging ? 'border-accent' : 'border-border'}`}`}
       />
-      <div className="flex h-9 flex-shrink-0 items-center justify-between px-2 text-xs font-medium text-ink-faint">
+      <div className="relative flex h-9 flex-shrink-0 items-center justify-between px-2 text-xs font-medium text-ink-faint">
         <span className="flex items-center gap-1.5">
           <Icon name="sparkle" className="text-accent" /> AI asistent
         </span>
+        {/* Na sredini trake (18.9.2026, vlasnikov zahtev) — isti obrazac kao RightPanel.tsx. */}
+        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+          <AiCapabilityIcons />
+        </div>
         <div className="flex items-center gap-1">
           {/* Strelica NAZAD ka desnom panelu — ista logika kao strelica koja ga je dovela ovde. */}
           <button

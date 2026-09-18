@@ -5,7 +5,6 @@ import { usePathname } from 'next/navigation';
 import Sidebar from './Sidebar';
 import TopBar from './TopBar';
 import ActivityBar from './ActivityBar';
-import RightRail from './RightRail';
 import CommandPalette from './CommandPalette';
 import ResizablePane from './ResizablePane';
 import StatusBar from './StatusBar';
@@ -31,15 +30,20 @@ const SIDEBAR_COLLAPSED_KEY = 'tt-panel-sidebar-collapsed';
 // Dizajn dok. §5f — "Customize Layout" (23.8.2026) — jedan localStorage ključ za sve panele koji
 // se mogu potpuno sakriti/prikazati, isti privremeni obrazac kao SIDEBAR_COLLAPSED_KEY dok pravi
 // `UserPreference` backend (M1 §3.9) ne postoji u kodu.
+//
+// `statusBar` UKLONJEN iz ovog spiska (18.9.2026) — otkad je klaster ikonica iz `RightRail.tsx`
+// (obrisan, isti prolaz) preseljen U `StatusBar.tsx`, ta traka više nije opciona: ona sad nosi
+// JEDINO dugme koje otvara "Customize Layout" meni (odatle se sakrivaju/vraćaju Bočna traka i
+// Terminal). Da je ostala hideable, sakrivanje bi obrisalo i jedini put nazad — ista zamka kao
+// da `ActivityBar.tsx` (koji nosi kontrolu za Sidebar) postane sakriven preko sopstvenog menija;
+// ActivityBar je iz istog razloga OTKAD POSTOJI van ovog spiska, StatusBar mu se sad pridružuje.
 const LAYOUT_VISIBILITY_KEY = 'tt-panel-layout-visibility';
 interface LayoutVisibility {
   sidebar: boolean;
-  statusBar: boolean;
   terminal: boolean;
 }
 const DEFAULT_LAYOUT_VISIBILITY: LayoutVisibility = {
   sidebar: true,
-  statusBar: true,
   terminal: false,
 };
 
@@ -555,12 +559,13 @@ export default function Shell({
                                 />
                               </ResizablePane>
                             ) : (
-                              // `right-[43px]`/`bottom-[43px]` (5.9.2026, dopuna) — desna traka (`RightRail.tsx`)
-                              // sad zauzima 43px uz desnu ivicu ekrana, i StatusBar je porastao sa 29px na 43px
-                              // (isti zahtev, "visina donje trake ista kao gornje") — overlay panel mora da
-                              // ostavi prostor za oboje, ne da ih prekrije.
+                              // `bottom-[43px]` (5.9.2026, dopuna) — StatusBar je porastao sa 29px na 43px (isti
+                              // zahtev, "visina donje trake ista kao gornje") — overlay panel mora da ostavi
+                              // prostor za nju, ne da je prekrije. `right-[43px]` (desna traka, `RightRail.tsx`)
+                              // UKINUTO (18.9.2026, vlasnikov zahtev: "uklonite desnu traku") — desna ivica
+                              // ekrana je sad slobodna, panel ide do same ivice (`right-0`).
                               <div
-                                className="fixed bottom-[43px] right-[43px] top-[43px] z-30 shadow-lg"
+                                className="fixed bottom-[43px] right-0 top-[43px] z-30 shadow-lg"
                                 style={{ display: rightPanelOpen ? undefined : 'none' }}
                               >
                                 <ResizablePane
@@ -583,33 +588,29 @@ export default function Shell({
                                 </ResizablePane>
                               </div>
                             )}
-                            {/* Desna vertikalna traka (5.9.2026, vlasnikov zahtev: "formirajte desnu traku i tu
-                smestite sve ikone iz gornje trake iz desnog ugla") — ogledalo `ActivityBar.tsx`
-                na suprotnoj ivici ekrana, POSLEDNJI element ovog reda tako da ostaje uz desnu
-                ivicu ekrana bez obzira na push/overlay stanje desnog panela iznad. */}
-                            <RightRail
-                              rightPanelOpen={rightPanelOpen}
-                              onToggleRightPanel={toggleRightPanelForCurrentModule}
-                              layoutProps={{
-                                sidebarVisible: layoutVisibility.sidebar,
-                                onToggleSidebar: () => toggleLayout('sidebar'),
-                                statusBarVisible: layoutVisibility.statusBar,
-                                onToggleStatusBar: () => toggleLayout('statusBar'),
-                                showTerminal: showBiTerminal,
-                                terminalOpen: layoutVisibility.terminal,
-                                onToggleTerminal: () => toggleLayout('terminal'),
-                                mainWidth,
-                                onChangeMainWidth: changeMainWidth,
-                              }}
-                            />
                           </div>
-                          {layoutVisibility.statusBar && (
-                            <StatusBar
-                              fullName={fullName}
-                              roleLabel={roles.join(', ')}
-                              moduleCode={moduleCodeForHref(pathname)}
-                            />
-                          )}
+                          {/* Desna vertikalna traka (`RightRail.tsx`, 5.9.2026 → 18.9.2026 UKINUTA, vlasnikov
+              zahtev: "uklonite desnu traku") — njene ikonice (tema/obaveštenja/Agent Inbox/
+              Customize Layout/desni panel/odjava/AI asistent) sele se u `StatusBar.tsx`, u
+              vodoravan niz u desnom uglu, ispred sata (isti zahtev, "ove ikone premestite jednu
+              pored druge u [donju] traku u desni ugao ispred sata"). Propsi nepromenjeni,
+              samo drugi primalac. */}
+                          <StatusBar
+                            fullName={fullName}
+                            roleLabel={roles.join(', ')}
+                            moduleCode={moduleCodeForHref(pathname)}
+                            rightPanelOpen={rightPanelOpen}
+                            onToggleRightPanel={toggleRightPanelForCurrentModule}
+                            layoutProps={{
+                              sidebarVisible: layoutVisibility.sidebar,
+                              onToggleSidebar: () => toggleLayout('sidebar'),
+                              showTerminal: showBiTerminal,
+                              terminalOpen: layoutVisibility.terminal,
+                              onToggleTerminal: () => toggleLayout('terminal'),
+                              mainWidth,
+                              onChangeMainWidth: changeMainWidth,
+                            }}
+                          />
                         </div>
                         {/* JEDINI `AiChatBox` u aplikaciji, u stabilnom domaćinu koji se FIZIČKI premešta u
             aktivan slot (desni panel ili dno centralne kolone), umesto da se prerenderuje tamo.

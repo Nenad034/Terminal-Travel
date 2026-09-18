@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import Icon from './Icon';
+import AiCapabilityIcons from './AiCapabilityIcons';
 import { useSelection } from './SelectionContext';
 import { useRowSummary } from './RowSummaryContext';
 import { useProductPreview } from './ProductPreviewContext';
@@ -579,10 +580,16 @@ export default function RightPanel({
           }`}
           style={!chatCollapsed && !topCollapsed ? { height: `${chatHeightPercent}%` } : undefined}
         >
-          <div className="flex h-9 flex-shrink-0 items-center justify-between border-b border-border px-2 text-xs font-medium text-ink-faint">
+          <div className="relative flex h-9 flex-shrink-0 items-center justify-between border-b border-border px-2 text-xs font-medium text-ink-faint">
             <span className="flex items-center gap-1.5">
               <Icon name="sparkle" className="text-accent" /> AI asistent
             </span>
+            {/* Na sredini trake (18.9.2026, vlasnikov zahtev), nezavisno od širine naslova/dugmadi
+                sa strane — `absolute` + `left-1/2 -translate-x-1/2` centrira u odnosu na CELU
+                traku, ne na preostali prostor između leve i desne strane. */}
+            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+              <AiCapabilityIcons />
+            </div>
             {/* Dugme "Fokus" (dopuna 25.8.2026, na zahtev vlasnika: "dugme za prosirivanje ai
               agenta stavite u gornji desno cosak ai modula") — premešteno ovamo iz AiChatBox.tsx
               reda za unos (gde je bilo pre ove dopune). */}

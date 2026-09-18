@@ -21,9 +21,27 @@ import { NAV_ITEMS, type NavGroup, type NavItem } from '@/lib/nav';
 // otvara isti meni) bez ijednog dodatnog reda. `left-full` bez razmaka do same ikonice: gap se
 // pravi unutrašnjim `pl-1.5` da putanja miša od ikonice do menija ostane neprekidno u hover
 // zoni — vidljiv razmak, a meni ne nestaje na pola puta.
-function GroupFlyout({ group, groupItems }: { group: NavGroup; groupItems: NavItem[] }) {
+function GroupFlyout({
+  group,
+  groupItems,
+  alignBottom,
+}: {
+  group: NavGroup;
+  groupItems: NavItem[];
+  /** Ikonica pri dnu trake (`isLast`, `mt-auto`, npr. Administracija) — 18.9.2026, vlasnikov
+   * nalaz uživo: "kada stavim miša na settings ikonu panel ode dole i ne vidi se". Meni je do
+   * sad UVEK bio usidren za vrh ikonice i rastao nadole (`top-0`) — za ikonicu blizu dna ekrana
+   * to ga gura ispod donje ivice, van vidljive površine (isti razlog kao ranija ispravka
+   * kalendara u `DateField.tsx`/menija u `NotificationBell.tsx`/`CustomizeLayoutButton.tsx`).
+   * `alignBottom` usidrava meni za DNO ikonice i raste NAGORE (`bottom-0`) umesto nadole. */
+  alignBottom?: boolean;
+}) {
   return (
-    <div className="pointer-events-none absolute left-full top-0 z-50 hidden pl-1.5 group-hover:block group-focus-within:block">
+    <div
+      className={`pointer-events-none absolute left-full z-50 hidden pl-1.5 group-hover:block group-focus-within:block ${
+        alignBottom ? 'bottom-0' : 'top-0'
+      }`}
+    >
       <div className="pointer-events-auto min-w-[190px] rounded-lg border border-border bg-panel py-1 text-xs shadow-lg">
         {/* Zaglavlje sa nazivom grupe ima smisla samo kad ispod njega stoji više stavki. Grupa
             sa jednom stavkom bi inače dobila naziv pa isti taj naziv ponovo kao jedini red —
@@ -144,7 +162,9 @@ export default function ActivityBar({
               >
                 <Icon name={group.icon} />
               </Link>
-              {flyout && <GroupFlyout group={group} groupItems={groupItems} />}
+              {flyout && (
+                <GroupFlyout group={group} groupItems={groupItems} alignBottom={isLast} />
+              )}
             </div>
           );
         }
@@ -153,7 +173,9 @@ export default function ActivityBar({
             <button title={title} onClick={() => onSelectGroup(group.id)} className={className}>
               <Icon name={group.icon} />
             </button>
-            {flyout && <GroupFlyout group={group} groupItems={groupItems} />}
+            {flyout && (
+              <GroupFlyout group={group} groupItems={groupItems} alignBottom={isLast} />
+            )}
           </div>
         );
       })}

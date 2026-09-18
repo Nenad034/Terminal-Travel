@@ -8,6 +8,7 @@ import { SAVED_VIEWS_CHANGED_EVENT, type SavedView } from '@/components/SavedVie
 import { useAiContext } from '@/components/AiContextContext';
 import RealBookingsTable, { type RealBooking } from './RealBookingsTable';
 import PeriodQuickFilter from './PeriodQuickFilter';
+import { useFilterMode } from './FilterModeContext';
 
 const PREFERENCE_KEY = 'saved_views.rezervacije_lista';
 
@@ -234,6 +235,13 @@ export default function BookingsListClient({
   // ikonica) se sklanja/vraća ispod njega. Aktivni filteri (URL parametri, productTypeFilter,
   // demoOnly) ostaju primenjeni dok su sklonjeni — ovo je samo vizuelni prostor, ne brisanje.
   const [filtersCollapsed, setFiltersCollapsed] = useState(false);
+  // "prozor" (18.9.2026, vlasnikov nalaz uživo: "kad se sakrije traka, dugme prozor ne otvara
+  // modul za pretragu") — `filtersCollapsed` je zamišljen da sklanja INLINE traku/formu (samo
+  // ima smisla u "traka" režimu); otkad `mode === 'prozor'` čini da `filterBar` BUDE sam prozor
+  // (RealFilterBar.tsx, 18.9.2026 dopuna), isti `−`/`+` prekidač je nehotice sklanjao i njega.
+  // Prozor se sad prikazuje BEZ OBZIRA na `filtersCollapsed` — to su dva nezavisna pitanja
+  // ("da li je traka sklonjena" naspram "koji je režim prikaza izabran").
+  const { mode } = useFilterMode();
 
   return (
     <>
@@ -308,15 +316,20 @@ export default function BookingsListClient({
             <AddFilteredListButton resultCount={bookings.length} />
             <SaveViewButton />
           </div>
-          <button
-            onClick={() => setFiltersCollapsed((v) => !v)}
-            title={filtersCollapsed ? 'Prikaži ostale filtere' : 'Sakrij ostale filtere'}
-            className="flex h-[26px] w-[26px] flex-shrink-0 items-center justify-center rounded text-ink-faint hover:bg-panel2 hover:text-ink"
-          >
-            <Icon name={filtersCollapsed ? 'add' : 'remove'} />
-          </button>
+          {/* Nema smisla u "prozor" režimu (18.9.2026) — sklanja/vraća INLINE traku, a u prozoru
+              nema trake da se sklanja (prozor ima sopstveno X/"otkaži"); bez ovog uslova dugme
+              bi ostajalo vidljivo, ali bez ikakvog vidljivog efekta na klik. */}
+          {mode !== 'prozor' && (
+            <button
+              onClick={() => setFiltersCollapsed((v) => !v)}
+              title={filtersCollapsed ? 'Prikaži ostale filtere' : 'Sakrij ostale filtere'}
+              className="flex h-[26px] w-[26px] flex-shrink-0 items-center justify-center rounded text-ink-faint hover:bg-panel2 hover:text-ink"
+            >
+              <Icon name={filtersCollapsed ? 'add' : 'remove'} />
+            </button>
+          )}
         </div>
-        {!filtersCollapsed && <div className="mt-2">{filterBar}</div>}
+        {(mode === 'prozor' || !filtersCollapsed) && <div className="mt-2">{filterBar}</div>}
       </div>
 
       <div className="mt-2">

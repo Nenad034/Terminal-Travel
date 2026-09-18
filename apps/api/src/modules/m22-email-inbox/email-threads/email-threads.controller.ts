@@ -2,6 +2,7 @@ import { Body, Controller, Get, Param, Post, Query, UseGuards } from '@nestjs/co
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { EmailThreadsService } from './email-threads.service';
 import { CreateMessageDto } from './dto/create-message.dto';
+import { ComposeThreadDto } from './dto/compose-thread.dto';
 import { LinkBookingDto } from './dto/link-booking.dto';
 import { LinkSupplierAnnouncementDto } from './dto/link-supplier-announcement.dto';
 import { JwtAuthGuard } from '../../m1-core-identitet/auth/guards/jwt-auth.guard';
@@ -34,6 +35,15 @@ export class EmailThreadsController {
   @RequirePermission('M22', 'email-thread', 'VIEW')
   findOne(@Param('id') id: string, @CurrentUser() user: { userId: string }) {
     return this.threads.findOne(id, user.userId);
+  }
+
+  // §3.1b — nov razgovor proizvoljnom primaocu. Registrovano PRE `:id/messages` da nema sumnje
+  // oko poretka ruta (Nest/Express bira po prvom poklapanju) — `compose` ovde nikad ne kolidira
+  // sa `:id` iznad jer stoji na sopstvenoj putanji (`/threads/compose`, ne `/threads/:id`).
+  @Post('compose')
+  @RequirePermission('M22', 'email-thread', 'REPLY')
+  compose(@Body() dto: ComposeThreadDto, @CurrentUser() user: { userId: string }) {
+    return this.threads.composeNewThread(dto, user.userId);
   }
 
   @Post(':id/messages')

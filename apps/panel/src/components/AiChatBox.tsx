@@ -112,6 +112,17 @@ interface OmnisearchResponse {
   aiAnswer?: string;
   // M15 spec §6.5.4.6 — odgovor je POTPITANJE (falio period/sastav za pretragu raspoloživosti).
   clarification?: boolean;
+  // M15 spec §6.5.4.9 (18.9.2026) — generisan Excel/PDF/HTML fajl, isti oblik kao BiTerminalAgent
+  // (TerminalPanel.tsx), isti deljen download endpoint.
+  report?: { id: string; format: 'EXCEL' | 'PDF' | 'HTML'; fileName: string };
+  // M15 spec §6.5.4.8 (18.9.2026) — predlog mejla, ništa još nije upisano.
+  pendingEmailDraft?: {
+    to: string;
+    subject: string;
+    body: string;
+    mailboxId: string;
+    mailboxAddress: string;
+  };
 }
 
 interface Turn {
@@ -123,6 +134,12 @@ interface Turn {
   inactive: boolean;
   /** §6.5.4.6 — vraća se serveru u `history[]` da izbroji krugove potpitanja (najviše dva). */
   clarification?: boolean;
+  /** §6.5.4.9 — isti oblik/download ruta kao BiTerminalAgent report (TerminalPanel.tsx). */
+  report?: OmnisearchResponse['report'];
+  /** §6.5.4.8 — predlog mejla + ljudska odluka (undefined dok čeka klik). */
+  pendingEmailDraft?: OmnisearchResponse['pendingEmailDraft'];
+  emailDraftDecision?: 'approved' | 'denied';
+  emailDraftThreadId?: string;
 }
 
 // Čitljiv naziv čipa za jednu kontekstnu stavku (dizajn dok. §6c.1a) — RECORD prikazuje samo
@@ -179,6 +196,118 @@ function filterableViewForPath(pathname: string): string | null {
     (p) => pathname === p || pathname.startsWith(`${p}?`),
   );
   return match ? PATH_TO_FILTERABLE_VIEW[match] : null;
+}
+
+// M15 spec §6.5.4.8 (18.9.2026) — "predloži pa čovek odobri" karta, isti obrazac kao
+// `WebFetchApprovalCard` (TerminalPanel.tsx, BiTerminalAgent §6.9.7): dok nije odlučeno, prikazuje
+// nacrt sa Odobri/Odbij; posle odluke, statična potvrda. "Odobri" ovde SAMO stvara NACRT u M22
+// (ništa nije poslato) — link vodi na taj razgovor gde korisnik i dalje mora ručno da klikne
+// "pošalji" (M22 spec §3.1b), isti dvostepeni princip kao svuda u ovom dokumentu.
+function ComposeEmailApprovalCard({
+  pending,
+  decision,
+  threadId,
+  onDecide,
+}: {
+  pending: NonNullable<Turn['pendingEmailDraft']>;
+  decision: Turn['emailDraftDecision'];
+  threadId: Turn['emailDraftThreadId'];
+  onDecide: (decision: 'approved' | 'denied', threadId?: string) => void;
+}) {
+  const [working, setWorking] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function decide(action: 'approve' | 'deny') {
+    setWorking(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/omnisearch/compose-email/${action}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(pending),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.message ?? 'Zahtev nije uspeo');
+      onDecide(action === 'approve' ? 'approved' : 'denied', data.threadId);
+    } catch (err) {
+      setError((err as Error).message || 'Zahtev nije uspeo — pokušaj ponovo.');
+    } finally {
+      setWorking(false);
+    }
+  }
+
+  if (decision) {
+    return (
+      <div className="mt-1 flex items-center gap-1.5 text-ink-faint">
+        <Icon name={decision === 'approved' ? 'check' : 'close'} />
+        {decision === 'approved' ? (
+          <>
+            Nacrt sačuvan —{' '}
+            {threadId ? (
+              <Link href={`/email/${threadId}`} className="text-accent hover:underline">
+                otvori u Mejlu da pošalješ
+              </Link>
+            ) : (
+              'otvori u Mejlu da pošalješ'
+            )}
+          </>
+        ) : (
+          'Odbijeno — ništa nije sačuvano.'
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-1 flex flex-col gap-1.5 rounded border border-warn bg-warn-bg px-2.5 py-2">
+      <div className="flex items-center gap-2 text-warn">
+        <Icon name="mail" /> Agent predlaže mejl (iz {pending.mailboxAddress})
+      </div>
+      <div className="text-ink-dim">
+        <span className="text-ink-faint">Za:</span> {pending.to}
+      </div>
+      <div className="text-ink-dim">
+        <span className="text-ink-faint">Naslov:</span> {pending.subject}
+      </div>
+      <div className="whitespace-pre-wrap text-ink-dim">{pending.body}</div>
+      <div className="flex flex-wrap items-center gap-1.5">
+        <button
+          disabled={working}
+          onClick={() => decide('approve')}
+          className="rounded border border-ok px-2 py-0.5 text-[11px] text-ok hover:bg-ok-bg disabled:opacity-40"
+        >
+          Odobri
+        </button>
+        <button
+          disabled={working}
+          onClick={() => decide('deny')}
+          className="rounded border border-ink-faint px-2 py-0.5 text-[11px] text-ink-faint hover:border-danger hover:text-danger disabled:opacity-40"
+        >
+          Odbij
+        </button>
+        {working && <Icon name="loading" className="animate-spin text-ink-faint" />}
+      </div>
+      {error && <span className="text-danger">{error}</span>}
+    </div>
+  );
+}
+
+// M15 spec §6.5.4.9 (18.9.2026) — isti "priprema fajl, ne šalje ništa" princip kao BiTerminalAgent
+// `ReportCard` (TerminalPanel.tsx), namerno BEZ "Pošalji u chat" pikera ovde — samo preuzimanje;
+// slanje u M19 chat ostaje BiTerminalAgent-specifična sposobnost dok se izričito ne zatraži i ovde.
+function ReportDownloadLink({ report }: { report: NonNullable<Turn['report']> }) {
+  return (
+    <div className="mt-1 flex items-center gap-1.5 rounded border border-ink-faint bg-panel-2 px-2.5 py-1.5">
+      <Icon name="file" />
+      <span className="text-ink">{report.fileName}</span>
+      <a
+        href={`/api/bi-terminal/reports/${report.id}/download`}
+        className="ml-auto rounded border border-ink-faint px-2 py-0.5 text-[11px] text-accent hover:border-accent"
+      >
+        Preuzmi
+      </a>
+    </div>
+  );
 }
 
 // Dizajn dok. §6c/§6c.1 — polje za AI razgovor fiksirano pri dnu centralnog panela, na SVAKOM
@@ -483,6 +612,8 @@ export default function AiChatBox({ fokus = false }: { fokus?: boolean }) {
           answer: data.aiAnswer,
           links: [...data.matchedRoutes],
           ...(data.clarification ? { clarification: true } : {}),
+          ...(data.report ? { report: data.report } : {}),
+          ...(data.pendingEmailDraft ? { pendingEmailDraft: data.pendingEmailDraft } : {}),
         };
         return next;
       });
@@ -580,9 +711,30 @@ export default function AiChatBox({ fokus = false }: { fokus?: boolean }) {
                     ))}
                   </div>
                 )}
-                {!t.answer && t.links.length === 0 && (
-                  <p className="text-ink-faint">Nema rezultata.</p>
+                {t.pendingEmailDraft && (
+                  <ComposeEmailApprovalCard
+                    pending={t.pendingEmailDraft}
+                    decision={t.emailDraftDecision}
+                    threadId={t.emailDraftThreadId}
+                    onDecide={(decision, threadId) => {
+                      const idx = turns.length - 1 - i;
+                      setTurns((cur) => {
+                        const next = [...cur];
+                        next[idx] = {
+                          ...next[idx],
+                          emailDraftDecision: decision,
+                          emailDraftThreadId: threadId,
+                        };
+                        return next;
+                      });
+                    }}
+                  />
                 )}
+                {t.report && <ReportDownloadLink report={t.report} />}
+                {!t.answer &&
+                  t.links.length === 0 &&
+                  !t.pendingEmailDraft &&
+                  !t.report && <p className="text-ink-faint">Nema rezultata.</p>}
               </div>
             )}
           </div>

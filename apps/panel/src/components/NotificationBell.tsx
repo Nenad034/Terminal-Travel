@@ -114,20 +114,21 @@ export default function NotificationBell() {
       <button
         onClick={toggle}
         title="Obaveštenja — istorija"
-        // Kvadratni "tag" (5.9.2026, vlasnikov zahtev: "ikone u desnoj traci takodje stavite u
-        // tagove, kao sto su u levoj") — isti jezik kao `ActivityBar.tsx` bedž (36px, `rounded-md`,
-        // `bg-panel`/`bg-accent-soft`), otkad je ovo dugme preseljeno iz `TopBar.tsx` u `RightRail.tsx`.
-        className={`relative flex h-[36px] w-[36px] flex-shrink-0 items-center justify-center rounded-md ${
-          open
-            ? 'bg-accent-soft text-accent-strong'
-            : 'bg-panel text-ink-faint hover:bg-panel2 hover:text-ink'
+        // Preseljeno TopBar.tsx → RightRail.tsx (5.9.2026) → StatusBar.tsx (18.9.2026, vlasnikov
+        // zahtev: "ikone... u [donju] traku... ispred sata" + "uklonite desnu traku") — 31px
+        // (poravnato sa "Poruke" dugmetom u StatusBar-u), bez `bg-panel` na mirnom stanju (traka
+        // je već `bg-bar`).
+        className={`relative flex h-[31px] w-[31px] flex-shrink-0 items-center justify-center rounded ${
+          open ? 'bg-panel text-accent' : 'text-ink-faint hover:bg-panel hover:text-ink'
         }`}
       >
         <Icon name="bell" />
         {unread && <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-accent" />}
       </button>
       {open && (
-        <div className="absolute right-0 top-full z-50 mt-1 w-80 rounded-lg border border-border bg-panel py-1 text-xs shadow-lg">
+        // `bottom-full` (18.9.2026, ne `top-full`) — StatusBar je DNO ekrana otkad je ovo dugme
+        // preseljeno tu; meni okrenut nadole bi se otvarao ispod vidljive površine.
+        <div className="absolute bottom-full right-0 z-50 mb-1 w-80 rounded-lg border border-border bg-panel py-1 text-xs shadow-lg">
           {items === null && <p className="px-3 py-2 text-ink-faint">Učitavanje…</p>}
           {items !== null && items.length === 0 && (
             <p className="px-3 py-2 text-ink-faint">Nema obaveštenja.</p>

@@ -15,6 +15,7 @@ import { CorrespondentMatcherService } from '../correspondent-matching/correspon
 import { ReferenceMatcherService } from '../reference-matching/reference-matcher.service';
 import { EmailAiAssistantService } from '../ai-assistant/email-ai-assistant.service';
 import { CreateMessageDto } from './dto/create-message.dto';
+import { ComposeThreadDto } from './dto/compose-thread.dto';
 import { LinkBookingDto } from './dto/link-booking.dto';
 import { LinkSupplierAnnouncementDto } from './dto/link-supplier-announcement.dto';
 
@@ -178,6 +179,74 @@ export class EmailThreadsService {
     });
 
     return message;
+  }
+
+  // §3.1b/§8 POST /threads/compose — nov razgovor proizvoljnom primaocu (koji do sad nije pisao
+  // nama), za razliku od createMessage() koji uvek zahteva POSTOJEĆU nit. Isti dvostruki gate kao
+  // svaki drugi M22 endpoint (§7) — `requireAccess` je isti privatni metod, samo pozvan direktno
+  // preko `dto.mailboxId` umesto preko threadId (nema niti da se učita pre ove tačke).
+  async composeNewThread(dto: ComposeThreadDto, actorUserId: string) {
+    await this.requireAccess(dto.mailboxId, actorUserId, 'REPLY');
+    const mailbox = await this.mailboxes.findOne(dto.mailboxId);
+
+    const thread = await this.prisma.emailThread.create({
+      data: {
+        mailboxId: dto.mailboxId,
+        subject: dto.subject,
+        // Bez unapred poznatog primaoca §3.1 tačno poklapanje adrese nema šta da poklopi — isto
+        // ponašanje kao svaki neprepoznat korespondent (§3.1 poslednja rečenica).
+        correspondentType: dto.correspondentType ?? 'OTHER',
+        status: 'OPEN',
+        lastMessageAt: new Date(),
+      },
+    });
+
+    let providerMessageId: string | null = null;
+    const sentBy = dto.send ? actorUserId : null;
+    if (dto.send) {
+      // Za razliku od createMessage() (odgovor u postojećoj niti, `toAddresses: []` — oslanja se
+      // na In-Reply-To/References zaglavlja), ovde nema prethodne poruke na koju se nadovezati,
+      // pa `toAddresses` MORA biti stvaran (§3.1b tačka 3).
+      const adapter = this.providerFactory.getAdapter(mailbox);
+      const result = await adapter.sendMessage(mailbox, {
+        toAddresses: dto.toAddresses,
+        subject: dto.subject,
+        body: dto.body,
+      });
+      providerMessageId = result.providerMessageId;
+    }
+
+    const message = await this.prisma.emailMessage.create({
+      data: {
+        threadId: thread.id,
+        direction: 'OUTBOUND',
+        // `send:false` (AI predlog preko M15 §6.5.4.8, JEDINI poziv sa send:false u ovom prolazu)
+        // → identičan oblik postojećem AI nacrtu odgovora (§4): AI_DRAFT, sentBy:null.
+        senderType: dto.send ? 'STAFF' : 'AI_DRAFT',
+        fromAddress: mailbox.address,
+        toAddresses: dto.toAddresses,
+        body: dto.body,
+        sentBy,
+        providerMessageId,
+      },
+    });
+
+    // `actorType: 'HUMAN'` bez obzira na `dto.send` (isti obrazac kao `createMessage()` iznad) —
+    // ovaj metod se UVEK poziva iz autentikovanog ljudskog HTTP zahteva (direktno za send:true,
+    // ili preko M15 §6.5.4.8 `compose-email/approve` rute za send:false — TAJ klik je ljudski,
+    // sadržaj je AI-autorski, što `senderType:'AI_DRAFT'` na samoj poruci već tačno beleži).
+    await this.auditLog.write({
+      actorType: 'HUMAN',
+      actorId: actorUserId,
+      module: 'M22',
+      action: dto.send ? 'email_message.sent' : 'email_message.drafted',
+      resourceType: 'EmailMessage',
+      resourceId: message.id,
+      afterState: message,
+      context: { threadId: thread.id, composed: true },
+    });
+
+    return { thread, message };
   }
 
   // §8 POST /threads/:id/messages/:messageId/send — čovek potvrđuje AI/STAFF nacrt (sentBy=null),

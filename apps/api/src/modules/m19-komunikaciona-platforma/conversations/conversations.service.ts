@@ -106,9 +106,20 @@ export class ConversationsService {
       result.push({
         id: m.conversation.id,
         type: m.conversation.type,
+        // ISPRAVKA (18.9.2026, vlasnikov nalaz uživo: "izgubila se ikona za notifikacije") —
+        // sopstveno `m.conversation.name` ima PRVENSTVO nad imenom drugog učesnika, ne obrnuto
+        // kao ranije. Komentar iznad ("DIRECT NEMA sopstveno name") je tačan za OBIČAN razgovor
+        // između dve osobe (tamo je `conversation.name` uvek null, pa ovaj red ionako pada na
+        // isti fallback kao pre — ništa se ne menja za taj slučaj). JEDAN poznat izuzetak:
+        // sistemska "Obaveštenja" konverzacija (`InAppNotificationsService.
+        // ensureNotificationsConversation`) je STVARNO DIRECT (korisnik + sistemski pošiljalac),
+        // ali JE STE dobila eksplicitno `name: 'Obaveštenja'` pri kreiranju — stara logika ga je
+        // svaki put prepisivala imenom sistemskog pošiljaoca ("Terminal Travel — sistemska
+        // obaveštenja"), pa `NotificationBell.tsx` (`.find(c => c.name === 'Obaveštenja')`) nikad
+        // nije mogao da je nađe — zvono je bilo trajno nevidljivo za SVAKOG korisnika u sistemu.
         name:
           m.conversation.type === 'DIRECT'
-            ? (directNameByConversationId.get(m.conversationId) ?? null)
+            ? (m.conversation.name ?? directNameByConversationId.get(m.conversationId) ?? null)
             : m.conversation.name,
         supplierId: m.conversation.supplierId,
         createdAt: m.conversation.createdAt,

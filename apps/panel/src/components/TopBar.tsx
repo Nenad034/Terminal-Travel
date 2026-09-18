@@ -86,8 +86,11 @@ export default function TopBar({
               razlog dizajna (dva "T" oblika sa stvarnim praznim razmakom u sredini, umesto
               velikog slova T na početku "Terminal"/"Travel"). Skraćena verzija (samo dva T
               simbola, bez reči) se prikazuje kad je bočna traka skupljena/uska — isti razlog kao
-              ranije, samo skraćen natpis: "previše se smanjuje logo" u uskom prostoru. */}
-          {showLabel ? <BrandLogoFull heightPx={23} /> : <BrandLogoShort heightPx={18.4} />}
+              ranije, samo skraćen natpis: "previše se smanjuje logo" u uskom prostoru.
+              Visina IZJEDNAČENA sa punom verzijom (18.9.2026, vlasnikov zahtev: "slova logoa
+              treba da budu iste veličine kao i kada je otvoren") — pre: 18.4 (80% od 23,
+              20.8.2026 umanjenje kad je skraćeni logo prvi put uveden). */}
+          {showLabel ? <BrandLogoFull heightPx={23} /> : <BrandLogoShort heightPx={23} />}
         </button>
       </div>
       {/* Traka tabova prati levu ivicu sadržaja kad je on sužen (2.9.2026, na zahtev vlasnika:

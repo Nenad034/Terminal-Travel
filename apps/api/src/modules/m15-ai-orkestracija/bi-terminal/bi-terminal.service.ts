@@ -1,9 +1,10 @@
 import { randomUUID } from 'crypto';
 import { writeFileSync } from 'fs';
 import { join } from 'path';
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { AuditLogService } from '../../m1-core-identitet/audit-log/audit-log.service';
+import { PermissionsService } from '../../m1-core-identitet/permissions/permissions.service';
 import { ReportsService } from '../../m13-bi/reports/reports.service';
 import { SupplierObligationsService } from '../../m10-finansije/supplier-obligations/supplier-obligations.service';
 import { SubagentsService } from '../../m7-b2b-subagenti/subagents/subagents.service';
@@ -63,7 +64,28 @@ export class BiTerminalService {
     private readonly reportViews: ReportViewsService,
     private readonly webContentSafety: WebContentSafetyService,
     private readonly agencySettings: AgencySettingsService,
+    private readonly permissions: PermissionsService,
   ) {}
+
+  // §6.9.3/§6.5.4.9 (18.9.2026) — poziva ga BiTerminalController PRE download/send-chat, umesto
+  // statičnog @RequirePermission na ruti (isti obrazac kao M13 `reports.controller.ts` §7 v1.5
+  // dopuna, `assertCanAccess`) — dozvola sad zavisi od KO je fajl napravio (`StoredReport.
+  // sourceAgent`), ne samo od rute. `BI_TERMINAL` (nepostavljeno = isto) zadržava staru, užu
+  // proveru; `OMNISEARCH` fajlovi nemaju sopstvenu M15 dozvolu (omnisearch namerno nema jednu
+  // opštu kapiju) — preuzeti sme isključivo ko ga je i tražio.
+  async assertReportAccess(
+    report: { createdBy: string; sourceAgent?: 'BI_TERMINAL' | 'OMNISEARCH' },
+    actorUserId: string,
+  ): Promise<void> {
+    if (report.sourceAgent === 'OMNISEARCH') {
+      if (report.createdBy !== actorUserId) {
+        throw new ForbiddenException('Ovaj izveštaj je napravio neko drugi.');
+      }
+      return;
+    }
+    const allowed = await this.permissions.hasPermission(actorUserId, 'M15', 'bi-terminal', 'VIEW');
+    if (!allowed) throw new ForbiddenException('Nema dozvolu M15/bi-terminal/VIEW.');
+  }
 
   async query(
     actorUserId: string,
@@ -687,7 +709,13 @@ export class BiTerminalService {
     // "Nenaplaćeni aranžmani" postajalo "Nenapla_eni_aran_mani" — `\p{L}` (unicode slovo) čuva ih,
     // briše samo stvarno nedozvoljene znakove za ime fajla.
     const fileName = `${data.title.replace(/[^\p{L}\p{N}-]+/gu, '_')}.${extension}`;
-    const id = saveReport({ buffer, mimeType, fileName, createdBy: actorUserId });
+    const id = saveReport({
+      buffer,
+      mimeType,
+      fileName,
+      createdBy: actorUserId,
+      sourceAgent: 'BI_TERMINAL',
+    });
     setReport({ id, format, fileName });
     return { ready: true, fileName, rowCount: data.rows.length };
   }

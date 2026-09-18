@@ -17,6 +17,7 @@ import { JwtService } from '@nestjs/jwt';
 import { OmnisearchService } from './omnisearch.service';
 import { ExtractFileService } from './extract-file.service';
 import { OmnisearchQueryDto } from './dto/omnisearch-query.dto';
+import { EmailDraftDecisionDto } from './dto/email-draft-decision.dto';
 import {
   AccessTokenPayload,
   JwtAuthGuard,
@@ -62,6 +63,30 @@ export class OmnisearchController {
       history: dto.history,
       ipAddress: req.ip ?? null,
     });
+  }
+
+  /**
+   * M15 spec §6.5.4.8 — LJUDSKI pokrenut klik na "Odobri" u panelu. Tek OVDE nastaje nacrt u
+   * M22 (nikad iz tool-use petlje u search() iznad) — isti obrazac kao BiTerminalAgent
+   * `web-fetch/approve` (§6.9.7). Samo INTERNAL_PANEL (M22/email-thread nema B2C ekvivalent).
+   */
+  @Post('compose-email/approve')
+  @UseGuards(JwtAuthGuard)
+  approveComposeEmail(
+    @Body() dto: EmailDraftDecisionDto,
+    @CurrentUser() user: { userId: string },
+  ) {
+    return this.omnisearch.approveComposeEmail(dto, user.userId);
+  }
+
+  @Post('compose-email/deny')
+  @UseGuards(JwtAuthGuard)
+  async denyComposeEmail(
+    @Body() dto: EmailDraftDecisionDto,
+    @CurrentUser() user: { userId: string },
+  ) {
+    await this.omnisearch.denyComposeEmail(dto, user.userId);
+    return { ok: true };
   }
 
   /**

@@ -8,8 +8,6 @@ interface CustomizeLayoutButtonProps {
   onToggleSidebar: () => void;
   rightPanelOpen: boolean;
   onToggleRightPanel: () => void;
-  statusBarVisible: boolean;
-  onToggleStatusBar: () => void;
   /** Stavka i njeno dugme uopšte ne postoje u DOM-u bez ove dozvole (M15 spec §6.9.2) — nije
    * onemogućeno dugme, potpuno odsutno, isti princip kao svaki drugi gate u ovom projektu. */
   showTerminal: boolean;
@@ -66,7 +64,9 @@ export default function CustomizeLayoutButton(props: CustomizeLayoutButtonProps)
     // "Desni panel" sad pokriva i AI chat (dizajn dok. §6c.0, 25.8.2026) — raniji zaseban "AI
     // chat" red je uklonjen, isti prekidač otvara/zatvara oboje (AI chat je trajan deo panela).
     { label: 'Desni panel', checked: props.rightPanelOpen, onToggle: props.onToggleRightPanel },
-    { label: 'Statusna traka', checked: props.statusBarVisible, onToggle: props.onToggleStatusBar },
+    // "Statusna traka" UKLONJENA sa ovog spiska (18.9.2026) — vidi komentar uz `LayoutVisibility`
+    // u Shell.tsx (ovo dugme sad živi UNUTAR statusne trake, sakrivanje bi obrisalo jedini put
+    // nazad).
     ...(props.showTerminal
       ? [{ label: 'Terminal', checked: props.terminalOpen, onToggle: props.onToggleTerminal }]
       : []),
@@ -77,15 +77,18 @@ export default function CustomizeLayoutButton(props: CustomizeLayoutButtonProps)
       <button
         onClick={() => setOpen((v) => !v)}
         title="Customize Layout"
-        // Kvadratni "tag" (5.9.2026, vlasnikov zahtev: "ikone u desnoj traci takodje stavite u
-        // tagove, kao sto su u levoj") — isti jezik kao `ActivityBar.tsx` bedž (36px, `rounded-md`,
-        // `bg-panel`/`bg-accent-soft`), otkad je ovo dugme preseljeno iz `TopBar.tsx` u `RightRail.tsx`.
-        className={`flex h-[36px] w-[36px] flex-shrink-0 items-center justify-center rounded-md ${open ? 'bg-accent-soft text-accent-strong' : 'bg-panel text-ink-faint hover:bg-panel2 hover:text-ink'}`}
+        // Preseljeno TopBar.tsx → RightRail.tsx (5.9.2026) → StatusBar.tsx (18.9.2026, vlasnikov
+        // zahtev: "ikone... u [donju] traku... ispred sata" + "uklonite desnu traku") — 31px
+        // (poravnato sa "Poruke" dugmetom u StatusBar-u), bez `bg-panel` na mirnom stanju (traka
+        // je već `bg-bar`).
+        className={`flex h-[31px] w-[31px] flex-shrink-0 items-center justify-center rounded ${open ? 'bg-panel text-accent' : 'text-ink-faint hover:bg-panel hover:text-ink'}`}
       >
         <Icon name="editor-layout" />
       </button>
       {open && (
-        <div className="absolute right-0 top-full mt-1 w-52 rounded-lg border border-border bg-panel py-1 text-xs shadow-lg">
+        // `bottom-full` (18.9.2026, ne `top-full`) — StatusBar je DNO ekrana otkad je ovo dugme
+        // preseljeno tu; meni okrenut nadole bi se otvarao ispod vidljive površine.
+        <div className="absolute bottom-full right-0 mb-1 w-52 rounded-lg border border-border bg-panel py-1 text-xs shadow-lg">
           {items.map((item) => (
             <button
               key={item.label}

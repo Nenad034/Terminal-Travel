@@ -27,6 +27,7 @@ import { M19KomunikacionaPlatformaModule } from '../m19-komunikaciona-platforma/
 import { SearchModule } from '../m5-rezervacije/search/search.module';
 import { ExchangeRatesModule } from '../m10-finansije/exchange-rates/exchange-rates.module';
 import { AgencySettingsModule } from '../m1-core-identitet/agency-settings/agency-settings.module';
+import { M22EmailInboxModule } from '../m22-email-inbox/m22-email-inbox.module';
 
 // docs/moduli/M15-ai-orkestracija/18-SPECIFIKACIJA-M15-AI-ORKESTRACIJA.md
 // v1.10 (Faza 7 prvi prolaz) dodaje pun AgentActionType registar (seed), sprovedbu na nivou
@@ -52,6 +53,11 @@ import { AgencySettingsModule } from '../m1-core-identitet/agency-settings/agenc
     SearchModule,
     ExchangeRatesModule,
     AgencySettingsModule,
+    // M15 spec §6.5.4.8 (18.9.2026) — `compose_email` alat treba `MailboxesService` (koje
+    // sanduče korisnik sme da koristi) i `EmailThreadsService` (`composeNewThread()`, poziva se
+    // TEK iz `approveComposeEmail()`, nikad iz tool-use petlje). `M22EmailInboxModule` ne uvozi
+    // ovaj modul nazad (samo `AnthropicClientService` klasu direktno) — nema kružne zavisnosti.
+    M22EmailInboxModule,
   ],
   controllers: [
     ModuleActivationController,

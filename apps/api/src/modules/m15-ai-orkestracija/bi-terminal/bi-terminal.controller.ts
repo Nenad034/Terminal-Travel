@@ -36,17 +36,25 @@ export class BiTerminalController {
     return this.biTerminal.query(actor.userId, dto.query, dto.history);
   }
 
-  // §6.9.3 dopuna — preuzimanje generisanog izveštaja (Excel/PDF/HTML). 30-minutni prolazan
-  // zapis (report-store.ts) — ističe pre nego što VLASNIK stigne da klikne = pošteno "nije više
-  // dostupno", ne tiha greška.
+  // §6.9.3/§6.5.4.9 dopuna — preuzimanje generisanog izveštaja (Excel/PDF/HTML). 30-minutni
+  // prolazan zapis (report-store.ts) — ističe pre nego što korisnik stigne da klikne = pošteno
+  // "nije više dostupno", ne tiha greška. BEZ @RequirePermission (18.9.2026, M15 §6.5.4.9) —
+  // dozvola zavisi od `StoredReport.sourceAgent`, proverava se PROGRAMSKI
+  // (`BiTerminalService.assertReportAccess`, isti obrazac kao M13 §7 v1.5 dopuna) jer se više ne
+  // može izraziti kao statična dozvola po ruti otkad ovaj endpoint deli i BiTerminalAgent
+  // (isključivo VLASNIK) i OmnisearchAgent (bez sopstvene M15 dozvole) fajlove.
   @Get('reports/:id/download')
-  @RequirePermission('M15', 'bi-terminal', 'VIEW')
-  download(@Param('id') id: string, @Res() res: Response) {
+  async download(
+    @Param('id') id: string,
+    @CurrentUser() actor: { userId: string },
+    @Res() res: Response,
+  ) {
     const report = getReport(id);
     if (!report)
       throw new NotFoundException(
         'Izveštaj je istekao ili ne postoji — ponovo zatraži u terminalu.',
       );
+    await this.biTerminal.assertReportAccess(report, actor.userId);
     res.set({
       'Content-Type': report.mimeType,
       'Content-Disposition': `attachment; filename="${report.fileName}"`,

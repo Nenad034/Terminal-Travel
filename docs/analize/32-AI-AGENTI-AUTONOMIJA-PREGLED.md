@@ -46,6 +46,7 @@
 | M23        | Nacrt prevoda članka na ostale jezike (deljen AI prevodilac, M15 poglavlje 6.7) |
 | (globalno) | Omnisearch pretraga/navigacija                                                  |
 | (globalno) | Pretraga spoljnih recenzija (samo sa odobrenog spiska sajtova)                  |
+| (globalno) | Generisanje Excel/PDF/HTML fajla iz razgovora (M15 §6.5.4.9) — pakuje već pročitane podatke, ništa trajno se ne upisuje |
 
 ## 🟡 Predloži pa čovek odobri
 
@@ -69,6 +70,7 @@
 | (globalno) | Preuzimanje slika sa linka koji je čovek nalepio za konkretan ručni proizvod (M5 ručne stavke, M15 §6.5.6c)   |
 | M18        | Primena istraženog trenda na dokumentaciju                                                                    |
 | M21        | Odobravanje predloženog help članka                                                                           |
+| M22        | Predlog novog mejla proizvoljnom primaocu iz AI razgovora (M15 §6.5.4.8) — nastaje samo nacrt, slanje je posebna, već postojeća M22 radnja |
 
 ## 🔴 Nikad autonomno
 

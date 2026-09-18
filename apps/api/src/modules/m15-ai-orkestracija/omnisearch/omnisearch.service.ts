@@ -13,6 +13,15 @@ import { HelpAssistantService } from '../../m21-centar-za-pomoc/help-assistant/h
 import { AgencySettingsService } from '../../m1-core-identitet/agency-settings/agency-settings.service';
 import { EntityResult, MatchedRoute, OmnisearchResponse } from './omnisearch-result.types';
 import { FILTERABLE_VIEWS, FILTERABLE_VIEW_IDS, buildFilterQuery } from './filterable-views';
+import { MailboxesService } from '../../m22-email-inbox/mailboxes/mailboxes.service';
+import { EmailThreadsService } from '../../m22-email-inbox/email-threads/email-threads.service';
+import {
+  generateExcelBuffer,
+  generateHtmlString,
+  generatePdfBuffer,
+  type ReportData,
+} from '../../../common/reports/report-generator';
+import { saveReport } from '../../../common/reports/report-store';
 
 export type OmnisearchChannel = 'INTERNAL_PANEL' | 'B2C_SITE';
 
@@ -105,6 +114,10 @@ function endsWithQuestion(text?: string): boolean {
 }
 
 const OMNISEARCH_AGENT_MODULE_CODE = 'M15_OMNISEARCH';
+// M15 spec §6.5.4.8 (18.9.2026) — zaseban aktivacioni gate, nezavisan od OMNISEARCH_AGENT_MODULE_CODE
+// (isti obrazac kao M15_WEB_RESEARCH nezavisan od M15_BI_TERMINAL, §6.9.3a) — osnovna pretraga
+// ostaje dostupna i kad je slanje mejla svesno isključeno (NOT_READY podrazumevano).
+const EMAIL_COMPOSE_MODULE_CODE = 'M15_EMAIL_COMPOSE';
 const BOOKING_REFERENCE_PATTERN = /TT-\d{4}-\d+/i;
 
 // M17 spec §5.5, M15 spec §6.5.3 — statična navigacija po ulozi (levi meni/paleta) živi u
@@ -203,6 +216,8 @@ export class OmnisearchService {
     private readonly helpAssistant: HelpAssistantService,
     private readonly agencySettings: AgencySettingsService,
     private readonly searchService: SearchService,
+    private readonly mailboxes: MailboxesService,
+    private readonly emailThreads: EmailThreadsService,
   ) {}
 
   /**
@@ -1075,6 +1090,50 @@ export class OmnisearchService {
               required: ['view', 'filters'],
             },
           },
+          {
+            // M15 spec §6.5.4.8 (18.9.2026) — NE piše ništa u bazu. Priprema predlog
+            // (`pendingEmailDraft`), prekida tool-loop (isti obrazac kao `propose_web_fetch`,
+            // BiTerminalAgent §6.9.7) — stvaran upis nacrta ide isključivo kroz ljudski klik
+            // "Odobri" na potpuno odvojenoj ruti.
+            name: 'compose_email',
+            description:
+              'Predloži NOV mejl proizvoljnom primaocu (ne odgovor u postojećem nizu — za to korisnik ' +
+              'koristi M22 Mejl ekran direktno). NE šalje ništa — samo predlaže, čeka odobrenje korisnika.',
+            input_schema: {
+              type: 'object' as const,
+              properties: {
+                to: { type: 'string' as const, description: 'Email adresa primaoca' },
+                subject: { type: 'string' as const },
+                body: { type: 'string' as const, description: 'Čist tekst, bez HTML-a' },
+                mailboxAddress: {
+                  type: 'string' as const,
+                  description:
+                    'Iz kog sandučeta šalje (adresa). Izostavi ako korisnik ima pristup tačno jednom — alat će tada sam odabrati; ako ih ima više, alat vraća grešku sa spiskom i traži da postaviš JEDNO pitanje koje sanduče koristiti.',
+                },
+              },
+              required: ['to', 'subject', 'body'],
+            },
+          },
+          {
+            // M15 spec §6.5.4.9 (18.9.2026) — deli kod sa BiTerminalAgent `generate_report`
+            // (§6.9.3, report-generator.ts/report-store.ts), izvor ograničen na podatke koje ovaj
+            // kanal već sme da pročita sopstvenim postojećim alatima.
+            name: 'generate_report',
+            description:
+              'Pripremi Excel/PDF/HTML fajl za preuzimanje od podataka koje daje search_bookings ili search_catalog, sa ISTIM parametrom koji si već koristio. Ne šalje ništa — samo priprema fajl.',
+            input_schema: {
+              type: 'object' as const,
+              properties: {
+                format: { type: 'string' as const, enum: ['EXCEL', 'PDF', 'HTML'] },
+                source: { type: 'string' as const, enum: ['bookings', 'catalog'] },
+                query: {
+                  type: 'string' as const,
+                  description: 'Isti upit koji si koristio za search_bookings/search_catalog',
+                },
+              },
+              required: ['format', 'source', 'query'],
+            },
+          },
         ];
 
     const systemPrompt = isB2C
@@ -1102,9 +1161,11 @@ export class OmnisearchService {
       : `Ti si OmnisearchAgent za interni panel agencije ${agencyName}. Odgovaraš isključivo na osnovu ` +
         'rezultata alata koje pozivaš i priloženog sadržaja ekrana (ako postoji) — nikad ne izmišljaš podatke. ' +
         'Odgovor drži kratkim (2-4 rečenice), na srpskom. Ako pitanje liči na zahtev za radnju (otkazivanje, ' +
-        'slanje, izmenu), nikad ne tvrdi da si tu radnju izvršio i nikad je sam ne pokušavaj — ti nemaš i nikad ' +
-        'nećeš imati mogućnost da menjaš podatke, samo analiziraš i predlažeš; objasni da korisnik treba sam da ' +
-        'potvrdi radnju na ekranu. ' +
+        'izmenu), nikad ne tvrdi da si tu radnju izvršio i nikad je sam ne pokušavaj — ti nemaš i nikad nećeš ' +
+        'imati mogućnost da menjaš podatke, samo analiziraš i predlažeš; objasni da korisnik treba sam da ' +
+        'potvrdi radnju na ekranu. JEDINI izuzetak je compose_email — kad korisnik traži da pošalješ mejl, ' +
+        'pozovi taj alat (on samo PREDLAŽE, korisnik i dalje mora da klikne "Odobri" pre nego što bilo šta ' +
+        'nastane, i potom "pošalji" u M22 ekranu pre nego što bilo šta stvarno ode). ' +
         'VAŽNO: svaka poruka može (ne mora) nositi blok "Sadržaj trenutnog ekrana" — to je vidljiv tekst taba koji ' +
         'je korisnik trenutno otvorio u panelu, priložen automatski. Kad taj blok postoji, koristi ga direktno da ' +
         'odgovoriš na pitanja o tom ekranu ("šta vidiš", "koje je stanje", "šta bi trebalo uraditi") — nemaš potrebu ' +
@@ -1183,6 +1244,9 @@ export class OmnisearchService {
     // MANJE polja se odbija u kodu.
     let lastSearchedFieldCount = -1;
     const priorClarificationRounds = (req.history ?? []).filter((h) => h.clarification).length;
+    // §6.5.4.8/§6.5.4.9 (18.9.2026) — vidi obradu `compose_email`/`generate_report` u petlji ispod.
+    let pendingEmailDraft: OmnisearchResponse['pendingEmailDraft'];
+    let generatedReport: OmnisearchResponse['report'];
 
     // M18 spec §6.3 — jedan AgentInvocationLog zapis po pozivu omnisearch-a (svi tool-use
     // iteracije zbrojene), ne po pojedinačnom Anthropic pozivu — actionCode identifikuje ceo
@@ -1256,8 +1320,65 @@ export class OmnisearchService {
       }
 
       messages.push({ role: 'assistant', content: response.content });
+
+      // M15 spec §6.5.4.8 — čim model predloži mejl, obrada je ODVOJENA od generičke petlje
+      // ispod (isti obrazac kao `propose_web_fetch`, BiTerminalAgent §6.9.7): uspešno razrešen
+      // predlog PREKIDA petlju bez ijednog upisa; nerazrešen (npr. dvosmisleno sanduče) vraća
+      // grešku modelu kao običan tool_result da postavi jedno potpitanje, ne prekida razgovor.
+      const composeEmailUse = (toolUses as any[]).find((use) => use.name === 'compose_email');
+      if (composeEmailUse) {
+        const input = composeEmailUse.input as {
+          to?: string;
+          subject?: string;
+          body?: string;
+          mailboxAddress?: string;
+        };
+        const resolved = await this.resolveComposeEmailMailbox(
+          req.actorUserId!,
+          input.mailboxAddress,
+        );
+        if ('error' in resolved) {
+          messages.push({
+            role: 'user',
+            content: [
+              {
+                type: 'tool_result',
+                tool_use_id: composeEmailUse.id,
+                content: JSON.stringify(resolved),
+              },
+            ],
+          });
+          continue;
+        }
+        pendingEmailDraft = {
+          to: input.to ?? '',
+          subject: input.subject ?? '',
+          body: input.body ?? '',
+          mailboxId: resolved.mailboxId,
+          mailboxAddress: resolved.mailboxAddress,
+        };
+        break;
+      }
+
       const toolResults: any[] = [];
       for (const use of toolUses as any[]) {
+        if (use.name === 'generate_report') {
+          const input = use.input as { format?: string; source?: string; query?: string };
+          let result: unknown;
+          try {
+            result = await this.generateReportTool(req, input, (r) => {
+              generatedReport = r;
+            });
+          } catch (err) {
+            this.logger.error(
+              `Alat "generate_report" bacio grešku: ${(err as Error).message}`,
+              (err as Error).stack,
+            );
+            result = { error: (err as Error).message };
+          }
+          toolResults.push({ type: 'tool_result', tool_use_id: use.id, content: JSON.stringify(result) });
+          continue;
+        }
         if (use.name === 'search_availability') {
           const avInput = (use.input ?? {}) as AvailabilityToolInput;
           const fieldCount =
@@ -1373,6 +1494,12 @@ export class OmnisearchService {
     }
 
     await logInvocation();
+
+    // §6.5.4.8 — predlog mejla prekida razgovor OVDE (isti obrazac kao BiTerminalAgent
+    // pendingWebFetch, §6.9.7) — ne vraća se zajedno sa običnim rezultatima pretrage.
+    if (pendingEmailDraft) {
+      return { active: true, matchedRoutes, entityResults, pendingEmailDraft };
+    }
     return {
       active: true,
       matchedRoutes,
@@ -1380,6 +1507,187 @@ export class OmnisearchService {
       aiAnswer: looksLikeActionRequest
         ? 'Pronašao sam moguće rezultate — potvrdi radnju ručno na odgovarajućoj stranici.'
         : undefined,
+      report: generatedReport,
     };
+  }
+
+  // §6.5.4.8 — NIKAD poziva se iz tool-use petlje. Bira TAČNO jedno sanduče na koje korisnik ima
+  // REPLY pristup: ako `mailboxAddress` nije dat i postoji tačno jedno, koristi ga; ako ih ima
+  // više ili nijedno, vraća čitljivu grešku (agent postavlja JEDNO potpitanje, ne pogađa).
+  private async resolveComposeEmailMailbox(
+    actorUserId: string,
+    mailboxAddress?: string,
+  ): Promise<{ mailboxId: string; mailboxAddress: string } | { error: string }> {
+    const accessRows = await this.prisma.mailboxAccess.findMany({
+      where: { userId: actorUserId, accessLevel: 'REPLY' },
+      include: { mailbox: { select: { id: true, address: true } } },
+    });
+    if (accessRows.length === 0) {
+      return { error: 'Korisnik nema pristup nijednom sandučetu za slanje (M22 REPLY dozvola).' };
+    }
+    if (mailboxAddress) {
+      const match = accessRows.find(
+        (r) => r.mailbox.address.toLowerCase() === mailboxAddress.toLowerCase(),
+      );
+      if (!match) {
+        return {
+          error: `Korisnik nema pristup sandučetu "${mailboxAddress}". Dostupna: ${accessRows.map((r) => r.mailbox.address).join(', ')}.`,
+        };
+      }
+      return { mailboxId: match.mailbox.id, mailboxAddress: match.mailbox.address };
+    }
+    if (accessRows.length > 1) {
+      return {
+        error: `Korisnik ima pristup više sandučeta — postavi JEDNO pitanje koje da koristim: ${accessRows.map((r) => r.mailbox.address).join(', ')}.`,
+      };
+    }
+    return { mailboxId: accessRows[0].mailbox.id, mailboxAddress: accessRows[0].mailbox.address };
+  }
+
+  // §6.5.4.8 — poziva se ISKLJUČIVO iz kontrolera posle ljudskog klika "Odobri" (nikad iz
+  // tool-use petlje). Ponovo proverava REPLY pristup (identitet koji je pitao ne mora biti isti
+  // kao identitet koji odobrava, § princip najmanjih ovlašćenja) pre nego što uopšte pozove M22.
+  async approveComposeEmail(
+    pending: NonNullable<OmnisearchResponse['pendingEmailDraft']>,
+    actorUserId: string,
+  ) {
+    // Isti obrazac kao BiTerminalAgent approveWebFetch (§6.9.7) — gate se proverava OVDE, ne pre
+    // ponude alata modelu (alat se uvek nudi, samo se stvaran upis blokira dok gate nije ACTIVATED).
+    const activation = await this.prisma.moduleAgentActivation.findUnique({
+      where: { moduleCode: EMAIL_COMPOSE_MODULE_CODE },
+    });
+    if (!activation || activation.status !== 'ACTIVATED') {
+      throw new ForbiddenException(
+        'Slanje mejla iz AI razgovora nije aktivirano (M15_EMAIL_COMPOSE) — kontaktiraj administratora.',
+      );
+    }
+    const access = await this.mailboxes.findAccess(pending.mailboxId, actorUserId);
+    if (!access || access.accessLevel !== 'REPLY') {
+      throw new ForbiddenException(
+        `Nemaš REPLY pristup sandučetu ${pending.mailboxAddress} — predlog se ne može odobriti.`,
+      );
+    }
+    const { thread } = await this.emailThreads.composeNewThread(
+      {
+        mailboxId: pending.mailboxId,
+        toAddresses: [pending.to],
+        subject: pending.subject,
+        body: pending.body,
+        correspondentType: 'OTHER',
+        send: false,
+      },
+      actorUserId,
+    );
+    await this.auditLog.write({
+      actorType: 'HUMAN',
+      actorId: actorUserId,
+      module: 'M15',
+      action: 'omnisearch.compose_email.approve',
+      resourceType: 'OmnisearchComposeEmail',
+      resourceId: thread.id,
+      context: { pending },
+    });
+    return { threadId: thread.id };
+  }
+
+  // §6.5.4.8 — samo audit trag, bez poziva M22 (ništa nije upisano, isto ponašanje kao
+  // BiTerminalAgent denyWebFetch, §6.9.7).
+  async denyComposeEmail(
+    pending: NonNullable<OmnisearchResponse['pendingEmailDraft']>,
+    actorUserId: string,
+  ) {
+    await this.auditLog.write({
+      actorType: 'HUMAN',
+      actorId: actorUserId,
+      module: 'M15',
+      action: 'omnisearch.compose_email.deny',
+      resourceType: 'OmnisearchComposeEmail',
+      resourceId: pending.mailboxId,
+      context: { pending },
+    });
+  }
+
+  // §6.5.4.9 — deli kod (report-generator.ts/report-store.ts) sa BiTerminalAgent generate_report
+  // (§6.9.3). Izvor ograničen na `bookings`/`catalog` — ISTE dozvole kao postojeći
+  // search_bookings/search_catalog alati (§6.5.2), ne novi, širi upit.
+  private async generateReportTool(
+    req: OmnisearchRequest,
+    input: { format?: string; source?: string; query?: string },
+    setReport: (r: OmnisearchResponse['report']) => void,
+  ): Promise<unknown> {
+    const format = input.format as 'EXCEL' | 'PDF' | 'HTML';
+    const source = input.source as 'bookings' | 'catalog';
+    const query = input.query ?? req.query;
+
+    let data: ReportData;
+    if (source === 'bookings') {
+      const { data: all } = await this.bookings.findAll(
+        {},
+        { userId: req.actorUserId! },
+        { limit: MAX_PAGE_SIZE },
+      );
+      const lowerQuery = query.toLowerCase();
+      const refMatch = BOOKING_REFERENCE_PATTERN.exec(query);
+      const rows = (all as any[])
+        .filter((b) => {
+          if (refMatch && String(b.bookingNumber).toLowerCase().includes(refMatch[0].toLowerCase()))
+            return true;
+          if (b.buyerName && String(b.buyerName).toLowerCase().includes(lowerQuery)) return true;
+          return false;
+        })
+        .map((b) => ({
+          broj: b.bookingNumber,
+          kupac: b.buyerName,
+          status: b.status,
+          uplata: b.paymentStatus,
+          kreirano: b.createdAt,
+        }));
+      data = { title: 'Rezervacije', rows };
+    } else {
+      const { data: all } = await this.products.findAll({}, { limit: MAX_PAGE_SIZE });
+      const lowerQuery = query.toLowerCase();
+      const rows = (all as any[])
+        .filter((p) => {
+          const haystack = [p.translation?.name, p.destinationCountry, p.destinationCity]
+            .filter(Boolean)
+            .join(' ')
+            .toLowerCase();
+          return haystack.includes(lowerQuery);
+        })
+        .map((p) => ({
+          naziv: p.translation?.name ?? p.id,
+          drzava: p.destinationCountry,
+          mesto: p.destinationCity,
+        }));
+      data = { title: 'Katalog', rows };
+    }
+
+    let buffer: Buffer;
+    let mimeType: string;
+    let extension: string;
+    if (format === 'EXCEL') {
+      buffer = await generateExcelBuffer(data);
+      mimeType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+      extension = 'xlsx';
+    } else if (format === 'PDF') {
+      buffer = await generatePdfBuffer(data);
+      mimeType = 'application/pdf';
+      extension = 'pdf';
+    } else {
+      buffer = Buffer.from(generateHtmlString(data), 'utf8');
+      mimeType = 'text/html';
+      extension = 'html';
+    }
+
+    const fileName = `${data.title.replace(/[^\p{L}\p{N}-]+/gu, '_')}.${extension}`;
+    const id = saveReport({
+      buffer,
+      mimeType,
+      fileName,
+      createdBy: req.actorUserId!,
+      sourceAgent: 'OMNISEARCH',
+    });
+    setReport({ id, format, fileName });
+    return { ready: true, fileName, rowCount: data.rows.length };
   }
 }

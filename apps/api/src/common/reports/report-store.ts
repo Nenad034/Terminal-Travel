@@ -16,6 +16,12 @@ export interface StoredReport {
   // bio), pošto ruta sama ne nosi statičnu @RequirePermission (poglavlje 7 spec-a). BI Terminal
   // (M15) ga ne postavlja — ponašanje mu ostaje identično pre premeštanja ovog fajla.
   reportKind?: string;
+  // M15 spec §6.5.4.9 (18.9.2026) — koji AI agent je napravio ovaj fajl: `BI_TERMINAL` (uska
+  // dozvola, isključivo VLASNIK) ili `OMNISEARCH` (bez sopstvene M15 dozvole — omnisearch
+  // namerno nema jednu opštu kapiju, § komentar omnisearch.controller.ts — pa se preuzimanje
+  // za taj slučaj proverava preko `createdBy === actorUserId`, ne preko dozvole). Nepostavljeno
+  // = `BI_TERMINAL` (isto ponašanje kao pre ovog polja, ni jedan postojeći poziv ga ne postavlja).
+  sourceAgent?: 'BI_TERMINAL' | 'OMNISEARCH';
 }
 
 const TTL_MS = 30 * 60 * 1000;

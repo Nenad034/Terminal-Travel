@@ -26,6 +26,10 @@ describe('OmnisearchService (M15 spec §6.5, §10)', () => {
           ),
       },
       aIAgent: { findFirst: jest.fn().mockResolvedValue({ userId: 'agent-user-1' }) },
+      // M15 spec §6.5.4.8 — `resolveComposeEmailMailbox` čita ovo direktno (nema sopstveni
+      // servisni metod za "sva sanduča na koja korisnik ima REPLY", isti princip kao ostatak
+      // ovog servisa koji čita M5/M2 preko sopstvenih servisa, ne preko Prisma direktno svuda).
+      mailboxAccess: { findMany: jest.fn().mockResolvedValue([]) },
     };
     const auditLog = { write: jest.fn().mockResolvedValue(undefined) };
     const permissions = { hasPermission: jest.fn().mockResolvedValue(true) };
@@ -56,6 +60,15 @@ describe('OmnisearchService (M15 spec §6.5, §10)', () => {
       resolveDestination: jest.fn().mockResolvedValue({ country: 'Grčka', city: null }),
       suggestCountries: jest.fn().mockResolvedValue([{ country: 'Grčka', count: 3 }]),
     };
+    // M15 spec §6.5.4.8 — `compose_email` zavisnosti (M22), mock po istom obrascu kao ostatak.
+    const mailboxes = {
+      findAccess: jest.fn().mockResolvedValue(null),
+    };
+    const emailThreads = {
+      composeNewThread: jest
+        .fn()
+        .mockResolvedValue({ thread: { id: 'thread-1' }, message: { id: 'message-1' } }),
+    };
 
     const service = new OmnisearchService(
       prisma as any,
@@ -68,6 +81,8 @@ describe('OmnisearchService (M15 spec §6.5, §10)', () => {
       helpAssistant as any,
       agencySettings as any,
       searchService as any,
+      mailboxes as any,
+      emailThreads as any,
     );
     return {
       service,
@@ -81,6 +96,8 @@ describe('OmnisearchService (M15 spec §6.5, §10)', () => {
       helpAssistant,
       agencySettings,
       searchService,
+      mailboxes,
+      emailThreads,
     };
   }
 
@@ -1189,5 +1206,140 @@ describe('OmnisearchService (M15 spec §6.5, §10)', () => {
     const second = JSON.parse(create.mock.calls[2][0].messages.at(-1).content[0].content);
     expect(second.error).toMatch(/ne uklanjaj/i);
     expect(result.entityResults).toHaveLength(0);
+  });
+
+  // M15 spec §6.5.4.8 (18.9.2026) — compose_email NIKAD ne piše ništa u bazu iz tool-use petlje.
+  describe('compose_email (§6.5.4.8)', () => {
+    it('sa tačno jednim REPLY sandučetom vraća pendingEmailDraft i ne poziva emailThreads.composeNewThread', async () => {
+      const { service, anthropic, prisma, emailThreads } = makeService({
+        anthropicConfigured: true,
+      });
+      (prisma.mailboxAccess.findMany as jest.Mock).mockResolvedValue([
+        { mailbox: { id: 'mb-1', address: 'rezervacije@agencija.rs' } },
+      ]);
+      const create = jest.fn().mockResolvedValueOnce({
+        content: [
+          {
+            type: 'tool_use',
+            id: 'tu1',
+            name: 'compose_email',
+            input: { to: 'gost@primer.com', subject: 'Ponuda', body: 'Zdravo' },
+          },
+        ],
+        usage: { input_tokens: 10, output_tokens: 5 },
+      });
+      (anthropic.getClient as jest.Mock).mockReturnValue({ messages: { create } });
+
+      const result = await service.search({
+        query: 'posalji mejl gostu',
+        channel: 'INTERNAL_PANEL',
+        actorUserId: 'u1',
+      });
+
+      expect(create).toHaveBeenCalledTimes(1); // petlja PREKINUTA, nema drugog poziva modelu
+      expect(emailThreads.composeNewThread).not.toHaveBeenCalled(); // ništa nije upisano
+      expect(result.pendingEmailDraft).toEqual({
+        to: 'gost@primer.com',
+        subject: 'Ponuda',
+        body: 'Zdravo',
+        mailboxId: 'mb-1',
+        mailboxAddress: 'rezervacije@agencija.rs',
+      });
+    });
+
+    it('sa dva REPLY sandučeta vraća grešku modelu (ne pogađa) i model nastavlja tekstom', async () => {
+      const { service, anthropic, prisma } = makeService({ anthropicConfigured: true });
+      (prisma.mailboxAccess.findMany as jest.Mock).mockResolvedValue([
+        { mailbox: { id: 'mb-1', address: 'rezervacije@agencija.rs' } },
+        { mailbox: { id: 'mb-2', address: 'racuni@agencija.rs' } },
+      ]);
+      const create = jest
+        .fn()
+        .mockResolvedValueOnce({
+          content: [
+            {
+              type: 'tool_use',
+              id: 'tu1',
+              name: 'compose_email',
+              input: { to: 'gost@primer.com', subject: 'Ponuda', body: 'Zdravo' },
+            },
+          ],
+          usage: { input_tokens: 10, output_tokens: 5 },
+        })
+        .mockResolvedValueOnce({
+          content: [{ type: 'text', text: 'Iz kog sandučeta da pošaljem?' }],
+          usage: { input_tokens: 10, output_tokens: 5 },
+        });
+      (anthropic.getClient as jest.Mock).mockReturnValue({ messages: { create } });
+
+      const result = await service.search({
+        query: 'posalji mejl gostu',
+        channel: 'INTERNAL_PANEL',
+        actorUserId: 'u1',
+      });
+
+      expect(create).toHaveBeenCalledTimes(2);
+      const toolResult = JSON.parse(create.mock.calls[1][0].messages.at(-1).content[0].content);
+      expect(toolResult.error).toMatch(/više sandučeta/i);
+      expect(result.pendingEmailDraft).toBeUndefined();
+      expect(result.aiAnswer).toBe('Iz kog sandučeta da pošaljem?');
+    });
+  });
+
+  describe('approveComposeEmail/denyComposeEmail (§6.5.4.8)', () => {
+    const pending = {
+      to: 'gost@primer.com',
+      subject: 'Ponuda',
+      body: 'Zdravo',
+      mailboxId: 'mb-1',
+      mailboxAddress: 'rezervacije@agencija.rs',
+    };
+
+    it('odobrenje dok M15_EMAIL_COMPOSE nije ACTIVATED baca ForbiddenException (isti obrazac kao M15_WEB_RESEARCH)', async () => {
+      const { service, emailThreads } = makeService({ activationStatus: 'NOT_READY' });
+      await expect(service.approveComposeEmail(pending, 'u1')).rejects.toThrow(/nije aktivirano/);
+      expect(emailThreads.composeNewThread).not.toHaveBeenCalled();
+    });
+
+    it('odobrenje bez REPLY pristupa baca ForbiddenException, ne piše ništa', async () => {
+      const { service, mailboxes, emailThreads } = makeService();
+      (mailboxes.findAccess as jest.Mock).mockResolvedValue(null);
+      await expect(service.approveComposeEmail(pending, 'u1')).rejects.toThrow(
+        /Nemaš REPLY pristup/,
+      );
+      expect(emailThreads.composeNewThread).not.toHaveBeenCalled();
+    });
+
+    it('odobrenje sa REPLY pristupom poziva composeNewThread sa send:false i upisuje audit log', async () => {
+      const { service, mailboxes, emailThreads, auditLog } = makeService();
+      (mailboxes.findAccess as jest.Mock).mockResolvedValue({ accessLevel: 'REPLY' });
+
+      const result = await service.approveComposeEmail(pending, 'u1');
+
+      expect(emailThreads.composeNewThread).toHaveBeenCalledWith(
+        {
+          mailboxId: 'mb-1',
+          toAddresses: ['gost@primer.com'],
+          subject: 'Ponuda',
+          body: 'Zdravo',
+          correspondentType: 'OTHER',
+          send: false,
+        },
+        'u1',
+      );
+      expect(auditLog.write).toHaveBeenCalledWith(
+        expect.objectContaining({ action: 'omnisearch.compose_email.approve' }),
+      );
+      expect(result).toEqual({ threadId: 'thread-1' });
+    });
+
+    it('odbijanje upisuje audit log bez poziva composeNewThread', async () => {
+      const { service, emailThreads, auditLog } = makeService();
+      await service.denyComposeEmail(pending, 'u1');
+      expect(emailThreads.composeNewThread).not.toHaveBeenCalled();
+      expect(auditLog.write).toHaveBeenCalledWith(
+        expect.objectContaining({ action: 'omnisearch.compose_email.deny' }),
+      );
+    });
   });
 });

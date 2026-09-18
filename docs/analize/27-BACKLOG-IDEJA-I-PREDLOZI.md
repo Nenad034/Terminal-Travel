@@ -529,7 +529,7 @@ _(§10, `docs/moduli/M22-email-inbox/25-SPECIFIKACIJA-M22-EMAIL-INBOX.md`)_ — 
 - Tačan mehanizam podešavanja "auto-send" praga za informativne kategorije.
 - Pretraga/arhiva starih niti i period čuvanja mejlova (retencija) — van obima ove verzije.
 - ~~M17 ekran (interni panel prikaz inbox-a)~~ — **rešeno avgust 2026 (M17 Faza 7)**, `apps/panel/src/app/(app)/email/`, uživo provereno.
-- **"Compose" — napisati i poslati nov mejl proizvoljnom primaocu** (23.8.2026, otkriveno pri M15 §6.9.3 dopuni — `BiTerminalAgent` je trebalo da može da pošalje izveštaj mejlom, ali M22 danas ume samo da odgovori unutar postojećeg niza poruka) — zaseban zadatak, M22 spec `docs/moduli/M15-ai-orkestracija/18-SPECIFIKACIJA-M15-AI-ORKESTRACIJA.md` poglavlje 11.
+- ~~**"Compose" — napisati i poslati nov mejl proizvoljnom primaocu**~~ — **rešeno 18.9.2026**, M22 spec §3.1b (`EmailThreadsService.composeNewThread`) + M15 spec §6.5.4.8 (`OmnisearchAgent` alat `compose_email`, predlog-pa-odobrenje preko `pendingEmailDraft`). Preostaje samo uže spajanje sa BiTerminalAgent generisanim fajlom (M15 spec poglavlje 11, "Slanje BiTerminalAgent izveštaja mejlom") — otvoreno dok se ne zatraži.
 
 ## M23 — Znanje
 

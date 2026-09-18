@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import Link from 'next/link';
 import Icon from '@/components/Icon';
 import RealFilterFields, { type FilterOption } from './RealFilterFields';
@@ -81,37 +81,6 @@ function useAutoSubmitForm() {
   return { formRef, handleFormChange };
 }
 
-function countActiveFilters(f: BookingFilters): number {
-  // "Kreirano od/do", "Dolazak od/do", "Odlazak od/do" broje se kao PO JEDAN kriterijum (ne dva)
-  // — isti princip kao `CalendarFilterBar.tsx` `countActiveCriteria`.
-  const singleFields: (keyof BookingFilters)[] = [
-    'bookingNumber',
-    'buyerName',
-    'status',
-    'paymentStatus',
-    'tipNastupanja',
-    'productType',
-    'destinationCity',
-    'destinationCountry',
-    'productName',
-    'currency',
-    'hasTravelGuarantee',
-    'branchId',
-    'ownerId',
-    'assignedToId',
-    'supplierId',
-    'supplierType',
-    'accommodationType',
-  ];
-  const hasValue = (v: string | string[] | undefined) =>
-    Array.isArray(v) ? v.length > 0 : Boolean(v);
-  let n = singleFields.filter((k) => hasValue(f[k] as string | string[] | undefined)).length;
-  if (f.createdFrom || f.createdTo) n += 1;
-  if (f.stayFrom || f.stayTo) n += 1;
-  if (f.returnFrom || f.returnTo) n += 1;
-  return n;
-}
-
 export default function RealFilterBar({
   filters,
   branches,
@@ -126,45 +95,24 @@ export default function RealFilterBar({
   const hasAnyFilter = Object.values(filters).some((v) =>
     Array.isArray(v) ? v.length > 0 : Boolean(v),
   );
-  const { mode } = useFilterMode();
-  const [modalOpen, setModalOpen] = useState(false);
+  const { mode, setMode } = useFilterMode();
   const { formRef, handleFormChange } = useAutoSubmitForm();
 
-  const activeCount = countActiveFilters(filters);
-
+  // Dopunska stavka "Filteri" (pill dugme koje je otvaralo prozor) UKINUTA (18.9.2026, vlasnikov
+  // zahtev: "iskljucite filter dugme i ovaj modul pojaviti kada se odabere dugme prozor") — bila
+  // je suvišan drugi klik posle prekidača `FilterModeToggle.tsx` koji već bira "prozor" prikaz.
+  // Prozor se sad prikazuje ONOLIKO dugo koliko je "prozor" izabran u prekidaču — zatvaranje
+  // (X/"otkaži") vraća prekidač na "traka", isto stanje, jedan izvor istine umesto dva
+  // (`mode` + ranije zaseban `modalOpen`).
   if (mode === 'prozor') {
     return (
-      <div className="mb-3 flex items-center gap-2 text-xs">
-        <button
-          type="button"
-          onClick={() => setModalOpen(true)}
-          className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 font-medium ${
-            hasAnyFilter
-              ? 'border-accent bg-accent-soft text-accent-strong'
-              : 'border-border text-ink-dim hover:border-accent hover:text-ink'
-          }`}
-        >
-          <Icon name="filter" className="!text-[13px]" />
-          Filteri
-          {hasAnyFilter
-            ? ` · ${activeCount} ${activeCount === 1 ? 'kriterijum' : 'kriterijuma'}`
-            : ''}
-        </button>
-        {hasAnyFilter && (
-          <Link href="/rezervacije/lista" className="font-medium text-ink-faint hover:text-danger">
-            obriši filter
-          </Link>
-        )}
-        {modalOpen && (
-          <FilterModal
-            filters={filters}
-            branches={branches}
-            employees={employees}
-            suppliers={suppliers}
-            onClose={() => setModalOpen(false)}
-          />
-        )}
-      </div>
+      <FilterModal
+        filters={filters}
+        branches={branches}
+        employees={employees}
+        suppliers={suppliers}
+        onClose={() => setMode('traka')}
+      />
     );
   }
 
@@ -208,6 +156,13 @@ export default function RealFilterBar({
 // okvirom (`max-w-6xl`/`max-h-[92vh]`) da stane pun raspored kolona iz `RealFilterFields.tsx`
 // (isti raspored kao traka, ne poseban grid). Auto-submit sad AKTIVAN i ovde (vidi napomenu
 // uz `TEXT_DEBOUNCE_MS` iznad) — ista `useAutoSubmitForm()` logika kao traka.
+// DALJE proširen za 30% (18.9.2026, vlasnikov nalaz uz snimak ekrana: "ovo lose izgleda rasirite
+// za 30%") — `max-w-6xl` (72rem) → `max-w-[93.6rem]` (72×1.3, tačnih 30%). Visina blago
+// povećana (`max-h-[92vh]` → `max-h-[95vh]`) za više vazduha; STVARNI uzrok "kalendar se seče na
+// pola" je bio drugde — `DateField.tsx` je kalendar crtao `position: absolute` UNUTAR ovog
+// `overflow-y-auto` okvira, pa ga je on sekao kad je polje stajalo pri dnu; ispravljeno tamo
+// (portal u `document.body` + pametno okretanje nagore kad nema mesta ispod), ne ovde širinom
+// okvira — ova promena ovde je samo dodatni vazduh, ne suštinska popravka.
 function FilterModal({
   filters,
   branches,
@@ -237,7 +192,7 @@ function FilterModal({
       onClick={onClose}
     >
       <div
-        className="max-h-[92vh] w-full max-w-6xl overflow-y-auto rounded-xl border border-border bg-panel p-4 shadow-2xl"
+        className="max-h-[95vh] w-full max-w-[93.6rem] overflow-y-auto rounded-xl border border-border bg-panel p-4 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-3 flex items-center justify-between">

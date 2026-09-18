@@ -2132,6 +2132,15 @@ async function seedM15Omnisearch() {
       modelIdentifier: 'claude-haiku-4-5-20251001',
     },
   });
+
+  // M15 spec §6.5.4.8 (18.9.2026) — sopstveni, nezavisan gate od M15_OMNISEARCH (isti obrazac
+  // kao M15_WEB_RESEARCH iznad) — nema sopstveni AIAgent/sistemski nalog jer alat živi UNUTAR
+  // OmnisearchAgent-a (isti agent, dodatna sposobnost), ne novi agent identitet.
+  await prisma.moduleAgentActivation.upsert({
+    where: { moduleCode: 'M15_EMAIL_COMPOSE' },
+    update: {},
+    create: { moduleCode: 'M15_EMAIL_COMPOSE', status: 'NOT_READY' },
+  });
 }
 
 // Compound unique (module_code, action_code) ne prihvata `null` u Prisma `where` tipu za
@@ -2423,6 +2432,20 @@ async function seedM15ActionRegistry() {
       tier: 'AUTONOMOUS',
       sourceNote:
         'M22 poglavlje 4 — sažetak/nacrt na svaku INBOUND poruku, nikad slanje (jedini put ka sent_by je ljudski klik na /messages/:messageId/send)',
+    },
+    {
+      moduleCode: 'M22',
+      actionCode: 'email.compose_draft',
+      tier: 'PROPOSE_THEN_APPROVE',
+      sourceNote:
+        'M15 spec §6.5.4.8 (18.9.2026) — OmnisearchAgent predlaže nov mejl, stvaran upis nacrta nastaje isključivo preko ljudskog klika "Odobri" (M15_EMAIL_COMPOSE gate). Stvarno slanje ostaje posebna, već postojeća M22 radnja.',
+    },
+    {
+      moduleCode: null,
+      actionCode: 'omnisearch.generate_report',
+      tier: 'AUTONOMOUS',
+      sourceNote:
+        'M15 spec §6.5.4.9 (18.9.2026) — pakuje podatke koje OmnisearchAgent VEĆ sme da pročita (bookings/catalog, ista dozvola kao search_bookings/search_catalog) u preuzimljiv fajl; ništa trajno se ne upisuje.',
     },
   ];
 
