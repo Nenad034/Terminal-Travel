@@ -1,6 +1,6 @@
 import { BadRequestException } from '@nestjs/common';
 import { PricelistImportsService } from './pricelist-imports.service';
-import { normalizujPopunjenost } from './pricelist-storage';
+import { kanonskaPopunjenost, normalizujPopunjenost } from './pricelist-storage';
 
 /**
  * M3 spec §4.2 / §4.2.10 — AI uvoz cenovnika.
@@ -561,6 +561,35 @@ describe('PricelistImportsService (M3 §4.2 / §4.2.10)', () => {
       expect(normalizujPopunjenost('   ', 'PER_PERSON_PER_NIGHT')).toBe('po osobi');
       expect(normalizujPopunjenost('', 'PER_ROOM_PER_NIGHT')).toBe('po sobi');
       expect(normalizujPopunjenost('', null)).toBe('po sobi');
+    });
+  });
+
+  /**
+   * §4.2.10 drugi korak (19.9.2026, §2.11p): popunjenost je ogranicena vrednost u semi alata,
+   * pa isti red iz dva uvoza daje ISTI kljuc bez ikakvog svodjenja — to je ono sto ponovni
+   * uvoz istog dokumenta pretvara iz „nov + ugasen" u „bez izmena".
+   */
+  describe('kanonskaPopunjenost (§4.2.10, ogranicena vrednost)', () => {
+    it('bez detalja daje tacno dva moguca oblika', () => {
+      expect(kanonskaPopunjenost('PO_SOBI', null)).toBe('po sobi');
+      expect(kanonskaPopunjenost('PO_OSOBI', undefined)).toBe('po osobi');
+      expect(kanonskaPopunjenost('PO_SOBI', '   ')).toBe('po sobi');
+    });
+
+    it('detalj se cuva u doslednom obliku i razlikuje stavke', () => {
+      const a = kanonskaPopunjenost('PO_OSOBI', '1 Adult + 1 Chd 07-11,99');
+      const b = kanonskaPopunjenost('PO_OSOBI', '  1 ADULT +  1 Chd 07-11,99 (promo) ');
+      const c = kanonskaPopunjenost('PO_OSOBI', '3. osoba');
+      expect(a).toBe('po osobi · 1 adult + 1 chd 07-11,99');
+      expect(b).toBe(a);
+      expect(c).not.toBe(a);
+    });
+
+    it('kanonski oblik prolazi kroz normalizujPopunjenost netaknut (ponovni uvoz = isti kljuc)', () => {
+      for (const v of ['po sobi', 'po osobi', 'po osobi · 1 adult + 1 chd 07-11,99']) {
+        expect(normalizujPopunjenost(v, null)).toBe(v);
+        expect(normalizujPopunjenost(v, 'PER_ROOM_PER_NIGHT')).toBe(v);
+      }
     });
   });
 });

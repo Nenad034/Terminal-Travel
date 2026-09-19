@@ -23,6 +23,8 @@ import {
   porukaZaPrevelikTekst,
   storageDir,
   tekstJeUpotrebljiv,
+  kanonskaPopunjenost,
+  type OccupancyKind,
 } from './pricelist-storage';
 
 /**
@@ -67,7 +69,9 @@ interface IzvucenaKombinacija {
   hotel: string;
   room_type: string;
   board_type: string;
-  occupancy: string;
+  // §4.2.10 drugi korak (19.9.2026) — ogranicena vrednost + opcion detalj, ne slobodan tekst.
+  occupancy_kind: OccupancyKind;
+  occupancy_detail?: string | null;
   currency: string;
   price_basis?: 'PER_ROOM_PER_NIGHT' | 'PER_PERSON_PER_NIGHT' | null;
   crib_fee_per_night?: number | null;
@@ -90,7 +94,8 @@ interface IzvuceniRed {
   hotel: string;
   room_type: string;
   board_type: string;
-  occupancy: string;
+  occupancy_kind: OccupancyKind;
+  occupancy_detail?: string | null;
   stay_from: string;
   stay_to: string;
   price_minor_units: number;
@@ -119,7 +124,8 @@ export function raspakujKombinacije(kombinacije: IzvucenaKombinacija[]): Izvucen
       hotel: k.hotel,
       room_type: k.room_type,
       board_type: k.board_type,
-      occupancy: k.occupancy,
+      occupancy_kind: k.occupancy_kind,
+      occupancy_detail: k.occupancy_detail ?? null,
       currency: k.currency,
       price_basis: k.price_basis ?? null,
       crib_fee_per_night: k.crib_fee_per_night ?? null,
@@ -159,9 +165,20 @@ const ALAT = {
               type: 'string',
               description: 'Usluga, npr. BB, polupansion, all inclusive',
             },
-            occupancy: {
+            // §4.2.10 drugi korak — izmereno da slobodan tekst daje cetiri oblika za isti red;
+            // ograda je u semi (isti princip kao §4.2.8), ne u uputstvu.
+            occupancy_kind: {
               type: 'string',
-              description: 'Na koga se cena odnosi, npr. "odrasla osoba u dvokrevetnoj"',
+              enum: ['PO_SOBI', 'PO_OSOBI'],
+              description:
+                'Na sta se cena odnosi: PO_SOBI (cena za celu sobu) ili PO_OSOBI (cena za jednu osobu).',
+            },
+            occupancy_detail: {
+              type: ['string', 'null'],
+              description:
+                'SAMO ako dokument navodi sastav gostiju drugaciji od podrazumevanog za tu sobu, ' +
+                'npr. "1 Adult + 1 Chd 07-11,99", "3. osoba", "single doplata". Inace null. ' +
+                'Ne prepisuj ovde "po sobi"/"po osobi" — to je vec occupancy_kind.',
             },
             currency: { type: 'string', description: 'Troslovna oznaka, npr. EUR' },
             price_basis: {
@@ -205,7 +222,7 @@ const ALAT = {
               },
             },
           },
-          required: ['hotel', 'room_type', 'board_type', 'occupancy', 'currency', 'periodi'],
+          required: ['hotel', 'room_type', 'board_type', 'occupancy_kind', 'currency', 'periodi'],
         },
       },
     },
@@ -474,7 +491,8 @@ ${izvucen}`,
       // §4.2.8 — pravilo 6 je promenjeno zajedno sa šemom: kombinacija se opisuje jednom, sa
       // svim svojim periodima. Cilj je isti kao pre (nikad dva zapisa za istu kombinaciju),
       // ali ga sada sprovodi sama struktura, ne podsećanje u rečenici.
-      '(6) JEDNA KOMBINACIJA = hotel + tip sobe + usluga + popunjenost. SVI njeni periodi idu ' +
+      '(6) JEDNA KOMBINACIJA = hotel + tip sobe + usluga + popunjenost (occupancy_kind + ' +
+      'occupancy_detail). SVI njeni periodi idu ' +
       'u niz periodi TE kombinacije — nikad ne pravi drugu kombinaciju za drugi period. Dečja ' +
       'cena ide u age_pricing kombinacije, ne u zaseban zapis; ' +
       '(7) doplate (krevetac, dodatni ležaj) NISU zasebna kombinacija — krevetac ide isključivo ' +
@@ -597,7 +615,7 @@ ${izvucen}`,
           matchConfidence: najbolji ? najbolji.ocena : null,
           extractedRoomType: r.room_type,
           extractedBoardType: r.board_type,
-          extractedOccupancy: r.occupancy,
+          extractedOccupancy: kanonskaPopunjenost(r.occupancy_kind, r.occupancy_detail),
           extractedStayFrom: new Date(r.stay_from),
           extractedStayTo: new Date(r.stay_to),
           extractedPrice: r.price_minor_units,

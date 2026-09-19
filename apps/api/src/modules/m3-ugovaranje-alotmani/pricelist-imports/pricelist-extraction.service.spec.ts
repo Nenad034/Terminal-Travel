@@ -99,7 +99,8 @@ describe('PricelistExtractionService (M3 §4.2.6)', () => {
     hotel: 'Hotel Splendid',
     room_type: 'DBL',
     board_type: 'BB',
-    occupancy: 'odrasla osoba u dvokrevetnoj',
+    occupancy_kind: 'PO_OSOBI',
+    occupancy_detail: null,
     stay_from: '2027-07-01',
     stay_to: '2027-07-10',
     price_minor_units: 8950,
@@ -403,7 +404,8 @@ describe('PricelistExtractionService (M3 §4.2.6)', () => {
       hotel: 'Hotel Splendid',
       room_type: 'DBL',
       board_type: 'BB',
-      occupancy: 'odrasla osoba u dvokrevetnoj',
+      occupancy_kind: 'PO_OSOBI',
+      occupancy_detail: null,
       currency: 'EUR',
       price_basis: 'PER_ROOM_PER_NIGHT',
       crib_fee_per_night: 500,
@@ -430,6 +432,28 @@ describe('PricelistExtractionService (M3 §4.2.6)', () => {
       expect(upisani.every((r: any) => r.extractedCribFeePerNight === 500)).toBe(true);
       expect(upisani.every((r: any) => r.extractedPriceBasis === 'PER_ROOM_PER_NIGHT')).toBe(true);
       expect(upisani.every((r: any) => r.extractedAgePricing)).toBe(true);
+      // §4.2.10 drugi korak — popunjenost se upisuje u kanonskom obliku iz ogranicene vrednosti.
+      expect(upisani.every((r: any) => r.extractedOccupancy === 'po osobi')).toBe(true);
+    });
+
+    it('occupancy_detail ulazi u kanonski oblik, occupancy_kind bez detalja daje goli oblik', async () => {
+      const { service, prisma } = makeService({
+        kombinacije: [
+          {
+            ...kombinacija,
+            occupancy_kind: 'PO_OSOBI',
+            occupancy_detail: ' 1 Adult + 1 Chd 07-11,99 ',
+          },
+          { ...kombinacija, room_type: 'SGL', occupancy_kind: 'PO_SOBI', occupancy_detail: null },
+        ],
+      });
+
+      await service.extract('imp1', 'u1');
+
+      const upisani = prisma.pricelistImportRow.create.mock.calls.map((c: any) => c[0].data);
+      expect(new Set(upisani.map((r: any) => r.extractedOccupancy))).toEqual(
+        new Set(['po osobi · 1 adult + 1 chd 07-11,99', 'po sobi']),
+      );
     });
 
     it('kombinacija bez ijednog perioda ne daje nijedan red — bez datuma nema cenovne stavke', async () => {

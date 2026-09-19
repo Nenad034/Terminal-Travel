@@ -508,7 +508,13 @@ export class PricelistImportsService {
             seasonCode: code,
             boardType: r.extractedBoardType,
             occupancy: normalizujPopunjenost(r.extractedOccupancy, r.extractedPriceBasis),
-            priceBasis: r.extractedPriceBasis ?? 'PER_ROOM_PER_NIGHT',
+            // §4.2.10 drugi korak — kad model nije bio siguran u osnovu (null), kanonska
+            // popunjenost je jednoznacna: „po osobi" ne moze biti cena po sobi.
+            priceBasis:
+              r.extractedPriceBasis ??
+              (normalizujPopunjenost(r.extractedOccupancy, null).startsWith('po osobi')
+                ? 'PER_PERSON_PER_NIGHT'
+                : 'PER_ROOM_PER_NIGHT'),
             price: r.extractedPrice,
             cribFeePerNight: r.extractedCribFeePerNight ?? undefined,
             agePricing: uzrastIzUvoza(r.extractedAgePricing),

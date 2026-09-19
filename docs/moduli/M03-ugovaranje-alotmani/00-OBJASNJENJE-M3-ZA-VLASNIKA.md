@@ -320,7 +320,7 @@ Prodaja pri tom nije bila pogođena — uvezene cene su se prodavale ispravno. P
 
 **Provereno na pravom cenovniku:** tri reda → jedan ugovor, dve nove sezone izvedene iz datuma, tri razlike. Posle potvrde: cene 89,50 / 109,00 / 125,00, **krevetac i dečja cena sačuvani**, period nosi sezonu (dakle vidi se kao ćelija u mreži), i nastala je verzija 1 koja po prvi put nosi oznaku iz kog je uvoza došla.
 
-### Jedna stvar koja NIJE gotova, i vredi da je znate
+### Jedna stvar koja NIJE gotova, i vredi da je znate — **rešeno 19.9.2026, vidi ispod**
 
 **Ponovni uvoz istog dokumenta još uvek pokazuje duple razlike.** Razlog: AI popunjenost („po sobi", „po osobi") vraća kao slobodan tekst, i za isti red daje različite formulacije iz prolaza u prolaz. Izmerio sam četiri: „po sobi", „soba (DBL standard)", „soba", „cena po sobi po noci". Sve četiri su tačne, ali sistem po tom tekstu prepoznaje da li je red isti — pa misli da je stari nestao i nov se pojavio.
 
@@ -329,6 +329,8 @@ Dodao sam svođenje u kodu; ono je **sezone rešilo u potpunosti** (ponovni uvoz
 Pravo rešenje je da AI-u to polje **više ne bude slobodan tekst** nego izbor iz zatvorene liste, uz posebno polje za stvarne razlike tipa „1 odrasla + 1 dete 7–11,99". To dotiče i modul rezervacija, pa vam ga predlažem kao sledeći korak umesto da ga uradim sam.
 
 **Do tada:** prvi uvoz cenovnika radi potpuno i ispravno. Ponovni uvoz **istog** dokumenta za isti ugovor pregledajte pažljivo ili ga izbegavajte.
+
+**Urađeno 19.9.2026 (posle vaše potvrde uz odluku o ručnom unosu):** AI više ne piše popunjenost svojim rečima. Bira iz dve mogućnosti — „po sobi" ili „po osobi" — i samo kad cenovnik stvarno navodi poseban sastav (npr. „1 odrasla + 1 dete 7–11,99") dopisuje taj detalj u posebno polje. Sistem od toga pravi uvek isti zapis, pa ponovni uvoz istog cenovnika prepoznaje nepromenjene redove kao nepromenjene. Provereno testovima; **na stvarnom cenovniku još nije ponovljeno** — kad stigne sledeći cenovnik od dobavljača, uvezite ga dvaput i drugi put treba da piše „bez izmena".
 
 ## Tip sobe se sada bira sa spiska (10.9.2026)
 

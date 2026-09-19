@@ -156,7 +156,40 @@ const SINONIMI: { obrazac: RegExp; u: string }[] = [
   { obrazac: /^(po\s+)?osob[ai]|per\s+person|odrasl[aио]/i, u: 'po osobi' },
 ];
 
+/**
+ * §4.2.10 drugi korak (19.9.2026, vlasnik potvrdio predlog kroz §2.11p): popunjenost vise NIJE
+ * slobodan tekst u semi alata. Model bira `occupancy_kind` (PO_SOBI / PO_OSOBI) i, samo kad
+ * dokument nosi stvarnu razliku („1 Adult + 1 Chd 07-11,99", „3. osoba", „single doplata"),
+ * `occupancy_detail`. Ograda stoji u STRUKTURI — sema ne dozvoljava cetiri formulacije istog
+ * reda, pa kljuc stavke (§2.11l) prezivljava ponovni uvoz bez svodjenja posle cinjenice.
+ *
+ * Kanonski oblik koji ide u `extracted_occupancy` i dalje u `RateLine.occupancy`:
+ *   „po sobi" | „po osobi" | „po sobi · <detalj>" | „po osobi · <detalj>"
+ * (detalj: mala slova, jedan razmak, bez zagrada). M5 `resolveBaseAdultsCovered` cita ovaj
+ * string kao i do sada — „po sobi"/„po osobi" bez broja daju podrazumevanu popunjenost.
+ */
+export type OccupancyKind = 'PO_SOBI' | 'PO_OSOBI';
+
+export function kanonskaPopunjenost(
+  kind: OccupancyKind,
+  detail: string | null | undefined,
+): string {
+  const osnova = kind === 'PO_OSOBI' ? 'po osobi' : 'po sobi';
+  const d = (detail ?? '')
+    .replace(/\([^)]*\)/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase();
+  return d ? `${osnova} · ${d}` : osnova;
+}
+
+const KANONSKI = /^po (sobi|osobi)( · .+)?$/;
+
 export function normalizujPopunjenost(sirovo: string, priceBasis: string | null): string {
+  // Vec kanonski oblik (redovi uvezeni posle 19.9.2026) prolazi netaknut — svodjenje ispod je
+  // za redove iz starijih uvoza, kad je polje bilo slobodan tekst.
+  if (KANONSKI.test(sirovo)) return sirovo;
+
   const ocisceno = sirovo
     .replace(/\([^)]*\)/g, ' ') // „soba (DBL standard)" → „soba"
     .replace(/[.,;:]/g, ' ')
