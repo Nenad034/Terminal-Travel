@@ -883,6 +883,17 @@ const M13_PERMISSIONS: { module: string; resource: string; action: string; descr
     },
   ];
 
+// M13 spec §6 / M17 §6e.4 (19.9.2026, vlasnikova odluka: „najvišim nivoima dozvoliti promenu
+// parametara kako bi se kreirali razni scenariji") — NAMERNO van M13_PERMISSIONS niza: taj niz
+// se u celini dodeljuje i FINANSIJSKI_DIREKTOR-u (ispod), a scenario je samo Vlasnik/Direktor.
+const M13_SCENARIO_PERMISSION = {
+  module: 'M13',
+  resource: 'scenario',
+  action: 'USE',
+  description:
+    'Terminal tabela — „šta ako" parametri (marža, provizija, kurs, nabavna, popunjenost); samo preračun na ekranu, ne upisuje ništa (M17 §6e.4)',
+};
+
 // M12 spec §5 — dozvole marketing/sadržajnog engine-a. APPROVE_PUBLISH je namerno odvojena
 // dozvola od CREATE_DRAFT — "nikad AI agent" (§5) je sprovedeno time što AI nacrti nastaju
 // isključivo kroz product.published pretplatnika (in-process poziv, ne preko API-ja/dozvola),
@@ -1413,6 +1424,12 @@ const DEFAULT_ROLE_PERMISSIONS: Record<
     ...M20_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
     ...M14_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
     ...M13_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
+    // M17 §6e.4 — scenario u Terminal tabeli, samo Vlasnik/Direktor.
+    {
+      module: M13_SCENARIO_PERMISSION.module,
+      resource: M13_SCENARIO_PERMISSION.resource,
+      action: M13_SCENARIO_PERMISSION.action,
+    },
     ...M12_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
     ...M16_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
     ...M15_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
@@ -1444,6 +1461,12 @@ const DEFAULT_ROLE_PERMISSIONS: Record<
     ...M20_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
     ...M14_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
     ...M13_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
+    // M17 §6e.4 — scenario u Terminal tabeli, samo Vlasnik/Direktor.
+    {
+      module: M13_SCENARIO_PERMISSION.module,
+      resource: M13_SCENARIO_PERMISSION.resource,
+      action: M13_SCENARIO_PERMISSION.action,
+    },
     ...M12_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
     ...M16_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
     ...M15_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
@@ -1859,6 +1882,7 @@ async function main() {
     ...M20_PERMISSIONS,
     ...M14_PERMISSIONS,
     ...M13_PERMISSIONS,
+    M13_SCENARIO_PERMISSION,
     ...M12_PERMISSIONS,
     ...M16_PERMISSIONS,
     ...M9_PERMISSIONS,

@@ -28,6 +28,9 @@ import { SearchModule } from '../m5-rezervacije/search/search.module';
 import { ExchangeRatesModule } from '../m10-finansije/exchange-rates/exchange-rates.module';
 import { AgencySettingsModule } from '../m1-core-identitet/agency-settings/agency-settings.module';
 import { M22EmailInboxModule } from '../m22-email-inbox/m22-email-inbox.module';
+import { CapacityModule } from '../m3-ugovaranje-alotmani/capacity/capacity.module';
+import { TablesController } from './tables/tables.controller';
+import { TablesService } from './tables/tables.service';
 
 // docs/moduli/M15-ai-orkestracija/18-SPECIFIKACIJA-M15-AI-ORKESTRACIJA.md
 // v1.10 (Faza 7 prvi prolaz) dodaje pun AgentActionType registar (seed), sprovedbu na nivou
@@ -58,6 +61,8 @@ import { M22EmailInboxModule } from '../m22-email-inbox/m22-email-inbox.module';
     // TEK iz `approveComposeEmail()`, nikad iz tool-use petlje). `M22EmailInboxModule` ne uvozi
     // ovaj modul nazad (samo `AnthropicClientService` klasu direktno) — nema kružne zavisnosti.
     M22EmailInboxModule,
+    // §6.5.4.10 — izvor `work_queue` Terminal tabele (M3 radni spisak kapaciteta).
+    CapacityModule,
   ],
   controllers: [
     ModuleActivationController,
@@ -65,6 +70,7 @@ import { M22EmailInboxModule } from '../m22-email-inbox/m22-email-inbox.module';
     ActionTypesController,
     AgentInboxController,
     BiTerminalController,
+    TablesController,
   ],
   providers: [
     ModuleActivationService,
@@ -76,6 +82,7 @@ import { M22EmailInboxModule } from '../m22-email-inbox/m22-email-inbox.module';
     BiTerminalService,
     ReportViewsService,
     WebContentSafetyService,
+    TablesService,
   ],
   exports: [OmnisearchService],
 })

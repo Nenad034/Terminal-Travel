@@ -51,8 +51,23 @@ export class OmnisearchHistoryTurnDto {
 // klijenta (dokument je prošao kroz POST .../extract-file, slika je pretvorena u base64 u
 // pregledaču preko FileReader/clipboardData) — ova ruta ga samo prenosi dalje, ništa ne čuva.
 export class ContextItemDto {
-  @IsIn(['RECORD', 'FILTERED_LIST', 'FILE', 'IMAGE'])
-  type!: 'RECORD' | 'FILTERED_LIST' | 'FILE' | 'IMAGE';
+  @IsIn(['RECORD', 'FILTERED_LIST', 'FILE', 'IMAGE', 'TABLE'])
+  type!: 'RECORD' | 'FILTERED_LIST' | 'FILE' | 'IMAGE' | 'TABLE';
+
+  // TABLE (M17 §6e.3k) — sažetak tabele; oblik proverava servis, DTO drži samo tip.
+  @IsOptional() @IsObject() spec?: {
+    source: string;
+    filters?: Record<string, string | string[]>;
+    title?: string;
+  };
+  @IsOptional() @IsArray() columns?: { key: string; label: string }[];
+  @IsOptional() @IsObject() totals?: Record<string, number | null>;
+  @IsOptional() @IsArray() selectedRows?: Record<string, unknown>[];
+  @IsOptional() @IsObject() scenario?: {
+    params: Record<string, number>;
+    totalsReal: Record<string, number | null>;
+    totalsScenario: Record<string, number | null>;
+  };
 
   // RECORD
   @IsOptional()

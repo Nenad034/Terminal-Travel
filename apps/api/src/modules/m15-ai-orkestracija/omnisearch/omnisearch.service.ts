@@ -12,6 +12,8 @@ import { AgentInvocationLogService } from '../../m18-operativni-nadzor/agent-inv
 import { HelpAssistantService } from '../../m21-centar-za-pomoc/help-assistant/help-assistant.service';
 import { AgencySettingsService } from '../../m1-core-identitet/agency-settings/agency-settings.service';
 import { EntityResult, MatchedRoute, OmnisearchResponse } from './omnisearch-result.types';
+import { TablesService } from '../tables/tables.service';
+import { TABLE_SOURCE_IDS, TableSpec } from '../tables/table-sources';
 import { FILTERABLE_VIEWS, FILTERABLE_VIEW_IDS, buildFilterQuery } from './filterable-views';
 import { MailboxesService } from '../../m22-email-inbox/mailboxes/mailboxes.service';
 import { EmailThreadsService } from '../../m22-email-inbox/email-threads/email-threads.service';
@@ -62,7 +64,7 @@ export interface OmnisearchRequest {
    * vodi, agent i dalje razrešava svaku stavku sopstvenim postojećim alatima (§6.5.2).
    */
   contextItems?: {
-    type: 'RECORD' | 'FILTERED_LIST' | 'FILE' | 'IMAGE';
+    type: 'RECORD' | 'FILTERED_LIST' | 'FILE' | 'IMAGE' | 'TABLE';
     refLabel?: string;
     view?: string;
     filters?: Record<string, unknown>;
@@ -71,6 +73,17 @@ export interface OmnisearchRequest {
     content?: string;
     imageData?: string;
     imageMediaType?: 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp';
+    // TABLE (M17 §6e.3k) — sažetak Terminal tabele koju korisnik gleda: spec, kolone, red zbira,
+    // do 20 izabranih redova, scenario (parametri + stvarni naspram scenario zbirova).
+    spec?: { source: string; filters?: Record<string, string | string[]>; title?: string };
+    columns?: { key: string; label: string }[];
+    totals?: Record<string, number | null>;
+    selectedRows?: Record<string, unknown>[];
+    scenario?: {
+      params: Record<string, number>;
+      totalsReal: Record<string, number | null>;
+      totalsScenario: Record<string, number | null>;
+    };
   }[];
   /**
    * M15 spec §6.5.4.2 dopuna (25.8.2026, uživo — "da" posle pitanja o konkretnoj rezervaciji
@@ -218,6 +231,7 @@ export class OmnisearchService {
     private readonly searchService: SearchService,
     private readonly mailboxes: MailboxesService,
     private readonly emailThreads: EmailThreadsService,
+    private readonly tables: TablesService,
   ) {}
 
   /**
@@ -259,6 +273,20 @@ export class OmnisearchService {
         const content = item.content.slice(0, FILE_CONTENT_MAX_CHARS);
         lines.push(
           `${lines.length + 1}. Priložen dokument "${item.label ?? 'dokument'}"${truncated ? ' (skraćeno, prevelik za ceo prikaz)' : ''}:\n"""\n${content}\n"""`,
+        );
+        continue;
+      }
+      if (item.type === 'TABLE' && item.spec) {
+        // M17 §6e.3k — tabela je već izračunata u pregledaču; modelu ide SAŽETAK (kolone, zbir,
+        // izabrani redovi), ne redovi. Za drugu kolonu/filter/period model zove open_table.
+        const kolone = (item.columns ?? []).map((c) => `${c.key} (${c.label})`).join(', ');
+        const zbir = item.totals ? JSON.stringify(item.totals) : 'nema';
+        const izabrani = (item.selectedRows ?? []).slice(0, 20);
+        const scenario = item.scenario
+          ? ` SCENARIO (nije stvarno stanje) — parametri: ${JSON.stringify(item.scenario.params)}; stvarni zbirovi: ${JSON.stringify(item.scenario.totalsReal)}; scenario zbirovi: ${JSON.stringify(item.scenario.totalsScenario)}. Smeš da objasniš razliku i da PREDLOŽIŠ parametre; nikad ih ne menjaš sam.`
+          : '';
+        lines.push(
+          `${lines.length + 1}. Korisnik gleda Terminal tabelu "${item.spec.title ?? item.label ?? item.spec.source}" (izvor ${item.spec.source}, filteri ${JSON.stringify(item.spec.filters ?? {})}, ${item.resultCount ?? '?'} redova). Kolone: ${kolone}. Red zbira: ${zbir}.${izabrani.length ? ` Izabrani redovi (${izabrani.length}): ${JSON.stringify(izabrani)}.` : ''} Odgovori iz ovog sažetka; ako pitanje traži drugu kolonu, filter ili period, pozovi open_table sa izmenjenim spec-om (tab će ga zameniti).${scenario}`,
         );
         continue;
       }
@@ -1134,6 +1162,40 @@ export class OmnisearchService {
               required: ['format', 'source', 'query'],
             },
           },
+          {
+            // M15 spec §6.5.4.10 / M17 §6e (19.9.2026) — Terminal tabela. Model bira izvor i
+            // filtere iz zatvorenog registra (`table-sources.ts`); server izvrši spec i vrati
+            // modelu SAŽETAK (broj redova, kolone, zbir, 5 redova), a kanalu `table` za „Otvori
+            // kao tabelu". Redovi nikad ne idu u model — tab ih vuče sam.
+            name: 'open_table',
+            description:
+              'Otvori podatke kao Terminal tabelu (kolone i redovi u novom tabu, korisnik dalje sortira/grupiše/pivotira sam). Koristi kad korisnik traži TABELU/PREGLED/SPISAK sa više kolona ili poređenje po grupama. Izvori: bookings (rezervacije; filteri status/paymentStatus/productType/channel/buyerName/bookingNumber/currency/destinationCity/destinationCountry/productName/createdFrom/createdTo/stayFrom/stayTo), catalog (proizvodi; type/destinationCountry/status), funnel (lijevak upit→rezervacija; dimension obavezno: by_destination|by_channel|by_lead_time|shown_not_chosen, from/to), work_queue (radni spisak kapaciteta; kind[]). compare={from,to} daje isti upit za drugi period (samo bookings/funnel).',
+            input_schema: {
+              type: 'object' as const,
+              properties: {
+                source: { type: 'string' as const, enum: [...TABLE_SOURCE_IDS] },
+                filters: {
+                  type: 'object' as const,
+                  description: 'Filteri iz registra izvora; vrednosti su string ili niz stringova',
+                },
+                title: { type: 'string' as const, description: 'Kratak naslov tabele na srpskom' },
+                columns: {
+                  type: 'array' as const,
+                  items: { type: 'string' as const },
+                  description: 'Opciono — podskup kolona (ključevi iz registra)',
+                },
+                compare: {
+                  type: 'object' as const,
+                  properties: {
+                    from: { type: 'string' as const },
+                    to: { type: 'string' as const },
+                  },
+                  description: 'Opciono — drugi period za poređenje, YYYY-MM-DD',
+                },
+              },
+              required: ['source'],
+            },
+          },
         ];
 
     const systemPrompt = isB2C
@@ -1182,6 +1244,9 @@ export class OmnisearchService {
         'filtera od priložene. Kad stavka umesto podataka kaže da redovi nisu dostupni za taj pogled, tek onda ' +
         'pozovi filter_list sa TAČNO datim view/filters (nikad ne pitaj korisnika koji su filteri, već su ti dati). ' +
         'Nikad ne pretpostavljaj podatke o zapisima van onoga što ti je stvarno dato. ' +
+        'TERMINAL TABELA (M17 §6e): kad korisnik traži tabelu, pregled sa kolonama, spisak za analizu ili poređenje po ' +
+        'grupama/periodima, pozovi open_table (ne prepisuj redove u tekst) — dobićeš sažetak, a korisnik dugme ' +
+        '„Otvori kao tabelu". Kad je priložena TABLE stavka, odgovaraj iz njenog sažetka. ' +
         'PRETRAGA RASPOLOŽIVOSTI (M15 §6.5.4.6): kad zaposleni ukuca samo destinaciju ili naziv („Grčka", ' +
         '„Hotel Bellevue"), hoće SPISAK iz kataloga — koristi search_catalog, bez ijednog pitanja. ' +
         'search_availability koristi SAMO kad upit očigledno traži raspoloživost/cenu za period („ima li ' +
@@ -1247,6 +1312,7 @@ export class OmnisearchService {
     // §6.5.4.8/§6.5.4.9 (18.9.2026) — vidi obradu `compose_email`/`generate_report` u petlji ispod.
     let pendingEmailDraft: OmnisearchResponse['pendingEmailDraft'];
     let generatedReport: OmnisearchResponse['report'];
+    let openedTable: OmnisearchResponse['table'];
 
     // M18 spec §6.3 — jedan AgentInvocationLog zapis po pozivu omnisearch-a (svi tool-use
     // iteracije zbrojene), ne po pojedinačnom Anthropic pozivu — actionCode identifikuje ceo
@@ -1309,6 +1375,11 @@ export class OmnisearchService {
           matchedRoutes,
           entityResults,
           aiAnswer: textBlock?.text ?? fallbackQuestion,
+          // §6.5.4.9/§6.5.4.10 — fajl i tabela idu i uz tekstualni odgovor (do 19.9.2026 `report`
+          // je stizao samo iz krajnjeg `return` posle petlje, pa link nikad nije stizao panelu
+          // kad model posle alata odgovori tekstom — što je uobičajen tok).
+          report: generatedReport,
+          table: openedTable,
           // §6.5.4.6 — zastavica ide i kad je model pitao BEZ poziva alata (izmereno uživo
           // 17.9.2026: Haiku je u prvom krugu sam postavio potpitanje, alat nije ni pozvan):
           // prvi krug, nijedan alat, nijedan rezultat, tekst se završava znakom pitanja.
@@ -1362,6 +1433,48 @@ export class OmnisearchService {
 
       const toolResults: any[] = [];
       for (const use of toolUses as any[]) {
+        if (use.name === 'open_table') {
+          const spec = use.input as TableSpec;
+          let result: unknown;
+          try {
+            const res = await this.tables.run(spec, req.actorUserId!);
+            openedTable = {
+              spec,
+              columns: res.columns.map((c) => ({ key: c.key, label: c.label, type: c.type })),
+              rowCount: res.rowCount,
+              truncated: res.truncated,
+              preview: res.rows.slice(0, 5),
+            };
+            // Sažetak za model — zbir numeričkih kolona računa KOD (M15 princip), redovi ne idu.
+            const totals: Record<string, number> = {};
+            for (const c of res.columns) {
+              if (c.type === 'number' || c.type === 'money') {
+                totals[c.key] = res.rows.reduce(
+                  (s, r) => s + (typeof r[c.key] === 'number' ? (r[c.key] as number) : 0),
+                  0,
+                );
+              }
+            }
+            result = {
+              opened: true,
+              rowCount: res.rowCount,
+              truncated: res.truncated,
+              columns: res.columns.map((c) => c.key),
+              totals,
+              preview: res.rows.slice(0, 5),
+              note: 'Tabela je otvorena korisniku kao tab. Odgovori kratko šta tabela sadrži; ne prepisuj redove.',
+            };
+          } catch (err) {
+            result = { error: (err as Error).message };
+          }
+          toolResults.push({
+            type: 'tool_result',
+            tool_use_id: use.id,
+            content: JSON.stringify(result),
+          });
+          continue;
+        }
+
         if (use.name === 'generate_report') {
           const input = use.input as { format?: string; source?: string; query?: string };
           let result: unknown;
@@ -1512,6 +1625,7 @@ export class OmnisearchService {
         ? 'Pronašao sam moguće rezultate — potvrdi radnju ručno na odgovarajućoj stranici.'
         : undefined,
       report: generatedReport,
+      table: openedTable,
     };
   }
 

@@ -69,6 +69,21 @@ describe('OmnisearchService (M15 spec §6.5, §10)', () => {
         .fn()
         .mockResolvedValue({ thread: { id: 'thread-1' }, message: { id: 'message-1' } }),
     };
+    // M15 spec §6.5.4.10 — `open_table` (Terminal tabela); registar i izvlačenje su u TablesService.
+    const tables = {
+      run: jest.fn().mockResolvedValue({
+        columns: [
+          { key: 'broj', label: 'Broj', type: 'text' },
+          { key: 'prodajna', label: 'Prodajna', type: 'money' },
+        ],
+        rows: [
+          { _key: 'TT-1', broj: 'TT-1', prodajna: 1000 },
+          { _key: 'TT-2', broj: 'TT-2', prodajna: 2500 },
+        ],
+        rowCount: 2,
+        truncated: false,
+      }),
+    };
 
     const service = new OmnisearchService(
       prisma as any,
@@ -83,9 +98,11 @@ describe('OmnisearchService (M15 spec §6.5, §10)', () => {
       searchService as any,
       mailboxes as any,
       emailThreads as any,
+      tables as any,
     );
     return {
       service,
+      tables,
       prisma,
       auditLog,
       permissions,
@@ -1206,6 +1223,125 @@ describe('OmnisearchService (M15 spec §6.5, §10)', () => {
     const second = JSON.parse(create.mock.calls[2][0].messages.at(-1).content[0].content);
     expect(second.error).toMatch(/ne uklanjaj/i);
     expect(result.entityResults).toHaveLength(0);
+  });
+
+  // M15 spec §6.5.4.10 / M17 §6e (19.9.2026) — open_table: model dobija SAŽETAK, kanal `table`.
+  describe('open_table (§6.5.4.10)', () => {
+    it('izvrši spec, modelu vrati sažetak sa zbirom (ne redove), a odgovoru doda `table` uz tekst', async () => {
+      const { service, anthropic, tables } = makeService({ anthropicConfigured: true });
+      const create = jest
+        .fn()
+        .mockResolvedValueOnce({
+          content: [
+            {
+              type: 'tool_use',
+              id: 'tu1',
+              name: 'open_table',
+              input: { source: 'bookings', filters: { status: ['CONFIRMED'] }, title: 'Potvrđene' },
+            },
+          ],
+          usage: { input_tokens: 10, output_tokens: 5 },
+        })
+        .mockResolvedValueOnce({
+          content: [{ type: 'text', text: 'Otvorio sam tabelu sa 2 rezervacije.' }],
+          usage: { input_tokens: 10, output_tokens: 5 },
+        });
+      (anthropic.getClient as jest.Mock).mockReturnValue({ messages: { create } });
+
+      const result = await service.search({
+        query: 'daj mi tabelu potvrđenih rezervacija',
+        channel: 'INTERNAL_PANEL',
+        actorUserId: 'u1',
+      });
+
+      expect(tables.run).toHaveBeenCalledWith(
+        expect.objectContaining({ source: 'bookings', filters: { status: ['CONFIRMED'] } }),
+        'u1',
+      );
+      const toolResult = JSON.parse(create.mock.calls[1][0].messages.at(-1).content[0].content);
+      expect(toolResult).toMatchObject({ opened: true, rowCount: 2, totals: { prodajna: 3500 } });
+      expect(toolResult.rows).toBeUndefined();
+      expect(result.aiAnswer).toBe('Otvorio sam tabelu sa 2 rezervacije.');
+      expect(result.table).toMatchObject({
+        spec: { source: 'bookings', title: 'Potvrđene' },
+        rowCount: 2,
+        truncated: false,
+      });
+      expect(result.table!.preview).toHaveLength(2);
+    });
+
+    it('greška izvora (npr. bez dozvole) ide modelu kao čitljiv tool_result, ne ruši razgovor', async () => {
+      const { service, anthropic, tables } = makeService({ anthropicConfigured: true });
+      (tables.run as jest.Mock).mockRejectedValueOnce(
+        new Error('Nemate dozvolu M13/report:profitability/VIEW'),
+      );
+      const create = jest
+        .fn()
+        .mockResolvedValueOnce({
+          content: [
+            {
+              type: 'tool_use',
+              id: 'tu1',
+              name: 'open_table',
+              input: { source: 'funnel', filters: { dimension: 'by_markup_rule' } },
+            },
+          ],
+          usage: { input_tokens: 1, output_tokens: 1 },
+        })
+        .mockResolvedValueOnce({
+          content: [{ type: 'text', text: 'Nemate dozvolu za tu tabelu.' }],
+          usage: { input_tokens: 1, output_tokens: 1 },
+        });
+      (anthropic.getClient as jest.Mock).mockReturnValue({ messages: { create } });
+
+      const result = await service.search({
+        query: 'marža po pravilu',
+        channel: 'INTERNAL_PANEL',
+        actorUserId: 'u1',
+      });
+
+      const toolResult = JSON.parse(create.mock.calls[1][0].messages.at(-1).content[0].content);
+      expect(toolResult.error).toMatch(/dozvolu/);
+      expect(result.table).toBeUndefined();
+      expect(result.aiAnswer).toBe('Nemate dozvolu za tu tabelu.');
+    });
+
+    it('contextItems TABLE ulazi u prompt kao sažetak (kolone, zbir, izabrani redovi, scenario)', async () => {
+      const { service, anthropic } = makeService({ anthropicConfigured: true });
+      const create = jest.fn().mockResolvedValueOnce({
+        content: [{ type: 'text', text: 'Marža u scenariju je za 300 veća.' }],
+        usage: { input_tokens: 1, output_tokens: 1 },
+      });
+      (anthropic.getClient as jest.Mock).mockReturnValue({ messages: { create } });
+
+      await service.search({
+        query: 'objasni razliku',
+        channel: 'INTERNAL_PANEL',
+        actorUserId: 'u1',
+        contextItems: [
+          {
+            type: 'TABLE',
+            spec: { source: 'bookings', filters: { status: 'CONFIRMED' }, title: 'Potvrđene' },
+            columns: [{ key: 'prodajna', label: 'Prodajna' }],
+            resultCount: 2,
+            totals: { prodajna: 3500 },
+            selectedRows: [{ broj: 'TT-1', prodajna: 1000 }],
+            scenario: {
+              params: { marza_pct: 18 },
+              totalsReal: { marza: 500 },
+              totalsScenario: { marza: 800 },
+            },
+          },
+        ],
+      });
+
+      const userMsg = create.mock.calls[0][0].messages[0].content;
+      const text = typeof userMsg === 'string' ? userMsg : JSON.stringify(userMsg);
+      expect(text).toContain('Terminal tabelu "Potvrđene"');
+      expect(text).toContain('"prodajna":3500');
+      expect(text).toContain('SCENARIO');
+      expect(text).toContain('nikad ih ne menjaš sam');
+    });
   });
 
   // M15 spec §6.5.4.8 (18.9.2026) — compose_email NIKAD ne piše ništa u bazu iz tool-use petlje.

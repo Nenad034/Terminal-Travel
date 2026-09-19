@@ -44,4 +44,22 @@ export interface OmnisearchResponse {
     mailboxId: string;
     mailboxAddress: string;
   };
+  /**
+   * M15 spec §6.5.4.10 / M17 §6e (19.9.2026) — alat `open_table` je izvršio spec nad registrom
+   * izvora; kanal prikazuje „Otvori kao tabelu" (tab vuče pune redove sam preko
+   * `POST /ai-orchestration/tables/run`). Model je dobio samo sažetak, ne redove.
+   */
+  table?: {
+    spec: {
+      source: string;
+      filters?: Record<string, string | string[]>;
+      title?: string;
+      columns?: string[];
+      compare?: { from: string; to: string };
+    };
+    columns: { key: string; label: string; type: string }[];
+    rowCount: number;
+    truncated: boolean;
+    preview: Record<string, unknown>[];
+  };
 }
