@@ -1,3 +1,5 @@
+import type { FilterPill } from './table-filters';
+
 // M17 spec §6e — Terminal tabela: spec u adresi (`/tabele/prikaz?spec=<base64url JSON>`),
 // da tab bude ponovljiv i deljiv; podaci se svaki put ponovo izvlače (§6e.1 pravilo 1).
 
@@ -46,6 +48,10 @@ export interface TableSettings {
   pivot?: { row: string; col: string; measure: string; agg: 'sum' | 'count' } | null;
   semafor?: SemaforRule[];
   columnFilters?: Record<string, string>;
+  /** §6e.3 K2 — filter-trakice (`lib/table-filters.ts`). */
+  pills?: FilterPill[];
+  /** §6e.3 K1 — histogram: datumska kolona; `null` = sakriven; nedefinisano = prva datumska kolona. */
+  histogram?: { column: string } | null;
 }
 
 function toBase64Url(s: string): string {

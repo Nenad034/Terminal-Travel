@@ -50,6 +50,31 @@ describe('applyTransform (izvoz ponovo primeni isto što i pregledač)', () => {
     expect(out[2].mesto).toBe('Budva (2)');
     expect('prodajna' in out[0]).toBe(false);
   });
+  it('trakice (M17 §6e.3 K2): eq/neq nad sirovom vrednoscu i praznim, gte/lte nad datumom po danu', () => {
+    const r = [
+      { _key: 'a', status: 'CONFIRMED', dolazak: '2026-09-13' },
+      { _key: 'b', status: 'COMPLETED', dolazak: '2026-10-21T00:00:00.000Z' },
+      { _key: 'c', status: null, dolazak: null },
+    ];
+    expect(
+      applyTransform(r, { filters: [{ column: 'status', op: 'neq', value: 'CONFIRMED' }] }).map(
+        (x) => x._key,
+      ),
+    ).toEqual(['b', 'c']);
+    expect(
+      applyTransform(r, { filters: [{ column: 'status', op: 'eq', value: '' }] }).map(
+        (x) => x._key,
+      ),
+    ).toEqual(['c']);
+    expect(
+      applyTransform(r, {
+        filters: [
+          { column: 'dolazak', op: 'gte', value: '2026-10-01' },
+          { column: 'dolazak', op: 'lte', value: '2026-10-21' },
+        ],
+      }).map((x) => x._key),
+    ).toEqual(['b']);
+  });
 });
 
 describe('TablesService', () => {

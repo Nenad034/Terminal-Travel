@@ -37,7 +37,7 @@ export interface TableResult {
  * izvučenim redovima, istim kodom kao u pregledaču (`applyTransform`).
  */
 export interface TableTransform {
-  filters?: { column: string; op: 'contains' | 'gte' | 'lte' | 'eq'; value: string }[];
+  filters?: { column: string; op: 'contains' | 'gte' | 'lte' | 'eq' | 'neq'; value: string }[];
   sort?: { column: string; dir: 'asc' | 'desc' };
   groupBy?: string;
   hidden?: string[];
@@ -65,9 +65,16 @@ export function applyTransform(rows: TableRow[], t: TableTransform | undefined):
   for (const f of t.filters ?? []) {
     out = out.filter((r) => {
       const v = r[f.column];
+      // M17 §6e.3 K2 (19.9.2026) — trakice: `eq`/`neq` porede sirovu vrednost kao string (novac u
+      // parama, datum se svodi na `YYYY-MM-DD`), prazno (`''`) hvata null; `neq` je jedini op koji
+      // PROPUŠTA red bez vrednosti (ako se ne traži baš „nije prazno").
+      const day = typeof v === 'string' && /^\d{4}-\d{2}-\d{2}/.test(v) ? v.slice(0, 10) : null;
+      const s = v === null || v === undefined ? '' : (day ?? String(v));
+      if (f.op === 'eq') return s === f.value;
+      if (f.op === 'neq') return s !== f.value;
       if (v === null || v === undefined) return false;
       if (f.op === 'contains') return String(v).toLowerCase().includes(f.value.toLowerCase());
-      if (f.op === 'eq') return String(v) === f.value;
+      if (day) return f.op === 'gte' ? day >= f.value : day <= f.value;
       const n = typeof v === 'number' ? v : Number(v);
       const cmp = Number.isNaN(n) ? String(v) : n;
       const target = Number.isNaN(n) ? f.value : Number(f.value);

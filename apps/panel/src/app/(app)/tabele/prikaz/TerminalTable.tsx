@@ -23,6 +23,18 @@ import {
   SCENARIO_PARAM_LABELS,
   type ScenarioParams,
 } from '@/lib/scenario';
+import {
+  applyPills,
+  histogram as buildHistogram,
+  invertPill,
+  pillForCell,
+  pillLabel,
+  pillsToTransform,
+  upsertPill,
+  BUCKET_LABEL,
+  type FilterPill,
+} from '@/lib/table-filters';
+import TableHistogram from './TableHistogram';
 
 // M17 spec §6e — „Terminal tabela". Tabela je PRIKAZ, ne izvor podataka (§6e.1): podaci se
 // svaki put vuku kroz `POST /api/tables/run`; sortiranje/filter/grupisanje/pivot/zbir radi KOD
@@ -139,6 +151,11 @@ export default function TerminalTable({
   const [columnFilters, setColumnFilters] = useState<Record<string, string>>(
     initialSettings?.columnFilters ?? {},
   );
+  // §6e.3 K2 — filter-trakice; §6e.3 K1 — histogram (`undefined` = prva datumska kolona, `null` = sakriven)
+  const [pills, setPills] = useState<FilterPill[]>(initialSettings?.pills ?? []);
+  const [histogramCol, setHistogramCol] = useState<string | null | undefined>(
+    initialSettings?.histogram === null ? null : initialSettings?.histogram?.column,
+  );
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [scenario, setScenario] = useState<ScenarioParams>({});
   const [showScenario, setShowScenario] = useState(false);
@@ -149,8 +166,18 @@ export default function TerminalTable({
   const [notice, setNotice] = useState<string | null>(null);
 
   const settings: TableSettings = useMemo(
-    () => ({ sort: sort ?? undefined, hidden, pinned, groupBy, pivot, semafor, columnFilters }),
-    [sort, hidden, pinned, groupBy, pivot, semafor, columnFilters],
+    () => ({
+      sort: sort ?? undefined,
+      hidden,
+      pinned,
+      groupBy,
+      pivot,
+      semafor,
+      columnFilters,
+      pills,
+      histogram: histogramCol === null ? null : histogramCol ? { column: histogramCol } : undefined,
+    }),
+    [sort, hidden, pinned, groupBy, pivot, semafor, columnFilters, pills, histogramCol],
   );
 
   const specKey = JSON.stringify(spec);
@@ -202,7 +229,7 @@ export default function TerminalTable({
   const columns = data?.columns ?? [];
   const scenarioOn = canScenario && isScenarioActive(scenario);
 
-  // 1) scenario (po redu) → 2) poređenje perioda → 3) filter po koloni → 4) sortiranje
+  // 1) scenario (po redu) → 2) poređenje perioda → 3) trakice (K2) → 4) filter po koloni → 5) sortiranje
   const baseRows = useMemo(() => {
     if (!data) return [];
     let rows = data.rows;
@@ -217,7 +244,7 @@ export default function TerminalTable({
   }, [data, columns, scenario, scenarioOn]);
 
   const visibleRows = useMemo(() => {
-    let rows = baseRows;
+    let rows = applyPills(baseRows, pills, columns);
     for (const [key, text] of Object.entries(columnFilters)) {
       const t = text.trim().toLowerCase();
       if (!t) continue;
@@ -265,7 +292,26 @@ export default function TerminalTable({
       });
     }
     return rows;
-  }, [baseRows, columnFilters, sort, columns]);
+  }, [baseRows, pills, columnFilters, sort, columns]);
+
+  // §6e.3 K1 — histogram nad redovima POSLE svih filtera (isto kao Kibana)
+  const dateCols = useMemo(() => columns.filter((c) => c.type === 'date'), [columns]);
+  // podrazumevana kolona: „dolazak" ako postoji (spec §6e.3 K1 — za rezervacije), inače prva datumska
+  const defaultDateCol = (dateCols.find((c) => c.key === 'dolazak') ?? dateCols[0])?.key ?? null;
+  const histCol = histogramCol === null ? null : (histogramCol ?? defaultDateCol);
+  const hist = useMemo(
+    () => (histCol ? buildHistogram(visibleRows, histCol) : null),
+    [visibleRows, histCol],
+  );
+  const activePillCount = pills.filter((p) => p.enabled).length;
+
+  function addPill(pill: FilterPill) {
+    setPills((ps) => upsertPill(ps, pill));
+  }
+  function cellFilter(e: React.MouseEvent, c: TableColumn, v: unknown, negate: boolean) {
+    e.stopPropagation();
+    addPill(pillForCell(c, v, negate));
+  }
 
   const shownColumns = useMemo(() => {
     const base = columns.filter((c) => !hidden.includes(c.key));
@@ -383,9 +429,12 @@ export default function TerminalTable({
   async function exportAs(format: 'EXCEL' | 'PDF' | 'HTML') {
     // §6e.3j — šalju se spec + transformacije; server ponovo izvlači i primeni, ne prima brojeve.
     const transform = {
-      filters: Object.entries(columnFilters)
-        .filter(([, v]) => v.trim())
-        .map(([column, value]) => ({ column, op: 'contains' as const, value })),
+      filters: [
+        ...pillsToTransform(pills),
+        ...Object.entries(columnFilters)
+          .filter(([, v]) => v.trim())
+          .map(([column, value]) => ({ column, op: 'contains' as const, value })),
+      ],
       sort: sort ?? undefined,
       groupBy: groupBy ?? undefined,
       hidden,
@@ -412,7 +461,27 @@ export default function TerminalTable({
     // §6e.3k — sažetak, ne redovi: kolone, red zbira, do 20 izabranih redova, scenario.
     addTable({
       label: spec.title ?? spec.source,
-      spec: { source: spec.source, filters: spec.filters, title: spec.title },
+      spec: {
+        source: spec.source,
+        // trakice ulaze u sažetak kao čitljivi filteri (K2) — model vidi ŠTA je suženo, ne redove
+        filters: {
+          ...(spec.filters ?? {}),
+          ...(activePillCount
+            ? {
+                trakice: pills
+                  .filter((p) => p.enabled)
+                  .map((p) =>
+                    pillLabel(
+                      p,
+                      columns.find((c) => c.key === p.column),
+                      fmt,
+                    ),
+                  ),
+              }
+            : {}),
+        },
+        title: spec.title,
+      },
       columns: shownColumns.map((c) => ({ key: c.key, label: c.label })),
       resultCount: visibleRows.length,
       totals,
@@ -551,6 +620,88 @@ export default function TerminalTable({
             u redu
           </button>
         </p>
+      )}
+
+      {/* §6e.3 K2 — filter-trakice: klik = isključi/uključi, ¬ = obrni, × = ukloni */}
+      {pills.length > 0 && (
+        <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
+          {pills.map((p, i) => {
+            const col = columns.find((c) => c.key === p.column);
+            return (
+              <span
+                key={`${p.column}-${p.op}-${p.value}-${p.to ?? ''}`}
+                className={`inline-flex h-7 items-center gap-1 rounded-full border px-2 ${
+                  p.enabled
+                    ? 'border-accent bg-accent-soft text-ink'
+                    : 'border-border text-ink-faint line-through'
+                }`}
+              >
+                <button
+                  type="button"
+                  className="hover:underline"
+                  title={p.enabled ? 'Privremeno isključi' : 'Uključi'}
+                  onClick={() =>
+                    setPills((ps) =>
+                      ps.map((x, j) => (j === i ? { ...x, enabled: !x.enabled } : x)),
+                    )
+                  }
+                >
+                  {pillLabel(p, col, fmt)}
+                </button>
+                {p.op !== 'range' && (
+                  <button
+                    type="button"
+                    className="rounded px-1 text-ink-faint hover:bg-panel hover:text-ink"
+                    title={p.op === 'is' ? 'Obrni u „nije"' : 'Obrni u „jednako"'}
+                    onClick={() =>
+                      setPills((ps) => ps.map((x, j) => (j === i ? invertPill(x) : x)))
+                    }
+                  >
+                    ¬
+                  </button>
+                )}
+                <button
+                  type="button"
+                  className="rounded px-1 text-ink-faint hover:bg-panel hover:text-danger"
+                  title="Ukloni"
+                  onClick={() => setPills((ps) => ps.filter((_, j) => j !== i))}
+                >
+                  ×
+                </button>
+              </span>
+            );
+          })}
+          <button
+            type="button"
+            className="ml-auto text-ink-faint hover:text-danger hover:underline"
+            onClick={() => setPills([])}
+          >
+            obriši sve
+          </button>
+        </div>
+      )}
+
+      {/* §6e.3 K1 — histogram po datumskoj koloni; prevlačenje/klik → trakica opsega */}
+      {data && dateCols.length > 0 && histCol !== null && (
+        <TableHistogram
+          hist={hist}
+          columns={dateCols}
+          column={histCol}
+          onColumn={(k) => setHistogramCol(k)}
+          onHide={() => setHistogramCol(null)}
+          onRange={(from, to) =>
+            addPill({ column: histCol!, op: 'range', value: from, to, enabled: true })
+          }
+        />
+      )}
+      {data && dateCols.length > 0 && histCol === null && (
+        <button
+          type="button"
+          className="self-start text-[11px] text-ink-faint hover:text-accent hover:underline"
+          onClick={() => setHistogramCol(undefined)}
+        >
+          prikaži histogram
+        </button>
       )}
 
       {/* §6e.4 — traka scenarija, uvek vidljiva dok je aktivan */}
@@ -947,7 +1098,7 @@ export default function TerminalTable({
                     {shownColumns.map((c) => (
                       <td
                         key={c.key}
-                        className={`${td} ${isNum(c) ? 'text-right' : ''} ${semaforClass(semafor, c.key, r[c.key])}`}
+                        className={`${td} group/cell relative ${isNum(c) ? 'text-right' : ''} ${semaforClass(semafor, c.key, r[c.key])}`}
                         title={
                           c.derived && scenarioOn && data.rows.find((x) => x._key === r._key)
                             ? `stvarno: ${fmt(data.rows.find((x) => x._key === r._key)![c.key], c.type)}`
@@ -955,6 +1106,29 @@ export default function TerminalTable({
                         }
                       >
                         {fmt(r[c.key], c.type)}
+                        {/* K2 — filter iz ćelije na hover: + „samo ovakvi", − „sve osim" (datum: samo +, taj dan) */}
+                        {!grouped && !c.key.startsWith('_') && (
+                          <span className="absolute right-0 top-1/2 hidden -translate-y-1/2 gap-0.5 rounded border border-border bg-panel px-0.5 group-hover/cell:inline-flex">
+                            <button
+                              type="button"
+                              className="px-1 text-[10px] leading-4 text-ink-faint hover:text-accent"
+                              title="Samo redovi sa ovom vrednošću"
+                              onClick={(e) => cellFilter(e, c, r[c.key], false)}
+                            >
+                              +
+                            </button>
+                            {c.type !== 'date' && (
+                              <button
+                                type="button"
+                                className="px-1 text-[10px] leading-4 text-ink-faint hover:text-danger"
+                                title="Svi redovi osim ove vrednosti"
+                                onClick={(e) => cellFilter(e, c, r[c.key], true)}
+                              >
+                                −
+                              </button>
+                            )}
+                          </span>
+                        )}
                       </td>
                     ))}
                     {data.previous &&

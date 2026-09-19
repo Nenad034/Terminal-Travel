@@ -358,7 +358,7 @@ Najviše 2.000 redova (`truncated: true` preko toga). `previous` samo uz `compar
 }
 ```
 
-Server ponovo izvuče podatke i primeni iste transformacije (nikad ne prima gotove brojeve). **Odgovor:** `{ "id": "…", "format": "EXCEL", "fileName": "Rezervacije.xlsx", "rowCount": 5 }` — preuzimanje kroz postojeći `GET /bi-terminal/reports/:id/download`.
+Server ponovo izvuče podatke i primeni iste transformacije (nikad ne prima gotove brojeve). `filters[].op`: `contains` (tekst „sadrži", filter po koloni), `eq` / `neq` (jednako / nije — sirova vrednost kao string: novac u parama, datum `YYYY-MM-DD`, prazno `""` hvata `null`), `gte` / `lte` (opseg, uključivo; nad datumom po danu). `eq`/`neq`/`gte`/`lte` su trakice filtera iz panela (M17 §6e.3 K2, 19.9.2026), npr. `{ "column": "dolazak", "op": "gte", "value": "2026-09-01" }, { "column": "dolazak", "op": "lte", "value": "2026-09-30" }, { "column": "status", "op": "neq", "value": "CANCELLED" }`. **Odgovor:** `{ "id": "…", "format": "EXCEL", "fileName": "Rezervacije.xlsx", "rowCount": 5 }` — preuzimanje kroz postojeći `GET /bi-terminal/reports/:id/download`.
 
 ### `open_table` u `POST /omnisearch`
 

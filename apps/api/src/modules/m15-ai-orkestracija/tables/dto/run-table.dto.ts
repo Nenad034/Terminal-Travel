@@ -32,7 +32,7 @@ export class RunTableDto {
 export class TableTransformDto {
   @IsOptional() @IsArray() filters?: {
     column: string;
-    op: 'contains' | 'gte' | 'lte' | 'eq';
+    op: 'contains' | 'gte' | 'lte' | 'eq' | 'neq';
     value: string;
   }[];
   @IsOptional() @IsObject() sort?: { column: string; dir: 'asc' | 'desc' };
