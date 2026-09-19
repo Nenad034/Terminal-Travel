@@ -6070,7 +6070,7 @@ Javni `GET /quotes/shared/:shareToken` (3.1a) i pregled ponude u B2B portalu (M7
 - **Dok. 49 (yield)** ovo uzima kao **ulaz** — pravilo marže sa uslovom (popunjenost, lead-time) gleda tačno ova polja. Redosled: prvo ovaj zapis, pa sezona podataka, pa yield. To je ujedno odgovor na pitanje 6 iz dok. 49 §6.
 - **Ne radi se:** nikakvo praćenje pojedinačnog posetioca kroz vreme (bez kolačića, bez „fingerprint-a"), nikakav upis cene konkurencije (M15 §6.5.6a ostaje), nikakva automatska promena marže — ovo je **samo zapis**. Retencija: isto otvoreno pitanje kao §3.0i (poglavlje 13), s tim da `SearchLogResult` nema lični podatak ni u jednom polju.
 
-### 3.0k.6 Šta čeka potvrdu vlasnika pre koda
+### 3.0k.6 Šta čeka potvrdu vlasnika pre koda — **vlasnik potvrdio sve tri tačke 19.9.2026 („Da"); čeka kod**
 
 1. **20 prikazanih rezultata po upitu** kao granica (moj predlog; alternativa: sve, uz veći obim baze).
 2. **Nabavna cena u zapisu** (`offer_base_cost`) — beležimo je (moja preporuka, jer bez nje se marža ne može analizirati unazad) ili ne.
@@ -7093,7 +7093,8 @@ Prefiks: `/api/v1/sales`
 ## 13. Otvoreno za dalje
 
 - **Ponuda iz nalepljenog teksta — subagentska varijanta (§3.0j.7 tačka 2)** čeka portal frontend (M7 §12); **merenje na 20 stvarnih mejlova** (M15 §6.5.4.7) čeka uzorke od vlasnika; slike sa zvaničnog sajta (§6.5.6c) nisu u prvom prolazu.
-- **Signali potražnje (§3.0k, predlog v2.55, 19.9.2026)** — tri pitanja u §3.0k.6 (granica 20 rezultata, nabavna u zapisu, brojanje otvaranja ponude) čekaju vlasnika; kod posle toga. Preduslov za yield ispod.
+- **Signali potražnje (§3.0k, v2.55, 19.9.2026)** — vlasnik potvrdio sve tri tačke iz §3.0k.6 (20 rezultata, nabavna u zapisu, brojanje otvaranja); **čeka kod**, posle M3 `occupancy`/spajanja uvoza. Preduslov za yield ispod.
+- **Uslovna marža — vlasnik odgovorio 19.9.2026** (dok. 49 §6a: 7–30%, ista cena M7/M8, čovek odobrava, važi i za čarter/fiksni zakup); spec prolaz po dok. 49 §7 ide posle §3.0k i sezone podataka.
 - **Uslovna marža (yield / revenue management)** (13.9.2026, pitanje vlasnika) — `MarkupRule` (§2.1) je danas statična; predlog da dobije opcioni uslov (popunjenost, dani do dolaska/roka vraćanja, preostale jedinice) i AI agenta koji predlaže promenu uz ljudsko odobrenje razrađen je u `docs/analize/49-PREDLOG-YIELD-UPRAVLJANJE-MARZOM.md`. Formula §2.1 i redosled §2.1a se ne menjaju. **Čeka odluku vlasnika** (6 poslovnih pitanja u §6 tog dokumenta); do tada bez izmene ove specifikacije i bez koda.
 - **`SearchLog` retencija** (§3.0i, 8.9.2026) — period čuvanja nije definisan; redovi sa `actor_id`/`client_account_id` nose lični podatak i trebaju retencionu politiku, isto pitanje kao M6/M22 (`docs/analize/26-PRAVNA-I-KNJIGOVODSTVENA-OTVORENA-PITANJA.md`), čeka pravnika.
 - **Automatsko osvežavanje ponuda bez klika, uz preporuku sistema** (pitanje vlasnika, 2.9.2026, tokom implementacije §3.0g — _"da li se može napraviti algoritam koji će sam osvežavati svakih 10 minuta i sistem da da preporuku da li svakako treba osvežiti ako u api konekciji se primeti da je došlo do promene"_). Poređenje koje bi to koristilo **već postoji** (§3.0g.3, `SearchRefreshNotice.tsx`) — danas ga pokreće klik na "Osveži podatke"; automatska varijanta bi ga pokretala sat. Moja preporuka (data vlasniku, **nije još odluka**, ne implementirati pre potvrde i dopune ovog poglavlja):

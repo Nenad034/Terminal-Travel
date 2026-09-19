@@ -1,6 +1,6 @@
 # Predlog — upravljanje maržom po tražnji i popunjenosti (yield / revenue management)
 
-**Status:** Predlog, bez koda, **čeka odluku vlasnika**. Nastao 13.9.2026. na pitanje vlasnika: _„da li imamo predviđen yield ili revenue manager u TT"_ — odgovor je bio **ne**, pa je vlasnik tražio da se napiše predlog.
+**Status:** Predlog, bez koda — **vlasnik odgovorio na svih 6 pitanja 19.9.2026** (§6a ispod); sledeći korak je upis u M5/M15/M17/M13/M18 spec-ove po §7, **posle** M5 §3.0k zapisa signala i jedne sezone podataka (redosled iz §6 t. 6). Do tada ostaje predlog. Nastao 13.9.2026. na pitanje vlasnika: _„da li imamo predviđen yield ili revenue manager u TT"_ — odgovor je bio **ne**, pa je vlasnik tražio da se napiše predlog.
 **Dodiruje module:** M5 (marža i obračun — gde se pravilo primenjuje), M3 (kapacitet, rokovi, ugovori — odakle stižu ulazi), M13 (popunjenost i tražnja — merenje), M15 (AI agent koji predlaže), M17 (ekran u panelu), M7 (šta subagent vidi), M18 (alarmi i AI budžet), M8 (šta gost vidi).
 **Šta je pregledano pre pisanja:** sve `.md` specifikacije pod `docs/` pretražene na „yield", „revenue management", „dinamičke cene", „pravilo cene/marže"; M5 §2.1 i §2.1a (`MarkupRule` i redosled obračuna), M3 §2.8 (kapacitet po danu, stop-sale), M3 §2.3 (`release_days_before`), M3 §4.4 (AI agent koji uređuje kapacitete na zahtev), M13 §4.4 (vremenski obrasci), M5 §3.0i (`SearchLog`), M7 §5 (šta subagent vidi od cene), M15 §6.5.6a (poređenje cena konkurencije — blokirano), master dokument poglavlje 7 (ovlašćenja AI agenata).
 
@@ -117,6 +117,17 @@ Ovo ide u M13 §4 kao nov izveštaj, tek kad prva pravila prorade.
    **Dopuna 19.9.2026 (vlasnik se saglasio, okidač: razgovor sa Dušanom Komarom/Ominimo):** „posle prve sezone" ima smisla samo ako ta sezona **ostavi podatke** — `SearchLog` danas ne beleži ni prikazane cene ni lead-time ni vezu sa ponudom. Zato pre yield-a ide **M5 §3.0k „Signali potražnje"** (zapis prikazanih rezultata sa cenom/maržom/preostalim jedinicama, `Quote.search_log_id`, otvaranja ponude) i M13 §4.4a „Lijevak". Pitanja 1–5 i dalje čekaju odgovor.
 
 ---
+
+## 6a. Odgovori vlasnika (19.9.2026)
+
+| #   | Pitanje               | Odgovor vlasnika     | Kako ulazi u spec                                                                                                                                                 |
+| :-- | :-------------------- | :------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Donja granica marže   | **7%**               | tvrda ograda: nijedno pravilo, ni predlog agenta, ne sme ispod 7% efektivne marže po stavci; isto za sve dobavljače (po ugovoru se može samo podići, ne spustiti) |
+| 2   | Gornja granica        | **30%**              | tvrda ograda u drugom smeru — i „poslednje dve sobe" staju na 30%                                                                                                 |
+| 3   | Subagenti i sajt      | **ista cena**        | pomerena marža daje JEDNU prodajnu cenu za M7 i M8; subagentska provizija se računa od nje (M3 §2.11g redosled ostaje)                                            |
+| 4   | Ko odobrava           | **čovek**            | `PROPOSE_THEN_APPROVE`, nikad `AUTONOMOUS`; koja uloga — nova dozvola `M5/markup-yield/APPROVE`, dodeljuje se po M1 RBAC-u (vlasnik nije suzio na jednu ulogu)    |
+| 5   | Čarter i fiksni zakup | **oba**              | pravila važe i za `CHARTER`/`FIXED_LEASE` — predlog iz §2 („podrazumevano isključeno") se **menja**: uključeno, uz iste granice 7–30%                             |
+| 6   | Redosled              | rešeno kroz M5 §3.0k | prvo zapis signala, pa sezona podataka, pa yield                                                                                                                  |
 
 ## 7. Šta se dešava kad vlasnik odluči
 
