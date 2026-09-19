@@ -97,7 +97,7 @@
      protiv SVE ČETIRI pozadine (bg/panel/sunken/panel-2 — zamka 1.9), isti princip kao ranije
      palete. */
   --bg: #efece3;
-  --panel: #eeebe3; /* 18.9.2026 — posvetljeno 30% ka beloj (vlasnikov zahtev), i dalje (za dlaku) tamnije od --bg da se ne vrati bljesak od 17.9.2026; pre: #e7e3d7 */
+  --panel: #f1efe9; /* 19.9.2026 — posvetljeno još 20% ka beloj (vlasnikov zahtev); od sada je SVETLIJI od --bg (#efece3) — svesno, na zahtev, obrnuto od 17.9. „bljesak" pravila; pre: #eeebe3 (18.9., +30%), #e7e3d7 (17.9.) */
   /* "Utonula" površina (2.9.2026, na zahtev vlasnika: "sektori — naslovni deo tamnija nijansa a
      sadržaj ispod svetlija"). ČETVRTA nijansa, pored --bg / --panel / --panel-2.
 
@@ -252,7 +252,7 @@
   /* Paleta "Biserna" (18.9.2026) — mora ostati identično bloku `:root` iznad (zamka 1.7).
      Obrazloženje svih vrednosti: komentar uz `:root` iznad. */
   --bg: #efece3;
-  --panel: #eeebe3;
+  --panel: #f1efe9;
   --sunken: #ddd7c5;
   --panel-2: #e1ddd0;
   --bar: #e1ddd0;
