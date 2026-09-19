@@ -27,6 +27,9 @@ interface TabsContextValue {
    * paralelna pretraga), umesto da pronađe/istakne postojeći. Podrazumevano ponašanje (bez
    * `forceNew`) ostaje nepromenjeno — pronađi po `path`-u, nikad ne dupliraj. */
   openTab: (path: string, label: string, opts?: { forceNew?: boolean }) => void;
+  /** `true` tek posle obnove iz sessionStorage — pre toga `openTab` iz efekta deteta bude PREGAŽEN
+   * obnovom (efekti dece se izvršavaju pre efekta roditelja; zamka 8.19, 19.9.2026). */
+  hydrated: boolean;
   /**
    * docs/analize/29-DIZAJN-SISTEM-UI.md §5a — "izmena unutar već otvorenog tab-a ne otvara
    * nov tab, samo osvežava tekući". Menja putanju/naslov AKTIVNOG taba na mestu (bez novog
@@ -283,6 +286,7 @@ export function TabsProvider({
       value={{
         tabs,
         activePath: pathname,
+        hydrated,
         activeTabId,
         openTab,
         navigateInTab,
@@ -307,10 +311,15 @@ export function useTabs() {
 
 /** Svaka stranica poziva ovo da registruje sopstveni tab (naslov + trenutna putanja). */
 export function useRegisterTab(label: string) {
-  const { openTab } = useTabs();
+  const { openTab, hydrated } = useTabs();
   const pathname = usePathname();
   useEffect(() => {
+    // Zamka 9.12 (19.9.2026, otkriveno na `/tabele`): pri punom učitavanju stranice efekat
+    // deteta (ovaj) se izvršava PRE efekta roditelja koji obnavlja tabove iz sessionStorage —
+    // registracija bi bila tiho pregažena. Stranice sa `loading.tsx` (Suspense) su to slučajno
+    // izbegavale jer se montiraju kasnije. Čeka se obnova, pa se registruje.
+    if (!hydrated) return;
     openTab(pathname, label);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pathname, label]);
+  }, [pathname, label, hydrated]);
 }

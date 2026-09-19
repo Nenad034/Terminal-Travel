@@ -290,6 +290,80 @@ Izmena `tier`/`sourceNote` postojećeg reda. Zahteva `M15/agent-action-type/EDIT
 
 ---
 
+## Terminal tabela — `/ai-orchestration/tables` (spec §6.5.4.10, M17 §6e)
+
+JWT; dozvola zavisi od `spec.source` i proverava se programski (`bookings` → `M5/booking/VIEW`, `catalog` → `M2/product/VIEW`, `funnel` → `M13/report:temporal/VIEW` (+ `report:profitability` za `by_markup_rule`), `work_queue` → `M3/capacity/VIEW`).
+
+### GET /ai-orchestration/tables/sources
+
+Registar izvora za ekran „Nova tabela": `[{ id, label, filters: { <ključ>: { description, enumValues?, multi?, required? } }, columns: [{ key, label, type, internalOnly?, derived? }], hasPeriod }]`.
+
+### POST /ai-orchestration/tables/run
+
+```json
+{
+  "spec": {
+    "source": "bookings",
+    "filters": { "status": ["CONFIRMED"] },
+    "title": "Potvrđene",
+    "compare": { "from": "2026-08-01", "to": "2026-08-31" }
+  }
+}
+```
+
+**Odgovor `201`:**
+
+```json
+{
+  "columns": [
+    { "key": "broj", "label": "Broj", "type": "text" },
+    { "key": "prodajna", "label": "Prodajna", "type": "money", "derived": "prodajna" }
+  ],
+  "rows": [
+    {
+      "_key": "TT-MOCK-CAP-03-03",
+      "_href": "/rezervacije/32e22773-…",
+      "broj": "TT-MOCK-CAP-03-03",
+      "kupac": "Mock kupac 3",
+      "mesto": "Budva",
+      "noci": 7,
+      "prodajna": 72450,
+      "nabavna": 63000,
+      "marza": 9450,
+      "marza_pct": 15,
+      "neto": 9450
+    }
+  ],
+  "rowCount": 12,
+  "truncated": false,
+  "previous": []
+}
+```
+
+Najviše 2.000 redova (`truncated: true` preko toga). `previous` samo uz `compare`. Novčane kolone su u najmanjoj jedinici valute. Nepoznat izvor/filter/vrednost → `400` sa čitljivom porukom; bez dozvole → `403`.
+
+### POST /ai-orchestration/tables/export
+
+```json
+{
+  "spec": { "source": "bookings" },
+  "format": "EXCEL",
+  "transform": {
+    "filters": [{ "column": "mesto", "op": "contains", "value": "Budva" }],
+    "sort": { "column": "prodajna", "dir": "desc" },
+    "groupBy": "mesto",
+    "hidden": ["kanal"]
+  },
+  "scenarioLabel": "marža % = 18"
+}
+```
+
+Server ponovo izvuče podatke i primeni iste transformacije (nikad ne prima gotove brojeve). **Odgovor:** `{ "id": "…", "format": "EXCEL", "fileName": "Rezervacije.xlsx", "rowCount": 5 }` — preuzimanje kroz postojeći `GET /bi-terminal/reports/:id/download`.
+
+### `open_table` u `POST /omnisearch`
+
+Kad model pozove alat, odgovor nosi `table: { spec, columns, rowCount, truncated, preview }` (prvih 5 redova) pored `aiAnswer`; kanal prikazuje „Otvori kao tabelu". Kontekstna stavka `{ "type": "TABLE", "spec", "columns", "resultCount", "totals", "selectedRows", "scenario?" }` u `contextItems` daje modelu sažetak tabele koju korisnik gleda.
+
 ## POST /omnisearch/compose-email/approve
 
 Spec §6.5.4.8 (v1.60, 18.9.2026) — čovek odobrava nacrt mejla koji je AI predložio u glavnom razgovoru (`pendingEmailDraft` iz `POST /omnisearch` odgovora). Tek ovaj poziv pravi zapis: nova M22 nit sa `AI_DRAFT` porukom (`send: false`) — stvarno slanje i dalje ide preko M22 „pošalji" dugmeta. Zahteva `M15_EMAIL_COMPOSE` aktivaciju modula i `MailboxAccess(REPLY)` pozivaoca na tom sandučetu; inače `403`.

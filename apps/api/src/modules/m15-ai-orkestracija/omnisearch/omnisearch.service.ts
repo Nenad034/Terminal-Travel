@@ -1169,7 +1169,7 @@ export class OmnisearchService {
             // kao tabelu". Redovi nikad ne idu u model — tab ih vuče sam.
             name: 'open_table',
             description:
-              'Otvori podatke kao Terminal tabelu (kolone i redovi u novom tabu, korisnik dalje sortira/grupiše/pivotira sam). Koristi kad korisnik traži TABELU/PREGLED/SPISAK sa više kolona ili poređenje po grupama. Izvori: bookings (rezervacije; filteri status/paymentStatus/productType/channel/buyerName/bookingNumber/currency/destinationCity/destinationCountry/productName/createdFrom/createdTo/stayFrom/stayTo), catalog (proizvodi; type/destinationCountry/status), funnel (lijevak upit→rezervacija; dimension obavezno: by_destination|by_channel|by_lead_time|shown_not_chosen, from/to), work_queue (radni spisak kapaciteta; kind[]). compare={from,to} daje isti upit za drugi period (samo bookings/funnel).',
+              'Otvori podatke kao Terminal tabelu (kolone i redovi u novom tabu, korisnik dalje sortira/grupiše/pivotira sam). Koristi kad korisnik traži TABELU/PREGLED/SPISAK sa više kolona ili poređenje po grupama — pozovi ODMAH sa filterima koje imaš, bez potpitanja (bez perioda = sve). Izvori: bookings (rezervacije; filteri status/paymentStatus/productType/channel/buyerName/bookingNumber/currency/destinationCity/destinationCountry/productName/createdFrom/createdTo/stayFrom/stayTo), catalog (proizvodi; type/destinationCountry/status), funnel (lijevak upit→rezervacija; dimension obavezno: by_destination|by_channel|by_lead_time|shown_not_chosen, from/to), work_queue (radni spisak kapaciteta; kind[]). compare={from,to} daje isti upit za drugi period (samo bookings/funnel).',
             input_schema: {
               type: 'object' as const,
               properties: {
@@ -1245,8 +1245,9 @@ export class OmnisearchService {
         'pozovi filter_list sa TAČNO datim view/filters (nikad ne pitaj korisnika koji su filteri, već su ti dati). ' +
         'Nikad ne pretpostavljaj podatke o zapisima van onoga što ti je stvarno dato. ' +
         'TERMINAL TABELA (M17 §6e): kad korisnik traži tabelu, pregled sa kolonama, spisak za analizu ili poređenje po ' +
-        'grupama/periodima, pozovi open_table (ne prepisuj redove u tekst) — dobićeš sažetak, a korisnik dugme ' +
-        '„Otvori kao tabelu". Kad je priložena TABLE stavka, odgovaraj iz njenog sažetka. ' +
+        'grupama/periodima, pozovi open_table ODMAH sa onim što imaš (ne prepisuj redove u tekst, NE postavljaj ' +
+        'potpitanja o periodu/filterima — korisnik u tabeli sam filtrira i grupiše); dobićeš sažetak, a korisnik ' +
+        'dugme „Otvori kao tabelu". Kad je priložena TABLE stavka, odgovaraj iz njenog sažetka. ' +
         'PRETRAGA RASPOLOŽIVOSTI (M15 §6.5.4.6): kad zaposleni ukuca samo destinaciju ili naziv („Grčka", ' +
         '„Hotel Bellevue"), hoće SPISAK iz kataloga — koristi search_catalog, bez ijednog pitanja. ' +
         'search_availability koristi SAMO kad upit očigledno traži raspoloživost/cenu za period („ima li ' +
@@ -1446,23 +1447,39 @@ export class OmnisearchService {
               preview: res.rows.slice(0, 5),
             };
             // Sažetak za model — zbir numeričkih kolona računa KOD (M15 princip), redovi ne idu.
+            // Novac se modelu daje u OSNOVNOJ jedinici (EUR), ne u najmanjoj (izmereno uživo
+            // 19.9.2026: 10.480.000 centi je pročitano kao „1.048M EUR").
+            const moneyKeys = new Set(
+              res.columns.filter((c) => c.type === 'money').map((c) => c.key),
+            );
+            const major = (r: Record<string, unknown>) => {
+              const o: Record<string, unknown> = {};
+              for (const [k, v] of Object.entries(r)) {
+                if (k.startsWith('_')) continue;
+                o[k] = moneyKeys.has(k) && typeof v === 'number' ? Math.round(v) / 100 : v;
+              }
+              return o;
+            };
             const totals: Record<string, number> = {};
             for (const c of res.columns) {
               if (c.type === 'number' || c.type === 'money') {
-                totals[c.key] = res.rows.reduce(
+                const sum = res.rows.reduce(
                   (s, r) => s + (typeof r[c.key] === 'number' ? (r[c.key] as number) : 0),
                   0,
                 );
+                totals[c.key] = c.type === 'money' ? Math.round(sum) / 100 : sum;
               }
             }
             result = {
               opened: true,
               rowCount: res.rowCount,
               truncated: res.truncated,
-              columns: res.columns.map((c) => c.key),
+              columns: res.columns.map(
+                (c) => `${c.key} (${c.label}${c.type === 'money' ? ', iznos u valuti' : ''})`,
+              ),
               totals,
-              preview: res.rows.slice(0, 5),
-              note: 'Tabela je otvorena korisniku kao tab. Odgovori kratko šta tabela sadrži; ne prepisuj redove.',
+              preview: res.rows.slice(0, 5).map(major),
+              note: 'Tabela je otvorena korisniku kao tab. Novčani iznosi su u osnovnoj jedinici valute (npr. EUR), ne u centima. Odgovori kratko šta tabela sadrži; ne prepisuj redove.',
             };
           } catch (err) {
             result = { error: (err as Error).message };

@@ -1259,7 +1259,8 @@ describe('OmnisearchService (M15 spec §6.5, §10)', () => {
         'u1',
       );
       const toolResult = JSON.parse(create.mock.calls[1][0].messages.at(-1).content[0].content);
-      expect(toolResult).toMatchObject({ opened: true, rowCount: 2, totals: { prodajna: 3500 } });
+      // novac u sažetku ide u osnovnoj jedinici (3500 centi → 35 EUR)
+      expect(toolResult).toMatchObject({ opened: true, rowCount: 2, totals: { prodajna: 35 } });
       expect(toolResult.rows).toBeUndefined();
       expect(result.aiAnswer).toBe('Otvorio sam tabelu sa 2 rezervacije.');
       expect(result.table).toMatchObject({

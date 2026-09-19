@@ -28,7 +28,24 @@ export type AiContextItem =
       label: string;
     }
   | { id: string; type: 'FILE'; label: string; content: string }
-  | { id: string; type: 'IMAGE'; label: string; imageData: string; imageMediaType: string };
+  | { id: string; type: 'IMAGE'; label: string; imageData: string; imageMediaType: string }
+  // M17 §6e.3k — sažetak Terminal tabele (kolone, zbir, do 20 izabranih redova, scenario); najviše
+  // jedna odjednom (nova zamenjuje staru), nikad puni redovi.
+  | {
+      id: string;
+      type: 'TABLE';
+      label: string;
+      spec: { source: string; filters?: Record<string, string | string[]>; title?: string };
+      columns: { key: string; label: string }[];
+      resultCount: number;
+      totals: Record<string, number | null>;
+      selectedRows: Record<string, unknown>[];
+      scenario?: {
+        params: Record<string, number>;
+        totalsReal: Record<string, number | null>;
+        totalsScenario: Record<string, number | null>;
+      };
+    };
 
 const MAX_ITEMS = 8;
 
@@ -43,6 +60,7 @@ interface AiContextContextValue {
   }) => void;
   addFile: (args: { label: string; content: string }) => void;
   addImage: (args: { label: string; imageData: string; imageMediaType: string }) => void;
+  addTable: (args: Omit<Extract<AiContextItem, { type: 'TABLE' }>, 'id' | 'type'>) => void;
   removeItem: (id: string) => void;
   clear: () => void;
   atCapacity: boolean;
@@ -118,6 +136,15 @@ export function AiContextProvider({
     });
   }
 
+  function addTable(args: Omit<Extract<AiContextItem, { type: 'TABLE' }>, 'id' | 'type'>) {
+    setItems((prev) => {
+      const bez = prev.filter((i) => i.type !== 'TABLE');
+      if (bez.length >= MAX_ITEMS) return prev;
+      if (prev.length === 0) onFirstAdd?.();
+      return [...bez, { id: `table-${Date.now()}`, type: 'TABLE', ...args }];
+    });
+  }
+
   function removeItem(id: string) {
     setItems((prev) => prev.filter((i) => i.id !== id));
   }
@@ -134,6 +161,7 @@ export function AiContextProvider({
         addFilteredList,
         addFile,
         addImage,
+        addTable,
         removeItem,
         clear,
         atCapacity: items.length >= MAX_ITEMS,

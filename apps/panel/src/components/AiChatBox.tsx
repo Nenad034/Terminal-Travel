@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom';
 import Icon from './Icon';
 import Link from 'next/link';
 import { useTabs } from './TabsContext';
+import { encodeTableSpec, type TableSpec } from '@/lib/table-spec';
 import { NAV_ITEMS, NAV_GROUPS, type NavItem } from '@/lib/nav';
 import CopyButton from './CopyButton';
 import { useAiContext, type AiContextItem } from './AiContextContext';
@@ -123,6 +124,20 @@ interface OmnisearchResponse {
     mailboxId: string;
     mailboxAddress: string;
   };
+  // M15 spec §6.5.4.10 / M17 §6e (19.9.2026) — alat `open_table`: spec + sažetak; tab vuče redove sam.
+  table?: {
+    spec: {
+      source: string;
+      filters?: Record<string, string | string[]>;
+      title?: string;
+      columns?: string[];
+      compare?: { from: string; to: string };
+    };
+    columns: { key: string; label: string; type: string }[];
+    rowCount: number;
+    truncated: boolean;
+    preview: Record<string, unknown>[];
+  };
 }
 
 interface Turn {
@@ -140,6 +155,8 @@ interface Turn {
   pendingEmailDraft?: OmnisearchResponse['pendingEmailDraft'];
   emailDraftDecision?: 'approved' | 'denied';
   emailDraftThreadId?: string;
+  /** §6.5.4.10 — Otvori kao tabelu (M17 §6e.2). */
+  table?: OmnisearchResponse['table'];
 }
 
 // Čitljiv naziv čipa za jednu kontekstnu stavku (dizajn dok. §6c.1a) — RECORD prikazuje samo
@@ -150,6 +167,7 @@ function itemLabel(item: AiContextItem): string {
   if (item.type === 'RECORD') return item.refLabel;
   if (item.type === 'FILE') return `Fajl: ${item.label}`;
   if (item.type === 'IMAGE') return `Slika: ${item.label}`;
+  if (item.type === 'TABLE') return `Tabela: ${item.label} (${item.resultCount})`;
   return item.resultCount !== undefined
     ? `Filtrirano: ${item.label} (${item.resultCount})`
     : `Filtrirano: ${item.label}`;
@@ -530,6 +548,17 @@ export default function AiChatBox({ fokus = false }: { fokus?: boolean }) {
       ...contextItems.map((i) => {
         if (i.type === 'RECORD') return { type: 'RECORD' as const, refLabel: i.refLabel };
         if (i.type === 'FILE') return { type: 'FILE' as const, label: i.label, content: i.content };
+        if (i.type === 'TABLE')
+          return {
+            type: 'TABLE' as const,
+            label: i.label,
+            spec: i.spec,
+            columns: i.columns,
+            resultCount: i.resultCount,
+            totals: i.totals,
+            selectedRows: i.selectedRows,
+            scenario: i.scenario,
+          };
         if (i.type === 'IMAGE')
           return {
             type: 'IMAGE' as const,
@@ -613,6 +642,7 @@ export default function AiChatBox({ fokus = false }: { fokus?: boolean }) {
           links: [...data.matchedRoutes],
           ...(data.clarification ? { clarification: true } : {}),
           ...(data.report ? { report: data.report } : {}),
+          ...(data.table ? { table: data.table } : {}),
           ...(data.pendingEmailDraft ? { pendingEmailDraft: data.pendingEmailDraft } : {}),
         };
         return next;
@@ -731,9 +761,32 @@ export default function AiChatBox({ fokus = false }: { fokus?: boolean }) {
                   />
                 )}
                 {t.report && <ReportDownloadLink report={t.report} />}
-                {!t.answer && t.links.length === 0 && !t.pendingEmailDraft && !t.report && (
-                  <p className="text-ink-faint">Nema rezultata.</p>
+                {t.table && (
+                  <div className="mt-1 flex items-center gap-1.5 rounded border border-ink-faint bg-panel-2 px-2.5 py-1.5">
+                    <Icon name="table" />
+                    <span className="text-ink">
+                      {t.table.spec.title ?? t.table.spec.source} — {t.table.rowCount} redova
+                      {t.table.truncated ? ' (prvih 2.000)' : ''}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        openTab(
+                          `/tabele/prikaz?spec=${encodeTableSpec(t.table!.spec as TableSpec)}`,
+                          t.table!.spec.title ?? 'Tabela',
+                        )
+                      }
+                      className="ml-auto rounded border border-ink-faint px-2 py-0.5 text-[11px] text-accent hover:border-accent"
+                    >
+                      Otvori kao tabelu
+                    </button>
+                  </div>
                 )}
+                {!t.answer &&
+                  t.links.length === 0 &&
+                  !t.pendingEmailDraft &&
+                  !t.report &&
+                  !t.table && <p className="text-ink-faint">Nema rezultata.</p>}
               </div>
             )}
           </div>

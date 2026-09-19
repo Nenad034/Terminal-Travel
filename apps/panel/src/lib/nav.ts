@@ -270,6 +270,17 @@ export const NAV_ITEMS: NavItem[] = [
     implemented: true,
   },
   {
+    // M17 spec §6e (19.9.2026) — Terminal tabela; dozvola po izvoru se proverava na API-ju,
+    // ekran sam traži samo prijavu (rezervacije su najširi izvor, pa je to ulazna dozvola).
+    id: 'tabele',
+    label: 'Tabele',
+    icon: 'table',
+    href: '/tabele',
+    permission: { module: 'M5', resource: 'booking', action: 'VIEW' },
+    phase: 5,
+    implemented: true,
+  },
+  {
     id: 'podrska',
     label: 'Podrška',
     icon: 'question',
@@ -420,7 +431,7 @@ export const NAV_GROUPS: NavGroup[] = [
     id: 'analitika-nadzor',
     label: 'Analitika i nadzor',
     icon: 'graph-line',
-    itemIds: ['izvestaji', 'nadzor'],
+    itemIds: ['izvestaji', 'tabele', 'nadzor'],
   },
   {
     id: 'administracija',

@@ -83,6 +83,16 @@ Dva modula odjednom, jer spec plan predviđa da idu zajedno kao Faza 5.
 
 Ništa od ovoga nije propust — to su svesne odluke da se gradi po delovima koji stvarno mogu da se provere, ne "sve odjednom".
 
+## „Terminal tabela" — Excel koji ne laže (19.9.2026, Vaša ideja)
+
+Tražili ste tabelu kao u Excelu, ali unutar TT, koju AI puni i u kojoj se analizira. Napravljeno je tačno to, uz tri pravila koja je razlikuju od Excela — i koja su razlog zašto Excel u firmama laže: **u ćelije se ne kuca** (podaci dolaze samo iz modula, i svaki put se ponovo izvlače), **računa kod, ne AI** (zbirovi, grupisanje, pivot, procenti), **bez formula po ćeliji**.
+
+Kako se koristi: u AI razgovoru kažete „daj mi tabelu potvrđenih rezervacija" — dobijete dugme „Otvori kao tabelu". Ili u meniju „Tabele" sami izaberete izvor i filtere. U tabeli: sortiranje, filter po koloni, grupisanje sa zbirovima, pivot (npr. mesto × mesec), semafor (vi zadate prag, kod boji), klik na red otvara rezervaciju, poređenje sa prošlim periodom, zbir označenih redova, čuvanje tabele (kao „sačuvani prikaz"), izvoz u Excel/PDF, i „pitaj AI" — AI dobija sažetak tabele, ne redove.
+
+**Scenario** (samo Vi i Direktor): promenite maržu, proviziju, kurs, nabavnu ili popunjenost i vidite efekat — traka jasno kaže „SCENARIO — nije stvarno stanje", a pravu vrednost vidite kad zadržite miš. Ništa se ne upisuje u sistem. Kad se scenario pokaže dobrim, sledeći korak (kad dođe yield) biće dugme „predloži kao pravilo marže".
+
+Šta još nije: čuvanje više scenarija po tabeli i poređenje A/B; akcije nad označenim redovima kroz AI; zakazana tabela — sve zapisano za sledeće prolaze.
+
 ## Nova strana prijave — „naslovna strana radnog dana" (17.9.2026, Vaša odluka)
 
 Do sada je prijava bila mala kartica na praznoj tamnoj pozadini. Od danas je to strana preko celog ekrana, po uzoru na TCT stranu koju ste poslali, ali sa našim sadržajem: gore logotip, datum i sat; u sredini naslov („Današnje rezervacije su već tu."), kartica sa emailom i lozinkom, i ispod nje blok „Iz kataloga" — hotel i destinacija koju stvarno prodajemo, sa tri fotografije koje se smenjuju na 8 sekundi. Sve tri celine su raspoređene tako da je sredina uvek centrirana, sa jednakim prostorom iznad i ispod, na svakom ekranu.
