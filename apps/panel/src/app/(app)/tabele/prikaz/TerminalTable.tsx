@@ -101,9 +101,13 @@ function mergeCompare(rows: TableRow[], previous: TableRow[], columns: TableColu
 const th =
   'sticky top-0 z-10 select-none whitespace-nowrap border-b border-border bg-panel-2 px-2 py-1.5 text-left text-[11px] font-semibold uppercase tracking-wide text-ink-faint';
 const td = 'whitespace-nowrap border-b border-border px-2 py-1 tabular-nums';
+// Traka alata (19.9.2026, vlasnik: „neki dugmići su veći, neki manji… uokvirite našom narandžastom
+// bojom") — FIKSNA visina `h-8` za dugme, select i polje (pre: `py-1`, pa je dugme sa ikonom bilo
+// više od golog „PDF"), okvir `border-brand` (isti token kao logotip i dugmad pretrage, globals.css
+// `--brand`); tekst ostaje `text-ink-dim` na `bg-panel` — okvir ne menja kontrast teksta.
 const btn =
-  'rounded border border-border px-2 py-1 text-[11px] text-ink-dim hover:border-accent hover:text-accent';
-const input = 'input !py-1 text-xs';
+  'inline-flex h-8 items-center gap-1.5 whitespace-nowrap rounded border border-brand bg-panel px-2.5 text-[11px] text-ink-dim hover:bg-brand/10 hover:text-ink disabled:opacity-50';
+const input = 'input h-8 !py-0 text-xs';
 
 export default function TerminalTable({
   spec,
