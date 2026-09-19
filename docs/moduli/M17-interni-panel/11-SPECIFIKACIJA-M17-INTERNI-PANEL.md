@@ -4,6 +4,7 @@
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje
 
+**Verzija:** 2.82 — **„Terminal tabela" (§6e)** (19.9.2026, vlasnikova odluka i potvrđen obim): radna tabela koju AI puni preko zatvorenog registra izvora, a čovek analizira — sortiranje/filter/grupisanje/pivot 1 nivo/semafor/klik na red/poređenje perioda/zbir izabranog/sačuvaj/izvoz/pitaj AI; **scenario** (parametri marža/provizija/kurs/nabavna/popunjenost, samo Vlasnik/Direktor, nova dozvola `M13/scenario/USE`) nikad ne upisuje u module. Tri pravila protiv senke-Excela u §6e.1. Nova stavka menija „Tabele". Kod u istom prolazu (M15 §6.5.4.10).
 **Verzija:** 2.81 — **„Novi cenovnik" vodi prvo na uvoz** (19.9.2026, M3 v1.49 §2.11p, vlasnikova odluka): ulaz u nov cenovnik na ekranu ugovora ide na `/cenovnici` (uvoz fajla ili nalepljenog teksta), „prazan cenovnik" postaje sekundarna opcija; mreža §6d.1 ostaje kao pregled i ispravka po ćeliji. Samo specifikacija; ekran se menja kad M3 §4.2.10 (`occupancy`, spajanje) dobije kod.
 **Verzija:** 2.80 — **ekran „Ponuda iz teksta"** (17.9.2026, M5 v2.53 §3.0j.5). Nova stavka u grupi Prodaja (`/rezervacije/ponude/nova-iz-teksta`, dozvola `M5/quote/CREATE`): levo polje za lepljenje + potpitanja (isti izgled kao potpitanje pretrage, najviše dva kruga), desno forma predloga — svako polje sa oznakom **tekst / katalog / izvedeno / prazno**, upozorenja na vrhu, objekat iz kataloga sa sličnošću i kvačicom „koristi NAŠU ugovorenu cenu", ručna stavka sa nabavnom/izlaznom/maržom uživo i dobavljačem, „sačuvaj u katalog" + link zvaničnog sajta → AI predlog (opis, adresa, zvezdice, sadržaji) sa kvačicom „odobravam"; „Napravi nacrt ponude →" je jedini upis i vodi na postojeći ekran ponude (koji od sada ispisuje naziv proizvoda umesto UUID-a). Viđeno na ekranu 17.9.2026 (mejl za nepoznat hotel u Rovinju → nacrt 1.180,00 EUR).
 **Verzija:** 2.79 — **§4b.0 „nikad svih 2000 odjednom" i §4b.0a prediktivna pretraga hotela — u kodu** (17.9.2026, M3 v1.46). `HotelSearch.tsx` (BFF `/api/capacity/search-hotels`): od 2. slova, sa zadrškom 250 ms, lista pogodaka **naziv ★★★★ · mesto, država · ugovor NN / API provajder**; klik vodi na mrežu tog ugovora; hotel bez ugovora nije klikabilan i nudi „napravi ugovor za ovaj hotel →" (`/ugovori/novi` — **bez preizbora objekta**, forma za ugovor još ne prima `productId`; zabeleženo u §8). Mreža (`CapacityGrid`) se učitava i prikazuje **samo** kad je izabran ugovor ili filter sužava (dobavljač, država, mesto, naziv); bez toga stoji rečenica „Izaberite hotel u pretrazi iznad, ili suzite mrežu po državi/mestu" — vrsta ugovora i vrsta proizvoda same po sebi ne sužavaju. Traka filtera ostaje (period, država, mesto, naziv, vrsta). Viđeno na ekranu 17.9.2026 (upit „sun": 6 pogodaka sa zvezdicama i mestom; klik na Hotel Sun Resort otvara mrežu samo tog objekta).
@@ -864,6 +865,59 @@ Polje u koje se ukuca rečenica kakva bi se rekla kolegi, pa spisak predloženih
 Biraju se hotel, tip sobe i sastav gostiju; kalendar po danu prikazuje cenu za taj sastav i **broj slobodnih jedinica** (vlasnikova odluka: samo slobodno, ne „4 od 6"). Vrednost je u tome što se pogrešno unet datumski opseg vidi kao skok ili rupa u nizu — u mreži se to ne primeti.
 
 **Napravljeno 9.9.2026** kao kartica „Kalendar“ na `/ugovori/[id]/cenovnik` (M3 v1.34). Četiri odluke koje ekran nosi: (1) godine dece se unose **pojedinačno**, ne kao broj dece — doplata se razlikuje po uzrastu; (2) kad tip sobe ima više cenovnih kombinacija (pansion × popunjenost), ekran nudi izbor umesto da jednu izabere umesto čoveka; (3) dan bez cene nosi **imenovan razlog**, ne prazan kvadratić — prazno bi izgledalo isto i kad je cenovnik nepotpun i kad je ekran pokvaren; (4) kartica učitava podatke tek kad se otvori, za razliku od ostalih koje ostaju u DOM-u — upit za kalendar bi inače išao pri svakom otvaranju cenovnika, bez potrebe.
+
+## 6e. „Terminal tabela" — radna tabela koju AI puni, a čovek u njoj analizira (v2.82, 19.9.2026, vlasnikova odluka)
+
+Vlasnik: _„nešto slično Excel tabelama, koja ne bi bila sa svim funkcijama Excela već bi služila da uz pomoć AI agenta prikaže podatke u kolonama i redovima, takođe da ih tu analiziramo uz pomoć AI agenta. U redu je da postoji export u Excel, ali mislim da nam nešto ovako treba kako bi ostali u okviru TT aplikacije."_ Potvrdio obim (_„da, i još ćemo je usavršavati"_) i dopunu: _„da se najvišim nivoima dozvoli promena parametara kako bi se kreirali razni scenariji"_ (_„saglasan"_ na predlog §6e.4).
+
+### 6e.1 Tri pravila — tabela je PRIKAZ, ne izvor podataka
+
+Pouka dok. 22 (PrimeTravel: paralelni Excel-i sa sopstvenom istinom). Bez ova tri pravila ovo bi postala senka-Excel:
+
+1. **Ćelije se ne kucaju.** Podaci dolaze isključivo iz modula preko zatvorenog registra izvora (M15 §6.5.4.10). Tabela nikad nije izvor istine; sačuvana tabela čuva **upit i podešavanja**, nikad kopiju brojeva — pri svakom otvaranju podaci se ponovo izvlače.
+2. **Sabiranje, grupisanje, pivot, procente radi KOD u pregledaču.** Model tumači (M15 princip minimalnih tokena): dobija sažetak (kolone, red zbira, do 20 izabranih redova), ne celu tabelu.
+3. **Bez formula po ćeliji.** „Kolona izračunata iz druge dve" je izvedena kolona u registru izvora, jednom za sve — ne korisnička formula. Uvoz tuđeg Excela kao izvora ne postoji.
+
+### 6e.2 Ulaz i mesto
+
+- **Iz AI razgovora:** svaki odgovor `POST /omnisearch` koji nosi `table` (alat `open_table`, M15 §6.5.4.10) dobija u chat-u dugme **„Otvori kao tabelu"** → nov tab.
+- **Iz menija:** stavka **„Tabele"** u grupi „Analitika i nadzor" (`/tabele`) — spisak sačuvanih tabela + „Nova tabela" (izbor izvora i filtera bez AI-ja, isti registar).
+- **Adresa taba:** `/tabele/prikaz?spec=<base64url JSON>` — spec je u adresi da tab bude ponovljiv i deljiv kolegi (ko nema dozvolu za izvor, dobija 403 od API-ja, ne prazan ekran). Podaci se svaki put izvlače kroz `POST /ai-orchestration/tables/run` (deterministički, bez modela).
+- **Spec tabele** (`TableSpec`): `{ source, filters, title, columns?: string[], compare?: { from, to } }` + podešavanja prikaza (`sort`, `hidden[]`, `pinned[]`, `groupBy`, `pivot`, `semafor[]`, `scenario`).
+
+### 6e.3 Funkcije prve verzije (vlasnik potvrdio spisak 19.9.2026)
+
+| #   | Funkcija                                                                                                                                                                                                                                                                                                              | Ko radi posao                  |
+| :-- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :----------------------------- |
+| a   | Sortiranje po koloni, filter po koloni (tekst sadrži / broj u opsegu / datum od–do)                                                                                                                                                                                                                                   | kod u pregledaču               |
+| b   | Grupisanje po jednoj koloni sa međuzbirovima (suma/prosek/broj po numeričkoj koloni)                                                                                                                                                                                                                                  | kod                            |
+| c   | **Pivot na jedan nivo** — red-dimenzija × kolona-dimenzija × mera (suma/broj), npr. destinacija × mesec                                                                                                                                                                                                               | kod                            |
+| d   | **Semafor po koloni** — pravilo `{ kolona, operator (<, ≤, =, ≥, >), prag, boja (ok/warn/danger) }`, više pravila; čuva se uz tabelu; boje su postojeći `--ok`/`--warn`/`--danger` tokeni (dok. 29 §4b)                                                                                                               | kod                            |
+| e   | **Klik na red otvara zapis** — izvor daje `_href` po redu (rezervacija, ponuda, proizvod, ugovor); red bez `_href` nije klikabilan                                                                                                                                                                                    | registar izvora                |
+| f   | **Poređenje dva perioda** — `compare.{from,to}` pokreće isti upit za drugi period; redovi se spajaju po ključu izvora (`_key`) i svaka numerička kolona dobija „prethodno" i „Δ" (apsolutno i %)                                                                                                                      | API vraća oba skupa, kod spaja |
+| g   | **Zbir nad izabranim redovima** — kvačica po redu; traka na dnu: broj, suma i prosek svake numeričke kolone za izabrano                                                                                                                                                                                               | kod                            |
+| h   | Sakrij / zakači kolonu; red zbira uvek na dnu                                                                                                                                                                                                                                                                         | kod                            |
+| i   | **Sačuvaj tabelu** — naziv + spec + podešavanja u `UserPreference` ključ `tt.tables` (M1 §3.9); pojavljuje se na `/tabele` i u bočnom panelu „Sačuvani prikazi"                                                                                                                                                       | postojeći obrazac              |
+| j   | **Izvoz** — `POST /ai-orchestration/tables/export` (isti `report-generator.ts` kao §6.5.4.9; xlsx/pdf/html) nad trenutnim redovima **posle** filtera/pivota iz pregledača (šalje se spec + prikazane transformacije, server ponovo izvlači i primeni iste transformacije — nikad ne prima gotove brojeve od klijenta) | server                         |
+| k   | **Pitaj AI o ovoj tabeli** — desni panel razgovora dobija kontekstnu stavku `TABLE` (M15 §6.5.4.10): naslov, izvor, filteri, kolone, red zbira, do 20 izabranih redova; agent odgovara iz sažetka ili pozove `open_table` sa izmenjenim spec-om (dodaj kolonu, promeni filter) → tab zameni spec                      | model tumači, kod računa       |
+
+**Namerno NE u prvoj verziji, zapisano za kasnije (vlasnik saglasan):** akcija nad izabranim redovima kroz AI (predlog-pa-odobrenje, npr. „za ove tri neplaćene pripremi podsetnik"); zakazana tabela (M15 raspored + M19 chat); beleška na redu; upozorenje „šta se promenilo od prošlog otvaranja" (samo sažetak, ne kopija).
+
+### 6e.4 Scenario — promena parametara za „šta ako" (samo Vlasnik/Direktor)
+
+Vlasnikova dopuna: najviši nivoi menjaju **parametre** da vide efekat pre odluke. Ovo **ne krši** §6e.1, jer se menjaju ulazni parametri, ne ćelije, i ništa se ne upisuje u module.
+
+- **Dozvola:** `M13/scenario/USE` (M13 §6) — podrazumevano Vlasnik i Direktor. Bez nje panel scenarija ne postoji na ekranu.
+- **Parametri prve verzije (vlasnik potvrdio):** marža (%), provizija subagenta (%), kurs (RSD za 1 EUR), nabavna cena (±%), popunjenost (±%). Deluju samo na kolone koje izvor označi kao **izvedene** (`derived`, sa imenovanom formulom u registru — kod u pregledaču ih preračuna); ostale kolone ostaju sirovi podaci.
+- **Formule (kod, `scenario.ts`, testirane):** `nabavna' = nabavna × (1 + Δnabavna)`; `prodajna' = nabavna' × (1 + marža)` kad je marža zadata, inače `prodajna × (1 + Δnabavna)`; `provizija' = prodajna' × provizija%` kad je zadata, inače iz podatka; `neto' = prodajna' − nabavna' − provizija'`; `u RSD = iznos × kurs`; popunjenost deluje samo na **zbirove** (red zbira, pivot, izabrano): `zbir' = zbir × (1 + Δpopunjenost)` — ne na pojedinačan red.
+- **Vidljivost:** traka na vrhu tabele **„SCENARIO — nije stvarno stanje"** sa spiskom promenjenih parametara i dugmetom „vrati na stvarno"; izvedene kolone u scenariju nose oznaku i prikazuju **stvarnu vrednost u tooltip-u**. Izvoz u scenariju nosi isti natpis u naslovu fajla.
+- **Čuvanje:** scenario je imenovan skup parametara uz sačuvanu tabelu (`scenarios[]` u `tt.tables` zapisu), ne kopija brojeva. Više scenarija po tabeli; poređenje dva scenarija = dve kolone „A" i „B" nad istom izvedenom kolonom.
+- **AI i scenario:** agent može (a) da objasni razliku dva scenarija iz sažetka, (b) da **predloži** parametre na pitanje tipa „koja marža daje isti neto uz 10% manje rezervacija" — traženje radi kod (jednostavno rešavanje po jednom parametru), model formuliše; nikad ne menja parametre sam — vraća predlog, čovek klikne.
+- **Kasnije (dok. 49):** dugme „predloži kao pravilo marže" iz scenarija → postojeći predlog-pa-odobrenje yield-a. Do tada scenario je samo ekran za razmišljanje.
+
+### 6e.5 Stanje
+
+Specifikacija (v2.82). Kod: M15 §6.5.4.10 registar izvora + alat, pa panel — u istom prolazu.
 
 ## 7. Izlazni kriterijum
 
