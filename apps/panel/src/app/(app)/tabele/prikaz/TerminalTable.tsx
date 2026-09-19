@@ -149,6 +149,7 @@ export default function TerminalTable({
     [sort, hidden, pinned, groupBy, pivot, semafor, columnFilters],
   );
 
+  const specKey = JSON.stringify(spec);
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -172,7 +173,11 @@ export default function TerminalTable({
     } finally {
       setLoading(false);
     }
-  }, [spec]);
+    // Zavisnost je SADRŽAJ spec-a, ne objekat: Server Component (`page.tsx`) pravi nov `spec`
+    // objekat pri svakom ponovnom izvršavanju (npr. `router.refresh()` iz StatusBar-a), a
+    // podaci se ponovo vuku samo kad se spec stvarno promeni. Zamka 9.13.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [specKey]);
 
   useEffect(() => {
     void load();
@@ -181,11 +186,14 @@ export default function TerminalTable({
   // Tab se registruje sa PUNOM adresom (uključujući `spec`), ne samo putanjom — dve tabele su
   // dva taba (M17 §6e.2), a ista tabela otvorena iz chata i iz bočnog panela je jedan tab.
   // Standardni `RegisterTab` bi registrovao goli `/tabele/prikaz` i napravio duplikat.
+  // Zavisnost je STRING upita, ne `searchParams` objekat — Next daje nov objekat pri svakoj
+  // navigaciji (i onoj na istu adresu), pa bi se efekat palio iznova bez stvarne promene.
+  const search = searchParams.toString();
   useEffect(() => {
     if (!hydrated) return;
-    openTab(`${pathname}?${searchParams.toString()}`, spec.title ?? 'Tabela');
+    openTab(`${pathname}?${search}`, spec.title ?? 'Tabela');
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hydrated, pathname, searchParams, spec.title]);
+  }, [hydrated, pathname, search, spec.title]);
 
   const columns = data?.columns ?? [];
   const scenarioOn = canScenario && isScenarioActive(scenario);
@@ -432,8 +440,8 @@ export default function TerminalTable({
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-2">
-      {/* Zaglavlje + traka alata */}
-      <div className="flex flex-wrap items-center gap-2">
+      {/* Zaglavlje */}
+      <div className="flex flex-wrap items-baseline gap-2">
         <h1 className="text-base font-semibold text-ink">{title}</h1>
         {data && (
           <span className="text-xs text-ink-faint">
@@ -442,7 +450,13 @@ export default function TerminalTable({
             {data.previous ? ` · poređenje sa ${spec.compare?.from}–${spec.compare?.to}` : ''}
           </span>
         )}
-        <div className="ml-auto flex flex-wrap items-center gap-1.5">
+      </div>
+      {/* Traka alata — tri grupe raspoređene po CELOJ širini (vlasnik, 19.9.2026): levo
+          prikaz (osveži, kolone, pivot, semafor, grupisanje), sredina analiza (scenario, AI),
+          desno izlaz (Excel, PDF, čuvanje, deljenje). `select` dobija `w-auto` jer `.input`
+          nosi `w-full` — sa njom je padao u sopstveni red i gurao sve u zbijen blok. */}
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex flex-wrap items-center gap-1.5">
           <button
             type="button"
             className={btn}
@@ -461,7 +475,7 @@ export default function TerminalTable({
             <Icon name="circle-filled" /> semafor
           </button>
           <select
-            className={input}
+            className={`${input} w-auto`}
             value={groupBy ?? ''}
             onChange={(e) => setGroupBy(e.target.value || null)}
             title="Grupiši po koloni"
@@ -473,6 +487,8 @@ export default function TerminalTable({
               </option>
             ))}
           </select>
+        </div>
+        <div className="flex flex-wrap items-center gap-1.5">
           {canScenario && (
             <button
               type="button"
@@ -485,6 +501,8 @@ export default function TerminalTable({
           <button type="button" className={btn} onClick={askAi}>
             <Icon name="sparkle" /> pitaj AI
           </button>
+        </div>
+        <div className="flex flex-wrap items-center gap-1.5">
           <button type="button" className={btn} onClick={() => void exportAs('EXCEL')}>
             <Icon name="file" /> Excel
           </button>

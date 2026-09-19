@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
 export interface OpenTab {
   id: string;
@@ -83,6 +83,14 @@ export function TabsProvider({
   homeLabel: string;
 }) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  // Zamka 9.13 (19.9.2026, Terminal tabela): tab može nositi PUNU adresu sa upitom
+  // (`/tabele/prikaz?spec=...`, M17 §6e.2). Poređenje „da li sam već tu" mora ići nad punom
+  // adresom, ne nad golim `pathname` — inače je `path !== pathname` uvek tačno, `router.push`
+  // na istu adresu ponovo izvršava Server Component, stranica dobija nov `searchParams`
+  // objekat, efekat registracije se ponovo pali → beskonačna petlja GET/POST („tabela blinka").
+  const search = searchParams.toString();
+  const currentAddress = search ? `${pathname}?${search}` : pathname;
   const router = useRouter();
   const [tabs, setTabs] = useState<OpenTab[]>([{ id: 'home', path: '/', label: homeLabel }]);
   const [activeTabId, setActiveTabId] = useState('home');
@@ -185,7 +193,7 @@ export function TabsProvider({
             commitTabs(tabsRef.current.map((t) => (t.id === existing.id ? { ...t, label } : t)));
           }
           setActiveTabId(existing.id);
-          if (path !== pathname) router.push(path);
+          if (path !== currentAddress) router.push(path);
           return;
         }
       }
@@ -194,9 +202,9 @@ export function TabsProvider({
       const id = newTabId();
       commitTabs([...tabsRef.current, { id, path, label }]);
       setActiveTabId(id);
-      if (path !== pathname) router.push(path);
+      if (path !== currentAddress) router.push(path);
     },
-    [pathname, router],
+    [currentAddress, router],
   );
 
   const navigateInTab = useCallback(
