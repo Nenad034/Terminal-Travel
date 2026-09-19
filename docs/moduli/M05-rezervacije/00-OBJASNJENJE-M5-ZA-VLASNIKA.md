@@ -126,6 +126,16 @@ Sada se pri sastavljanju ponude proveravaju tri stvari: staje li grupa u kapacit
 - **Rezervacija ne razlikuje odrasle od dece.** Ponuda tu razliku ima, rezervacija je nikad nije imala — čuva se samo spisak imena putnika. Posledica: ako je u ugovoru doplata ograničena na „najviše dvoje dece do 7 godina", ta granica se pri dodavanju na rezervaciju **ne može proveriti** (svi putnici se broje kao odrasli). Sam obračun i granica ukupnog broja osoba rade ispravno. Rešenje traži tvoju odluku, jer dotiče i mobilnu aplikaciju (prijava gostiju na terenu).
 - **Ručna usluga na PONUDI** još ide starom, nikad napravljenom zamisli sa posebnim zapisom. Na rezervaciji je rešena bez toga (usluga je „nacrt" proizvoda), pa kad ponuda dođe na red treba odlučiti prelazi li i ona na isti obrazac. Dok se ne počne, odluka ništa ne košta.
 
+## Šta sistem pamti o svakom upitu — priprema za pametnu maržu (19.9.2026)
+
+Posle razgovora o Ominimu složili smo se: pametna marža jednog dana zavisi od toga da li danas beležimo šta se dešava. Od danas sistem uz svaku pretragu pamti **koliko dana unapred** se traži, koliko noći i gostiju, **šta je prikazano na prvom ekranu** (do 20 hotela — sa prodajnom cenom, našom nabavnom, kojim pravilom marže i koliko je soba bilo slobodno u tom trenutku), da li je iz te pretrage **nastala ponuda**, da li ju je kupac **otvorio** i da li je postala **rezervacija**.
+
+Ništa od toga nije praćenje osobe: nema kolačića, nema IP adrese, anonimni posetilac ostaje anoniman. Nabavna cena se čuva samo za nas — subagent i gost je nikad ne vide.
+
+Šta dobijate odmah: u Izveštajima nov tab **„Lijevak"** — koliko upita postane ponuda pa rezervacija, po destinaciji, kanalu i po tome koliko unapred; spisak hotela koji se **stalno prikazuju a niko ih ne bira** (to je razgovor o ceni ili o slikama); i, samo za vas, koje pravilo marže prodaje bolje. Isto pitanje možete postaviti i AI-ju u BI terminalu („koliko upita za Grčku je postalo rezervacija").
+
+Šta još nije: deljeni link ponude (WhatsApp/Viber) još nema kod, pa se „otvoreno" danas broji samo kad subagent ili gost pogleda ponudu kroz sistem.
+
 ## Ponuda iz nalepljenog teksta (17.9.2026)
 
 Vi ste pitali za Planis — evo šta smo od toga napravili, unutar postojećih modula, bez novog proizvoda. U meniju „Prodaja" stoji **„Ponuda iz teksta"**: agent nalepi mejl hotela („za 20–27.6, 2+2, polupansion, 1.240 €") ili poruku klijenta („tražim Rim, 7 noći, do 1.500 €"). AI **samo pročita** tekst i popuni polja — ne računa, ne pogađa, ne upisuje; ako fali datum ili broj osoba, postavi jedno pitanje. Sistem onda **sam** proveri da li taj hotel već imamo u katalogu (po nazivu **i mestu**, da se dva istoimena ne pomešaju) i ko je dobavljač. Agent vidi predlog sa oznakom odakle je svako polje, ispravi šta treba i klikne „Napravi nacrt ponude" — tek to je upis.

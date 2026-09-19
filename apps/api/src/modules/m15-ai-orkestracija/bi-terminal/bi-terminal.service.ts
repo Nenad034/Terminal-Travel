@@ -222,7 +222,7 @@ export class BiTerminalService {
         // nikad ne sastavlja sopstveni upit, isti princip kao fiksni alati iznad.
         name: 'query_view',
         description:
-          'Generički read-only upit nad dozvoljenim pogledima kad specifičniji alat iznad ne pokriva pitanje. Pogledi: bookings (rezervacije, opciono grupisano po destinaciji/kanalu/subagentu/proizvodu), employee_sales (prodaja po zaposlenom za proizvoljan vremenski period — koristi za "ko od zaposlenih..."), subagent_performance (promet po subagentu), supplier_obligations (obaveze prema dobavljačima, opciono filtrirano po statusu), catalog_offers (najpovoljnije ponude iz kataloga za destinaciju/period/broj osoba), exchange_rates (kurs NBS po valuti — koristi za "koliki je kurs..." UMESTO propose_web_fetch ka nbs.rs, podatak već postoji lokalno).',
+          'Generički read-only upit nad dozvoljenim pogledima kad specifičniji alat iznad ne pokriva pitanje. Pogledi: bookings (rezervacije, opciono grupisano po destinaciji/kanalu/subagentu/proizvodu), employee_sales (prodaja po zaposlenom za proizvoljan vremenski period — koristi za "ko od zaposlenih..."), subagent_performance (promet po subagentu), supplier_obligations (obaveze prema dobavljačima, opciono filtrirano po statusu), catalog_offers (najpovoljnije ponude iz kataloga za destinaciju/period/broj osoba), exchange_rates (kurs NBS po valuti — koristi za "koliki je kurs..." UMESTO propose_web_fetch ka nbs.rs, podatak već postoji lokalno), funnel (lijevak upit → prikazano → ponuda → otvoreno → rezervacija, filters.dimension: by_destination | by_channel | by_lead_time | shown_not_chosen — koristi za "koliko upita je postalo ponuda/rezervacija", "šta se gleda a ne bira").',
         input_schema: {
           type: 'object' as const,
           properties: {
@@ -237,7 +237,7 @@ export class BiTerminalService {
             filters: {
               type: 'object' as const,
               description:
-                'Dodatni filteri, zavisi od view-a: bookings→{channel,productType}; supplier_obligations→{status}; catalog_offers→{destinationCity,destinationCountry,adults,children} (dateFrom/dateTo su datumi boravka za catalog_offers); exchange_rates→{currency} (npr. "EUR" — bez filtera vraća sve valute)',
+                'Dodatni filteri, zavisi od view-a: bookings→{channel,productType}; supplier_obligations→{status}; catalog_offers→{destinationCity,destinationCountry,adults,children} (dateFrom/dateTo su datumi boravka za catalog_offers); exchange_rates→{currency} (npr. "EUR" — bez filtera vraća sve valute); funnel→{dimension}',
             },
           },
           required: ['view'],

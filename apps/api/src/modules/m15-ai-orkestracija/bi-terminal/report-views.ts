@@ -11,6 +11,11 @@ import { SupplierObligationsService } from '../../m10-finansije/supplier-obligat
 import { SearchService } from '../../m5-rezervacije/search/search.service';
 import { ExchangeRatesService } from '../../m10-finansije/exchange-rates/exchange-rates.service';
 import { MAX_PAGE_SIZE } from '../../../common/pagination/pagination';
+import {
+  FUNNEL_DIMENSIONS,
+  FunnelDimension,
+  FunnelService,
+} from '../../m13-bi/reports/funnel.service';
 
 // M15 spec §6.9.6 — generički read-only upit nad ZATVORENIM registrom "pogleda". Ovo NIJE slobodan
 // SQL/Prisma upit od jezičkog modela: model bira isključivo `view` iz VIEW_NAMES i, po pogledu,
@@ -25,6 +30,7 @@ export const VIEW_NAMES = [
   'catalog_offers',
   'exchange_rates',
   'temporal_patterns',
+  'funnel',
 ] as const;
 export type ViewName = (typeof VIEW_NAMES)[number];
 
@@ -44,6 +50,7 @@ export class ReportViewsService {
     private readonly supplierObligations: SupplierObligationsService,
     private readonly search: SearchService,
     private readonly exchangeRates: ExchangeRatesService,
+    private readonly funnel: FunnelService,
   ) {}
 
   async query(view: string, args: QueryViewArgs): Promise<unknown> {
@@ -62,6 +69,8 @@ export class ReportViewsService {
         return this.exchangeRatesView(args);
       case 'temporal_patterns':
         return this.temporalPatternsView(args);
+      case 'funnel':
+        return this.funnelView(args);
       default:
         return {
           error: `Nepoznat pogled: "${view}". Dozvoljeni pogledi: ${VIEW_NAMES.join(', ')}.`,
@@ -248,6 +257,24 @@ export class ReportViewsService {
       from: args.dateFrom,
       to: args.dateTo,
       segment,
+    });
+  }
+
+  // `funnel` — M13 §4.4a (19.9.2026, uz M5 §3.0k): lijevak upit → prikazano → ponuda → otvoreno
+  // → rezervacija. Isti obrazac kao `temporal_patterns` — zove POSTOJEĆI M13 `FunnelService`.
+  // `by_markup_rule` (nabavna cena) namerno NIJE dostupan modelu ovde — ide samo kroz
+  // `GET /bi/reports/funnel/markup` iza `report:profitability`.
+  private async funnelView(args: QueryViewArgs) {
+    const filters = args.filters ?? {};
+    const dimension = typeof filters.dimension === 'string' ? filters.dimension : 'by_destination';
+    const dozvoljene = FUNNEL_DIMENSIONS.filter((d) => d !== 'by_markup_rule');
+    if (!dozvoljene.includes(dimension as never)) {
+      return { error: `filters.dimension mora biti jedno od: ${dozvoljene.join(', ')}.` };
+    }
+    return this.funnel.funnel({
+      dimension: dimension as FunnelDimension,
+      from: args.dateFrom,
+      to: args.dateTo,
     });
   }
 }

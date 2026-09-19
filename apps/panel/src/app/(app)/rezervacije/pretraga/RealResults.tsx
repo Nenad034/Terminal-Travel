@@ -34,12 +34,15 @@ const CARD_TYPES = new Set(['ACCOMMODATION', 'PACKAGE', 'EXCURSION', 'EVENT', 'T
 
 export default function RealResults({
   results,
+  searchLogId,
   quoteDefaults,
   sort,
   resultsView,
   emptyMessage,
 }: {
   results: SearchResult[];
+  /** M5 spec §3.0k.3 — `X-Search-Id` upita čiji su ovo rezultati. */
+  searchLogId?: string;
   quoteDefaults: QuoteDefaults;
   /** M5 spec §3.0g.8 — redosled iz `SortBar.tsx` (ostaje u adresi, nije filter). */
   sort: string;
@@ -129,6 +132,7 @@ export default function RealResults({
             productType: r.type,
             sourceType: r.sourceType,
             rateLineId: offer.rateLineId,
+            searchLogId,
             providerQuoteReference: offer.providerQuoteReference,
             stayFrom: quoteDefaults.stayFrom,
             stayTo: quoteDefaults.stayTo,

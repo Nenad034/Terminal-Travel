@@ -70,8 +70,27 @@ const DEFAULT_LANGUAGE: LanguageCode = 'sr';
 const ROOM_BASED_TYPES: ProductType[] = ['ACCOMMODATION', 'PACKAGE'];
 const CAPACITY_BEARING_MODES: AllotmentMode[] = ['FIXED', 'CHARTER', 'FIXED_LEASE'];
 
+/**
+ * M5 spec §3.0k.2 — interni signal uz svaku ponudu: nabavna, pravilo marže, preostale jedinice.
+ * NAMERNO nije polje na `SearchResultOffer` — taj oblik ide gostu (M8) i subagentu (M7), a
+ * nabavna cena nikad ne sme da izađe iz sistema (§6.2). `WeakMap` vezuje signal za sam objekat
+ * ponude bez ikakvog traga u JSON-u; čita ga samo `SearchController` radi `SearchLogResult`.
+ */
+export interface OfferSignal {
+  baseCost: number | null;
+  markupRuleId: string | null;
+  remainingUnits: number | null;
+}
+
 @Injectable()
 export class SearchService {
+  private readonly offerSignals = new WeakMap<SearchResultOffer, OfferSignal>();
+
+  /** §3.0k.2 — signal uz ponudu, ili `undefined` kad mesto koje ju je napravilo nije zabeležilo. */
+  signalFor(offer: SearchResultOffer): OfferSignal | undefined {
+    return this.offerSignals.get(offer);
+  }
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly markupRules: MarkupRulesService,
@@ -701,7 +720,7 @@ export class SearchService {
         const finalPrice = applyMarkup(baseCost, markupRule);
         const roomTypeDef = roomTypes.find((r) => r.code === period.roomType);
 
-        offers.push({
+        const ponuda: SearchResultOffer = {
           roomTypeCode: ROOM_BASED_TYPES.includes(product.type) ? period.roomType : null,
           roomTypeName: (roomTypeDef as any)?.name ?? null,
           boardType: rateLine.boardType,
@@ -715,7 +734,15 @@ export class SearchService {
           cancellationPolicySummary: cancellationSummary,
           isRefundable,
           packageDepartureDate: null,
+        };
+        this.offerSignals.set(ponuda, {
+          baseCost,
+          markupRuleId: markupRule.id,
+          remainingUnits: CAPACITY_BEARING_MODES.includes(period.allotmentMode)
+            ? (period.totalCapacity ?? 0) - period.unitsSold
+            : null,
         });
+        offers.push(ponuda);
       }
     }
     return offers;
@@ -1018,24 +1045,28 @@ export class SearchService {
             .join(', ')
         : null;
 
-    return [
-      {
-        roomTypeCode: null,
-        roomTypeName: null,
-        boardType: null,
-        priceBasis: null,
-        finalPrice,
-        finalPriceCurrency: quote.currency,
-        availabilityStatus: 'AVAILABLE',
-        rateLineId: null,
-        providerQuoteReference: quote.externalId,
-        quoteExpiresAt: quote.quoteExpiresAt,
-        cancellationPolicySummary: cancellationSummary,
-        isRefundable: isRefundableFromQuoteCancellationPolicy(
-          quote.cancellationPolicy.map((r) => ({ refundPercentage: r.refund_percentage })),
-        ),
-        packageDepartureDate: null,
-      },
-    ];
+    const ponuda: SearchResultOffer = {
+      roomTypeCode: null,
+      roomTypeName: null,
+      boardType: null,
+      priceBasis: null,
+      finalPrice,
+      finalPriceCurrency: quote.currency,
+      availabilityStatus: 'AVAILABLE',
+      rateLineId: null,
+      providerQuoteReference: quote.externalId,
+      quoteExpiresAt: quote.quoteExpiresAt,
+      cancellationPolicySummary: cancellationSummary,
+      isRefundable: isRefundableFromQuoteCancellationPolicy(
+        quote.cancellationPolicy.map((r) => ({ refundPercentage: r.refund_percentage })),
+      ),
+      packageDepartureDate: null,
+    };
+    this.offerSignals.set(ponuda, {
+      baseCost: quote.priceAmount,
+      markupRuleId: markupRule.id,
+      remainingUnits: quote.availableUnits,
+    });
+    return [ponuda];
   }
 }

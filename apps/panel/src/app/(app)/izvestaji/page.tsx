@@ -23,7 +23,9 @@ import {
   TEMPORAL_DESTINATION_DIMENSIONS,
   DAY_OF_WEEK_LABELS,
   type TemporalDimension,
+  type FunnelDimension,
 } from './constants';
+import FunnelBlock, { type FunnelReport } from './FunnelBlock';
 
 interface Bucket {
   key: string;
@@ -185,6 +187,7 @@ export default async function IzvestajiPage(props: { searchParams: Promise<Searc
     dinamicki: hasPermission(me, 'M13', 'report:dynamic', 'VIEW'),
     marketing: hasPermission(me, 'M13', 'report:marketing', 'VIEW'),
     vremenski: hasPermission(me, 'M13', 'report:temporal', 'VIEW'),
+    lijevak: hasPermission(me, 'M13', 'report:temporal', 'VIEW'),
   };
   const canReconcile = perms.profitabilnost;
   const availableTabs = (Object.keys(TAB_LABELS) as TabKey[]).filter((k) => perms[k]);
@@ -288,6 +291,7 @@ export default async function IzvestajiPage(props: { searchParams: Promise<Searc
   let dynamicReport: DynamicReport | null = null;
   let marketing: MarketingReport | null = null;
   let temporal: TemporalReport | null = null;
+  let funnel: FunnelReport | null = null;
   let error: string | null = null;
 
   try {
@@ -327,6 +331,18 @@ export default async function IzvestajiPage(props: { searchParams: Promise<Searc
       if (searchParams?.to) tqs.set('to', searchParams.to);
       if (searchParams?.segment) tqs.set('segment', searchParams.segment);
       temporal = await apiFetch<TemporalReport>(`/bi/reports/temporal?${tqs.toString()}`);
+    } else if (tab === 'lijevak') {
+      // M13 spec §4.4a — `by_markup_rule` ide zasebnom rutom iza `report:profitability`.
+      const fqs = new URLSearchParams();
+      const dim = (searchParams?.dimension as FunnelDimension) || 'by_destination';
+      if (searchParams?.from) fqs.set('from', searchParams.from);
+      if (searchParams?.to) fqs.set('to', searchParams.to);
+      if (dim === 'by_markup_rule') {
+        funnel = await apiFetch<FunnelReport>(`/bi/reports/funnel/markup?${fqs.toString()}`);
+      } else {
+        fqs.set('dimension', dim);
+        funnel = await apiFetch<FunnelReport>(`/bi/reports/funnel?${fqs.toString()}`);
+      }
     }
   } catch {
     error = 'Izveštaj trenutno nije dostupan (nemate dozvolu ili je M13 projekcija prazna).';
@@ -482,7 +498,14 @@ export default async function IzvestajiPage(props: { searchParams: Promise<Searc
         ))}
       </div>
 
-      {!error && tab && <IzvestajiFilterForm tab={tab} searchParams={searchParams} view={view} />}
+      {!error && tab && (
+        <IzvestajiFilterForm
+          tab={tab}
+          searchParams={searchParams}
+          view={view}
+          canSeeMarkup={perms.profitabilnost}
+        />
+      )}
 
       {error && <p className="rounded bg-danger-bg p-3 text-sm text-danger">{error}</p>}
 
@@ -668,6 +691,15 @@ export default async function IzvestajiPage(props: { searchParams: Promise<Searc
             report={temporal}
             dimension={(searchParams?.dimension as TemporalDimension) || 'inquiries_by_hour'}
             view={view}
+          />
+        </div>
+      )}
+
+      {!error && tab === 'lijevak' && funnel && (
+        <div id="izvestaj-sadrzaj" className="flex flex-col gap-4">
+          <FunnelBlock
+            report={funnel}
+            dimension={(searchParams?.dimension as FunnelDimension) || 'by_destination'}
           />
         </div>
       )}

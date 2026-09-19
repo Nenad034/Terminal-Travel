@@ -12,6 +12,7 @@ export const TAB_LABELS = {
   dinamicki: 'Dinamički',
   marketing: 'Marketing',
   vremenski: 'Vremenski obrasci',
+  lijevak: 'Lijevak',
 } as const;
 export type TabKey = keyof typeof TAB_LABELS;
 
@@ -36,6 +37,17 @@ export type TemporalDimension = keyof typeof TEMPORAL_DIMENSION_LABELS;
 export const TEMPORAL_DIMENSION_OPTIONS = Object.keys(
   TEMPORAL_DIMENSION_LABELS,
 ) as TemporalDimension[];
+// M13 spec §4.4a (19.9.2026) — "Lijevak" nad M5 §3.0k zapisom. `by_markup_rule` nosi nabavnu
+// cenu: prikazuje se samo uz `report:profitability` (page.tsx filtrira opcije po dozvoli).
+export const FUNNEL_DIMENSION_LABELS = {
+  by_destination: 'Lijevak po destinaciji',
+  by_channel: 'Lijevak po kanalu',
+  by_lead_time: 'Lijevak po tome koliko unapred',
+  shown_not_chosen: 'Prikazano a nije izabrano',
+  by_markup_rule: 'Marža po pravilu (interno)',
+} as const;
+export type FunnelDimension = keyof typeof FUNNEL_DIMENSION_LABELS;
+export const FUNNEL_DIMENSION_OPTIONS = Object.keys(FUNNEL_DIMENSION_LABELS) as FunnelDimension[];
 export const DAY_OF_WEEK_LABELS = [
   'Nedelja',
   'Ponedeljak',

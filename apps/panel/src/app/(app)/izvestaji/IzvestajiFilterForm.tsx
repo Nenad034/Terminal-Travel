@@ -21,6 +21,8 @@ import {
   SEGMENT_OPTIONS,
   TEMPORAL_DIMENSION_LABELS,
   TEMPORAL_DIMENSION_OPTIONS,
+  FUNNEL_DIMENSION_LABELS,
+  FUNNEL_DIMENSION_OPTIONS,
 } from './constants';
 
 // M13 spec §7 dopuna (5.9.2026, vlasnikov nalaz: "polja u kojima se kuca ne reaguju... polje...
@@ -47,10 +49,13 @@ export default function IzvestajiFilterForm({
   tab,
   searchParams,
   view,
+  canSeeMarkup = false,
 }: {
   tab: TabKey;
   searchParams: SearchParams;
   view: 'tabela' | 'grafik';
+  /** M13 §4.4a — `report:profitability` VIEW; samo tada se nudi „Marža po pravilu". */
+  canSeeMarkup?: boolean;
 }) {
   const formRef = useRef<HTMLFormElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -131,7 +136,37 @@ export default function IzvestajiFilterForm({
           zahtev: "polje za datum i dva ispod tog polja treba da budu u istom redu, istih
           sirina") — eksplicitan red (ne opšti flex-wrap sa ostatkom forme, koji zavisi od širine
           ekrana i broja ostalih polja) garantuje ova tri UVEK zajedno, ravnomerno. */}
-      {tab === 'vremenski' ? (
+      {tab === 'lijevak' ? (
+        // M13 spec §4.4a — period + dimenzija; segment i „odnosi se na" nisu primenjivi (lijevak
+        // već grupiše po kanalu kao sopstvenu dimenziju). Marža po pravilu se nudi samo kad je
+        // stranica rekla da pozivalac ima `report:profitability` (`canSeeMarkup`).
+        <div className="flex w-full gap-2">
+          <div className="min-w-0 flex-1">
+            <PeriodRangeField
+              initialFrom={searchParams?.from ?? ''}
+              initialTo={searchParams?.to ?? ''}
+            />
+          </div>
+          <div className="min-w-0 flex-1">
+            <FieldInline label="prikaz">
+              <select
+                name="dimension"
+                defaultValue={searchParams?.dimension ?? FUNNEL_DIMENSION_OPTIONS[0]}
+                className={selectClassName}
+              >
+                {FUNNEL_DIMENSION_OPTIONS.filter((d) => canSeeMarkup || d !== 'by_markup_rule').map(
+                  (d) => (
+                    <option key={d} value={d} className={optionClassName}>
+                      {FUNNEL_DIMENSION_LABELS[d]}
+                    </option>
+                  ),
+                )}
+              </select>
+            </FieldInline>
+          </div>
+          <div className="min-w-0 flex-1" />
+        </div>
+      ) : tab === 'vremenski' ? (
         // M13 spec §4.4 — "odnosi se na" (dateField) nije primenjivo ovde (backend `dimension`
         // sam bira relevantan timestamp: trenutak upita/rezervacije/otkazivanja, ne termin
         // boravka), ali "segment" JESTE (dopuna istog dana) — SUBAGENT se za "upite" tiho ne

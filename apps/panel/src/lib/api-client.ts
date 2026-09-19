@@ -105,6 +105,18 @@ async function doRefresh(refreshToken: string, remember?: boolean): Promise<Sess
 }
 
 export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): Promise<T> {
+  return (await apiFetchWithHeaders<T>(path, options)).data;
+}
+
+/**
+ * M5 spec §3.0k.3 (19.9.2026) — ista putanja kao `apiFetch`, ali vraća i zaglavlja odgovora.
+ * Jedini potrošač za sada: `GET /sales/search`, koji id upisanog upita šalje kao `X-Search-Id`
+ * (telo je niz proizvoda, pa id ne može u njega bez lomljenja M8/M7/M16 klijenata).
+ */
+export async function apiFetchWithHeaders<T>(
+  path: string,
+  options: ApiFetchOptions = {},
+): Promise<{ data: T; headers: Headers }> {
   const { method = 'GET', body, auth = true, requireAuth = false, cache = 'no-store' } = options;
 
   let session = auth ? await getSession() : null;
@@ -165,8 +177,8 @@ export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): 
   // hvata samo `err instanceof ApiError`). Provera dužine tela pokriva i 204 i "200/201 sa praznim
   // telom", umesto oslanjanja isključivo na status kod koji API ne garantuje dosledno kroz module.
   const raw = await res.text();
-  if (raw === '') return undefined as T;
-  return JSON.parse(raw) as T;
+  if (raw === '') return { data: undefined as T, headers: res.headers };
+  return { data: JSON.parse(raw) as T, headers: res.headers };
 }
 
 // M19 spec §2.5/§8 (v1.6, 22.8.2026) — varijanta `apiFetch`-a za `multipart/form-data` (prilog

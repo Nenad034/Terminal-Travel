@@ -181,6 +181,69 @@ Kategorije, ne prosek — nepoznato/nedostajuće `dimension` → `400`.
 
 Isti oblik ključa ("država / grad") kao `profitability.byDestination` — poredi se upit↔rezervacija↔otkazivanje za istu destinaciju pozivom sa različitim `dimension` vrednostima.
 
+### GET /bi/reports/funnel
+
+Lijevak od upita do rezervacije (poglavlje 4.4a, 19.9.2026) nad M5 §3.0k zapisom. Dozvola `M13/report:temporal/VIEW`. Query: `dimension` (obavezno: `by_destination`/`by_channel`/`by_lead_time`/`shown_not_chosen`), `from`, `to` (trenutak upita).
+
+**Odgovor `200` (`dimension=by_lead_time`, isti oblik za `by_destination`/`by_channel`):**
+
+```json
+{
+  "steps": [
+    { "key": "90+ dana", "searches": 1, "shown": 1, "quotes": 1, "opened": 0, "converted": 0 },
+    { "key": "nepoznato", "searches": 1, "shown": 1, "quotes": 0, "opened": 0, "converted": 0 }
+  ]
+}
+```
+
+`shown` = upiti sa bar jednim prikazanim rezultatom; `quotes` = upiti iz kojih je nastala ponuda (`Quote.search_log_id`); `opened` = ponuda koju je kupac otvorio bar jednom; `converted` = `Quote.status = CONVERTED`.
+
+**Odgovor `200` (`dimension=shown_not_chosen`):**
+
+```json
+{
+  "rows": [
+    {
+      "productId": "014c3416-…",
+      "productName": "Kotor Old Town Rooms 3*",
+      "shown": 2,
+      "avgRank": 1,
+      "chosen": 1,
+      "converted": 0
+    },
+    {
+      "productId": "05bf0966-…",
+      "productName": "Herceg Novi Spa Hotel 4*",
+      "shown": 2,
+      "avgRank": 4,
+      "chosen": 0,
+      "converted": 0
+    }
+  ]
+}
+```
+
+### GET /bi/reports/funnel/markup
+
+Isti lijevak po **pravilu marže** — nosi nabavnu cenu, pa je iza `M13/report:profitability/VIEW` (§6). Query: `from`, `to`.
+
+```json
+{
+  "rows": [
+    {
+      "markupRuleId": "4211cd01-…",
+      "ruleName": "M3_SUPPLIER · 18%",
+      "shown": 9,
+      "chosen": 1,
+      "converted": 0,
+      "avgMarginPct": 18
+    }
+  ]
+}
+```
+
+`ruleName` je izvedena oznaka (`MarkupRule` nema naziv): opseg · procenat ili fiksni iznos. `chosen` broji prikazane ponude čiji je proizvod pod istim pravilom ušao u ponudu iz tog upita.
+
 ---
 
 ## Rekonsilijacija

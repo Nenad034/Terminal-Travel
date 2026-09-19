@@ -30,6 +30,8 @@ export async function createQuoteFromSelection(
       body: {
         channel: 'INTERNAL_PANEL',
         dateMismatchAcknowledged,
+        // M5 spec §3.0k.3 — upit iz kog je (prva) stavka izabrana; lijevak upit → ponuda.
+        searchLogId: items.find((i) => i.searchLogId)?.searchLogId,
         items: items.map((i) => ({
           productId: i.productId,
           rateLineId: i.rateLineId || undefined,

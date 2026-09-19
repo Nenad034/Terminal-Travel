@@ -1,4 +1,4 @@
-import { apiFetch, ApiError } from '@/lib/api-client';
+import { apiFetch, apiFetchWithHeaders, ApiError } from '@/lib/api-client';
 import RegisterTab from '@/components/RegisterTab';
 import SearchPanel from '@/components/SearchPanel';
 import SearchRefreshNotice from '@/components/SearchRefreshNotice';
@@ -51,6 +51,8 @@ export default async function SearchPage(props: {
   const hasQuery = Boolean(searchParams.destinationCountry);
 
   let results: SearchResult[] = [];
+
+  let searchLogId: string | undefined;
   let error: string | null = null;
 
   if (hasQuery) {
@@ -89,7 +91,12 @@ export default async function SearchPage(props: {
     if (first(searchParams.hasExpertGuide) === 'true') params.set('hasExpertGuide', 'true');
 
     try {
-      results = await apiFetch<SearchResult[]>(`/sales/search?${params.toString()}`);
+      const odgovor = await apiFetchWithHeaders<SearchResult[]>(
+        `/sales/search?${params.toString()}`,
+      );
+      results = odgovor.data;
+      // M5 spec §3.0k.3 — id upisanog upita; stavke iz ovih rezultata ga nose do ponude.
+      searchLogId = odgovor.headers.get('x-search-id') ?? undefined;
     } catch (err) {
       error =
         err instanceof ApiError
@@ -263,6 +270,7 @@ export default async function SearchPage(props: {
           return (
             <RealResults
               results={results}
+              searchLogId={searchLogId}
               quoteDefaults={quoteDefaults}
               sort={sort}
               resultsView={resultsView}

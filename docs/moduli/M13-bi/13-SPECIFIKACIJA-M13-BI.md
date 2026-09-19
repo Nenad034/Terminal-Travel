@@ -3,6 +3,7 @@
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M13) i poglavlje 8 (Faza 5)
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Implementirano (avgust 2026) — vidi poglavlje 8 (izlazni kriterijum) i `docs/api/M13-bi.md`
+**Verzija:** 1.22 — **§4.4a „Lijevak" implementiran** (19.9.2026, isti dan kao predlog; M5 v2.56). `FunnelService` (`reports/funnel.service.ts`, zaseban fajl da `reports.service.ts` ne raste), `GET /bi/reports/funnel?dimension=by_destination|by_channel|by_lead_time|shown_not_chosen` iza `report:temporal`, i `GET /bi/reports/funnel/markup` iza `report:profitability` (nabavna cena — §6). Kategorije lead-time-a: `<7`, `7–30`, `31–90`, `90+` dana, `nepoznato`. „Izabrano" po prikazanoj ponudi = isti proizvod (i isto pravilo) u ponudi iz tog upita. Panel: nov tab „Lijevak" na `/izvestaji` (`FunnelBlock.tsx`, samo tabela — prelaz u procentima, red „ukupno"; `Marža po pravilu` u izboru samo uz `report:profitability`). `BiTerminalAgent`: `query_view(funnel)` (M15 v1.61). Dokaz: 13 jediničnih testova, uživo na razvojnoj bazi (2 upita → 1 ponuda; „Kotor Old Town Rooms" prikazan 2×, izabran 1×), viđeno na ekranu.
 **Verzija:** 1.21 — **predlog §4.4a „Lijevak od upita do rezervacije"** (19.9.2026, uz M5 §3.0k; čeka potvrdu vlasnika, bez koda): pet stepenica upit → prikazano → ponuda → otvoreno → rezervacija, po destinaciji/kanalu/lead-time-u, „prikazano a nije izabrano" po proizvodu, marža po pravilu samo interno.
 **Verzija:** 1.20 — "Vremenski obrasci" dobijaju grafički prikaz (8.9.2026, isti dan kao v1.19, vlasnikov zahtev: "omogucite graficki prikaz i vremenskih obrazaca"). Tab je do sad bio jedini na ekranu Izveštaji na kom prekidač tabela/grafik nije radio ništa. Oblik grafika se bira po dimenziji, ne jedan za sve (§4.4 ispod): mreža sat × dan ide u **toplotnu mapu** (nova komponenta `HourHeatmap.tsx`), destinacije i lead-time u postojeći `BarChart`. Bez nove boje i bez nove biblioteke — jedna nijansa (`--accent`) u pet stepena, `BarChart` dobija samo `sort` prekidač da vremenska skala lead-time-a ne bude presortirana po veličini. **Provera:** `tsc --noEmit` čist za `apps/panel`; 6 novih panel testova (`TemporalCharts.spec.tsx` — redosled kategorija sa i bez `sort`, prazan period, sabiranje istog sat/dan polja), 19 panel testova prolazi; viđeno u browseru na stvarnim podacima (`tools/qa-screenshot.mjs`) za toplotnu mapu (29 rezervacija) i bar-grafik po destinaciji, i za prazno stanje (upiti — `SearchLog` prazan).
 
@@ -194,7 +195,7 @@ Za razliku od poglavlja 4.1–4.3 (šta se prodalo/otkazalo), ovo pokriva **kada
 
 ---
 
-### 4.4a Lijevak od upita do rezervacije (predlog, 19.9.2026, uz M5 §3.0k — čeka potvrdu vlasnika)
+### 4.4a Lijevak od upita do rezervacije (19.9.2026, uz M5 §3.0k — predlog i kod istog dana, v1.22)
 
 Kad M5 §3.0k dobije kod, ovde nastaje izveštaj koji poglavlje 4.4 ne može da da: ne samo **kada** je bilo upita, nego **šta se od upita desilo**.
 

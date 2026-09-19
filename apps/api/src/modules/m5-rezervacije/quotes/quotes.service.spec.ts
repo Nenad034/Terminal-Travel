@@ -5,7 +5,8 @@ import { QuotesService } from './quotes.service';
 describe('QuotesService', () => {
   function makeService() {
     const prisma: any = {
-      quote: { create: jest.fn(), findUnique: jest.fn() },
+      // §3.0k.4 — brojanje otvaranja od strane kupca je fire-and-forget `update`
+      quote: { create: jest.fn(), findUnique: jest.fn(), update: jest.fn().mockResolvedValue({}) },
       subagentCommissionOverride: { findMany: jest.fn().mockResolvedValue([]) },
       user: { findUnique: jest.fn().mockResolvedValue(null) },
     };
@@ -410,6 +411,13 @@ describe('QuotesService', () => {
       const result = await service.findOne('q1', 'guest-1');
 
       expect((result as unknown as { id: string }).id).toBe('q1');
+      // §3.0k.4 — kupac je otvorio ponudu: brojač +1, prvi trenutak postavljen (bez identiteta).
+      expect(prisma.quote.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'q1' },
+          data: expect.objectContaining({ sharedViewCount: { increment: 1 } }),
+        }),
+      );
     });
 
     it('subagent NE vidi tuđu Ponudu — 404 (IDOR, bezbednosni nalaz 28.8.2026)', async () => {

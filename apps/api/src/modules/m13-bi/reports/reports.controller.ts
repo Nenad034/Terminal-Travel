@@ -25,6 +25,7 @@ import {
   TemporalDimension,
 } from './reports.service';
 import { ExportReportDto } from './dto/export-report.dto';
+import { FUNNEL_DIMENSIONS, FunnelDimension, FunnelService } from './funnel.service';
 import { SendReportChatDto } from './dto/send-report-chat.dto';
 import { JwtAuthGuard } from '../../m1-core-identitet/auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../../common/guards/permissions.guard';
@@ -37,7 +38,10 @@ import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 @Controller('bi/reports')
 export class ReportsController {
-  constructor(private readonly reports: ReportsService) {}
+  constructor(
+    private readonly reports: ReportsService,
+    private readonly funnelService: FunnelService,
+  ) {}
 
   // Zajednička provera za `dateField`/`segment` (5.9.2026, vlasnikov zahtev: "dinamicki izvestaj
   // treba da ima datume za filtriranje... Isto tako i ostali izvestaji... filtere Subagenti, B2B,
@@ -221,6 +225,31 @@ export class ReportsController {
       to,
       segment: segment as ReportSegment | undefined,
     });
+  }
+
+  // §4.4a (19.9.2026) — lijevak od upita do rezervacije nad M5 §3.0k zapisom. Četiri dimenzije
+  // iza iste dozvole kao vremenski obrasci; `by_markup_rule` nosi nabavnu cenu pa ide zasebnom
+  // rutom iza `report:profitability` (§6 — cenovno osetljivo).
+  @Get('funnel')
+  @RequirePermission('M13', 'report:temporal', 'VIEW')
+  funnel(
+    @Query('dimension') dimension: string,
+    @Query('from') from?: string,
+    @Query('to') to?: string,
+  ) {
+    const dozvoljene = FUNNEL_DIMENSIONS.filter((d) => d !== 'by_markup_rule');
+    if (!dozvoljene.includes(dimension as never)) {
+      throw new BadRequestException(
+        `dimension mora biti jedno od: ${dozvoljene.join(', ')} (M13 spec §4.4a).`,
+      );
+    }
+    return this.funnelService.funnel({ dimension: dimension as FunnelDimension, from, to });
+  }
+
+  @Get('funnel/markup')
+  @RequirePermission('M13', 'report:profitability', 'VIEW')
+  funnelMarkup(@Query('from') from?: string, @Query('to') to?: string) {
+    return this.funnelService.funnel({ dimension: 'by_markup_rule', from, to });
   }
 
   // §7 (v1.5 dopuna) — BEZ @RequirePermission na ove tri rute: dozvola zavisi od `reportKind` u

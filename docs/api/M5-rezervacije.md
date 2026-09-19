@@ -54,6 +54,13 @@ GET /api/v1/sales/search?type=ACCOMMODATION&destinationCountry=Grčka&stayFrom=2
 
 `SOLD_OUT` ponude se ne vraćaju uopšte (filtrirane pre odgovora). `type` je niz — više vrednosti vraća uniju rezultata.
 
+**Zaglavlje `X-Search-Id` (spec §3.0k.3, v2.56).** Svaki odgovor nosi id upisanog upita (UUID). Prosledite ga u `POST /quotes` kao `searchLogId` da bi se ponuda vezala za upit iz kog je nastala (lijevak u M13 §4.4a). Zaglavlje je otvoreno pregledaču (`Access-Control-Expose-Headers`). Telo odgovora je nepromenjeno.
+
+```http
+HTTP/1.1 200 OK
+X-Search-Id: e33be48a-b42b-4882-a3f4-fbcc28989877
+```
+
 ---
 
 ## Itineraries (sastavljanje putovanja pre Ponude)
@@ -153,7 +160,7 @@ Kad je `segments` poslato, ZAMENJUJE ceo postojeći skup (dodavanje/brisanje/pre
 
 ### POST /quotes
 
-Polja stavke se prepisuju iz izabranog `SearchResultOffer` (poglavlje 3.0b.3) — korisnik ih ne unosi ručno.
+Polja stavke se prepisuju iz izabranog `SearchResultOffer` (poglavlje 3.0b.3) — korisnik ih ne unosi ručno. Opciono `searchLogId` (UUID iz zaglavlja `X-Search-Id` pretrage, §3.0k.3) vezuje ponudu za upit; izostavite ga za ponudu koja nije nastala iz pretrage.
 
 **Odbijanja koja dolaze iz cenovnika (M3 §2.11d/§2.11e, dodato 9.9.2026).** Sva tri vraćaju `400` sa poljem `reason`, jer su to različite činjenice sa različitim nastavkom:
 

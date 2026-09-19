@@ -8,6 +8,7 @@ import {
   IsInt,
   IsOptional,
   IsString,
+  IsUUID,
   Min,
   ValidateIf,
   ValidateNested,
@@ -167,4 +168,9 @@ export class CreateQuoteDto {
   @IsString()
   @IsOptional()
   intakeSourceText?: string;
+
+  /** §3.0k.3 — `X-Search-Id` iz `GET /search` odgovora; spaja upit sa ponudom (lijevak). */
+  @IsUUID()
+  @IsOptional()
+  searchLogId?: string;
 }

@@ -5,14 +5,15 @@ import {
   Get,
   Query,
   Req,
+  Res,
   UnauthorizedException,
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { ApiTags } from '@nestjs/swagger';
-import { Request } from 'express';
+import { Request, Response } from 'express';
 import { JwtService } from '@nestjs/jwt';
 import { SearchService } from './search.service';
-import { SearchLogService } from './search-log.service';
+import { MAX_RESULTS_LOGGED, SearchLogService } from './search-log.service';
 import { SearchQueryDto } from './dto/search-query.dto';
 import { PermissionsService } from '../../m1-core-identitet/permissions/permissions.service';
 import {
@@ -135,7 +136,11 @@ export class SearchController {
   // menja filtere, premalo za skriptovano izvlačenje kataloga.
   @Get()
   @Throttle({ default: { limit: throttleLimit(30), ttl: 60_000 } })
-  async find(@Query() query: SearchQueryDto, @Req() req: Request) {
+  async find(
+    @Query() query: SearchQueryDto,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
     await this.assertInternalPanelAccess(query.channel, req);
 
     let occupancy;
@@ -169,14 +174,47 @@ export class SearchController {
     // namerno UVEK undefined u ovom prolazu — B2C gost koristi poseban (kolačić) mehanizam
     // prijave, ne Bearer JWT; ostaje poznat, eksplicitno zabeležen nedostatak (dok. 27), ne tiho
     // izostavljen. `actorId` pokriva STAFF/B2B pozive (isti Bearer token kao INTERNAL_PANEL).
-    this.searchLog.log({
-      channel: query.channel ?? 'B2C_SITE',
-      actorId: this.actorIdFromRequest(req),
-      productType: query.type?.join(','),
-      destinationCountry: query.destinationCountry,
-      destinationCity: query.destinationCity,
-      resultCount: results.length,
+    // §3.0k.2 — sta je prikazano: prva (najjeftinija je prva u nizu) ponuda svakog proizvoda,
+    // po redosledu odgovora, najvise prvih 20. Signal (nabavna, pravilo, preostalo) dolazi iz
+    // WeakMap-a servisa, nikad iz JSON-a odgovora.
+    const prikazano = results.slice(0, MAX_RESULTS_LOGGED).flatMap((p) => {
+      const o = p.offers[0];
+      if (!o) return [];
+      const sig = this.search.signalFor(o);
+      return [
+        {
+          productId: p.productId,
+          sourceType: p.sourceType,
+          offerFinalPrice: o.finalPrice,
+          offerBaseCost: sig?.baseCost ?? null,
+          currency: o.finalPriceCurrency,
+          markupRuleId: sig?.markupRuleId ?? null,
+          availabilityStatus: o.availabilityStatus,
+          remainingUnits: sig?.remainingUnits ?? null,
+          isRefundable: o.isRefundable,
+        },
+      ];
     });
+    const searchId = this.searchLog.log(
+      {
+        channel: query.channel ?? 'B2C_SITE',
+        actorId: this.actorIdFromRequest(req),
+        productType: query.type?.join(','),
+        destinationCountry: query.destinationCountry,
+        destinationCity: query.destinationCity,
+        resultCount: results.length,
+        stayFrom: query.stayFrom,
+        stayTo: query.stayTo,
+        adults: occupancy?.adults,
+        children: occupancy?.children,
+        amenityTags: query.amenityTags,
+      },
+      prikazano,
+    );
+    // §3.0k.3 — id upita ide u zaglavlje, ne u telo: telo je niz proizvoda koji citaju M8/M7/M16
+    // i promena oblika bi ih sve pokvarila. Klijent ga prosledjuje u POST /quotes.searchLogId.
+    res.setHeader('X-Search-Id', searchId);
+    res.setHeader('Access-Control-Expose-Headers', 'X-Search-Id');
 
     return results;
   }

@@ -33,6 +33,8 @@ export interface SelectionItem {
   finalPrice: number;
   finalPriceCurrency: string;
   quoteExpiresAt?: string;
+  /** M5 spec §3.0k.3 — `X-Search-Id` upita iz kog je stavka izabrana; ide u `POST /quotes`. */
+  searchLogId?: string;
   /** Opciono — kategorija (zvezdice), destinacija, čitljiv naziv usluge ("HB - Polupansion") i
    * razbijena cena po sobi, za bogatiji prikaz u desnom panelu (RightPanel.tsx SelectionRow). */
   stars?: number;

@@ -206,6 +206,7 @@ export class QuotesService {
         createdBy: actor?.userId ?? null,
         referralTrackingCode: dto.referralTrackingCode,
         intakeSourceText: dto.intakeSourceText ?? null,
+        searchLogId: dto.searchLogId ?? null,
         items: {
           create: built.map((b) => ({
             productId: b.productId,
@@ -288,6 +289,20 @@ export class QuotesService {
       context = resolved.context;
       if (context !== 'INTERNAL_PANEL' && quote.clientAccountId !== resolved.ownClientAccountId) {
         throw new NotFoundException(`Ponuda ${id} nije pronađena.`);
+      }
+      // §3.0k.4 — kupac (subagent/gost) je otvorio ponudu. Samo broj i prvi trenutak, bez
+      // identiteta; fire-and-forget, kvar brojanja ne sme pokvariti pregled. (Deljeni link 3.1a
+      // još nema kod — kad ga dobije, uvećava isti brojač.)
+      if (context !== 'INTERNAL_PANEL') {
+        this.prisma.quote
+          .update({
+            where: { id },
+            data: {
+              sharedViewCount: { increment: 1 },
+              ...(quote.sharedFirstViewedAt ? {} : { sharedFirstViewedAt: new Date() }),
+            },
+          })
+          .catch(() => undefined);
       }
     }
 

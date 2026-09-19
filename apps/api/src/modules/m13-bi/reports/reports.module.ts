@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ReportsService } from './reports.service';
+import { FunnelService } from './funnel.service';
 import { ReportsController } from './reports.controller';
 import { AuthModule } from '../../m1-core-identitet/auth/auth.module';
 import { PermissionsModule } from '../../m1-core-identitet/permissions/permissions.module';
@@ -12,7 +13,7 @@ import { M19KomunikacionaPlatformaModule } from '../../m19-komunikaciona-platfor
 @Module({
   imports: [AuthModule, PermissionsModule, M19KomunikacionaPlatformaModule],
   controllers: [ReportsController],
-  providers: [ReportsService],
-  exports: [ReportsService],
+  providers: [ReportsService, FunnelService],
+  exports: [ReportsService, FunnelService],
 })
 export class ReportsModule {}

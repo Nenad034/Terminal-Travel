@@ -1764,6 +1764,12 @@ model Quote {
   // M5 §3.0j.2 (v2.53) — nalepljen mejl/zahtev iz kog je AI izvukao nacrt; „odakle ova cena"
   // mora imati odgovor. Popunjeno = nacrt nastao kroz tekstualni ulaz.
   intakeSourceText        String?     @map("intake_source_text")
+  // M5 §3.0k.3 — iz kog upita je ponuda nastala (weak ref, bez FK: log ima sopstvenu retenciju).
+  // null za ponudu iz teksta (§3.0j) i rucne stavke — nisu nastale iz pretrage.
+  searchLogId             String?     @map("search_log_id")
+  // M5 §3.0k.4 — da li je deljena ponuda (3.1a) uopste otvorena; bez identiteta ko je otvorio.
+  sharedFirstViewedAt     DateTime?   @map("shared_first_viewed_at")
+  sharedViewCount         Int         @default(0) @map("shared_view_count")
   expiresAt               DateTime    @map("expires_at")
   itineraryId             String?     @map("itinerary_id")
   contractTermsAccepted   Boolean     @default(false) @map("contract_terms_accepted")
@@ -3272,18 +3278,53 @@ model FactBooking {
 // pozivaoce (vlasnikova odluka, potvrđeno preko AskUserQuestion) — actorId/clientAccountId
 // ostaju null kad pozivalac nije prijavljen.
 model SearchLog {
-  id                 String   @id @default(uuid())
-  occurredAt         DateTime @default(now()) @map("occurred_at")
+  id                 String    @id @default(uuid())
+  occurredAt         DateTime  @default(now()) @map("occurred_at")
   channel            String
-  actorId            String?  @map("actor_id") // weak ref → M1 User, popunjeno za prijavljen STAFF/B2B poziv
-  clientAccountId    String?  @map("client_account_id") // weak ref → M6 ClientAccount, popunjeno za prijavljenog B2C gosta
-  productType        String?  @map("product_type")
-  destinationCountry String?  @map("destination_country")
-  destinationCity    String?  @map("destination_city")
-  resultCount        Int      @map("result_count")
+  actorId            String?   @map("actor_id") // weak ref → M1 User, popunjeno za prijavljen STAFF/B2B poziv
+  clientAccountId    String?   @map("client_account_id") // weak ref → M6 ClientAccount, popunjeno za prijavljenog B2C gosta
+  productType        String?   @map("product_type")
+  destinationCountry String?   @map("destination_country")
+  destinationCity    String?   @map("destination_city")
+  resultCount        Int       @map("result_count")
+  // M5 spec §3.0k.1 (19.9.2026) — koliko unapred i za koga. lead_time_days/nights se racunaju
+  // pri upisu, ne pri citanju. Nista od ovoga nije licni podatak.
+  stayFrom           DateTime? @map("stay_from") @db.Date
+  stayTo             DateTime? @map("stay_to") @db.Date
+  leadTimeDays       Int?      @map("lead_time_days")
+  nights             Int?
+  adults             Int?
+  children           Int?
+  amenityTags        String[]  @default([]) @map("amenity_tags")
+
+  results SearchLogResult[]
 
   @@index([occurredAt])
   @@map("search_logs")
+}
+
+// M5 spec §3.0k.2 — sta je PRIKAZANO i po kojoj ceni, najvise prvih 20 po upitu. Dete SearchLog-a
+// (CASCADE — retencija roditelja brise i decu). `offer_base_cost`/`markup_rule_id` su INTERNI
+// (M5 §6.2): citaju se samo iz M13 za INTERNAL_PANEL, nikad prema M7/M8.
+model SearchLogResult {
+  id                 String   @id @default(uuid())
+  searchLogId        String   @map("search_log_id")
+  rank               Int
+  productId          String   @map("product_id") // weak ref → M2 Product
+  sourceType         String   @map("source_type") // CONTRACTED | API | MANUAL
+  offerFinalPrice    Int      @map("offer_final_price")
+  offerBaseCost      Int?     @map("offer_base_cost")
+  currency           String
+  markupRuleId       String?  @map("markup_rule_id") // weak ref → MarkupRule (bez FK: brisanje pravila ne sme brisati istoriju)
+  availabilityStatus String   @map("availability_status")
+  remainingUnits     Int?     @map("remaining_units")
+  isRefundable       Boolean? @map("is_refundable")
+
+  searchLog SearchLog @relation(fields: [searchLogId], references: [id], onDelete: Cascade)
+
+  @@index([searchLogId])
+  @@index([productId])
+  @@map("search_log_results")
 }
 
 // §3.2 `FactPayment` — za finansijske izveštaje (M10 Payment). `payment_id` je dopuna otkrivena
