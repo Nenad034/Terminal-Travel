@@ -167,6 +167,43 @@ Detalj niti sa svim porukama, hronološki. Zahteva `M22/email-thread/VIEW` + `Ma
 }
 ```
 
+### POST /email/threads/compose
+
+Spec §3.1b (v1.8, 18.9.2026) — nov razgovor proizvoljnom primaocu (do sada je nit nastajala samo iz dolazne pošte). Zahteva `M22/email-thread/REPLY` + `MailboxAccess(REPLY)`. Sa `send: true` prva poruka se odmah šalje (`senderType: STAFF`); bez toga ostaje nacrt — AI predlog iz M15 §6.5.4.8 zove ovo sa `send: false` i `senderType: AI_DRAFT`.
+
+**Zahtev:**
+
+```json
+{
+  "mailboxId": "mb-rezervacije",
+  "toAddresses": ["rezervacije@hotel-splendid.me"],
+  "subject": "Upit za 20–27.6.2027",
+  "body": "Poštovani, molimo ponudu...",
+  "correspondentType": "SUPPLIER",
+  "send": true
+}
+```
+
+**Odgovor `201`:**
+
+```json
+{
+  "thread": {
+    "id": "t-9f2c",
+    "mailboxId": "mb-rezervacije",
+    "subject": "Upit za 20–27.6.2027",
+    "status": "OPEN"
+  },
+  "message": {
+    "id": "m-1",
+    "threadId": "t-9f2c",
+    "direction": "OUTBOUND",
+    "senderType": "STAFF",
+    "sentBy": "u-marko-1"
+  }
+}
+```
+
 ### POST /email/threads/:id/messages
 
 Kreira STAFF poruku (ljudski, autentikovan poziv) — nikad AI_DRAFT. Zahteva `M22/email-thread/REPLY` + `MailboxAccess(REPLY)`. Sa `send: true`, poruka se odmah šalje (`sentBy` popunjeno, provajder adapter pozvan); bez toga ostaje nacrt.

@@ -290,6 +290,38 @@ Izmena `tier`/`sourceNote` postojećeg reda. Zahteva `M15/agent-action-type/EDIT
 
 ---
 
+## POST /omnisearch/compose-email/approve
+
+Spec §6.5.4.8 (v1.60, 18.9.2026) — čovek odobrava nacrt mejla koji je AI predložio u glavnom razgovoru (`pendingEmailDraft` iz `POST /omnisearch` odgovora). Tek ovaj poziv pravi zapis: nova M22 nit sa `AI_DRAFT` porukom (`send: false`) — stvarno slanje i dalje ide preko M22 „pošalji" dugmeta. Zahteva `M15_EMAIL_COMPOSE` aktivaciju modula i `MailboxAccess(REPLY)` pozivaoca na tom sandučetu; inače `403`.
+
+**Zahtev:**
+
+```json
+{
+  "to": "rezervacije@hotel-splendid.me",
+  "subject": "Upit za 20–27.6.2027, 2 odrasle osobe",
+  "body": "Poštovani, molimo ponudu za dvokrevetnu sobu, polupansion...",
+  "mailboxId": "mb-rezervacije",
+  "mailboxAddress": "rezervacije@terminal-travel.rs"
+}
+```
+
+**Odgovor `201`:**
+
+```json
+{ "threadId": "t-9f2c" }
+```
+
+## POST /omnisearch/compose-email/deny
+
+Isti oblik zahteva kao `approve`; ništa se ne upisuje u M22, samo audit (`omnisearch.compose_email.deny`).
+
+**Odgovor `201`:**
+
+```json
+{ "ok": true }
+```
+
 ## GET /inbox
 
 Agent Inbox (spec §6) — agregovane `PROPOSE_THEN_APPROVE` stavke koje čekaju odobrenje, samo iz izvora za koje pozivalac ima odgovarajuću VIEW dozvolu tog modula. Zahteva `M15/agent-inbox/VIEW`.

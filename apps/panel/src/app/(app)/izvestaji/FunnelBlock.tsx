@@ -106,7 +106,8 @@ export default function FunnelBlock({
         {naslov}
         <p className="mb-2 text-xs text-ink-faint">
           Procenat u zagradi je prelaz sa prethodne stepenice (ponude i rezervacije u odnosu na
-          upite sa rezultatima). „Otvorene" broji ponude koje je kupac otvorio bar jednom.
+          upite sa rezultatima). &bdquo;Otvorene&ldquo; broji ponude koje je kupac otvorio bar
+          jednom.
         </p>
         <div className="overflow-hidden overflow-x-auto rounded-lg border border-border">
           <table className="w-full border-collapse text-xs">
