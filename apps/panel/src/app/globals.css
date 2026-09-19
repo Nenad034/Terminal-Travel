@@ -373,6 +373,47 @@ code,
   display: none; /* Chrome/Edge/Safari (WebKit/Blink) */
 }
 
+/* Izuzetak od gornjeg pravila (19.9.2026, vlasnik: „pošto tabele imaju dosta kolona, postavite
+   u dnu scroler") — Terminal tabela (M17 §6e) ima 15–20 kolona i redovno je šira od ekrana;
+   bez vidljive trake korisnik ne zna ni da desno ima još kolona ni gde je u njima. Samo
+   HORIZONTALNA traka, tanka, u bojama palete (bez sistemske sive); vertikalna ostaje sakrivena
+   kao svuda. Primenjuje se ciljano klasom, ne globalno — pravilo iznad i dalje važi. */
+/* Firefox nema ::-webkit-scrollbar pa dobija standardna svojstva; u Chromium-u ta ista svojstva
+   ISKLJUČUJU sva ::-webkit-scrollbar pravila ispod (traka bi bila sistemska siva sa strelicama),
+   zato idu samo tamo gde pseudo-element ne postoji. */
+.tt-scroll-x {
+  /* Globalno `scrollbar-width: none` sa `*` gasi traku i u Chromium-u bez obzira na pseudo-elemente
+     ispod — mora nazad na `auto` (NE `thin`: svaka vrednost osim `auto` isključuje ::-webkit-scrollbar stil). */
+  scrollbar-width: auto;
+}
+@supports not selector(::-webkit-scrollbar) {
+  .tt-scroll-x {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+}
+.tt-scroll-x::-webkit-scrollbar {
+  display: block;
+  height: 10px;
+}
+.tt-scroll-x::-webkit-scrollbar:vertical {
+  display: none; /* vertikalna i dalje nevidljiva; `width: 0` na zajedničkom pseudo-elementu Blink ignoriše */
+}
+.tt-scroll-x::-webkit-scrollbar-button {
+  display: none; /* bez sistemskih strelica */
+}
+.tt-scroll-x::-webkit-scrollbar-track {
+  background: transparent;
+}
+.tt-scroll-x::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 5px;
+  border: 2px solid var(--panel);
+}
+.tt-scroll-x::-webkit-scrollbar-thumb:hover {
+  background: var(--ink-faint);
+}
+
 @layer components {
   /* Zajednički stil za text/select/textarea polja u formama (M2/M3/M5 Faza 1 ekrani) —
      WCAG AA kontrast border/bg proveren u tailwind.config.ts komentaru (paleta "Horizont"). */

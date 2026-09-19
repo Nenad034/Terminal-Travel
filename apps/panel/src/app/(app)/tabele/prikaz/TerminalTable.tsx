@@ -800,7 +800,7 @@ export default function TerminalTable({
 
       {/* Pivot ili obična tabela */}
       {data && pivotData && pivot && (
-        <div className="min-h-0 flex-1 overflow-auto rounded-lg border border-border">
+        <div className="tt-scroll-x min-h-0 flex-1 overflow-auto rounded-lg border border-border">
           <table className="w-full border-collapse text-xs">
             <thead>
               <tr>
@@ -845,7 +845,7 @@ export default function TerminalTable({
       )}
 
       {data && !pivot && (
-        <div className="min-h-0 flex-1 overflow-auto rounded-lg border border-border">
+        <div className="tt-scroll-x min-h-0 flex-1 overflow-auto rounded-lg border border-border">
           <table className="w-full border-collapse text-xs">
             <thead>
               <tr>
