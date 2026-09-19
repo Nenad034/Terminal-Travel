@@ -78,9 +78,10 @@
    Sve vrednosti PROVERENE protiv WCAG 2.1 AA (§2a): 4.5:1 tekst, 3:1 velik tekst/ikonice/granice,
    svaka pozadinska nijansa posebno testirana, identično u oba moda.
 
-   Podrazumevano: prati prefers-color-scheme (:root bez [data-theme] = tamni ili svetli po OS-u).
-   Ručni prekidač postavlja [data-theme="dark"|"light"] na <html> i pamti izbor u localStorage
-   (src/components/ThemeToggle.tsx) — data-theme selektor uvek pobeđuje prefers-color-scheme. */
+   Podrazumevano (bez kolačića): svetli mod — `:root`. Ručni prekidač (ThemeToggle.tsx) postavlja
+   [data-theme="light"|"dim"|"semi"] na <html> i pamti izbor u kolačiću (layout.tsx ga upiše već u
+   prvi HTML). Od 19.9.2026 nema `prefers-color-scheme` grane — crni tamni mod je uklonjen, a ni
+   dim ni semi nisu „OS tamno" (§ komentar uz `:root[data-theme='semi']`). */
 
 :root {
   /* svetli mod — podrazumevane vrednosti, važe i kad OS nema tamni mod uključen */
@@ -188,55 +189,64 @@
   --brand-ink: #1f1300;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme='light']) {
-    --bg: #09090b;
-    --panel: #18181b;
-    --sunken: #131316;
-    --panel-2: #27272a;
-    --bar: #27272a;
-    /* Isti razlog kao `--border` u svetlom modu (2.9.2026) — vidi komentar uz `:root`. Tailwind
-       zinc-700 (#3f3f46) je davao 1.70 / 1.91 / 1.43:1; #748088 daje 4.38 / 4.91 / 3.68:1.
-       U tamnim modovima granica ide ka SVETLIJEM, ne tamnijem. */
-    --border: #748088;
-    --text: #fafafa;
-    --text-dim: #d4d4d8;
-    --text-faint: #a1a1aa;
-    --accent: #818cf8;
-    --accent-strong: #a5b4fc;
-    --accent-soft: #818cf833;
-    --accent-ink: #0b0b0f;
-    --accent2: #5eead4;
-    --accent2-soft: #5eead41a;
-    --ok: #4ade80;
-    --ok-bg: #0d1f13;
-    --warn: #fbbf24;
-    --warn-bg: #241a06;
-    --danger: #f87171;
-    --danger-bg: #240b0b;
-    /* Tamni mod — bez promene (§ komentar iznad .codicon): `currentColor` u `color` svojstvu
-       se po specifikaciji računa kao `inherit`. */
-    --icon-line: currentColor;
-  }
+/* "Semi-dark" mod (19.9.2026, vlasnikov zahtev: „uklonite crni dark mod i postavite semi dark
+   mode koji će imati centralni panel u malo zagušenoj beloj boji, a levi panel u navy plavoj
+   boji koju koristimo za drugi tamni mod; desni panel takođe u malo zagušenoj beloj"). ZAMENJUJE
+   raniji crni `dark` mod (zinc skala, #09090b/#18181b) — tri moda ostaju: svetli, dim (ceo panel
+   navy) i ovaj. Star kolačić `dark` se čita kao `semi` (layout.tsx).
+
+   Dva bloka, jedan mod: `:root[data-theme='semi']` boji SVE što nije leva kolona — centralni
+   sadržaj i desni panel u prigušenoj („zagušenoj") beloj, tekst/ivica/akcenti kao u svetlom modu
+   (paleta „Biserna", § komentar uz `:root`) — sve podloge su SVETLIJE od svetlog moda, pa je
+   svaki kontrast teksta i ivice veći nego tamo (izmereno tools/check-contrast.js, blok ispod se
+   meri kao i svaki drugi). `.tt-side` (omotač ActivityBar + Sidebar u Shell.tsx) unutar semi
+   moda PREDEFINIŠE iste tokene na vrednosti dim moda — svaka Tailwind klasa u levoj koloni
+   (`bg-panel-2`, `text-ink`, `border-border`, `hover:bg-panel`…) tako automatski dobija navy
+   paletu bez ijedne izmene u komponentama i sa kontrastom koji je za dim već proveren.
+   Vrednosti `.tt-side` bloka MORAJU ostati identične `:root[data-theme='dim']` bloku (isti
+   princip kao zamka 1.7 za light OS/prekidač) — check-contrast.js to poredi.
+
+   Nema `prefers-color-scheme` grane ni za jedan mod od 19.9.2026: OS ume da signalizira samo
+   „svetlo/tamno", a ni dim ni semi nisu „tamno" u tom smislu; bez kolačića važi svetli mod. */
+:root[data-theme='semi'] {
+  --bg: #eeebe2;
+  --panel: #f7f6f2;
+  --sunken: #e4dfd2;
+  --panel-2: #edeae2;
+  --bar: #e1ddd0;
+  --border: #7d7660;
+  --text: #33301f;
+  --text-dim: #4c4730;
+  --text-faint: #615c44;
+  --accent: #00686e;
+  --accent-strong: #004c4c;
+  --accent-soft: #00686e33;
+  --accent-ink: #ffffff;
+  --accent2: #4338ca;
+  --accent2-soft: #4338ca1a;
+  --ok: #166534;
+  --ok-bg: #f0fdf4;
+  --warn: #92400e;
+  --warn-bg: #fffbeb;
+  --danger: #b91c1c;
+  --danger-bg: #fef2f2;
+  --icon-line: #1f3a5f;
 }
 
-:root[data-theme='dark'] {
-  --bg: #09090b;
-  --panel: #18181b;
-  --sunken: #131316;
-  --panel-2: #27272a;
-  --bar: #27272a;
-  /* Isti razlog kao `--border` u svetlom modu (2.9.2026) — vidi komentar uz `:root`. Tailwind
-     zinc-700 (#3f3f46) je davao 1.70 / 1.91 / 1.43:1; #748088 daje 4.38 / 4.91 / 3.68:1.
-     U tamnim modovima granica ide ka SVETLIJEM, ne tamnijem. */
-  --border: #748088;
-  --text: #fafafa;
-  --text-dim: #d4d4d8;
-  --text-faint: #a1a1aa;
+:root[data-theme='semi'] .tt-side {
+  --bg: #0f172a;
+  --panel: #1e293b;
+  --sunken: #16202f;
+  --panel-2: #334155;
+  --bar: #334155;
+  --border: #94a3b8;
+  --text: #f8fafc;
+  --text-dim: #cbd5e1;
+  --text-faint: #a3b0c2;
   --accent: #818cf8;
   --accent-strong: #a5b4fc;
   --accent-soft: #818cf833;
-  --accent-ink: #0b0b0f;
+  --accent-ink: #0b1120;
   --accent2: #5eead4;
   --accent2-soft: #5eead41a;
   --ok: #4ade80;

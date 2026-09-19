@@ -15,7 +15,9 @@ export async function generateMetadata(): Promise<Metadata> {
 
 /** Ključ kolačića sa ručno izabranom temom — deli ga `ThemeToggle.tsx`. */
 export const THEME_COOKIE = 'tt-panel-theme';
-const THEMES = ['light', 'dim', 'dark'] as const;
+const THEMES = ['light', 'dim', 'semi'] as const;
+/** Crni `dark` mod uklonjen 19.9.2026 — star kolačić se čita kao njegova zamena, `semi`. */
+const LEGACY_THEMES: Record<string, (typeof THEMES)[number]> = { dark: 'semi' };
 
 // docs/analize/29-DIZAJN-SISTEM-UI.md §2 — izabrana tema se primenjuje BEZ "flash of wrong
 // theme".
@@ -29,10 +31,11 @@ const THEMES = ['light', 'dim', 'dark'] as const;
 // Sada se izbor čuva u KOLAČIĆU, koji server ume da pročita, pa `data-theme` stiže već u
 // prvom HTML-u. Nema skripte, nema upozorenja, nema neslaganja server/klijent — i nema ni
 // treptaja, jer se tema ne postavlja "brzo posle" nego odmah. Bez kolačića se ne postavlja
-// ništa i CSS `prefers-color-scheme` odlučuje, isto kao ranije (globals.css §2).
+// ništa i važi svetli mod (`:root`) — `prefers-color-scheme` grana je uklonjena 19.9.2026 zajedno
+// sa crnim tamnim modom (globals.css § komentar uz `:root[data-theme='semi']`).
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const stored = (await cookies()).get(THEME_COOKIE)?.value;
-  const theme = THEMES.find((t) => t === stored);
+  const theme = THEMES.find((t) => t === stored) ?? (stored ? LEGACY_THEMES[stored] : undefined);
 
   return (
     <html lang="sr" data-theme={theme}>

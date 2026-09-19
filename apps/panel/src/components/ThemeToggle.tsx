@@ -3,22 +3,24 @@
 import { useEffect, useState } from 'react';
 import Icon from './Icon';
 
-type Theme = 'light' | 'dim' | 'dark';
+type Theme = 'light' | 'dim' | 'semi';
 
-// Ciklus svetli → dim → tamni → svetli (29.8.2026, treći "dim" mod dodat na zahtev vlasnika —
-// isti koncept kao Twitter/X "Dim", plavkasto-siva atmosfera između svetlog i punog tamnog,
-// docs/analize/29-DIZAJN-SISTEM-UI.md §2 dopuna). "dim" nema `prefers-color-scheme` granu (OS
-// ne ume da signalizira tri stanja) — dostupan isključivo preko ovog ručnog prekidača.
-const CYCLE: Theme[] = ['light', 'dim', 'dark'];
+// Ciklus svetli → dim → semi → svetli. "dim" (29.8.2026) je Twitter/X "Dim" koncept — ceo panel
+// plavkasto-siv (navy). "semi" (19.9.2026, vlasnikov zahtev) ZAMENJUJE raniji crni "dark" mod:
+// centralni i desni panel u prigušenoj beloj, leva kolona u navy paleti dim moda (globals.css
+// `:root[data-theme='semi']` + `.tt-side`). Nijedan mod nema `prefers-color-scheme` granu — OS
+// ume da kaže samo svetlo/tamno, a ni dim ni semi nisu „tamno" u tom smislu; bez kolačića je
+// svetli. Star kolačić `dark` layout.tsx čita kao `semi` — niko ne gubi izbor.
+const CYCLE: Theme[] = ['light', 'dim', 'semi'];
 const LABELS: Record<Theme, string> = {
-  light: 'Prebaci na dim mod',
-  dim: 'Prebaci na tamni mod',
-  dark: 'Prebaci na svetli mod',
+  light: 'Prebaci na dim mod (ceo panel navy)',
+  dim: 'Prebaci na semi-dark mod (navy leva kolona, svetao sadržaj)',
+  semi: 'Prebaci na svetli mod',
 };
 const ICONS: Record<Theme, string> = {
   light: 'circle-filled',
   dim: 'circle-large-outline',
-  dark: 'color-mode',
+  semi: 'color-mode',
 };
 
 const THEME_COOKIE = 'tt-panel-theme';
@@ -67,9 +69,7 @@ export default function ThemeToggle() {
     }
 
     const current = document.documentElement.getAttribute('data-theme') as Theme | null;
-    setTheme(
-      current ?? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'),
-    );
+    setTheme(current && CYCLE.includes(current) ? current : 'light');
   }, []);
 
   function toggle() {

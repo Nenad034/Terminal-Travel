@@ -47,12 +47,11 @@ export interface MapPoint {
 }
 
 /**
- * Panel ima TRI moda (svetli / dim / tamni, dizajn dok. §2.0f), pa i mapa dobija tri različita
- * izgleda — ne dva. Protomaps "flavor" se bira tako da razlika bude stvarno vidljiva:
+ * Panel ima TRI moda (svetli / dim / semi, dizajn dok. §2.0f), pa i mapa prati mod:
  *   svetli → `light` (pozadina #cccccc)
  *   dim    → `dark`  (#34373d, plavkasto-siva — isti utisak kao dim mod panela)
- *   tamni  → `black` (#2b2b2b, najdublji)
- * U prvoj verziji su dim i tamni delili isti `dark` i izgledali identično.
+ *   semi   → `light` (19.9.2026 — centralni sadržaj je svetao, mapa je u njemu; navy je samo
+ *            leva kolona). Zamenio crni `tamni` mod, koji je nosio `black` (#2b2b2b).
  */
 type FlavorName = 'light' | 'dark' | 'black';
 
@@ -61,9 +60,9 @@ function flavorNameForTheme(): FlavorName {
   const theme = document.documentElement.getAttribute('data-theme');
   if (theme === 'light') return 'light';
   if (theme === 'dim') return 'dark';
-  if (theme === 'dark') return 'black';
-  // Bez izričitog izbora odlučuje operativni sistem, isto kao CSS `prefers-color-scheme`.
-  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'black' : 'light';
+  // `semi`, star `dark` kolačić (layout.tsx ga već čita kao semi) i bez izbora → svetla mapa;
+  // `prefers-color-scheme` grana je uklonjena 19.9.2026 zajedno sa crnim modom.
+  return 'light';
 }
 
 /** Boje natpisa nad mapom — indigo na svetloj podlozi, belo na tamnoj. */

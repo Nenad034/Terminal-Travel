@@ -127,7 +127,10 @@ function readTokenBlocks(css) {
       // tamni OS blok pogrešno imenuje kao svetli prekidač (ista zamka kao u ranijoj verziji,
       // samo drugim putem: ranije pogrešno tekstualno prepoznavanje, sad pogrešan redosled).
       let name;
-      if (/data-theme='dark'/.test(selector)) name = 'dark (prekidač)';
+      // Semi-dark (19.9.2026) — dva bloka, jedan mod: centralni deo i leva kolona (`.tt-side`).
+      if (/data-theme='semi'\]\s+\.tt-side/.test(selector)) name = 'semi — leva kolona (= dim)';
+      else if (/data-theme='semi'/.test(selector)) name = 'semi (prekidač)';
+      else if (/data-theme='dark'/.test(selector)) name = 'dark (prekidač)';
       else if (/data-theme='dim'/.test(selector)) name = 'dim (prekidač)';
       else if (insideMediaDark) name = 'dark (OS)';
       else if (/data-theme='light'/.test(selector)) name = 'light (prekidač)';
@@ -280,7 +283,8 @@ function runFor(appName, { showAll, modeArg }) {
   // greška — nasleđuje se normalnom CSS kaskadom sa `:root`, ne treba mu duplikat.
   const pairsToCompare = [
     ['light (OS)', 'light (prekidač)'],
-    ['dark (OS)', 'dark (prekidač)'],
+    // Semi-dark: leva kolona MORA nositi tačno dim paletu (globals.css § komentar uz semi blok).
+    ['dim (prekidač)', 'semi — leva kolona (= dim)'],
   ];
   for (const [a, b] of pairsToCompare) {
     if (!blocks[a] || !blocks[b]) continue;

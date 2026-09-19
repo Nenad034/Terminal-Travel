@@ -420,7 +420,11 @@ export default function Shell({
                 da bi se unapred izračunalo). Umesto nagađanja, širina se sad STVARNO MERI preko
                 `ResizeObserver` (ispod) i prosleđuje `TopBar`-u kao broj u pikselima — tačna u
                 svakom stanju, uključujući uživo prevlačenje, bez ijedne nove pretpostavke. */}
-                            <div ref={leftColumnRef} className="flex">
+                            {/* `tt-side` (19.9.2026, semi-dark mod) — u semi modu ovaj omotač PREDEFINIŠE
+                tokene boja na navy paletu dim moda (globals.css `:root[data-theme='semi'] .tt-side`),
+                pa ActivityBar + Sidebar i sve u njima dobijaju navy bez izmene komponenti. U ostalim
+                modovima klasa nema pravilo i ne radi ništa. */}
+                            <div ref={leftColumnRef} className="tt-side flex">
                               <ActivityBar
                                 groups={groups}
                                 items={items}
