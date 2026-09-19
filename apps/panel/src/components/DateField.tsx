@@ -139,10 +139,7 @@ export default function DateField({
       const roomBelow = window.innerHeight - rect.bottom;
       const openUpward =
         roomBelow < ESTIMATED_POPOVER_HEIGHT && rect.top > ESTIMATED_POPOVER_HEIGHT;
-      const left = Math.min(
-        rect.left,
-        Math.max(8, window.innerWidth - POPOVER_WIDTH - 8),
-      );
+      const left = Math.min(rect.left, Math.max(8, window.innerWidth - POPOVER_WIDTH - 8));
       const top = openUpward ? rect.top - 6 : rect.bottom + 6;
       setPopoverPos({ top, left, openUpward });
     }
@@ -210,9 +207,7 @@ export default function DateField({
             style={{
               position: 'fixed',
               top: popoverPos.openUpward ? undefined : popoverPos.top,
-              bottom: popoverPos.openUpward
-                ? window.innerHeight - popoverPos.top
-                : undefined,
+              bottom: popoverPos.openUpward ? window.innerHeight - popoverPos.top : undefined,
               left: popoverPos.left,
             }}
             onSelect={(selectedIso) => {

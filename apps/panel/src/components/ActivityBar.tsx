@@ -162,9 +162,7 @@ export default function ActivityBar({
               >
                 <Icon name={group.icon} />
               </Link>
-              {flyout && (
-                <GroupFlyout group={group} groupItems={groupItems} alignBottom={isLast} />
-              )}
+              {flyout && <GroupFlyout group={group} groupItems={groupItems} alignBottom={isLast} />}
             </div>
           );
         }
@@ -173,9 +171,7 @@ export default function ActivityBar({
             <button title={title} onClick={() => onSelectGroup(group.id)} className={className}>
               <Icon name={group.icon} />
             </button>
-            {flyout && (
-              <GroupFlyout group={group} groupItems={groupItems} alignBottom={isLast} />
-            )}
+            {flyout && <GroupFlyout group={group} groupItems={groupItems} alignBottom={isLast} />}
           </div>
         );
       })}

@@ -72,10 +72,7 @@ export class OmnisearchController {
    */
   @Post('compose-email/approve')
   @UseGuards(JwtAuthGuard)
-  approveComposeEmail(
-    @Body() dto: EmailDraftDecisionDto,
-    @CurrentUser() user: { userId: string },
-  ) {
+  approveComposeEmail(@Body() dto: EmailDraftDecisionDto, @CurrentUser() user: { userId: string }) {
     return this.omnisearch.approveComposeEmail(dto, user.userId);
   }
 

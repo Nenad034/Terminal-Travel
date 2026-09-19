@@ -731,10 +731,9 @@ export default function AiChatBox({ fokus = false }: { fokus?: boolean }) {
                   />
                 )}
                 {t.report && <ReportDownloadLink report={t.report} />}
-                {!t.answer &&
-                  t.links.length === 0 &&
-                  !t.pendingEmailDraft &&
-                  !t.report && <p className="text-ink-faint">Nema rezultata.</p>}
+                {!t.answer && t.links.length === 0 && !t.pendingEmailDraft && !t.report && (
+                  <p className="text-ink-faint">Nema rezultata.</p>
+                )}
               </div>
             )}
           </div>

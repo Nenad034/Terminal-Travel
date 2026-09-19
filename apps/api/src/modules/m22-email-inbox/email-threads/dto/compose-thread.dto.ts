@@ -1,4 +1,12 @@
-import { ArrayMinSize, IsArray, IsBoolean, IsEmail, IsIn, IsOptional, IsString } from 'class-validator';
+import {
+  ArrayMinSize,
+  IsArray,
+  IsBoolean,
+  IsEmail,
+  IsIn,
+  IsOptional,
+  IsString,
+} from 'class-validator';
 
 // M22 spec §3.1b/§8 — POST /threads/compose, zahteva REPLY (M22 §7) za `mailboxId`. Novi
 // razgovor proizvoljnom primaocu (koji do sad nije pisao nama) — do sad je M22 umeo isključivo

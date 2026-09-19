@@ -1376,7 +1376,11 @@ export class OmnisearchService {
             );
             result = { error: (err as Error).message };
           }
-          toolResults.push({ type: 'tool_result', tool_use_id: use.id, content: JSON.stringify(result) });
+          toolResults.push({
+            type: 'tool_result',
+            tool_use_id: use.id,
+            content: JSON.stringify(result),
+          });
           continue;
         }
         if (use.name === 'search_availability') {
