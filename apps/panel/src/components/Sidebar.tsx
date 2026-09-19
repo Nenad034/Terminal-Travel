@@ -21,12 +21,15 @@ export default function Sidebar({
   mePresent,
   onCollapse,
   collapsed,
+  listRequest = 0,
 }: {
   items: NavItem[];
   activeGroup: NavGroup | null;
   mePresent: boolean;
   onCollapse: () => void;
   collapsed?: boolean;
+  /** Brojač klikova na ikonicu VEĆ aktivne grupe (Shell) — svaki novi broj traži spisak sekcija. */
+  listRequest?: number;
 }) {
   const pathname = usePathname();
   const { openTab } = useTabs();
@@ -41,6 +44,17 @@ export default function Sidebar({
   if (poslednjaGrupa !== activeGroup?.id) {
     setPoslednjaGrupa(activeGroup?.id);
     setForceShowList(false);
+  }
+  // Klik na ikonicu grupe koja je VEĆ aktivna (19.9.2026, vlasnik na `/tabele`: „kada kliknem na
+  // ikonu za analitiku ne vidi se nijedna stavka izuzev sačuvani prikazi") — dok je otvorena
+  // stranica neke sekcije, panel prikazuje NJEN sadržaj (sačuvani prikazi, filteri), ne spisak;
+  // klik na ikonicu grupe je najprirodniji način da se čovek vrati na spisak sekcija, a dosad
+  // nije radio ništa jer se `activeGroup` nije menjao. Isti „prilagodi stanje u renderu"
+  // obrazac kao iznad — `listRequest` je brojač koji Shell uvećava pri svakom takvom kliku.
+  const [poslednjiZahtev, setPoslednjiZahtev] = useState(listRequest);
+  if (poslednjiZahtev !== listRequest) {
+    setPoslednjiZahtev(listRequest);
+    setForceShowList(true);
   }
 
   if (!mePresent || !activeGroup) return null;

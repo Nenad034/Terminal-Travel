@@ -431,7 +431,8 @@ export const NAV_GROUPS: NavGroup[] = [
     id: 'analitika-nadzor',
     label: 'Analitika i nadzor',
     icon: 'graph-line',
-    itemIds: ['izvestaji', 'tabele', 'nadzor'],
+    // „Tabele" prve (19.9.2026, vlasnik saglasan) — svakodnevni alat; izveštaji i nadzor su povremeni.
+    itemIds: ['tabele', 'izvestaji', 'nadzor'],
   },
   {
     id: 'administracija',

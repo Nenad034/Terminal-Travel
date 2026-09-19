@@ -368,6 +368,7 @@ export default function Shell({
   }
 
   const activeGroup = groups.find((g) => g.id === activeGroupId) ?? groups[0] ?? null;
+  const [listRequest, setListRequest] = useState(0);
 
   return (
     <TabsProvider homeLabel="Početna">
@@ -432,6 +433,9 @@ export default function Shell({
                                 // koja stvarno zove `onToggleCollapse`. Sad izbor grupe dok je skupljeno odmah i
                                 // širi traku — jedan klik, ne dva.
                                 onSelectGroup={(id) => {
+                                  // Ista grupa ponovo → Sidebar prikazuje spisak sekcija (vidi
+                                  // `listRequest` u Sidebar.tsx), ne ostaje na panelu otvorene sekcije.
+                                  if (id === activeGroup?.id) setListRequest((n) => n + 1);
                                   setActiveGroupId(id);
                                   if (sidebarCollapsed) setCollapsed(false);
                                 }}
@@ -452,6 +456,7 @@ export default function Shell({
                                     activeGroup={activeGroup}
                                     mePresent
                                     collapsed={sidebarCollapsed}
+                                    listRequest={listRequest}
                                     onCollapse={() => setCollapsed(true)}
                                   />
                                 </ResizablePane>
