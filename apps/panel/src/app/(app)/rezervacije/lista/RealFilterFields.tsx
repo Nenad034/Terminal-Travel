@@ -216,14 +216,21 @@ export default function RealFilterFields({
               vlasnikov zahtev uz snimak: „narandžasto dugme stavite ispod polja Tip proizvoda i
               neka zauzima istu širinu tog polja"). Do tada je stajalo levo, ispod linka „dodatni
               filteri", u oba prikaza (traka i prozor); pošto oba prikaza dele ovu komponentu, ovde
-              je jedno mesto za oba. Visina prati `.input` (isti vertikalni padding). */}
-          <button
-            type="submit"
-            title="Filtriraj"
-            className="mt-1 flex w-full items-center justify-center rounded bg-brand py-2 text-brand-ink hover:brightness-90"
-          >
-            <Icon name="play" />
-          </button>
+              je jedno mesto za oba. Visina prati `.input` (isti vertikalni padding).
+              Drugi korak istog dana: širina prepolovljena, dugme uz DESNU ivicu polja iznad, a
+              prazna oznaka iznad njega (isti `text-xs` red kao svaka oznaka polja) drži ga u
+              istoj liniji sa poljem „Garancija putovanja" u susednoj koloni — treći red kolone,
+              simetrično sa ostatkom forme. */}
+          <div className="flex flex-col gap-0.5">
+            <span className="text-xs">&nbsp;</span>
+            <button
+              type="submit"
+              title="Filtriraj"
+              className="flex w-1/2 items-center justify-center self-end rounded bg-brand py-2 text-brand-ink hover:brightness-90"
+            >
+              <Icon name="play" />
+            </button>
+          </div>
         </Column>
       </Columns>
 
