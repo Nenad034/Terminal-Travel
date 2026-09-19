@@ -3,6 +3,7 @@
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M3) i poglavlje 8 (Faza 1)
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje
+**Verzija:** 1.49 — **uloga ručne mreže pored AI uvoza — odluka vlasnika** (19.9.2026, pitanje vlasnika: _„ukoliko će AI agent da čita cenovnike i da ih unosi u TT uz naša odobrenja, da li ima potrebe za ručnim unosom cenovnika na način kako to sada radimo"_). Novo poglavlje **2.11p**: ručni unos celog cenovnika „od nule" prestaje da bude glavni put; glavni put je uvoz (§4.2) ili rečenica (§4.8), a mreža ostaje kao **pregled i ispravka po ćeliji** i kao površina za pregled razlika pre odobrenja. Posledice: (1) predlog iz §4.2.10 — `occupancy` kao ograničena vrednost `PO_SOBI`/`PO_OSOBI` umesto slobodnog teksta, i spajanje pri ponovnom uvozu — **potvrđen**, ide prvi; (2) „Novi cenovnik" na ekranu vodi prvo na uvoz, prazan cenovnik je sekundarna opcija (M17 §6d.1); (3) u ergonomiju masovnog ručnog unosa (čarobnjaci, popunjavanje 200 redova) se dalje ne ulaže. Samo specifikacija, kod u sledećim prolazima.
 **Verzija:** 1.48 — **dve liste straničene** (18.9.2026, dok. 50 nalaz 3.5). `GET /pricelist-imports` (vraćao sve uvoze ikad) i `GET /pricelist/expiry-notices` (tiho `take: 200` bez `total`) sad primaju `page`/`limit` i vraćaju `{ data, total, page, limit, pageCount, hasMore }` — isti obrazac kao M5 liste (dok. 39 nalaz 2.2). Panel `/cenovnici` prikazuje traku „prikazano X od Y“. Usput: zastareo komentar u `pricelist-imports.service.ts` („AI provajder još nije izabran“) zamenjen (dok. 50 nalaz 4.1).
 **Verzija:** 1.47 — **masovni unos po danu je atomičan i ograničen** (18.9.2026, dok. 50 nalaz 2.1). Stop-sale, ponovno otvaranje i `capacity_override` za skup perioda pišu u **jednoj transakciji**: po periodu jedan `createMany` (dani kojih još nema) + jedan `updateMany`, umesto dotadašnjeg `upsert` po danu (izmereno 36 ms/dan → 90 dana 3,2 s; sada 0,22 s). Prekid na pola ne ostavlja polovičan upis ni revizijski zapis bez upisa. Raspon jednog unosa ≤ **366 dana** (`MAX_BULK_RANGE_DAYS`) — duže je greška u datumu, ne stvarna potreba (§2.8a).
 **Verzija:** 1.46 — **`GET /capacity/search-hotels` implementiran** (17.9.2026, M17 v2.79). `CapacityService.searchHotels(q)`: `ACTIVE`/`DRAFT` proizvodi iz M2 čiji sr naziv sadrži upit (≥ 2 znaka, do 10), sa kategorijom (`attributes.stars`), mestom, državom, ugovorom iz `sourceContractId` (id, broj, status) i API provajderom — `ProductSupplierLink` (više dobavljača) je i dalje nacrt, pa „broj izvora" je najviše ugovor + API. Panel: prediktivno polje na vrhu `/kapaciteti`, mreža se prikazuje tek kad je sužena (§4b.0).
@@ -1071,6 +1072,32 @@ Ekran: M17 §6d.4. Čita postojeće endpoint-e (`/capacity/grid` + cenovnik), ne
 
 Svaki dan nosi: `cena` (za **jednu noć koja počinje tog dana**), `osnova`, `seasonCode`, `slobodno`, `saleStatus`, `stopReason`, `dolazakMoguc` i `razlog`. `razlog` je ono što ovaj ekran čini korisnim: `VAN_PERIODA`, `NEMA_CENE`, `DAN_BEZ_CENE`, `PROZOR_PRODAJE_ZATVOREN`, `NEMA_CENE_ZA_UZRAST`, `CENA_ZA_BORAVAK`. Dozvola je `M3/contract-period/VIEW` — kalendar ne otkriva nijedan podatak koji se već ne vidi na mreži cena i na ekranu kapaciteta, samo ih spaja u jedan pogled.
 
+#### 2.11p Uloga ručne mreže pored AI uvoza (odluka vlasnika, 19.9.2026)
+
+Vlasnikovo pitanje: _„ukoliko će AI agent da čita cenovnike i da ih unosi u TT uz naša odobrenja, da li ima potrebe za ručnim unosom cenovnika na način kako to sada radimo."_
+
+**Odluka: ručni unos celog cenovnika „od nule", ćeliju po ćeliju, više nije glavni put — ali mreža ostaje.** Tri ulaza u cenovnik već postoje i sva tri završavaju na istom mestu (§4.2.10: spisak razlika → čovek odobri → nova verzija, §2.11l), pa mreža ne pravi drugi put do podataka:
+
+| Ulaz                                     | Kad                                           | Poglavlje |
+| ---------------------------------------- | --------------------------------------------- | --------- |
+| AI uvoz celog dokumenta (PDF/Excel/scan) | dobavljač pošalje nov cenovnik                | 4.2       |
+| Izmena rečima                            | sitna izmena javljena mejlom/telefonom        | 4.8       |
+| Ručna mreža                              | pregled, ispravka jedne ćelije, bez dokumenta | 2.11      |
+
+Zašto mreža ne sme da nestane (razlozi zapisani da se pitanje ne otvara ponovo):
+
+1. **Uvoz još nije dovoljno pouzdan da bude jedini ulaz** — izmereno u §4.2.10: model isti red vraća kao „po sobi" / „soba (DBL standard)" / „cena po sobi po noci", pa ponovni uvoz duplira redove; skenirani PDF-ovi, dečje cene u fusnotama i doplate u tekstu ispod tabele (58 primera u `Primeri cenovnika/`) ostaju mesta gde model greši.
+2. **Pogrešno pročitanu ćeliju treba ispraviti, ne odbaciti ceo uvoz** — ekran razlika mora imati „ispravi vrednost pa odobri"; to je ručni unos u mreži, u drugoj ulozi.
+3. **Postoje cene bez dokumenta** — dogovor na sajmu, telefonski „za tu jednu subotu 90 umesto 110", doplata samo za jedan tip sobe. §4.8 pokriva rečenicu, ali jedna ćelija u mreži je brža i sigurnija od tumačenja rečenice.
+4. **Odgovornost je agencije, ne modela** — cena je ugovorna obaveza prema gostu (M20); tim mora moći da je promeni odmah, bez AI-ja i bez veze ka spoljnom modelu.
+
+Šta se menja:
+
+- **„Novi cenovnik" vodi prvo na uvoz** (fajl ili nalepljen tekst — isti obrazac kao M5 §3.0j „ponuda iz teksta"); „prazan cenovnik" je sekundarna opcija za slučaj bez dokumenta. Ekran: M17 §6d.1.
+- **Mreža ostaje kao pregled + ispravka po ćeliji** i kao površina na kojoj se pregledaju razlike pre odobrenja. Ono što je već napravljeno (§2.11a–o, `PricelistGrid`) se ne uklanja.
+- **U ergonomiju masovnog ručnog unosa se dalje ne ulaže** (čarobnjaci, kopiranje sezone u sezonu, popunjavanje 200 redova) — to je posao uvoza.
+- **Prioritet rada** ide na ono što uvoz još ne ume, tim redom: (a) `occupancy` kao ograničena vrednost `PO_SOBI`/`PO_OSOBI` uz opciono polje za stvarnu razliku (predlog iz §4.2.10, **potvrđen ovom odlukom**; dotiče i M5 jer M5 čita `occupancy`), (b) spajanje pri ponovnom uvozu istog dokumenta (isti ključ → „bez izmena", ne „nov + ugašen"), (c) „Novi cenovnik → uvoz prvo".
+
 ---
 
 ## 3. Veza sa M2 (Katalog)
@@ -1298,7 +1325,7 @@ Popunjenost (`occupancy`) je **slobodan tekst koji vraća model**, a ulazi u klj
 
 Uvedeno je svođenje u kodu (`normalizujPopunjenost`) koje hvata poznate oblike i **rešava sezone u potpunosti** (ponovni uvoz istog dokumenta više ne pravi nove sezone — izmereno: 0 novih), ali formulacija tipa `„cena po sobi po noci"` prolazi kroz svaki razuman spisak sinonima. Zaključak iz merenja: **slobodan tekst ne može biti deo identiteta stavke**, koliko god se svodio.
 
-**Predlog za sledeći prolaz (traži vlasnikovu potvrdu, jer dotiče i M5):** `occupancy` u šemi alata prestaje da bude slobodan tekst i postaje ograničena vrednost — `PO_SOBI` / `PO_OSOBI` — uz odvojeno, opciono polje za stvarnu razliku kad je dokument pravi (`„1 Adult + 1 Chd 07-11,99"`). Ograda tada stoji u **strukturi**, ne u svođenju posle činjenice, po istom principu kao §4.2.8 (šema koja ne dozvoljava pogrešan oblik je jača od uputstva koje na njega podseća).
+**Predlog za sledeći prolaz (vlasnik potvrdio 19.9.2026, §2.11p — čeka kod; dotiče i M5):** `occupancy` u šemi alata prestaje da bude slobodan tekst i postaje ograničena vrednost — `PO_SOBI` / `PO_OSOBI` — uz odvojeno, opciono polje za stvarnu razliku kad je dokument pravi (`„1 Adult + 1 Chd 07-11,99"`). Ograda tada stoji u **strukturi**, ne u svođenju posle činjenice, po istom principu kao §4.2.8 (šema koja ne dozvoljava pogrešan oblik je jača od uputstva koje na njega podseća).
 
 **Šta ovo znači u praksi do tada:** prvi uvoz cenovnika radi ispravno i potpuno — cene, sezone, dečja cena, krevetac, verzija. Ponovni uvoz **istog** dokumenta za **isti** ugovor prikazaće duple razlike, pa ga do te ispravke treba izbegavati ili pažljivo pregledati.
 

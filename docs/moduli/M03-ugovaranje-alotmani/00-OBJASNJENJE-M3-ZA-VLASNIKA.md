@@ -351,6 +351,16 @@ Broj i tekst se ne poklapaju nikad.
 
 **Šta ovo još ne radi.** Sama provera kapaciteta u prodaji **i dalje nije uključena** — funkcija postoji i testirana je, ali je niko ne poziva. Ovaj prolaz je napravio most bez kog ta provera ne bi mogla da radi ni kad se uključi. Uključivanje je sledeći korak.
 
+## Da li nam još treba ručni unos cenovnika? (19.9.2026, vaše pitanje)
+
+Kratko: **ručno prekucavanje celog cenovnika — ne. Mreža u kojoj se vidi i ispravi jedna cena — da.**
+
+Cenovnik u sistem ulazi na tri načina i sva tri završavaju na istom mestu (spisak razlika koji vi odobrite): AI pročita dokument dobavljača; kažete rečenicu („sezona 4 i 5 idu gore 5%"); ili neko ručno menja ćeliju u mreži. Mreža zato ne pravi „drugi put" — ona je isti put, samo bez AI-ja.
+
+Zašto ostaje: AI još greši na istim mestima (isti red pročita na četiri načina, pa ponovni uvoz udvostruči redove — izmereno), a kad pogreši jednu ćeliju, treba je ispraviti, ne odbaciti ceo uvoz. Osim toga, ima cena bez dokumenta (dogovor telefonom za jednu subotu), a cena je vaša ugovorna obaveza prema gostu — tim mora moći da je promeni odmah, u nedelju uveče, bez AI-ja.
+
+Šta se menja: dugme „Novi cenovnik" vodiće prvo na uvoz, prazan cenovnik je rezervna opcija; u alate za brzo ručno kucanje 200 redova više ne ulažemo; prvi sledeći posao je da uvoz prestane da duplira redove (ono što je čekalo vašu potvrdu od 10.9. — sada potvrđeno).
+
 ## Akcija koja ističe više ne prolazi neprimećeno (dodato 14.9.2026, na vaš predlog — specifikacija, kod još nije napisan)
 
 Do sada je sistem znao da rani buking važi „za rezervacije do 30.9." i od 9.9. je odbijao da tu cenu proda posle tog datuma. Ali niko nije gledao unapred — akcija bi tiho istekla, a sa njom i prilika da se proda još deset soba.
