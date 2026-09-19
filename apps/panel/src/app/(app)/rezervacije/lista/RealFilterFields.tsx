@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import ClearableTextField from '@/components/ClearableTextField';
+import Icon from '@/components/Icon';
 import ClearableDateRange from '@/components/ClearableDateRange';
 import MultiSelectDropdown from '@/components/MultiSelectDropdown';
 import type { BookingFilters } from './RealFilterBar';
@@ -211,6 +212,18 @@ export default function RealFilterFields({
             defaultValues={toArray(filters.productType)}
             autoSubmit={autoSubmit}
           />
+          {/* Dugme za filtriranje ISPOD „Tip proizvoda", iste širine kao to polje (19.9.2026,
+              vlasnikov zahtev uz snimak: „narandžasto dugme stavite ispod polja Tip proizvoda i
+              neka zauzima istu širinu tog polja"). Do tada je stajalo levo, ispod linka „dodatni
+              filteri", u oba prikaza (traka i prozor); pošto oba prikaza dele ovu komponentu, ovde
+              je jedno mesto za oba. Visina prati `.input` (isti vertikalni padding). */}
+          <button
+            type="submit"
+            title="Filtriraj"
+            className="mt-1 flex w-full items-center justify-center rounded bg-brand py-2 text-brand-ink hover:brightness-90"
+          >
+            <Icon name="play" />
+          </button>
         </Column>
       </Columns>
 

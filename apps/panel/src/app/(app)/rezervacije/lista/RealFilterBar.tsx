@@ -130,23 +130,15 @@ export default function RealFilterBar({
         employees={employees}
         suppliers={suppliers}
       />
-      <div className="flex items-center gap-2">
-        <button
-          type="submit"
-          title="Filtriraj"
-          className="flex h-[30px] w-[30px] flex-shrink-0 items-center justify-center rounded bg-brand text-brand-ink hover:brightness-90"
+      {/* Dugme za filtriranje je od 19.9.2026 u `RealFilterFields.tsx` (ispod „Tip proizvoda"). */}
+      {hasAnyFilter && (
+        <Link
+          href="/rezervacije/lista"
+          className="self-start rounded px-3 py-1.5 font-medium text-ink-faint hover:text-ink"
         >
-          <Icon name="play" />
-        </button>
-        {hasAnyFilter && (
-          <Link
-            href="/rezervacije/lista"
-            className="rounded px-3 py-1.5 font-medium text-ink-faint hover:text-ink"
-          >
-            obriši filter
-          </Link>
-        )}
-      </div>
+          obriši filter
+        </Link>
+      )}
     </form>
   );
 }
@@ -219,14 +211,8 @@ function FilterModal({
             employees={employees}
             suppliers={suppliers}
           />
+          {/* Dugme za filtriranje je od 19.9.2026 u `RealFilterFields.tsx` (ispod „Tip proizvoda"). */}
           <div className="mt-1 flex items-center gap-2 border-t border-border pt-3">
-            <button
-              type="submit"
-              title="Pretraži"
-              className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded bg-brand text-brand-ink hover:brightness-90"
-            >
-              <Icon name="play" />
-            </button>
             <Link
               href="/rezervacije/lista"
               className="rounded px-3 py-1.5 font-medium text-ink-faint hover:text-ink"
