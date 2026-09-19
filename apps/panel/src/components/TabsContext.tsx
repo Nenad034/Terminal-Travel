@@ -28,7 +28,7 @@ interface TabsContextValue {
    * `forceNew`) ostaje nepromenjeno — pronađi po `path`-u, nikad ne dupliraj. */
   openTab: (path: string, label: string, opts?: { forceNew?: boolean }) => void;
   /** `true` tek posle obnove iz sessionStorage — pre toga `openTab` iz efekta deteta bude PREGAŽEN
-   * obnovom (efekti dece se izvršavaju pre efekta roditelja; zamka 8.19, 19.9.2026). */
+   * obnovom (efekti dece se izvršavaju pre efekta roditelja; zamka 9.12, 19.9.2026). */
   hydrated: boolean;
   /**
    * docs/analize/29-DIZAJN-SISTEM-UI.md §5a — "izmena unutar već otvorenog tab-a ne otvara
