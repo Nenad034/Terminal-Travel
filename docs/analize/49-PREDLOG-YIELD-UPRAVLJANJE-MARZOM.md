@@ -114,6 +114,7 @@ Ovo ide u M13 §4 kao nov izveštaj, tek kad prva pravila prorade.
 4. **Ko odobrava** — samo Vlasnik/Direktor, ili i šef prodaje?
 5. **Čarter i fiksni zakup** — želite li uopšte pravila „rasprodaje" tamo (spuštanje marže kako se polazak bliži), ili to ostaje ručna odluka?
 6. **Redosled** — da li ovo ide pre M4 (spoljni provajderi) i M7 u faznom planu, ili posle prve sezone stvarnih podataka? Moja preporuka: **posle prve sezone** — pravila nad praznim `SearchLog`-om nemaju šta da gledaju, a M3 mreža kapaciteta i M13 merenja tek treba da se napune.
+   **Dopuna 19.9.2026 (vlasnik se saglasio, okidač: razgovor sa Dušanom Komarom/Ominimo):** „posle prve sezone" ima smisla samo ako ta sezona **ostavi podatke** — `SearchLog` danas ne beleži ni prikazane cene ni lead-time ni vezu sa ponudom. Zato pre yield-a ide **M5 §3.0k „Signali potražnje"** (zapis prikazanih rezultata sa cenom/maržom/preostalim jedinicama, `Quote.search_log_id`, otvaranja ponude) i M13 §4.4a „Lijevak". Pitanja 1–5 i dalje čekaju odgovor.
 
 ---
 

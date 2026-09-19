@@ -3,6 +3,7 @@
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M13) i poglavlje 8 (Faza 5)
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Implementirano (avgust 2026) — vidi poglavlje 8 (izlazni kriterijum) i `docs/api/M13-bi.md`
+**Verzija:** 1.21 — **predlog §4.4a „Lijevak od upita do rezervacije"** (19.9.2026, uz M5 §3.0k; čeka potvrdu vlasnika, bez koda): pet stepenica upit → prikazano → ponuda → otvoreno → rezervacija, po destinaciji/kanalu/lead-time-u, „prikazano a nije izabrano" po proizvodu, marža po pravilu samo interno.
 **Verzija:** 1.20 — "Vremenski obrasci" dobijaju grafički prikaz (8.9.2026, isti dan kao v1.19, vlasnikov zahtev: "omogucite graficki prikaz i vremenskih obrazaca"). Tab je do sad bio jedini na ekranu Izveštaji na kom prekidač tabela/grafik nije radio ništa. Oblik grafika se bira po dimenziji, ne jedan za sve (§4.4 ispod): mreža sat × dan ide u **toplotnu mapu** (nova komponenta `HourHeatmap.tsx`), destinacije i lead-time u postojeći `BarChart`. Bez nove boje i bez nove biblioteke — jedna nijansa (`--accent`) u pet stepena, `BarChart` dobija samo `sort` prekidač da vremenska skala lead-time-a ne bude presortirana po veličini. **Provera:** `tsc --noEmit` čist za `apps/panel`; 6 novih panel testova (`TemporalCharts.spec.tsx` — redosled kategorija sa i bez `sort`, prazan period, sabiranje istog sat/dan polja), 19 panel testova prolazi; viđeno u browseru na stvarnim podacima (`tools/qa-screenshot.mjs`) za toplotnu mapu (29 rezervacija) i bar-grafik po destinaciji, i za prazno stanje (upiti — `SearchLog` prazan).
 
 **Verzija:** 1.19 — "Vremenski obrasci" prošireni sa destinacijom i segmentom (8.9.2026, isti dan kao v1.18, vlasnikov zahtev: "šta se to od destinacija otkazalo, imalo upit, rezervisalo... na nivou B2B, B2C i subagenti"). Tri nove dimenzije (`inquiries_by_destination`/`bookings_by_destination`/`cancellations_by_destination`, §4.4), opcioni `segment` na svih sedam dimenzija — `SUBAGENT` se za upite tiho ne primenjuje (`SearchLog` nema tu vezu, poglavlje 4.4 ograda). Novo poglavlje 5 pravilo: predlog narednih koraka u prodaji mora biti izveden iz stvarnog poziva `query_view`, ne uopšten — dokumentuje postojeći, već-u-kodu "agent nikad ne izmišlja" princip (`bi-terminal.service.ts:91`), bez novog gate-a. **Provera:** 4 nova unit testa (8 ukupno za `ReportsService.temporal`), 1141 backend testova prolazi, `tsc --noEmit` čist.
@@ -192,6 +193,19 @@ Za razliku od poglavlja 4.1–4.3 (šta se prodalo/otkazalo), ovo pokriva **kada
 **Nivo autonomije:** isti kao poglavlje 4.2.2 — čist read-only upit, nivo **"Autonomno"**. Poglavlje 5 ispod dodatno objašnjava kako agent ove podatke koristi za predloge — ne samo prikaz.
 
 ---
+
+### 4.4a Lijevak od upita do rezervacije (predlog, 19.9.2026, uz M5 §3.0k — čeka potvrdu vlasnika)
+
+Kad M5 §3.0k dobije kod, ovde nastaje izveštaj koji poglavlje 4.4 ne može da da: ne samo **kada** je bilo upita, nego **šta se od upita desilo**.
+
+| Izveštaj                        | Izračun                                                                                                           | Napomena                                                                                    |
+| :------------------------------ | :---------------------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------ |
+| Lijevak po destinaciji/kanalu   | `SearchLog` → `SearchLogResult` (prikazano) → `Quote.search_log_id` → `Quote.shared_view_count > 0` → `CONVERTED` | pet stepenica, procenat prelaza između svake                                                |
+| Lijevak po lead-time kategoriji | iste stepenice, grupisano po `SearchLog.lead_time_days` (kategorije iz 4.4, ne prosek)                            | „poslednji čas" se prodaje drugačije od „šest meseci unapred" — ovo je prvi dokaz za to     |
+| Prikazano a nije izabrano       | `SearchLogResult` bez `Quote` za isti `search_log_id` i `product_id`, po proizvodu i `rank`-u                     | proizvod koji je 200 puta viđen na 1. mestu i nijednom izabran ima problem cene ili prikaza |
+| Marža po pravilu (interno)      | `SearchLogResult.markup_rule_id` × ishod                                                                          | **samo `INTERNAL_PANEL`** — nabavna cena nikad ne izlazi prema M7/M8 (M5 poglavlje 6.2)     |
+
+`BiTerminalAgent` (M15 §6.9.6) dobija `query_view(funnel)` sa istim dimenzijama. Ovo je **ulaz** za dok. 49 (uslovna marža), ne deo njega.
 
 ## 5. Uloga AI agenta
 
