@@ -6023,15 +6023,15 @@ Na `/rezervacije/ponude`: dugme „Nova ponuda iz teksta" → jedna strana: levo
 
 ### 3.0k.1 Dopuna `SearchLog` — koliko unapred i za koga
 
-| Novo polje       | Tip               | Napomena                                                                      |
-| :--------------- | :---------------- | :---------------------------------------------------------------------------- |
-| stay_from        | date, nullable    | iz upita                                                                      |
-| stay_to          | date, nullable    | iz upita                                                                      |
-| lead_time_days   | integer, nullable | `stay_from − occurred_at::date`, izračunato pri upisu (ne pri čitanju)        |
-| nights           | integer, nullable | `stay_to − stay_from`                                                         |
-| adults           | integer, nullable | zbir iz `occupancy`                                                           |
-| children         | integer, nullable | zbir iz `occupancy`                                                           |
-| amenity_tags     | string[]          | iz upita (§3.0c.3), prazan niz kad nema                                       |
+| Novo polje     | Tip               | Napomena                                                               |
+| :------------- | :---------------- | :--------------------------------------------------------------------- |
+| stay_from      | date, nullable    | iz upita                                                               |
+| stay_to        | date, nullable    | iz upita                                                               |
+| lead_time_days | integer, nullable | `stay_from − occurred_at::date`, izračunato pri upisu (ne pri čitanju) |
+| nights         | integer, nullable | `stay_to − stay_from`                                                  |
+| adults         | integer, nullable | zbir iz `occupancy`                                                    |
+| children       | integer, nullable | zbir iz `occupancy`                                                    |
+| amenity_tags   | string[]          | iz upita (§3.0c.3), prazan niz kad nema                                |
 
 Ista pravila privatnosti kao §3.0i (bez IP-a i kolačića; anonimni ostaju anonimni). Ništa od ovoga nije lični podatak.
 
@@ -6039,20 +6039,20 @@ Ista pravila privatnosti kao §3.0i (bez IP-a i kolačića; anonimni ostaju anon
 
 Jedan red po **prikazanom** rezultatu, najviše prvih **20** po upitu (ono što stane na prvi ekran; ostatak je šum), dete `SearchLog`-a:
 
-| Polje                 | Tip                       | Napomena                                                                                                         |
-| :-------------------- | :------------------------ | :--------------------------------------------------------------------------------------------------------------- |
-| id                    | UUID (PK)                 |                                                                                                                  |
-| search_log_id         | UUID (FK → SearchLog)     | `ON DELETE CASCADE` — retencija roditelja briše i decu                                                            |
-| rank                  | integer                   | pozicija u odgovoru (1 = prvi); redosled je deo signala — ono na vrhu se češće bira                                |
-| product_id            | UUID (weak ref → M2)      |                                                                                                                  |
-| source_type           | `CONTRACTED` / `API`      | iz `SearchResultOffer`                                                                                           |
-| offer_final_price     | integer                   | prikazana prodajna cena, najmanja jedinica valute (poglavlje 2)                                                   |
-| offer_base_cost       | integer, nullable         | nabavna u trenutku prikaza — **interno**, nikad ne izlazi iz M13 prema M7/M8 (isto pravilo kao poglavlje 6.2)     |
-| currency              | string                    |                                                                                                                  |
-| markup_rule_id        | UUID, nullable            | koje pravilo je dalo tu maržu — bez ovoga se kasnije ne može reći „pravilo X je prodavalo bolje od pravila Y"     |
-| availability_status   | string                    | iz `SearchResultOffer` (odmah potvrda / upit)                                                                     |
-| remaining_units       | integer, nullable         | za `CONTRACTED`: preostale jedinice u trenutku prikaza — **jedini** način da se kasnije vidi „koliko je bilo popunjeno kad je gost gledao" |
-| is_refundable         | boolean, nullable         | iz `SearchResultOffer.is_refundable`                                                                              |
+| Polje               | Tip                   | Napomena                                                                                                                                   |
+| :------------------ | :-------------------- | :----------------------------------------------------------------------------------------------------------------------------------------- |
+| id                  | UUID (PK)             |                                                                                                                                            |
+| search_log_id       | UUID (FK → SearchLog) | `ON DELETE CASCADE` — retencija roditelja briše i decu                                                                                     |
+| rank                | integer               | pozicija u odgovoru (1 = prvi); redosled je deo signala — ono na vrhu se češće bira                                                        |
+| product_id          | UUID (weak ref → M2)  |                                                                                                                                            |
+| source_type         | `CONTRACTED` / `API`  | iz `SearchResultOffer`                                                                                                                     |
+| offer_final_price   | integer               | prikazana prodajna cena, najmanja jedinica valute (poglavlje 2)                                                                            |
+| offer_base_cost     | integer, nullable     | nabavna u trenutku prikaza — **interno**, nikad ne izlazi iz M13 prema M7/M8 (isto pravilo kao poglavlje 6.2)                              |
+| currency            | string                |                                                                                                                                            |
+| markup_rule_id      | UUID, nullable        | koje pravilo je dalo tu maržu — bez ovoga se kasnije ne može reći „pravilo X je prodavalo bolje od pravila Y"                              |
+| availability_status | string                | iz `SearchResultOffer` (odmah potvrda / upit)                                                                                              |
+| remaining_units     | integer, nullable     | za `CONTRACTED`: preostale jedinice u trenutku prikaza — **jedini** način da se kasnije vidi „koliko je bilo popunjeno kad je gost gledao" |
+| is_refundable       | boolean, nullable     | iz `SearchResultOffer.is_refundable`                                                                                                       |
 
 **Upis:** isto mesto i isti obrazac kao `SearchLog` (§3.0i.2) — posle uspešnog `search()`, fire-and-forget, u jednom `createMany`; kvar upisa ne sme srušiti pretragu. Očekivani obim: ≤ 20 redova po upitu; indeks `(product_id, occurred_at)` preko roditelja i `(search_log_id)`. Particionisanje po mesecu se ne uvodi dok tabela ne pređe ~10 miliona redova (zapisati kad se dogodi, ne unapred).
 
@@ -9285,12 +9285,12 @@ Za razliku od poglavlja 4.1–4.3 (šta se prodalo/otkazalo), ovo pokriva **kada
 
 Kad M5 §3.0k dobije kod, ovde nastaje izveštaj koji poglavlje 4.4 ne može da da: ne samo **kada** je bilo upita, nego **šta se od upita desilo**.
 
-| Izveštaj                          | Izračun                                                                                                        | Napomena                                                                                      |
-| :-------------------------------- | :------------------------------------------------------------------------------------------------------------- | :-------------------------------------------------------------------------------------------- |
-| Lijevak po destinaciji/kanalu     | `SearchLog` → `SearchLogResult` (prikazano) → `Quote.search_log_id` → `Quote.shared_view_count > 0` → `CONVERTED` | pet stepenica, procenat prelaza između svake                                                  |
-| Lijevak po lead-time kategoriji   | iste stepenice, grupisano po `SearchLog.lead_time_days` (kategorije iz 4.4, ne prosek)                           | „poslednji čas" se prodaje drugačije od „šest meseci unapred" — ovo je prvi dokaz za to        |
-| Prikazano a nije izabrano         | `SearchLogResult` bez `Quote` za isti `search_log_id` i `product_id`, po proizvodu i `rank`-u                    | proizvod koji je 200 puta viđen na 1. mestu i nijednom izabran ima problem cene ili prikaza     |
-| Marža po pravilu (interno)        | `SearchLogResult.markup_rule_id` × ishod                                                                       | **samo `INTERNAL_PANEL`** — nabavna cena nikad ne izlazi prema M7/M8 (M5 poglavlje 6.2)         |
+| Izveštaj                        | Izračun                                                                                                           | Napomena                                                                                    |
+| :------------------------------ | :---------------------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------ |
+| Lijevak po destinaciji/kanalu   | `SearchLog` → `SearchLogResult` (prikazano) → `Quote.search_log_id` → `Quote.shared_view_count > 0` → `CONVERTED` | pet stepenica, procenat prelaza između svake                                                |
+| Lijevak po lead-time kategoriji | iste stepenice, grupisano po `SearchLog.lead_time_days` (kategorije iz 4.4, ne prosek)                            | „poslednji čas" se prodaje drugačije od „šest meseci unapred" — ovo je prvi dokaz za to     |
+| Prikazano a nije izabrano       | `SearchLogResult` bez `Quote` za isti `search_log_id` i `product_id`, po proizvodu i `rank`-u                     | proizvod koji je 200 puta viđen na 1. mestu i nijednom izabran ima problem cene ili prikaza |
+| Marža po pravilu (interno)      | `SearchLogResult.markup_rule_id` × ishod                                                                          | **samo `INTERNAL_PANEL`** — nabavna cena nikad ne izlazi prema M7/M8 (M5 poglavlje 6.2)     |
 
 `BiTerminalAgent` (M15 §6.9.6) dobija `query_view(funnel)` sa istim dimenzijama. Ovo je **ulaz** za dok. 49 (uslovna marža), ne deo njega.
 
